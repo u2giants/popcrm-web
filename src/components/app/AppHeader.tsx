@@ -19,6 +19,24 @@ import {
 } from '@/components/ui/dropdown-menu'
 import { initials } from '@/features/crm/format'
 
+// Build identity, injected at build time (see vite.config.ts). The commit date
+// is rendered in New York time (EST/EDT) so it matches the team's timezone.
+const COMMIT_HASH = typeof __COMMIT_HASH__ === 'string' ? __COMMIT_HASH__ : ''
+const COMMIT_DATE = (() => {
+  if (typeof __COMMIT_DATE__ !== 'string' || !__COMMIT_DATE__) return ''
+  const d = new Date(__COMMIT_DATE__)
+  if (Number.isNaN(d.getTime())) return ''
+  return new Intl.DateTimeFormat('en-US', {
+    timeZone: 'America/New_York',
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+    hour: 'numeric',
+    minute: '2-digit',
+    timeZoneName: 'short',
+  }).format(d)
+})()
+
 export function AppHeader({
   onOpenMobileNav,
   onOpenSearch,
@@ -78,6 +96,18 @@ export function AppHeader({
           </TooltipTrigger>
           <TooltipContent>Refresh CRM data</TooltipContent>
         </Tooltip>
+
+        {COMMIT_HASH ? (
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <div className="hidden flex-col items-end leading-tight md:flex">
+                <span className="font-mono text-xs text-muted-foreground">#{COMMIT_HASH}</span>
+                <span className="text-[11px] text-muted-foreground">{COMMIT_DATE}</span>
+              </div>
+            </TooltipTrigger>
+            <TooltipContent>Build commit · {COMMIT_DATE}</TooltipContent>
+          </Tooltip>
+        ) : null}
 
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
