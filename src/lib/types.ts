@@ -65,6 +65,8 @@ export interface CrmOpportunity {
   production_po_number: string | null
   sales_order_number: string | null
   hard_delivery_date: string | null
+  ai_summary: string | null
+  ai_state: string | null
   retailer: string | Retailer | null
   contact: string | Buyer | null
   department: string | CrmDepartment | null
@@ -99,6 +101,60 @@ export interface CrmMeetingNote {
   contact: string | Buyer | null
 }
 
+export interface CrmIgnoreRule {
+  id: string
+  name: string | null
+  pattern: string | null
+  match_type: string | null
+  emails_skipped: number | null
+}
+
+export interface CrmAiModelConfig {
+  id: string
+  name: string | null
+  email_routing_model: string | null
+  fireflies_routing_model: string | null
+  transcript_split_model: string | null
+  opportunity_summary_model: string | null
+}
+
+export interface CrmNote {
+  id: string
+  title: string | null
+  body: string | null
+  action_items: string | null
+  source: string | null
+  fireflies_transcript_id: string | null
+  retailer: string | Retailer | null
+  contact: string | Buyer | null
+  opportunity: string | CrmOpportunity | null
+  department: string | CrmDepartment | null
+}
+
+export interface CrmTask {
+  id: string
+  title: string | null
+  body: string | null
+  status: string | null
+  due_at: string | null
+  retailer: string | Retailer | null
+  contact: string | Buyer | null
+  opportunity: string | CrmOpportunity | null
+  department: string | CrmDepartment | null
+  assignee: string | DirectusUser | null
+}
+
+export interface CrmLicensorApprovalThread {
+  id: string
+  name: string | null
+  licensor_name: string | null
+  approval_status: string | null
+  submitted_at: string | null
+  approved_at: string | null
+  latest_comment: string | null
+  opportunity: string | CrmOpportunity | null
+}
+
 export interface Schema {
   retailer: Retailer[]
   buyer: Buyer[]
@@ -108,5 +164,10 @@ export interface Schema {
   crm_opportunity: CrmOpportunity[]
   crm_email_message: CrmEmailMessage[]
   crm_meeting_note: CrmMeetingNote[]
+  crm_ignore_rule: CrmIgnoreRule[]
+  crm_ai_model_config: CrmAiModelConfig[]
+  crm_note: CrmNote[]
+  crm_task: CrmTask[]
+  crm_licensor_approval_thread: CrmLicensorApprovalThread[]
   directus_users: DirectusUser[]
 }
