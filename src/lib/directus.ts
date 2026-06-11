@@ -5,7 +5,7 @@ import type { Schema } from './types'
 export const DIRECTUS_URL = import.meta.env.VITE_DIRECTUS_URL ?? 'https://data.designflow.app'
 
 // Session/cookie auth: the backend sets an httpOnly session cookie scoped to
-// .designflow.app, so the same login works across the app subdomains (pm-dev →
+// .designflow.app, so the same login works across the app subdomains (crm-dev →
 // data) and lets Microsoft SSO return into the SPA. Requests must send credentials.
 export const directus = createDirectus<Schema>(DIRECTUS_URL)
   .with(authentication('session', { credentials: 'include', autoRefresh: true }))

@@ -1,4 +1,4 @@
-# popcmr-web
+# popcrm-web
 
 CRM frontend for POP Creations — a React + Vite + TypeScript + Tailwind v4 + shadcn/ui SPA on the shared Directus backend (`https://data.designflow.app`). It stores no data of its own.
 

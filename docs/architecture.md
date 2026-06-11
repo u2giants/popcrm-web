@@ -1,36 +1,34 @@
-# Architecture — poppim-web
+# Architecture — popcrm-web
 
-See `AGENTS.md` first. This doc covers system design and data flow.
+`popcrm-web` is a static React SPA for POP CRM.
 
-## Shape
-A **React 19 + Vite SPA** that is a pure client of the shared **Directus** API. It holds no data and no business database — Directus owns the schema, auth, permissions, and storage.
-
+```txt
+Browser
+  -> https://crm.designflow.app
+  -> popcrm-web nginx container
+  -> React/Vite SPA
+  -> Directus SDK
+  -> https://data.designflow.app
+  -> Directus/Postgres shared backend
 ```
-Browser (pm-dev / pm.designflow.app)
-  └─ poppim-web (this repo, static SPA served by nginx)
-        └─ HTTPS + session cookie ──▶ data.designflow.app  (Directus API)
-                                          └─ Postgres (shared: PIM + future CRM/DAM)
+
+Fireflies integration is handled by a separate worker endpoint:
+
+```txt
+Fireflies
+  -> https://crm-fireflies.designflow.app/s/fireflies-webhook
+  -> popcrm-fireflies container
+  -> Directus CRM collections
 ```
 
-## Stack
-- React 19 + Vite + TypeScript (strict).
-- Tailwind CSS v4 + shadcn/ui (`new-york`/Radix — see AGENTS.md §11).
-- `@directus/sdk` for all data + auth.
-- `@dnd-kit/core` for board drag.
-- `lucide-react` icons; `sonner` toasts; `@fontsource-variable/geist` font.
-- Path alias `@/*` → `src/*`.
+The frontend has no database and stores no CRM data locally. It uses browser session authentication against Directus.
 
-## Data flow
-- **Client:** `src/lib/directus.ts` builds the SDK client (`authentication('session', {credentials:'include'})` + `rest`). `DIRECTUS_URL` = `VITE_DIRECTUS_URL` or the hardcoded prod default.
-- **Types:** `src/lib/types.ts` is a hand-maintained typed slice of the backend collections this app reads.
-- **Board:** `src/features/board/api.ts` fetches `stage` (sorted) + `product` (capped page, with `cover_url`). `BoardPage` groups products by stage into droppable columns; `@dnd-kit` drag → `setProductStage` (optimistic, reverts on error).
-- **Task detail:** `TaskDetailSheet` (720px two-column slide-over) + `Collaboration.tsx` + `collab.ts` read/write `checklist_item`, `subtask`, `product_assignee` (M2M), and native `directus_comments`.
-- **Auth:** `src/auth/auth.tsx` (`AuthProvider`/`useAuth`) checks the session via `readMe`, supports email/password `login` and a Microsoft SSO redirect (`microsoftLoginUrl` → backend `/auth/login/microsoft`). `App.tsx` gates: loading → `LoginPage` → `AppShell` + `BoardPage`.
+Important frontend modules:
 
-## Constraints
-- **Cross-subdomain auth:** depends on backend session-cookie + CORS config (AGENTS.md §11/§12); the frontend can't fix auth alone.
-- **Backend is the source of truth:** to add a field/collection, change the **`directus`** repo schema first, then surface it here.
-- **Static build:** `VITE_*` is baked at build time; no runtime config.
+- `src/auth/auth.tsx`: session/user state.
+- `src/lib/directus.ts`: Directus client.
+- `src/lib/types.ts`: frontend schema types.
+- `src/features/crm/api.ts`: CRM API functions.
+- `src/features/crm/CrmPage.tsx`: current CRM workbench.
 
-## Where the backend lives
-Backend schema, roles, SSO, and migrations are in `u2giants/directus` (`pm-system/`). Read that repo's `AGENTS.md` for collections, the role model, and the domain plan.
+The planned frontend redesign is documented in `frontend_imp.md`.

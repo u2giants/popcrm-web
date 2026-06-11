@@ -1,45 +1,60 @@
-# Deployment — poppim-web
+# Deployment — popcrm-web
 
-See `AGENTS.md` §13 for the summary. This is the **actual** current process, not an ideal one.
+This is the current production deployment process for the POP CRM frontend.
 
-## Current state: serving PRODUCTION via raw Docker
-`poppim-web` is **live in production at `https://pm.designflow.app`** (cutover 2026-06-11) — but it is **not yet a Coolify-managed app or a CI pipeline.** It runs as a locally-built image attached to Coolify's existing Traefik proxy, with one container serving both `pm.designflow.app` (production) and `pm-dev.designflow.app` (alias).
+## Current State
 
-**Cutover notes:** `pm` was repointed from the Directus backend to this container — the backend dropped `pm` from its Coolify sub-app `fqdn` (`service_applications` id=16, now `data.designflow.app` only) and `pm` was added to `AUTH_MICROSOFT_REDIRECT_ALLOW_LIST`. Directus Data Studio now lives only at `data.designflow.app`.
+`popcrm-web` serves:
 
-**Why temporary:** the `gh` token on the build host lacks `write:packages`, so GHCR is unavailable, and a Coolify git-build isn't wired up. This deviates from the org standard (deploy via Coolify + GitHub Actions → registry → Coolify) and is tracked as open work (AGENTS.md §15).
+- `https://crm.designflow.app`
+- `https://crm-dev.designflow.app`
 
-## Build + deploy the preview
+It is currently deployed as a locally built Docker image attached to the existing Coolify proxy network. It is not yet a Coolify-managed app with CI.
+
+## Build And Deploy
+
 ```bash
-# 1. build the image (multi-stage node→nginx; nginx.conf = SPA fallback)
 npm run build
-docker build -t poppim-web:latest .
+docker build -t popcrm-web:latest .
 
-# 2. (re)run the container on Coolify's proxy network with Traefik labels
-docker rm -f poppim-web 2>/dev/null
-docker run -d --name poppim-web --restart unless-stopped --network coolify \
+docker rm -f popcrm-web 2>/dev/null
+docker run -d --name popcrm-web --restart unless-stopped --network coolify \
   --label "traefik.enable=true" \
-  --label 'traefik.http.routers.poppimweb-http.entryPoints=http' \
-  --label 'traefik.http.routers.poppimweb-http.rule=Host(`pm.designflow.app`) || Host(`pm-dev.designflow.app`)' \
-  --label 'traefik.http.routers.poppimweb-http.service=poppimweb' \
-  --label 'traefik.http.routers.poppimweb-https.entryPoints=https' \
-  --label 'traefik.http.routers.poppimweb-https.rule=Host(`pm.designflow.app`) || Host(`pm-dev.designflow.app`)' \
-  --label 'traefik.http.routers.poppimweb-https.tls=true' \
-  --label 'traefik.http.routers.poppimweb-https.tls.certresolver=letsencrypt' \
-  --label 'traefik.http.routers.poppimweb-https.service=poppimweb' \
-  --label 'traefik.http.services.poppimweb.loadbalancer.server.port=80' \
-  poppim-web:latest
+  --label 'traefik.http.routers.popcrm-web-http.rule=Host(`crm-dev.designflow.app`) || Host(`crm.designflow.app`)' \
+  --label traefik.http.routers.popcrm-web-http.entrypoints=http \
+  --label traefik.http.routers.popcrm-web-http.middlewares=redirect-to-https@docker \
+  --label 'traefik.http.routers.popcrm-web-https.rule=Host(`crm-dev.designflow.app`) || Host(`crm.designflow.app`)' \
+  --label traefik.http.routers.popcrm-web-https.entrypoints=https \
+  --label traefik.http.routers.popcrm-web-https.tls=true \
+  --label traefik.http.routers.popcrm-web-https.tls.certresolver=letsencrypt \
+  --label traefik.http.services.popcrm-web.loadbalancer.server.port=80 \
+  popcrm-web:latest
 ```
-Traefik (the `coolify-proxy` container) routes `pm-dev.designflow.app` to it and issues a Let's Encrypt cert (HTTP challenge). DNS `pm-dev` → the VPS is a Cloudflare A record (DNS-only).
 
-## Runtime config
-`VITE_*` is baked at build time (static SPA) — there is no runtime env. To change the backend URL, rebuild.
+## Verify
+
+```bash
+curl -fsS https://crm.designflow.app | rg -o '<title>[^<]+'
+curl -fsS https://crm-fireflies.designflow.app/health
+docker ps --filter 'name=popcrm-web' --format '{{.Names}} {{.Status}}'
+```
+
+Expected title:
+
+```txt
+<title>POP CRM
+```
+
+## Runtime Config
+
+This is a static SPA. `VITE_*` values are baked at build time.
+
+`VITE_DIRECTUS_URL` defaults to `https://data.designflow.app`.
 
 ## Rollback
-Rebuild from a known-good commit and re-run, or `docker run` a previously-tagged image.
 
-## SSH / direct-docker
-Raw `docker run` on the host **is** the current deploy path — **exceptional and temporary**. The standard (this org) is deploy-via-Coolify + CI; do not treat raw-docker as the permanent process.
+Rebuild from a known-good commit and re-run the deployment command, or run a previously tagged local image if available.
 
-## Planned (open work)
-Stand up a real **Coolify app** for `poppim-web` at `pm.designflow.app`: GHCR image + GitHub Actions (build → push → trigger Coolify), or a Coolify git-build. When that lands, add `.github/workflows/` and rewrite this doc.
+## Future Work
+
+Move this to a proper Coolify app or GitHub Actions-driven deploy. Until then, raw Docker on the host is the accepted production process for this frontend.

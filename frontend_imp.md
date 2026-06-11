@@ -18,8 +18,8 @@ Do **not** migrate the app to a new framework. Do **not** replace Directus SDK. 
 
 Repository:
 
-- GitHub: `https://github.com/u2giants/popcmr-web`
-- Local path: `/worksp/popcmr-web`
+- GitHub: `https://github.com/u2giants/popcrm-web`
+- Local path: `/worksp/popcrm-web`
 - Live production URL: `https://crm.designflow.app`
 - Preview/dev alias: `https://crm-dev.designflow.app`
 - Backend API: `https://data.designflow.app`
@@ -51,7 +51,7 @@ Current important files:
 Current deployed app state:
 
 - The app serves `POP CRM`.
-- `crm.designflow.app` points to `popcmr-web`, not POPPIM.
+- `crm.designflow.app` points to `popcrm-web`, not POPPIM.
 - Login branding was fixed from `POP PIM` to `POP CRM`.
 - The app currently loads full CRM lists for core records.
 
@@ -1244,21 +1244,21 @@ If adding Playwright later:
 Current manual deployment:
 
 ```bash
-cd /worksp/popcmr-web
+cd /worksp/popcrm-web
 npm run build
-docker build -t popcmr-web:latest .
-docker rm -f popcmr-web
-docker run -d --name popcmr-web --network coolify \
+docker build -t popcrm-web:latest .
+docker rm -f popcrm-web
+docker run -d --name popcrm-web --network coolify \
   --label traefik.enable=true \
-  --label 'traefik.http.routers.popcmr-web-http.rule=Host(`crm-dev.designflow.app`) || Host(`crm.designflow.app`)' \
-  --label traefik.http.routers.popcmr-web-http.entrypoints=http \
-  --label traefik.http.routers.popcmr-web-http.middlewares=redirect-to-https@docker \
-  --label 'traefik.http.routers.popcmr-web-https.rule=Host(`crm-dev.designflow.app`) || Host(`crm.designflow.app`)' \
-  --label traefik.http.routers.popcmr-web-https.entrypoints=https \
-  --label traefik.http.routers.popcmr-web-https.tls=true \
-  --label traefik.http.routers.popcmr-web-https.tls.certresolver=letsencrypt \
-  --label traefik.http.services.popcmr-web.loadbalancer.server.port=80 \
-  popcmr-web:latest
+  --label 'traefik.http.routers.popcrm-web-http.rule=Host(`crm-dev.designflow.app`) || Host(`crm.designflow.app`)' \
+  --label traefik.http.routers.popcrm-web-http.entrypoints=http \
+  --label traefik.http.routers.popcrm-web-http.middlewares=redirect-to-https@docker \
+  --label 'traefik.http.routers.popcrm-web-https.rule=Host(`crm-dev.designflow.app`) || Host(`crm.designflow.app`)' \
+  --label traefik.http.routers.popcrm-web-https.entrypoints=https \
+  --label traefik.http.routers.popcrm-web-https.tls=true \
+  --label traefik.http.routers.popcrm-web-https.tls.certresolver=letsencrypt \
+  --label traefik.http.services.popcrm-web.loadbalancer.server.port=80 \
+  popcrm-web:latest
 ```
 
 Verify:
