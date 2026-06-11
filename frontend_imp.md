@@ -2,7 +2,7 @@
 
 ## Purpose
 
-This document is the complete implementation brief for redesigning the POP CRM frontend into a polished, production-quality application using **Tailwind Plus Application UI** and **Tremor**, while preserving the existing custom Directus-backed CRM logic.
+This document is the complete implementation brief for redesigning the POP CRM frontend into a polished, production-quality application using **Tailwind Plus Application UI** and a **token-themed chart library** (shadcn charts by default), while preserving the existing custom Directus-backed CRM logic.
 
 It is written for a new developer with no prior context. If you are picking this up fresh, read this document first, then inspect the referenced files. The goal is to make the app beautiful, dense, credible, and operationally useful without replacing the working backend, data model, auth, migration, or custom CRM workflows.
 
@@ -10,7 +10,7 @@ It is written for a new developer with no prior context. If you are picking this
 
 The current CRM frontend works, but it is visually basic. It exposes many of the custom CRM functions that were migrated from Twenty into Directus, but it needs a professional application UI system: better shell/navigation, richer tables, better filters, better detail drawers, stronger hierarchy, polished empty/loading/error states, and analytics dashboards.
 
-The user purchased **Tailwind Plus Application UI only**. Use it as the primary visual source for layouts and application patterns. Use **Tremor** for charts, KPI cards, trends, and data-rich dashboards. Keep the app as a custom Vite/React frontend.
+The user purchased **Tailwind Plus Application UI only**. Use it as the primary visual source for layouts and application patterns. Use a **token-themed chart library** (shadcn charts / Recharts by default — decided in Phase 0) for charts, KPI cards, trends, and data-rich dashboards. Keep the app as a custom Vite/React frontend.
 
 Do **not** migrate the app to a new framework. Do **not** replace Directus SDK. Do **not** use the Directus Simple CRM template. Do **not** use ClickUp sync.
 
@@ -154,14 +154,7 @@ Use **Tailwind Plus Application UI** for the application interface patterns:
 - Settings pages.
 - Badges and status layouts.
 
-Use **Tremor** for analytics and reporting:
-
-- KPI cards.
-- Area/bar/line charts.
-- Donut charts.
-- Trend indicators.
-- Dashboard sections.
-- Worker/routing health analytics.
+Use a **token-themed chart library** for analytics and reporting (KPI cards, area/bar/line/donut charts, trend indicators, dashboard sections, worker/routing health). **Decide the library in Phase 0 — default to shadcn charts (Recharts), not Tremor** (see "Charts and dashboards").
 
 Use existing shadcn/Radix primitives for interactive behavior:
 
@@ -172,6 +165,10 @@ Use existing shadcn/Radix primitives for interactive behavior:
 - Inputs.
 - Scroll areas.
 - Toasts.
+
+**How Tailwind Plus and shadcn divide the work (they are complementary, not either/or):** Tailwind Plus supplies the **page layouts, composition, spacing, and polish** (whole-screen patterns); shadcn/Radix supplies the **interactive widgets** (correct keyboard nav, focus, a11y) that go *inside* those layouts. Tailwind Plus ships its interactive bits on Headless UI + Heroicons — swap those for the existing shadcn/Radix + Lucide so widgets match the app and stay accessible. Net: keep Tailwind Plus for layout/markup/spacing; keep shadcn for the working components.
+
+**Claude Design** (the same design partner used for PIM) owns: (a) the **token theme**, shared with PIM (see "Design tokens"), and (b) the **Overview dashboard layout** (see Phase 3). Tailwind Plus gives structure; Claude Design + shared tokens give the brand.
 
 The project should remain:
 
@@ -446,28 +443,30 @@ Likely needed new primitives:
 
 Add these either manually or with the project's shadcn workflow. Check existing `components.json` first.
 
-## Tremor Usage
+## Charts and dashboards — decide the chart library in Phase 0 (DO NOT default to Tremor)
 
-Use Tremor for the Overview dashboard and analytics surfaces.
+The Overview dashboard needs charts/KPIs, but **the chart library is a Phase-0 decision, not an assumption.** Tremor historically depended on Tailwind v3 conventions (a `tailwind.config.js` `content` list + the Tremor preset) and Headless UI. This project is **Tailwind v4 (config-less, CSS-first) + React 19**, where Tremor support has been unreliable. Betting the dashboard on Tremor and discovering an incompatibility mid-build is the failure mode to avoid.
 
-Potential install:
+**Default recommendation: use shadcn charts (Recharts-based), not Tremor.** shadcn ships `chart` components built on **Recharts** that are **Tailwind-v4- and design-token-native** — they consume the same `src/index.css` token theme as the rest of the app (see "Design tokens"), so they're *more coherent* than Tremor and avoid the v4 risk entirely. `npx shadcn@latest add chart` plus `recharts`.
 
-```bash
-npm install @tremor/react
-```
+**Phase 0 chart spike (do this before any dashboard work):**
 
-Verify compatibility with Tailwind CSS 4 and React 19 before committing. If Tremor has version incompatibility, use Tremor's design patterns and build equivalent chart cards with another chart library, but try Tremor first.
+1. In a throwaway branch/page, render one real chart with **shadcn charts (Recharts)** themed to the token palette. This is the default.
+2. Only if there's a concrete reason to prefer Tremor, spike `@tremor/react` on TW4 + React 19 in the same throwaway page and confirm it actually styles correctly against our tokens. Verify Tremor's current license too.
+3. Pick ONE library for the whole app and record the decision here. Do not mix chart libraries.
 
-Use Tremor for:
+Use the chosen chart library only for analytics surfaces:
 
-- `MetricCard` style cards.
+- `MetricCard` / KPI-style cards.
 - Area charts for email volume over time.
 - Bar charts for routing status counts.
 - Donut charts for opportunity stage distribution.
 - Trend cards for weekly/monthly movement.
 - Dashboard panels for worker health.
 
-Do not use Tremor for:
+**Claude Design owns the Overview dashboard layout** (which metrics, the grid, the hierarchy) — the same way it owned PIM's board/detail layouts. Tailwind Plus + the chosen chart library are the building blocks; Design composes the dashboard so it reads as insight, not a wall of widgets.
+
+Do not use the chart library for:
 
 - Main app shell.
 - CRUD tables.
@@ -546,6 +545,18 @@ Spacing:
 - Use compact row heights for tables.
 - Use fixed dimensions for icon buttons.
 
+## Design tokens — ONE theme, shared with PIM (do this first)
+
+This is the single most important rule for "beautiful + coherent." We are blending three visual systems — **Tailwind Plus** (layouts), **shadcn/Radix** (interactive widgets), and a **chart library** (dashboards). Blended naively they look like three different apps stitched together. The fix is a **single design-token layer** (CSS variables / OKLCH theme in `src/index.css`) that **all three consume**: Tailwind Plus components are re-colored to the tokens, shadcn already uses them, and the chart library is themed to them.
+
+**Reuse the PIM brand theme — do not invent a new palette.** The sibling PIM app (`poppim-web`) already has a Claude-Design OKLCH token theme in its `src/index.css` (semantic shadcn tokens + status/stage colors, light + dark). POP CRM and POP PIM must feel like **one product family**, so:
+
+- Copy PIM's `src/index.css` token blocks (`:root` / `.dark`, the `@theme inline` mappings) into this repo's `src/index.css` as the base. The "recommended palette" above describes the *intent* (restrained blue primary, slate neutrals, emerald/amber/red status) — but the actual values come from the shared PIM tokens, not a freshly-chosen palette.
+- Tailwind Plus example markup hard-codes colors (e.g. `bg-indigo-600`, `text-gray-900`). **Replace those literals with the semantic token classes** (`bg-primary`, `text-foreground`, `border-border`, `bg-muted`, `text-muted-foreground`, etc.) when adapting each pattern. This is what makes Tailwind Plus look like *our* app instead of a generic template.
+- Add any CRM-specific status colors (routing status, approval status, opportunity stage) as additional token variables alongside PIM's stage colors, so chips/badges are token-driven, not ad-hoc Tailwind colors.
+
+**Claude Design owns the token theme** (and the Overview dashboard layout — see the "Charts and dashboards" section). Tailwind Plus gives structure; Claude Design + the shared PIM tokens give the brand. If PIM's theme is later refined, both apps should track the same tokens.
+
 ## Page-by-Page Implementation Plan
 
 ### 1. App Shell
@@ -608,7 +619,7 @@ Components:
 
 - `AppPage`: standard page wrapper with title, description, actions, children.
 - `PageToolbar`: search/filter/action row.
-- `MetricCard`: Tremor or Tremor-inspired metric.
+- `MetricCard`: a token-themed metric card built with the Phase-0 chart library.
 - `StatusBadge`: generic status badge.
 - `CrmStatusBadge`: CRM-specific status mapping.
 - `DataTable`: table shell with header, rows, empty state, loading state, optional pagination.
@@ -653,7 +664,7 @@ Content:
   - Upcoming/open tasks.
   - Pending approvals.
 
-Use Tremor for:
+Use the Phase-0 chart library (shadcn charts by default) for:
 
 - Metric cards.
 - Charts.
@@ -1274,13 +1285,14 @@ Future improvement:
 
 ## Phased Roadmap
 
-### Phase 0: Setup and Baseline
+### Phase 0: Setup, theme, and chart decision (foundation — get this right before building screens)
 
 Tasks:
 
 - Confirm access to Tailwind Plus Application UI.
-- Install Tremor if compatible.
-- Add missing shadcn primitives needed for shell/drawers/tables.
+- **Shared token theme:** copy PIM's (`poppim-web`) `src/index.css` token blocks into this repo's `src/index.css` (see "Design tokens — ONE theme, shared with PIM"). Add CRM-specific status colors as token variables. Loop in **Claude Design** to own/refine the token theme. Verify the existing shadcn components re-skin to it.
+- **Chart-library spike (do NOT just install Tremor):** in a throwaway page, render a real chart with **shadcn charts (Recharts)** themed to the tokens (the default). Only spike `@tremor/react` if there's a specific reason; confirm it works on Tailwind v4 + React 19 and matches the tokens. Pick ONE library and record the decision in the "Charts and dashboards" section.
+- Add missing shadcn primitives needed for shell/drawers/tables (don't over-install).
 - Create `src/components/app`.
 - Create route/page structure.
 - Keep current app functional during refactor.
@@ -1288,6 +1300,8 @@ Tasks:
 Deliverables:
 
 - App still builds.
+- `src/index.css` carries the shared PIM token theme; sample shadcn components render in it.
+- Chart library chosen + a token-themed sample chart proven (decision recorded).
 - Existing CRM pages still reachable.
 - New shell skeleton in place.
 
@@ -1312,16 +1326,18 @@ Tasks:
 
 - Build `AppPage`, `PageToolbar`, `DataTable`, `DetailDrawer`, `MetricCard`, `EmptyState`, `LoadingState`, `CrmStatusBadge`.
 - Replace repeated ad hoc layout with these components.
+- Every shared component is built against the token theme (no hard-coded Tailwind colors) so all three systems stay coherent.
 
 Deliverables:
 
 - Consistent UI patterns.
 - Easier page-by-page redesign.
 
-### Phase 3: Overview Dashboard with Tremor
+### Phase 3: Overview Dashboard (with the chart library chosen in Phase 0)
 
 Tasks:
 
+- Implement the dashboard to **Claude Design's Overview layout** (which metrics, the grid, the hierarchy).
 - Add dashboard metrics.
 - Add routing distribution chart.
 - Add opportunity stage chart.
@@ -1329,8 +1345,8 @@ Tasks:
 
 Deliverables:
 
-- Beautiful landing dashboard.
-- Tremor integrated successfully.
+- Beautiful landing dashboard, themed to the shared tokens.
+- The Phase-0 chart library (shadcn/Recharts by default) integrated successfully — token-themed, not a default chart palette.
 
 ### Phase 4: Email Routing Redesign
 
@@ -1426,7 +1442,7 @@ Use this checklist while implementing.
 - [ ] Confirm login page says `POP CRM`.
 - [ ] Confirm `src/features/crm/CrmPage.tsx` current behavior before refactor.
 - [ ] Review Tailwind Plus Application UI examples for shell, tables, slide-overs, settings, stats.
-- [ ] Review Tremor docs/examples for metric cards and charts.
+- [ ] Review the chosen chart library's docs/examples for metric cards and charts (shadcn charts by default).
 
 ### Shell
 
@@ -1566,7 +1582,7 @@ The redesign is done when:
 - Pipeline is polished and usable.
 - Accounts/contacts are table-driven and searchable.
 - Meetings, notes, tasks, approvals, and settings have first-class screens.
-- Tremor dashboard gives useful operational insight.
+- The Overview dashboard gives useful operational insight, themed to the shared tokens.
 - Tailwind Plus patterns are visible in shell, tables, drawers, forms, settings, and empty states.
 - Build passes.
 - Lint has no new warnings beyond known pre-existing auth warnings, or those auth warnings are fixed.
@@ -1605,7 +1621,7 @@ This gives the whole app a better frame while keeping risk low.
 
 Build the Overview dashboard:
 
-1. Install and validate Tremor.
+1. Establish the shared PIM token theme + decide/validate the chart library (shadcn charts by default; spike Tremor only if there's a reason).
 2. Add dashboard stat helpers.
 3. Add KPI cards.
 4. Add routing status chart.
@@ -1628,4 +1644,4 @@ This is the highest-value custom workflow.
 
 ## Final Note
 
-The CRM's advantage is not that it is generic. Its advantage is that it encodes POP's real operational workflows from Twenty, Outlook, Fireflies, licensor approvals, and Directus. Tailwind Plus and Tremor should make that custom system beautiful and clear. They should not erase the custom shape of the product.
+The CRM's advantage is not that it is generic. Its advantage is that it encodes POP's real operational workflows from Twenty, Outlook, Fireflies, licensor approvals, and Directus. Tailwind Plus and the chosen chart library should make that custom system beautiful and clear. They should not erase the custom shape of the product.
