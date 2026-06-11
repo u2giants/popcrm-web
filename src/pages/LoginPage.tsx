@@ -29,7 +29,7 @@ export function LoginPage() {
     <div className="flex min-h-svh items-center justify-center bg-muted/40 p-4">
       <Card className="w-full max-w-sm">
         <CardHeader>
-          <CardTitle className="text-xl">POP PIM</CardTitle>
+          <CardTitle className="text-xl">POP CRM</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           <Button variant="outline" className="w-full" onClick={() => (window.location.href = microsoftLoginUrl())}>
