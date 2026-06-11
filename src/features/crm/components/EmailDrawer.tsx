@@ -1,0 +1,199 @@
+import { useMemo, useState } from 'react'
+import { toast } from 'sonner'
+import { Ban, Save } from 'lucide-react'
+import { DetailDrawer, DescriptionItem, DescriptionList, DrawerSection } from '@/components/app/DetailDrawer'
+import { Combobox, type ComboOption } from '@/components/app/Combobox'
+import { CrmStatusBadge } from '@/features/crm/components/CrmStatusBadge'
+import { Button } from '@/components/ui/button'
+import { Label } from '@/components/ui/label'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
+import { useCrmData } from '@/features/crm/CrmDataContext'
+import { createIgnoreRule, updateEmailMessage } from '@/features/crm/api'
+import { ROUTING_STATUSES } from '@/features/crm/constants'
+import { formatDateTime, idOf, label, relatedName } from '@/features/crm/format'
+import type { CrmEmailMessage } from '@/lib/types'
+
+export function EmailDrawer({
+  row,
+  onClose,
+}: {
+  row: CrmEmailMessage | null
+  onClose: () => void
+}) {
+  return (
+    <DetailDrawer
+      open={!!row}
+      onClose={onClose}
+      title={row?.subject || 'Email message'}
+      subtitle={row?.sender ?? undefined}
+      status={row ? <CrmStatusBadge kind="routing" status={row.routing_status} /> : undefined}
+    >
+      {row ? <EmailDrawerForm key={row.id} row={row} onClose={onClose} /> : null}
+    </DetailDrawer>
+  )
+}
+
+function EmailDrawerForm({ row, onClose }: { row: CrmEmailMessage; onClose: () => void }) {
+  const { retailers, opportunities, departments, setEmails, setIgnoreRules } = useCrmData()
+  const [status, setStatus] = useState(row.routing_status || 'UNROUTED')
+  const [retailer, setRetailer] = useState(idOf(row.retailer))
+  const [department, setDepartment] = useState(idOf(row.department))
+  const [opportunity, setOpportunity] = useState(idOf(row.opportunity))
+  const [method, setMethod] = useState(row.routing_method || 'MANUAL')
+  const [saving, setSaving] = useState(false)
+
+  const retailerOptions = useMemo<ComboOption[]>(
+    () => retailers.map((r) => ({ value: r.id, label: r.name, hint: r.domain ?? undefined })),
+    [retailers],
+  )
+  // Departments are scoped to the chosen retailer when one is selected.
+  const departmentOptions = useMemo<ComboOption[]>(
+    () =>
+      departments
+        .filter((d) => !retailer || idOf(d.retailer) === retailer)
+        .map((d) => ({ value: d.id, label: d.name, hint: relatedName(d.retailer) })),
+    [departments, retailer],
+  )
+  const opportunityOptions = useMemo<ComboOption[]>(
+    () =>
+      opportunities.map((o) => ({
+        value: o.id,
+        label: o.name || 'Untitled program',
+        hint: relatedName(o.retailer),
+      })),
+    [opportunities],
+  )
+
+  async function save() {
+    setSaving(true)
+    const values: Partial<CrmEmailMessage> = {
+      routing_status: status,
+      routing_method: method || 'MANUAL',
+      retailer: retailer || null,
+      department: department || null,
+      opportunity: opportunity || null,
+    }
+    try {
+      await updateEmailMessage(row.id, values)
+      setEmails((rows) => rows.map((r) => (r.id === row.id ? { ...r, ...values } : r)))
+      toast.success('Routing saved')
+      onClose()
+    } catch {
+      toast.error('Could not save routing')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  async function ignoreSubject() {
+    const pattern = (row.subject || '').trim()
+    if (!pattern) {
+      toast.error('No subject to build a rule from')
+      return
+    }
+    try {
+      const rule = await createIgnoreRule({ name: pattern, pattern, match_type: 'CONTAINS', emails_skipped: 0 })
+      setIgnoreRules((rows) => [rule, ...rows])
+      toast.success('Ignore rule created from subject')
+    } catch {
+      toast.error('Could not create ignore rule')
+    }
+  }
+
+  return (
+    <>
+      <DrawerSection>
+        <DescriptionList>
+          <DescriptionItem term="From">{row.sender || '—'}</DescriptionItem>
+          <DescriptionItem term="Received">{formatDateTime(row.received_at)}</DescriptionItem>
+          <DescriptionItem term="To" full>{row.recipients || '—'}</DescriptionItem>
+        </DescriptionList>
+      </DrawerSection>
+
+      <DrawerSection title="Preview">
+        <div className="max-h-48 overflow-y-auto rounded-md border bg-muted/30 p-3 text-sm whitespace-pre-wrap text-muted-foreground">
+          {row.body_preview || 'No preview available.'}
+        </div>
+      </DrawerSection>
+
+      <DrawerSection title="Routing">
+        <div className="grid gap-4 sm:grid-cols-2">
+          <div className="grid gap-1.5">
+            <Label>Status</Label>
+            <Select value={status} onValueChange={setStatus}>
+              <SelectTrigger className="w-full">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {ROUTING_STATUSES.map((s) => (
+                  <SelectItem key={s} value={s}>
+                    {label(s)}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="grid gap-1.5">
+            <Label>Method</Label>
+            <Select value={method} onValueChange={setMethod}>
+              <SelectTrigger className="w-full">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {['MANUAL', 'DETERMINISTIC', 'AI'].map((m) => (
+                  <SelectItem key={m} value={m}>
+                    {label(m)}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="grid gap-1.5">
+            <Label>Account</Label>
+            <Combobox
+              options={retailerOptions}
+              value={retailer}
+              onChange={(v) => { setRetailer(v); setDepartment('') }}
+              placeholder="Select account"
+            />
+          </div>
+          <div className="grid gap-1.5">
+            <Label>Department</Label>
+            <Combobox
+              options={departmentOptions}
+              value={department}
+              onChange={setDepartment}
+              placeholder="Select department"
+            />
+          </div>
+          <div className="grid gap-1.5 sm:col-span-2">
+            <Label>Opportunity</Label>
+            <Combobox
+              options={opportunityOptions}
+              value={opportunity}
+              onChange={setOpportunity}
+              placeholder="Select opportunity"
+            />
+          </div>
+        </div>
+      </DrawerSection>
+
+      <DrawerSection>
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <Button variant="outline" size="sm" onClick={ignoreSubject}>
+            <Ban className="size-4" /> Ignore this subject
+          </Button>
+          <Button onClick={save} disabled={saving}>
+            <Save className="size-4" /> {saving ? 'Saving…' : 'Save routing'}
+          </Button>
+        </div>
+      </DrawerSection>
+    </>
+  )
+}

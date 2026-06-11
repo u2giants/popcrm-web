@@ -37,16 +37,22 @@ Sibling frontends:
 
 | Path | Purpose |
 |---|---|
-| `src/App.tsx` | Auth gate and shell wrapper |
+| `src/App.tsx` | Auth gate; renders the routed app for signed-in users |
 | `src/auth/auth.tsx` | Directus session auth |
-| `src/components/AppShell.tsx` | Authenticated app shell |
+| `src/app/AppLayout.tsx` | Authenticated app shell (sidebar + header + `<Outlet>`) |
+| `src/app/routes.tsx` | React Router route tree (one route per page) |
+| `src/app/navigation.ts` | Sidebar navigation config |
+| `src/components/app/` | App-level building blocks (DataTable, DetailDrawer, MetricCard, PageToolbar, states…) |
 | `src/components/ui/` | shadcn-style generated primitives |
-| `src/features/crm/CrmPage.tsx` | Current CRM workbench |
+| `src/features/crm/CrmDataContext.tsx` | Loads CRM bootstrap data once; exposes state, refresh, derived stats |
+| `src/features/crm/pages/` | One module per route (Overview, Pipeline, Email Routing, …) |
+| `src/features/crm/components/` | Domain drawers and CRM badges |
 | `src/features/crm/api.ts` | Directus SDK reads/writes |
+| `src/features/crm/constants.ts` / `format.ts` | Domain enums/status maps and display formatting |
 | `src/lib/directus.ts` | Directus client config |
 | `src/lib/types.ts` | Frontend TypeScript slice of Directus schema |
 | `src/pages/LoginPage.tsx` | Login screen |
-| `frontend_imp.md` | Comprehensive frontend redesign plan using Tailwind Plus Application UI and Tremor |
+| `frontend_imp.md` | Comprehensive frontend redesign plan (Tailwind Plus Application UI + shadcn charts) |
 
 ## Backend Context
 
@@ -143,10 +149,11 @@ Do not load these into AI context unless explicitly needed:
 
 ## Current Frontend Redesign Direction
 
-The user purchased Tailwind Plus Application UI. The plan is to redesign this CRM in-place using:
+The user purchased Tailwind Plus Application UI. The CRM was redesigned in-place using:
 
-- Tailwind Plus Application UI for app shell, tables, drawers, forms, settings, empty states.
-- Tremor for dashboard metrics and charts.
-- Existing Directus SDK/custom CRM API underneath.
+- Tailwind Plus Application UI patterns for the app shell, tables, drawers, forms, settings and empty states.
+- A shared OKLCH design-token theme (in `src/index.css`, sibling of `poppim-web`) consumed by every layer.
+- shadcn charts (Recharts) for the Overview dashboard — chosen over Tremor for Tailwind v4 + React 19 compatibility (decision recorded in `frontend_imp.md`).
+- The existing Directus SDK / custom CRM API underneath.
 
-Read `frontend_imp.md` before starting frontend redesign work.
+Read `frontend_imp.md` for the full plan and rationale before substantial frontend work.

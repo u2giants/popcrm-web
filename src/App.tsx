@@ -1,7 +1,7 @@
 import { AuthProvider, useAuth } from '@/auth/auth'
-import { AppShell } from '@/components/AppShell'
 import { LoginPage } from '@/pages/LoginPage'
-import { CrmPage } from '@/features/crm/CrmPage'
+import { CrmDataProvider } from '@/features/crm/CrmDataContext'
+import { AppRoutes } from '@/app/routes'
 
 function Gate() {
   const { user, loading } = useAuth()
@@ -16,9 +16,9 @@ function Gate() {
   if (!user) return <LoginPage />
 
   return (
-    <AppShell>
-      <CrmPage />
-    </AppShell>
+    <CrmDataProvider>
+      <AppRoutes />
+    </CrmDataProvider>
   )
 }
 

@@ -29,6 +29,7 @@ Important frontend modules:
 - `src/lib/directus.ts`: Directus client.
 - `src/lib/types.ts`: frontend schema types.
 - `src/features/crm/api.ts`: CRM API functions.
-- `src/features/crm/CrmPage.tsx`: current CRM workbench.
+- `src/features/crm/CrmDataContext.tsx`: loads CRM bootstrap data once and shares it with the pages.
+- `src/app/AppLayout.tsx` + `src/app/routes.tsx`: app shell and route-per-page modules under `src/features/crm/pages/`.
 
-The planned frontend redesign is documented in `frontend_imp.md`.
+The frontend redesign is documented in `frontend_imp.md`.

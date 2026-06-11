@@ -3,6 +3,7 @@ import { directus } from '@/lib/directus'
 import type {
   CrmAiModelConfig,
   Buyer,
+  CrmDepartment,
   CrmEmailMessage,
   CrmIgnoreRule,
   CrmLicensorApprovalThread,
@@ -12,35 +13,6 @@ import type {
   CrmTask,
   Retailer,
 } from '@/lib/types'
-
-export const OPPORTUNITY_STAGES = [
-  'DIRECTIVE_RECEIVED',
-  'DESIGN_IN_PROGRESS',
-  'BUYER_REVIEW',
-  'PRICING_AND_SAMPLING',
-  'AWAITING_SALES_ORDER',
-  'IN_PRODUCTION',
-  'SHIPPED',
-  'CLOSED',
-] as const
-
-export const AI_MODELS = [
-  'GPT_5_4',
-  'GPT_5_4_MINI',
-  'GPT_5_4_NANO',
-  'GEMINI_3_1_PRO',
-  'GEMINI_3_FLASH',
-  'GEMINI_3_1_FLASH_LITE',
-  'GEMINI_3_1_FLASH_IMAGE',
-  'GEMINI_2_FLASH',
-  'CLAUDE_SONNET_4_6',
-  'CLAUDE_HAIKU_4_5',
-] as const
-
-export function label(value: string | null | undefined) {
-  if (!value) return 'Unspecified'
-  return value.toLowerCase().split('_').map((part) => part[0]?.toUpperCase() + part.slice(1)).join(' ')
-}
 
 export async function fetchOpportunities(): Promise<CrmOpportunity[]> {
   return directus.request(
@@ -89,6 +61,10 @@ export async function fetchRetailers(limit = 300): Promise<Retailer[]> {
   ) as Promise<Retailer[]>
 }
 
+export async function updateRetailer(id: string, values: Partial<Retailer>) {
+  return directus.request(updateItem('retailer', id, values as never))
+}
+
 export async function fetchBuyers(limit = 300): Promise<Buyer[]> {
   return directus.request(
     readItems('buyer', {
@@ -107,6 +83,28 @@ export async function fetchBuyers(limit = 300): Promise<Buyer[]> {
       limit,
     }),
   ) as Promise<Buyer[]>
+}
+
+export async function updateBuyer(id: string, values: Partial<Buyer>) {
+  return directus.request(updateItem('buyer', id, values as never))
+}
+
+export async function fetchDepartments(limit = -1): Promise<CrmDepartment[]> {
+  return directus.request(
+    readItems('crm_department', {
+      fields: [
+        'id',
+        'name',
+        'category',
+        'division',
+        'active',
+        { retailer: ['id', 'name'] },
+        { primary_buyer: ['id', 'name', 'email'] },
+      ],
+      sort: ['name'],
+      limit,
+    }),
+  ) as Promise<CrmDepartment[]>
 }
 
 export async function fetchEmailMessages(limit = 300): Promise<CrmEmailMessage[]> {
@@ -131,6 +129,10 @@ export async function fetchEmailMessages(limit = 300): Promise<CrmEmailMessage[]
   ) as Promise<CrmEmailMessage[]>
 }
 
+export async function updateEmailMessage(id: string, values: Partial<CrmEmailMessage>) {
+  return directus.request(updateItem('crm_email_message', id, values as never))
+}
+
 export async function fetchMeetingNotes(limit = 100): Promise<CrmMeetingNote[]> {
   return directus.request(
     readItems('crm_meeting_note', {
@@ -142,6 +144,7 @@ export async function fetchMeetingNotes(limit = 100): Promise<CrmMeetingNote[]> 
         'summary',
         'action_items',
         'source',
+        'fireflies_transcript_id',
         { retailer: ['id', 'name'] },
         { department: ['id', 'name'] },
         { contact: ['id', 'name', 'email'] },
@@ -150,10 +153,6 @@ export async function fetchMeetingNotes(limit = 100): Promise<CrmMeetingNote[]> 
       limit,
     }),
   ) as Promise<CrmMeetingNote[]>
-}
-
-export async function updateEmailMessage(id: string, values: Partial<CrmEmailMessage>) {
-  return directus.request(updateItem('crm_email_message', id, values as never))
 }
 
 export async function fetchIgnoreRules(): Promise<CrmIgnoreRule[]> {
@@ -209,6 +208,10 @@ export async function createNote(values: Partial<CrmNote>) {
   return directus.request(createItem('crm_note', values as never)) as Promise<CrmNote>
 }
 
+export async function updateNote(id: string, values: Partial<CrmNote>) {
+  return directus.request(updateItem('crm_note', id, values as never))
+}
+
 export async function fetchTasks(limit = 200): Promise<CrmTask[]> {
   return directus.request(
     readItems('crm_task', {
@@ -230,6 +233,10 @@ export async function fetchTasks(limit = 200): Promise<CrmTask[]> {
   ) as Promise<CrmTask[]>
 }
 
+export async function createTask(values: Partial<CrmTask>) {
+  return directus.request(createItem('crm_task', values as never)) as Promise<CrmTask>
+}
+
 export async function updateTask(id: string, values: Partial<CrmTask>) {
   return directus.request(updateItem('crm_task', id, values as never))
 }
@@ -244,8 +251,6 @@ export async function fetchApprovalThreads(limit = 200): Promise<CrmLicensorAppr
   ) as Promise<CrmLicensorApprovalThread[]>
 }
 
-export function relatedName(value: string | { name?: string | null; title?: string | null } | null | undefined) {
-  if (!value) return '—'
-  if (typeof value === 'string') return '—'
-  return value.name || value.title || '—'
+export async function updateApprovalThread(id: string, values: Partial<CrmLicensorApprovalThread>) {
+  return directus.request(updateItem('crm_licensor_approval_thread', id, values as never))
 }

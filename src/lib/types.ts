@@ -96,6 +96,7 @@ export interface CrmMeetingNote {
   summary: string | null
   action_items: string | null
   source: string | null
+  fireflies_transcript_id: string | null
   retailer: string | Retailer | null
   department: string | CrmDepartment | null
   contact: string | Buyer | null

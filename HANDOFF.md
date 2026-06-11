@@ -9,4 +9,4 @@ Current handoff state:
 
 The app is a CRM frontend using custom Directus CRM collections and custom worker automation. It is not the Directus Simple CRM template.
 
-The next major frontend work is the Tailwind Plus Application UI + Tremor redesign described in `frontend_imp.md`.
+The Tailwind Plus Application UI redesign described in `frontend_imp.md` is implemented: a sidebar app shell, route-per-page modules (Overview, Pipeline, Accounts, Contacts, Email Routing, Meetings, Notes, Tasks, Approvals, Settings), shared app components (DataTable, DetailDrawer, MetricCard, …), domain drawers, a global command palette, and an Overview dashboard built with shadcn charts (Recharts). All surfaces consume the shared OKLCH token theme. Charts use shadcn/Recharts rather than Tremor (Tailwind v4 + React 19 compatibility).

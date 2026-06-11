@@ -28,4 +28,4 @@ VITE_DIRECTUS_URL=http://localhost:8055
 
 ## Frontend Redesign
 
-Read `frontend_imp.md` before substantial UI work. The chosen direction is Tailwind Plus Application UI for app patterns and Tremor for analytics, while keeping the current Vite/React/Directus SDK architecture.
+Read `frontend_imp.md` before substantial UI work. The implemented direction is Tailwind Plus Application UI for app patterns and shadcn charts (Recharts) for analytics, themed by the shared design tokens in `src/index.css`, while keeping the Vite/React/Directus SDK architecture.
