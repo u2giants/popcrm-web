@@ -108,10 +108,10 @@ export function CrmPage() {
     setLoading(true)
     const [opps, companies, contacts, messages, meetingRows, rules, configs, noteRows, taskRows, approvalRows] = await Promise.all([
       fetchOpportunities(),
-      fetchRetailers(1000),
-      fetchBuyers(1000),
-      fetchEmailMessages(1000),
-      fetchMeetingNotes(300),
+      fetchRetailers(-1),
+      fetchBuyers(-1),
+      fetchEmailMessages(-1),
+      fetchMeetingNotes(-1),
       fetchIgnoreRules(),
       fetchAiModelConfigs(),
       fetchNotes(),
