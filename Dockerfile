@@ -4,6 +4,12 @@ WORKDIR /app
 COPY package*.json ./
 RUN npm ci
 COPY . .
+# Commit identity is passed by CI (the .git dir is not in the build context).
+# vite.config.ts reads these to stamp the build into the app header.
+ARG COMMIT_HASH=""
+ARG COMMIT_DATE=""
+ENV COMMIT_HASH=$COMMIT_HASH
+ENV COMMIT_DATE=$COMMIT_DATE
 RUN npm run build
 # serve
 FROM nginx:alpine
