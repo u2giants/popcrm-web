@@ -107,19 +107,19 @@ Do not commit real `.env` values.
 
 ## Deployment
 
-Current production deployment is raw Docker attached to the existing Coolify proxy network.
+Production deploys through the compliant CI/CD path: **GitHub Actions builds and
+publishes the image to GHCR; Coolify pulls and runs it.** A push to `main` runs
+`.github/workflows/deploy.yml` (verify → build-and-push → trigger Coolify). CI
+never SSHes into or mutates the server. Just commit to `main` to release.
 
-Canonical image/container name:
+- Registry image: `ghcr.io/u2giants/popcrm-web` (tags `latest`, `main`, `sha-<sha>`)
+- Coolify app: `popcrm-web` (`a1vb55by4benmh25nd4ga8pt`), project "POP Creations CRM", env production
+- Domains: `crm.designflow.app`, `crm-dev.designflow.app`
+- Deploy secrets (CI/CD only): `COOLIFY_BASE_URL`, `COOLIFY_API_TOKEN`, `COOLIFY_SERVER_UUID`
+- Rollback: redeploy a previous `sha-<sha>` in Coolify (never hand-edit the server)
 
-- Image: `popcrm-web:latest`
-- Container: `popcrm-web`
-
-Canonical host rules:
-
-- `crm.designflow.app`
-- `crm-dev.designflow.app`
-
-See `docs/deployment.md` for the exact command.
+Manual `docker run` on the host is emergency-only. See `docs/deployment.md` for
+the full topology, the audit trail, and the break-glass procedure.
 
 ## Generated Code Boundary
 

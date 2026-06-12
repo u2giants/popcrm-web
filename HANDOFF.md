@@ -6,6 +6,7 @@ Current handoff state:
 - Preview alias: `https://crm-dev.designflow.app`
 - Backend: `https://data.designflow.app`
 - Correct project name: `popcrm-web`
+- Deploy: push to `main` → GitHub Actions builds + pushes `ghcr.io/u2giants/popcrm-web` → Coolify app `popcrm-web` pulls and runs it. See `docs/deployment.md`.
 
 The app is a CRM frontend using custom Directus CRM collections and custom worker automation. It is not the Directus Simple CRM template.
 
