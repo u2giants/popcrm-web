@@ -94,6 +94,7 @@ export function EmailRoutingPage() {
       hideBelow: 'lg',
       sortValue: (e) => e.routing_method ?? '',
       filterValue: (e) => e.routing_method,
+      filterLabel: (v) => METHOD_LABEL[v] ?? label(v),
       cell: (e) => <MethodChip method={e.routing_method} />,
     },
     {
@@ -101,6 +102,7 @@ export function EmailRoutingPage() {
       header: 'Status',
       sortValue: (e) => e.routing_status ?? '',
       filterValue: (e) => e.routing_status,
+      filterLabel: (v) => label(v),
       cell: (e) => <CrmStatusBadge kind="routing" status={e.routing_status} />,
     },
   ]

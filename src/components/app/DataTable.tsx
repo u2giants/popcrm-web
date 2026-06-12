@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState, type ReactNode } from 'react'
+import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { ChevronDown, ChevronUp, ChevronsUpDown, Columns3, GripVertical, ListFilter, Search, X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { LoadingState, EmptyState } from '@/components/app/states'
@@ -19,6 +19,8 @@ export interface Column<T> {
   cell: (row: T) => ReactNode
   sortValue?: (row: T) => string | number | null | undefined
   filterValue?: (row: T) => string | number | null | undefined
+  /** Optional display label for a raw filterValue string shown in the popover. */
+  filterLabel?: (value: string) => string
   className?: string
   headClassName?: string
   hideBelow?: Breakpoint
@@ -51,8 +53,10 @@ export function DataTable<T>({
   initialSort?: { key: string; dir: 'asc' | 'desc' }
 }) {
   const [sort, setSort] = useState<{ key: string; dir: 'asc' | 'desc' } | null>(initialSort ?? null)
-  const [filterText, setFilterText] = useState<Record<string, string>>({})
-  const [showFilters, setShowFilters] = useState(false)
+  const [filterSets, setFilterSets] = useState<Record<string, string[]>>({})
+  const [openFilter, setOpenFilter] = useState<string | null>(null)
+  const [filterSearch, setFilterSearch] = useState('')
+  const [filterPos, setFilterPos] = useState<{ top: number; left: number } | null>(null)
   const [colOrder, setColOrder] = useState<string[]>(() => columns.map((c) => c.key))
   const [colHidden, setColHidden] = useState<Record<string, boolean>>({})
   const [colWidths, setColWidths] = useState<Record<string, number>>(() =>
@@ -63,25 +67,28 @@ export function DataTable<T>({
   const dragKey = useRef<string | null>(null)
   const [dropKey, setDropKey] = useState<string | null>(null)
   const resizing = useRef<{ key: string; startX: number; startW: number } | null>(null)
+  const filterPopoverRef = useRef<HTMLDivElement | null>(null)
 
   const byKey = useMemo(() => Object.fromEntries(columns.map((c) => [c.key, c])), [columns])
   const orderedCols = colOrder.map((k) => byKey[k]).filter(Boolean)
-  // hideBelow columns stay in DOM — responsive hiding is handled via className on td/th
   const allVisibleCols = orderedCols.filter((c) => !colHidden[c.key])
 
-  const activeFilters = Object.entries(filterText).filter(([, v]) => v?.trim())
+  const activeFilterEntries = useMemo(
+    () => Object.entries(filterSets).filter(([, v]) => v.length > 0),
+    [filterSets],
+  )
 
   const filtered = useMemo(() => {
-    if (!activeFilters.length) return rows
+    if (!activeFilterEntries.length) return rows
     return rows.filter((row) =>
-      activeFilters.every(([key, text]) => {
+      activeFilterEntries.every(([key, selected]) => {
         const col = byKey[key]
         const valueOf = col?.filterValue ?? col?.sortValue
         if (!valueOf) return true
-        return String(valueOf(row) ?? '').toLowerCase().includes(text.trim().toLowerCase())
+        return selected.includes(String(valueOf(row) ?? ''))
       }),
     )
-  }, [rows, activeFilters, byKey])
+  }, [rows, activeFilterEntries, byKey])
 
   const sorted = useMemo(() => {
     if (!sort) return filtered
@@ -103,6 +110,44 @@ export function DataTable<T>({
   const safePage = Math.min(page, pageCount - 1)
   const pageRows = sorted.slice(safePage * pageSize, safePage * pageSize + pageSize)
 
+  // Unique values for the open filter column, computed from ALL rows (not filtered).
+  const openFilterValues = useMemo(() => {
+    if (!openFilter) return []
+    const col = byKey[openFilter]
+    const valueOf = col?.filterValue ?? col?.sortValue
+    if (!valueOf) return []
+    const seen = new Set<string>()
+    for (const row of rows) {
+      const v = String(valueOf(row) ?? '').trim()
+      if (v) seen.add(v)
+    }
+    return [...seen].sort((a, b) => a.localeCompare(b))
+  }, [openFilter, rows, byKey])
+
+  const filteredPopoverValues = useMemo(() => {
+    const q = filterSearch.trim().toLowerCase()
+    return q ? openFilterValues.filter((v) => v.toLowerCase().includes(q)) : openFilterValues
+  }, [openFilterValues, filterSearch])
+
+  // Close filter popover on outside click or Escape.
+  useEffect(() => {
+    if (!openFilter) return
+    function onKey(e: KeyboardEvent) {
+      if (e.key === 'Escape') setOpenFilter(null)
+    }
+    function onPointer(e: PointerEvent) {
+      if (filterPopoverRef.current && !filterPopoverRef.current.contains(e.target as Node)) {
+        setOpenFilter(null)
+      }
+    }
+    document.addEventListener('keydown', onKey)
+    document.addEventListener('pointerdown', onPointer)
+    return () => {
+      document.removeEventListener('keydown', onKey)
+      document.removeEventListener('pointerdown', onPointer)
+    }
+  }, [openFilter])
+
   function toggleSort(key: string) {
     setPage(0)
     setSort((prev) => {
@@ -112,13 +157,41 @@ export function DataTable<T>({
     })
   }
 
-  function setColFilter(key: string, value: string) {
+  function openFilterFor(key: string, btn: HTMLElement) {
+    if (openFilter === key) { setOpenFilter(null); return }
+    setFilterSearch('')
+    const rect = btn.getBoundingClientRect()
+    // Clamp left so popover stays on screen.
+    const popW = 228
+    const left = Math.min(rect.left, window.innerWidth - popW - 8)
+    setFilterPos({ top: rect.bottom + 4, left })
+    setOpenFilter(key)
+  }
+
+  function toggleFilterValue(key: string, value: string) {
     setPage(0)
-    setFilterText((prev) => {
-      const next = { ...prev }
-      if (!value.trim()) delete next[key]
-      else next[key] = value
-      return next
+    setFilterSets((prev) => {
+      const current = prev[key] ?? []
+      const next = current.includes(value) ? current.filter((v) => v !== value) : [...current, value]
+      if (!next.length) {
+        const { [key]: _removed, ...rest } = prev
+        return rest
+      }
+      return { ...prev, [key]: next }
+    })
+  }
+
+  function selectAllValues(key: string) {
+    if (!openFilter) return
+    setPage(0)
+    setFilterSets((prev) => ({ ...prev, [key]: [...openFilterValues] }))
+  }
+
+  function clearColFilter(key: string) {
+    setPage(0)
+    setFilterSets((prev) => {
+      const { [key]: _removed, ...rest } = prev
+      return rest
     })
   }
 
@@ -174,7 +247,7 @@ export function DataTable<T>({
   return (
     <div
       className="overflow-hidden rounded-[13px] border bg-card"
-      onClick={() => colMenuOpen && setColMenuOpen(false)}
+      onClick={() => { colMenuOpen && setColMenuOpen(false); openFilter && setOpenFilter(null) }}
     >
       {/* Toolbar */}
       <div
@@ -183,30 +256,23 @@ export function DataTable<T>({
       >
         <span className="text-[11.5px] font-[500] text-muted-foreground">
           {sorted.length.toLocaleString()} rows
-          {activeFilters.length > 0
-            ? ` · ${activeFilters.length} filter${activeFilters.length !== 1 ? 's' : ''}`
+          {activeFilterEntries.length > 0
+            ? ` · ${activeFilterEntries.length} filter${activeFilterEntries.length !== 1 ? 's' : ''} active`
             : ''}
         </span>
         <div className="ml-auto flex items-center gap-1.5">
-          {activeFilters.length > 0 && (
+          {activeFilterEntries.length > 0 && (
             <Button
               variant="ghost"
-              size="icon-xs"
-              onClick={() => setFilterText({})}
+              size="sm"
+              className="h-[28px] gap-1.5 px-[10px] text-[12px]"
+              onClick={() => setFilterSets({})}
               title="Clear all filters"
             >
-              <X className="size-3.5" />
+              <X className="size-[13px]" />
+              Clear filters
             </Button>
           )}
-          <Button
-            variant={showFilters ? 'default' : 'ghost'}
-            size="sm"
-            className="h-[28px] gap-1.5 px-[10px] text-[12px]"
-            onClick={() => setShowFilters((s) => !s)}
-          >
-            <ListFilter className="size-[14px]" />
-            Filters
-          </Button>
           {/* Columns visibility menu */}
           <div className="relative">
             <Button
@@ -273,17 +339,18 @@ export function DataTable<T>({
           )}
 
           <thead>
-            {/* Sort header row */}
             <tr className="border-b bg-muted">
               {allVisibleCols.map((col) => {
                 const sortable = !!col.sortValue
                 const filterable = !!(col.filterValue ?? col.sortValue)
-                const active = sort?.key === col.key
+                const activeSort = sort?.key === col.key
+                const hasFilter = !!(filterSets[col.key]?.length)
+                const filterOpen = openFilter === col.key
                 return (
                   <th
                     key={col.key}
                     className={cn(
-                      'relative select-none border-b-0 px-[14px] py-[7px] text-left text-[11px] font-[600] uppercase tracking-[0.04em] whitespace-nowrap text-muted-foreground',
+                      'group relative select-none border-b-0 px-[14px] py-[7px] text-left text-[11px] font-[600] uppercase tracking-[0.04em] whitespace-nowrap text-muted-foreground',
                       col.numeric && 'text-right',
                       dropKey === col.key &&
                         'before:absolute before:inset-y-0 before:left-0 before:w-[2px] before:bg-primary before:content-[""]',
@@ -307,7 +374,7 @@ export function DataTable<T>({
                           onClick={() => toggleSort(col.key)}
                         >
                           <span className="truncate">{col.header}</span>
-                          {active ? (
+                          {activeSort ? (
                             sort?.dir === 'asc' ? (
                               <ChevronUp className="size-3 shrink-0 opacity-70" />
                             ) : (
@@ -320,19 +387,21 @@ export function DataTable<T>({
                       ) : (
                         <span className="truncate">{col.header}</span>
                       )}
+
                       {filterable && (
                         <button
                           type="button"
                           className={cn(
-                            'ml-auto flex size-[20px] shrink-0 items-center justify-center rounded-[5px] opacity-50 transition-colors hover:bg-accent hover:opacity-100',
-                            filterText[col.key] && 'bg-primary/14 text-primary opacity-100',
+                            'ml-auto flex size-[20px] shrink-0 items-center justify-center rounded-[5px] transition-colors',
+                            hasFilter || filterOpen
+                              ? 'bg-primary/14 text-primary'
+                              : 'text-muted-foreground opacity-30 group-hover:opacity-70 hover:!opacity-100 hover:bg-accent',
                           )}
                           onClick={(e) => {
                             e.stopPropagation()
-                            setShowFilters(true)
-                            setTimeout(() => document.getElementById(`flt-${col.key}`)?.focus(), 30)
+                            openFilterFor(col.key, e.currentTarget)
                           }}
-                          title={`Filter ${String(col.header)}`}
+                          title={`Filter by ${String(col.header)}`}
                         >
                           <ListFilter className="size-3" />
                         </button>
@@ -350,34 +419,6 @@ export function DataTable<T>({
                 )
               })}
             </tr>
-
-            {/* Floating filter row */}
-            {showFilters && (
-              <tr className="border-b">
-                {allVisibleCols.map((col) => (
-                  <th
-                    key={col.key}
-                    className={cn(
-                      'bg-muted/55 px-[8px] py-[5px]',
-                      col.hideBelow && HIDE_CLASS[col.hideBelow],
-                    )}
-                  >
-                    {(col.filterValue ?? col.sortValue) ? (
-                      <div className="relative">
-                        <Search className="pointer-events-none absolute top-1/2 left-[7px] size-3 -translate-y-1/2 text-muted-foreground" />
-                        <input
-                          id={`flt-${col.key}`}
-                          className="h-[26px] w-full rounded-[6px] border bg-card pl-[25px] pr-[8px] text-[11.5px] font-normal normal-case tracking-normal placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-ring"
-                          placeholder="Filter…"
-                          value={filterText[col.key] ?? ''}
-                          onChange={(e) => setColFilter(col.key, e.target.value)}
-                        />
-                      </div>
-                    ) : null}
-                  </th>
-                ))}
-              </tr>
-            )}
           </thead>
 
           <tbody>
@@ -448,6 +489,150 @@ export function DataTable<T>({
               Next
             </Button>
           </div>
+        </div>
+      )}
+
+      {/* Filter popover — fixed so it escapes any overflow:hidden ancestor */}
+      {openFilter && filterPos && (
+        <FilterPopover
+          ref={filterPopoverRef}
+          colKey={openFilter}
+          col={byKey[openFilter]}
+          pos={filterPos}
+          values={filteredPopoverValues}
+          allValues={openFilterValues}
+          selected={filterSets[openFilter] ?? []}
+          search={filterSearch}
+          onSearch={setFilterSearch}
+          onToggle={(v) => toggleFilterValue(openFilter, v)}
+          onSelectAll={() => selectAllValues(openFilter)}
+          onClear={() => clearColFilter(openFilter)}
+          onClose={() => setOpenFilter(null)}
+        />
+      )}
+    </div>
+  )
+}
+
+function FilterPopover({
+  ref,
+  col,
+  pos,
+  values,
+  allValues,
+  selected,
+  search,
+  onSearch,
+  onToggle,
+  onSelectAll,
+  onClear,
+  onClose,
+}: {
+  ref: React.Ref<HTMLDivElement>
+  colKey: string
+  col: Column<unknown> | undefined
+  pos: { top: number; left: number }
+  values: string[]
+  allValues: string[]
+  selected: string[]
+  search: string
+  onSearch: (s: string) => void
+  onToggle: (v: string) => void
+  onSelectAll: () => void
+  onClear: () => void
+  onClose: () => void
+}) {
+  const searchRef = useRef<HTMLInputElement | null>(null)
+  useEffect(() => { searchRef.current?.focus() }, [])
+
+  const allSelected = allValues.length > 0 && allValues.every((v) => selected.includes(v))
+  const noneSelected = selected.length === 0
+
+  return (
+    <div
+      ref={ref}
+      className="fixed z-50 flex w-[228px] flex-col overflow-hidden rounded-[11px] border bg-popover"
+      style={{ top: pos.top, left: pos.left, boxShadow: 'var(--shadow-lg, 0 8px 24px oklch(0 0 0 / 0.14))' }}
+      onClick={(e) => e.stopPropagation()}
+      onPointerDown={(e) => e.stopPropagation()}
+    >
+      {/* Search within values */}
+      <div className="flex items-center gap-[6px] border-b px-[10px] py-[8px]">
+        <Search className="size-[13px] shrink-0 text-muted-foreground" />
+        <input
+          ref={searchRef}
+          className="flex-1 bg-transparent text-[12.5px] outline-none placeholder:text-muted-foreground"
+          placeholder="Search values…"
+          value={search}
+          onChange={(e) => onSearch(e.target.value)}
+        />
+        {search && (
+          <button onClick={() => onSearch('')} className="text-muted-foreground hover:text-foreground">
+            <X className="size-[12px]" />
+          </button>
+        )}
+      </div>
+
+      {/* Select all / Clear row */}
+      <div className="flex items-center justify-between border-b px-[10px] py-[6px]">
+        <button
+          className="text-[11.5px] font-[500] text-primary hover:underline disabled:opacity-40"
+          disabled={allSelected}
+          onClick={onSelectAll}
+        >
+          Select all
+        </button>
+        <button
+          className="text-[11.5px] font-[500] text-muted-foreground hover:text-foreground hover:underline disabled:opacity-40"
+          disabled={noneSelected}
+          onClick={() => { onClear(); onClose() }}
+        >
+          Clear
+        </button>
+      </div>
+
+      {/* Value list */}
+      {values.length === 0 ? (
+        <p className="px-[10px] py-[10px] text-center text-[11.5px] text-muted-foreground">
+          {allValues.length === 0 ? 'No values in column.' : 'No values match.'}
+        </p>
+      ) : (
+        <ul className="max-h-[240px] overflow-y-auto p-[5px]">
+          {values.map((v) => {
+            const checked = selected.includes(v)
+            const display = col?.filterLabel ? col.filterLabel(v) : v
+            return (
+              <li key={v}>
+                <button
+                  className="flex w-full items-center gap-[8px] rounded-[7px] px-[8px] py-[5px] text-left text-[12.5px] hover:bg-accent"
+                  onClick={() => onToggle(v)}
+                >
+                  <span
+                    className={cn(
+                      'flex size-[15px] shrink-0 items-center justify-center rounded-[4px] border transition-colors',
+                      checked
+                        ? 'border-primary bg-primary text-primary-foreground'
+                        : 'border-muted-foreground/40',
+                    )}
+                  >
+                    {checked && (
+                      <svg className="size-[10px]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                      </svg>
+                    )}
+                  </span>
+                  <span className="flex-1 truncate">{display || <span className="italic text-muted-foreground">(blank)</span>}</span>
+                </button>
+              </li>
+            )
+          })}
+        </ul>
+      )}
+
+      {/* Active selection summary */}
+      {selected.length > 0 && (
+        <div className="border-t px-[10px] py-[7px] text-[11.5px] text-muted-foreground">
+          {selected.length} of {allValues.length} selected
         </div>
       )}
     </div>
