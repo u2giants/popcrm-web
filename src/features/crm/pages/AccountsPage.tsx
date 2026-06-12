@@ -12,7 +12,7 @@ import { ChainBadge } from '@/features/crm/components/CrmStatusBadge'
 import { updateRetailer } from '@/features/crm/api'
 import { CHAIN_TYPES, CUSTOMER_STATUSES, customerStatusTone } from '@/features/crm/constants'
 import { idOf, label, textOf } from '@/features/crm/format'
-import { NameAvatar } from '@/components/app/NameAvatar'
+import { AccountLogo } from '@/components/app/AccountLogo'
 import type { Retailer } from '@/lib/types'
 
 const STATUS_OPTIONS: EditOption[] = CUSTOMER_STATUSES.map((v) => ({ value: v, label: label(v) }))
@@ -64,7 +64,7 @@ export function AccountsPage() {
       filterValue: (r) => r.name,
       cell: (r) => (
         <div className="flex items-center gap-[9px]">
-          <NameAvatar name={r.name} size={20} />
+          <AccountLogo name={r.name} domain={r.domain} size={20} />
           <div className="min-w-0">
             <div className="truncate font-[500] text-foreground">{r.name}</div>
             {r.domain ? (

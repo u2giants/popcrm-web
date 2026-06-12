@@ -13,6 +13,7 @@ export function DetailDrawer({
   title,
   subtitle,
   status,
+  avatar,
   children,
   footer,
   className,
@@ -22,6 +23,7 @@ export function DetailDrawer({
   title: ReactNode
   subtitle?: ReactNode
   status?: ReactNode
+  avatar?: ReactNode
   children: ReactNode
   footer?: ReactNode
   className?: string
@@ -37,14 +39,17 @@ export function DetailDrawer({
         </SheetDescription>
 
         {/* Header */}
-        <div className="shrink-0 border-b px-[18px] pb-[13px] pt-[16px] pr-[48px]">
-          {status ? <div className="mb-[6px] flex flex-wrap items-center gap-[6px]">{status}</div> : null}
-          <h2 className="text-[16px] font-[650] leading-tight tracking-[-0.01em] text-foreground">
-            {title}
-          </h2>
-          {subtitle ? (
-            <p className="mt-[3px] text-[12px] text-muted-foreground">{subtitle}</p>
-          ) : null}
+        <div className="flex shrink-0 items-start gap-[12px] border-b px-[18px] pb-[13px] pt-[16px] pr-[48px]">
+          {avatar ? <div className="mt-[2px] shrink-0">{avatar}</div> : null}
+          <div className="min-w-0 flex-1">
+            {status ? <div className="mb-[6px] flex flex-wrap items-center gap-[6px]">{status}</div> : null}
+            <h2 className="text-[16px] font-[650] leading-tight tracking-[-0.01em] text-foreground">
+              {title}
+            </h2>
+            {subtitle ? (
+              <p className="mt-[3px] truncate text-[12px] text-muted-foreground">{subtitle}</p>
+            ) : null}
+          </div>
         </div>
 
         {/* Scrollable body */}

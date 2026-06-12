@@ -87,6 +87,7 @@ jobs:
           build-args: |
             COMMIT_HASH=${{ steps.vars.outputs.sha7 }}
             COMMIT_DATE=${{ github.event.head_commit.timestamp || github.event.repository.updated_at }}
+            VITE_LOGODEV_TOKEN=${{ secrets.LOGODEV_TOKEN }}
 
   deploy:
     needs: build-and-push

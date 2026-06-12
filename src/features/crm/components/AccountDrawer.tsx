@@ -3,17 +3,13 @@ import { Building2, Mail, Route, X } from 'lucide-react'
 import { DetailDrawer, DescriptionItem, DescriptionList, DrawerSection } from '@/components/app/DetailDrawer'
 import { StatusBadge } from '@/components/app/StatusBadge'
 import { NameAvatar } from '@/components/app/NameAvatar'
+import { AccountLogo } from '@/components/app/AccountLogo'
 import { Button } from '@/components/ui/button'
 import { useCrmData } from '@/features/crm/CrmDataContext'
-import { StageBadge } from '@/features/crm/components/CrmStatusBadge'
+import { ChainBadge, StageBadge } from '@/features/crm/components/CrmStatusBadge'
+import { customerStatusTone } from '@/features/crm/constants'
 import { idOf, label } from '@/features/crm/format'
 import type { Retailer } from '@/lib/types'
-
-const STATUS_TONE: Record<string, 'success' | 'info' | 'warning' | 'neutral'> = {
-  ACTIVE: 'success',
-  PROSPECT: 'info',
-  AT_RISK: 'warning',
-}
 
 function fmtAmount(val: string | number | null | undefined): string {
   if (val == null || val === '') return '—'
@@ -48,15 +44,16 @@ export function AccountDrawer({ row, onClose }: { row: Retailer | null; onClose:
       onClose={onClose}
       title={row?.name || 'Account'}
       subtitle={row?.domain ?? undefined}
+      avatar={row ? <AccountLogo name={row.name} domain={row.domain} size={36} /> : undefined}
       status={
         row ? (
           <>
-            <StatusBadge tone={STATUS_TONE[row.customer_status ?? ''] ?? 'neutral'} dot>
-              {label(row.customer_status)}
-            </StatusBadge>
-            {row.chain_type ? (
-              <StatusBadge tone="neutral" dot={false}>{label(row.chain_type)}</StatusBadge>
+            {row.customer_status ? (
+              <StatusBadge tone={customerStatusTone(row.customer_status)} dot>
+                {label(row.customer_status)}
+              </StatusBadge>
             ) : null}
+            {row.chain_type ? <ChainBadge chain={row.chain_type} /> : null}
           </>
         ) : undefined
       }
@@ -90,11 +87,17 @@ export function AccountDrawer({ row, onClose }: { row: Retailer | null; onClose:
           <DrawerSection>
             <DescriptionList>
               <DescriptionItem term="Status">
-                <StatusBadge tone={STATUS_TONE[row.customer_status ?? ''] ?? 'neutral'} dot>
-                  {label(row.customer_status)}
-                </StatusBadge>
+                {row.customer_status ? (
+                  <StatusBadge tone={customerStatusTone(row.customer_status)} dot>
+                    {label(row.customer_status)}
+                  </StatusBadge>
+                ) : (
+                  <span className="text-muted-foreground">—</span>
+                )}
               </DescriptionItem>
-              <DescriptionItem term="Chain type">{label(row.chain_type)}</DescriptionItem>
+              <DescriptionItem term="Chain type">
+                {row.chain_type ? <ChainBadge chain={row.chain_type} /> : '—'}
+              </DescriptionItem>
               <DescriptionItem term="Domain">
                 {row.domain ? (
                   <span className="font-mono text-[11.5px]">{row.domain}</span>

@@ -262,6 +262,7 @@ No secret values appear here or in the repo.
 | Variable | Purpose | Stored where | Required in dev | Required in prod |
 |---|---|---|---|---|
 | `VITE_DIRECTUS_URL` | Directus API base URL (build-time) | optional `.env` (dev); defaults to `https://data.designflow.app` | no (defaults) | no (defaults) |
+| `VITE_LOGODEV_TOKEN` | logo.dev **publishable** token (client-safe) for domain-derived account logos | optional `.env` (dev); GitHub Actions secret `LOGODEV_TOKEN` → Docker build-arg (prod) | no (falls back to initials) | no (falls back to initials) |
 | `COOLIFY_BASE_URL` | Coolify deploy API base for CI | GitHub Actions secret | n/a | n/a (CI only) |
 | `COOLIFY_API_TOKEN` | Token to trigger Coolify deploy | GitHub Actions secret | n/a | n/a (CI only) |
 | `COOLIFY_SERVER_UUID` | Coolify **application** uuid to deploy | GitHub Actions secret | n/a | n/a (CI only) |

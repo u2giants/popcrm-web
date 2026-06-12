@@ -10,6 +10,10 @@ ARG COMMIT_HASH=""
 ARG COMMIT_DATE=""
 ENV COMMIT_HASH=$COMMIT_HASH
 ENV COMMIT_DATE=$COMMIT_DATE
+# logo.dev publishable token (client-safe) for domain-derived account logos.
+# Empty is fine — accounts fall back to initials avatars when unset.
+ARG VITE_LOGODEV_TOKEN=""
+ENV VITE_LOGODEV_TOKEN=$VITE_LOGODEV_TOKEN
 RUN npm run build
 # serve
 FROM nginx:alpine
