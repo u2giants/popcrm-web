@@ -1,12 +1,14 @@
 import { useMemo, useState } from 'react'
-import { Sparkles } from 'lucide-react'
+import { LayoutGrid, List, Route, Sparkles } from 'lucide-react'
 import { AppPage, ListBar } from '@/components/app/AppPage'
+import { DataTable, type Column } from '@/components/app/DataTable'
 import { FilterSelect } from '@/components/app/FilterSelect'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { ErrorState, CardGridSkeleton } from '@/components/app/states'
 import { useCrmData } from '@/features/crm/CrmDataContext'
 import { useRecordSelection } from '@/features/crm/useRecordSelection'
 import { OpportunityModal } from '@/features/crm/components/OpportunityModal'
+import { StageBadge } from '@/features/crm/components/CrmStatusBadge'
 import { OPPORTUNITY_STAGES, stageChipClass } from '@/features/crm/constants'
 import { idOf, label, relatedName, textOf, formatDate } from '@/features/crm/format'
 import { uniqueValues } from '@/features/crm/pages/_shared'
@@ -28,6 +30,7 @@ export function PipelinePage() {
   const [retailer, setRetailer] = useState('')
   const [program, setProgram] = useState('')
   const [division, setDivision] = useState('')
+  const [view, setView] = useState<'board' | 'list'>('board')
   const [selected, select] = useRecordSelection<CrmOpportunity>('opportunity', opportunities)
 
   const filtered = useMemo(() => {
@@ -50,9 +53,91 @@ export function PipelinePage() {
     [filtered],
   )
 
+  const listColumns: Column<CrmOpportunity>[] = [
+    {
+      key: 'name',
+      header: 'Program',
+      sortValue: (o) => o.name?.toLowerCase() ?? '',
+      filterValue: (o) => o.name,
+      className: 'w-full max-w-0',
+      cell: (o) => (
+        <div className="flex min-w-0 items-center gap-[8px]">
+          <div className="min-w-0">
+            <div className="truncate font-[500] text-foreground">{o.name || 'Untitled program'}</div>
+            {o.season_year ? (
+              <div className="truncate text-[11px] text-muted-foreground">{o.season_year}</div>
+            ) : null}
+          </div>
+          {o.ai_summary ? <Sparkles className="size-[12px] shrink-0 text-primary" /> : null}
+        </div>
+      ),
+    },
+    {
+      key: 'retailer',
+      header: 'Account',
+      hideBelow: 'md',
+      sortValue: (o) => relatedName(o.retailer),
+      filterValue: (o) => relatedName(o.retailer),
+      cell: (o) => <span className="text-muted-foreground">{relatedName(o.retailer)}</span>,
+    },
+    {
+      key: 'stage',
+      header: 'Stage',
+      sortValue: (o) => o.stage ?? '',
+      filterValue: (o) => label(o.stage),
+      cell: (o) => <StageBadge stage={o.stage} />,
+    },
+    {
+      key: 'amount',
+      header: 'Est. value',
+      hideBelow: 'lg',
+      sortValue: (o) => {
+        const n = typeof o.amount === 'string' ? parseFloat(o.amount.replace(/[^0-9.-]/g, '')) : Number(o.amount ?? 0)
+        return isFinite(n) ? n : 0
+      },
+      filterValue: (o) => fmtAmount(o.amount) ?? '',
+      className: 'text-right tabular-nums font-[650]',
+      cell: (o) => fmtAmount(o.amount) ?? '—',
+    },
+    {
+      key: 'close_date',
+      header: 'Close',
+      hideBelow: 'xl',
+      sortValue: (o) => o.close_date ?? '',
+      filterValue: (o) => o.close_date,
+      className: 'text-muted-foreground',
+      cell: (o) => formatDate(o.close_date),
+    },
+  ]
+
+  const viewToggle = (
+    <div className="flex h-[32px] overflow-hidden rounded-[8px] border">
+      <button
+        type="button"
+        onClick={() => setView('board')}
+        className={cn(
+          'flex items-center gap-[5px] px-[9px] text-[12px] transition-colors',
+          view === 'board' ? 'bg-foreground text-background' : 'text-muted-foreground hover:bg-accent',
+        )}
+      >
+        <LayoutGrid className="size-[13px]" /> Board
+      </button>
+      <button
+        type="button"
+        onClick={() => setView('list')}
+        className={cn(
+          'flex items-center gap-[5px] border-l px-[9px] text-[12px] transition-colors',
+          view === 'list' ? 'bg-foreground text-background' : 'text-muted-foreground hover:bg-accent',
+        )}
+      >
+        <List className="size-[13px]" /> List
+      </button>
+    </div>
+  )
+
   return (
     <AppPage
-      scroll={false}
+      scroll={view === 'list'}
       listBar={
         <ListBar
           title="Pipeline"
@@ -88,6 +173,7 @@ export function PipelinePage() {
               />
             </>
           }
+          actions={viewToggle}
         />
       }
     >
@@ -99,6 +185,17 @@ export function PipelinePage() {
         <div className="p-6">
           <CardGridSkeleton count={8} />
         </div>
+      ) : view === 'list' ? (
+        <DataTable
+          rows={filtered}
+          columns={listColumns}
+          getRowId={(o) => o.id}
+          onRowClick={(o) => select(o)}
+          emptyIcon={<Route className="size-5" />}
+          emptyTitle="No programs match"
+          emptyDescription="Adjust your search or filters."
+          initialSort={{ key: 'stage', dir: 'asc' }}
+        />
       ) : (
         <ScrollArea className="h-full">
           <div className="flex h-full gap-3 p-4 sm:px-6 lg:px-8">
