@@ -11,7 +11,8 @@ push to main
   ↓
 GitHub Actions (.github/workflows/deploy.yml)
   verify        – npm ci, npm run lint, npm run build (tsc -b && vite build)
-  build-and-push – Docker build, push to GHCR (tags: latest, main, sha-<sha>)
+  build-and-push – Docker build (build-args: COMMIT_HASH/DATE, VITE_LOGODEV_TOKEN),
+                   push to GHCR (tags: latest, main, sha-<sha>)
   deploy         – POST Coolify deploy API, then wait for crm.designflow.app
   ↓
 Coolify (https://coolify.designflow.app)
@@ -50,6 +51,10 @@ are path-ignored and do not trigger a build.
 - `COOLIFY_BASE_URL` — `https://coolify.designflow.app`
 - `COOLIFY_API_TOKEN` — Coolify API token used to trigger the deploy
 - `COOLIFY_SERVER_UUID` — the Coolify **application** uuid (`a1vb55by4benmh25nd4ga8pt`)
+- `LOGODEV_TOKEN` — logo.dev **publishable** token, passed as the
+  `VITE_LOGODEV_TOKEN` Docker build-arg (`deploy.yml` → Dockerfile) so account
+  logos bake into the bundle. **Optional**: if unset the build still succeeds and
+  accounts render initials avatars. Client-safe (publishable), not a real secret.
 
 The image is pushed to GHCR with the workflow's built-in `GITHUB_TOKEN`
 (`packages: write`); no registry PAT is stored. Because `popcrm-web` is a public

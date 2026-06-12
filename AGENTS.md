@@ -114,7 +114,7 @@ Files modified outside the clearly project-owned application areas:
 | File | Change made | Why it was necessary | Risk during upgrades |
 |---|---|---|---|
 | `src/components/ui/*.tsx` | Hand-authored shadcn-style primitives (tabs, select, table, tooltip, popover, dialog, label, chart, etc.) using the unified `radix-ui` import style | shadcn CLI/registry not run here; primitives added to match existing ones | Running `npx shadcn add` could overwrite/conflict; keep the `radix-ui` (not `@radix-ui/*`) import style and Lucide icons |
-| `Dockerfile` | Added `COMMIT_HASH` / `COMMIT_DATE` build args before `npm run build` | `.git` is dockerignored, so CI passes commit identity for the in-app build stamp | If the header build-stamp is removed, drop the args too |
+| `Dockerfile` | Added `COMMIT_HASH` / `COMMIT_DATE` / `VITE_LOGODEV_TOKEN` build args before `npm run build` | `.git` is dockerignored (commit identity passed by CI); `VITE_*` is build-time so the logo.dev token must be baked at build | If the header build-stamp is removed, drop the commit args too; `VITE_LOGODEV_TOKEN` is optional (empty → initials avatars) |
 
 No third-party/vendor/framework source files are modified. `src/components/ui` is
 the only "generated-style" area, and it is hand-maintained in this repo.
@@ -140,7 +140,7 @@ Directus collections this app reads/writes (entities). All live in the backend, 
 
 | Entity/System | Identifier | Where defined | Notes |
 |---|---|---|---|
-| Account | `retailer` | Directus | companies/accounts (migrated from Twenty `company`) |
+| Account | `retailer` | Directus | companies/accounts (migrated from Twenty `company`). `customer_status` enum: `ACTIVE_CUSTOMER`, `POTENTIAL_CUSTOMER`, `OTHER` (= "Not a Customer": reviewed, no CRM action), `UNASSIGNED` (= "New Company": untriaged — the worker stamps new auto-created retailers with this; null normalized to it). No DB default. No logo field — see Quirks |
 | Contact | `buyer` | Directus | contacts (migrated from Twenty `person`) |
 | Department | `crm_department` | Directus | retailer departments |
 | Opportunity | `crm_opportunity` | Directus | pipeline; `stage` enum in `constants.ts:OPPORTUNITY_STAGES` |
@@ -237,6 +237,64 @@ The real schema differs from earlier assumptions; matching keywords is robust to
 Do not change because:
 Hard-coding an enum would re-introduce the wrong field/value assumptions that caused the 2026-06-12 incident. Verify real values via the backend once approval data exists.
 
+### `customer_status` labels/tones are context-specific — `OTHER` is NOT a global label override
+
+Looks like:
+You could add `OTHER: 'Not a Customer'` to `format.ts` `LABEL_OVERRIDES` to relabel it.
+
+Actually:
+`OTHER` is a shared enum value — it also means "Other" for `chain_type`, `contact_type`,
+and routing. The account-status relabel/recolor lives in
+`constants.ts:customerStatusLabel` / `customerStatusTone` (and `CUSTOMER_STATUS_LABEL`),
+used only by the Accounts table/drawer — never in the global `label()`.
+
+Why:
+A global `OTHER` override would wrongly rename every other column's "Other".
+
+Do not change because:
+Putting `OTHER` (or `UNASSIGNED`) into the global `label()` overrides silently
+corrupts chain/contact/routing labels. Status colors: green active, yellow
+potential, blue New Company (untriaged), gray Not-a-Customer — no red.
+
+### Account logos are domain-derived (logo.dev), not stored
+
+Looks like:
+Logos might have been migrated from Twenty as uploaded files.
+
+Actually:
+Twenty's `company` table has **no logo/avatar/image column** — Twenty rendered
+logos live from each company's domain via its `twenty-favicon` service. There was
+nothing to migrate. `src/components/app/AccountLogo.tsx` replicates this: it fetches
+from `img.logo.dev` keyed on `retailer.domain` (token `VITE_LOGODEV_TOKEN`), falling
+back to the name-initials `NameAvatar` when there's no domain/token or the image fails.
+
+Why:
+The user's "uploaded" Twenty logos never existed as stored files; domain-derivation
+is the same mechanism Twenty used.
+
+Do not change because:
+Don't go looking for a logo file/field to migrate — there isn't one. Restoring real
+logos = keep the domain-derived approach (or add a Directus file field + uploads, a
+backend change in `u2giants/directus`).
+
+### Directus has no cache — direct Postgres writes are immediately visible
+
+Looks like:
+Data fixes must go through the Directus API.
+
+Actually:
+The Directus app sets no `CACHE_*` env (default `CACHE_ENABLED=false`), so the SPA
+reads straight from Postgres. A one-time bulk data fix can be applied directly:
+`docker exec -i directus-db-<id> psql -U directus -d directus -c "UPDATE ..."`.
+This session normalized 24 null `customer_status` rows → `UNASSIGNED` that way.
+
+Why:
+For an admin-only bulk normalization, direct SQL is simpler and takes effect at once.
+
+Do not change because:
+If `CACHE_ENABLED` is ever turned on, direct writes will read stale until TTL/flush —
+re-check before relying on this. Prefer the API for anything that must run hooks/flows.
+
 ### `src/components/ui` is hand-maintained, imports from `radix-ui`
 
 Looks like:
@@ -266,6 +324,7 @@ No secret values appear here or in the repo.
 | `COOLIFY_BASE_URL` | Coolify deploy API base for CI | GitHub Actions secret | n/a | n/a (CI only) |
 | `COOLIFY_API_TOKEN` | Token to trigger Coolify deploy | GitHub Actions secret | n/a | n/a (CI only) |
 | `COOLIFY_SERVER_UUID` | Coolify **application** uuid to deploy | GitHub Actions secret | n/a | n/a (CI only) |
+| `LOGODEV_TOKEN` | logo.dev publishable token → `VITE_LOGODEV_TOKEN` build-arg | GitHub Actions secret (optional) | n/a | n/a (CI only) |
 | `GITHUB_TOKEN` | GHCR push (built-in) | GitHub Actions (auto) | n/a | n/a (CI only) |
 
 Runtime auth is a Directus httpOnly session cookie scoped to `.designflow.app`
@@ -352,6 +411,10 @@ now break-glass only (see `docs/deployment.md`).
 | done | Overview activity panels | Reduced to 2 (Meetings + Approvals); deep-links via `useRecordSelection` |
 | done | Approvals columns | Name · Licensor · Status · Submitted · Program · Latest comment per spec |
 | done | All record drawers polished | Meeting/Task/Email/Note/Approval drawers match spec |
+| done | DataTable ag-Grid-style tools | Persistent per-column filter icon → checkbox value popover; per-column header quick-search + autocomplete; visible resize separator; inline-edit dropdowns (`editOptions`/`onCellEdit`); spreadsheet drag-to-copy fill handle |
+| done | Accounts status/chain UX | Real-schema colored chips; inline-editable; Twenty logos via logo.dev; segmented tabs (Accounts/Triage/Not a customer/All) default-hiding non-customers |
+| done | Account status data normalized | 24 null `customer_status` rows → `UNASSIGNED` (direct Directus PG write); now one "New Company" bucket |
+| blocked | Account logos go live | Code deployed but inert until `LOGODEV_TOKEN` GitHub secret is set (publishable logo.dev key) — see HANDOFF.md. Falls back to initials until then |
 | open | Server-side pagination / Directus aggregates | Currently client-side; revisit if record volumes grow |
 | open | Bump CI actions off Node 20 | GitHub deprecates Node-20 actions (~2026-06-16); update `actions/*` and `docker/*` versions in `deploy.yml` |
 | known | Pre-existing lint warnings in `src/auth/auth.tsx` | 3 warnings (`any`, setState-in-effect, unused disable) accepted; do not add new warnings elsewhere |

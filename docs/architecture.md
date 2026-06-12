@@ -53,7 +53,7 @@ full refresh.
 |---|---|---|
 | `OverviewPage` | `/` | KPI strip, email volume chart, routing donut, pipeline bar, activity panels |
 | `PipelinePage` | `/pipeline` | Board (kanban by stage) + List (DataTable) toggle |
-| `AccountsPage` | `/accounts` | DataTable + AccountDrawer |
+| `AccountsPage` | `/accounts` | DataTable + AccountDrawer. Segmented tabs: **Accounts** (default — hides "Not a Customer"), **Triage** (New Companies awaiting review), **Not a customer**, **All**. Status & Chain cells are inline-editable colored chips |
 | `ContactsPage` | `/contacts` | DataTable + ContactDrawer |
 | `EmailRoutingPage` | `/email` | Segmented tabs (needs/routed/skipped/all); ignore-rules sidebar |
 | `MeetingsPage` | `/meetings` | DataTable + MeetingDrawer |
@@ -68,7 +68,8 @@ full refresh.
 |---|---|
 | `AppPage` | Page wrapper with scroll container; `listBar` slot for the top toolbar |
 | `ListBar` | One-row page header: title · count · spacer · search · extra (tabs/filters) · actions |
-| `DataTable` | Sortable/filterable table with column visibility, resize, reorder |
+| `DataTable` | Sortable table with column visibility, resize (visible separator), reorder. Per-column tools in the header: a persistent filter icon → checkbox **value popover** (set filter), and a quick-**search box with value autocomplete**. Optional inline editing: columns with `editOptions` render click-to-edit dropdowns and a spreadsheet **drag-to-copy** fill handle; edits persist via the `onCellEdit` prop. Popovers/autocomplete use fixed positioning to escape `overflow:hidden` |
+| `AccountLogo` | Brand logo from logo.dev keyed on `retailer.domain` (token `VITE_LOGODEV_TOKEN`), falling back to `NameAvatar` initials when no domain/token or on image error |
 | `DetailDrawer` | Side-sheet shell used by all record drawers |
 | `MetricCard` | KPI tile with icon, value, label, optional tone/color, onClick |
 | `StatusBadge` | Inline tone-keyed badge (success/danger/warning/neutral/accent) |
@@ -86,7 +87,7 @@ Each drawer is a `DetailDrawer` with domain-specific sections. All support deep-
 | Drawer | Key features |
 |---|---|
 | `OpportunityModal` | Full-screen-capable dialog; board card click; Ask AI scroll, Share clipboard, Expand toggle; composer calls `createNote` |
-| `AccountDrawer` | Contact list, opportunity list, close button footer |
+| `AccountDrawer` | Logo avatar (`AccountLogo`) in header, colored status/chain chips, contact list, opportunity list, close button footer |
 | `ContactDrawer` | Related account, opportunity list |
 | `EmailDrawer` | Mail-header preview band; `MethodConfidence` bar; Apply routing / Create ignore rule actions |
 | `MeetingDrawer` | Participant chips (`NameAvatar`), Fireflies transcript tile, action items checklist |
