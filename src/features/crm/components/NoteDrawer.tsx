@@ -1,8 +1,8 @@
 import { useState } from 'react'
 import { toast } from 'sonner'
-import { Save } from 'lucide-react'
+import { Save, Square } from 'lucide-react'
 import { DetailDrawer, DescriptionItem, DescriptionList, DrawerSection } from '@/components/app/DetailDrawer'
-import { Badge } from '@/components/ui/badge'
+import { StatusBadge } from '@/components/app/StatusBadge'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -12,6 +12,13 @@ import { updateNote } from '@/features/crm/api'
 import { label, relatedName } from '@/features/crm/format'
 import type { CrmNote } from '@/lib/types'
 
+function parseChecklist(text: string): string[] {
+  return text
+    .split(/\r?\n/)
+    .map((l) => l.replace(/^[\s\-\*•‣◦]+/, '').trim())
+    .filter(Boolean)
+}
+
 export function NoteDrawer({ row, onClose }: { row: CrmNote | null; onClose: () => void }) {
   return (
     <DetailDrawer
@@ -19,7 +26,13 @@ export function NoteDrawer({ row, onClose }: { row: CrmNote | null; onClose: () 
       onClose={onClose}
       title={row?.title || 'Note'}
       subtitle={row ? relatedName(row.opportunity) : undefined}
-      status={row?.source ? <Badge variant="secondary">{label(row.source)}</Badge> : undefined}
+      status={
+        row?.source ? (
+          <StatusBadge tone="neutral" dot={false}>
+            {label(row.source)}
+          </StatusBadge>
+        ) : undefined
+      }
     >
       {row ? <NoteDrawerForm key={row.id} row={row} onClose={onClose} /> : null}
     </DetailDrawer>
@@ -33,6 +46,7 @@ function NoteDrawerForm({ row, onClose }: { row: CrmNote; onClose: () => void })
   const [saving, setSaving] = useState(false)
 
   const dirty = title !== (row.title || '') || body !== (row.body || '')
+  const actionLines = row.action_items ? parseChecklist(row.action_items) : []
 
   async function save() {
     setSaving(true)
@@ -52,7 +66,7 @@ function NoteDrawerForm({ row, onClose }: { row: CrmNote; onClose: () => void })
   return (
     <>
       <DrawerSection title="Note">
-        <div className="grid gap-3">
+        <div className="grid gap-[12px]">
           <div className="grid gap-1.5">
             <Label>Title</Label>
             <Input value={title} onChange={(e) => setTitle(e.target.value)} />
@@ -73,18 +87,23 @@ function NoteDrawerForm({ row, onClose }: { row: CrmNote; onClose: () => void })
         </DescriptionList>
       </DrawerSection>
 
-      {row.action_items ? (
+      {actionLines.length ? (
         <DrawerSection title="Action items">
-          <div className="rounded-md border bg-muted/30 p-3 text-sm whitespace-pre-wrap text-foreground">
-            {row.action_items}
-          </div>
+          <ul className="space-y-[7px]">
+            {actionLines.map((item, i) => (
+              <li key={i} className="flex items-start gap-[8px]">
+                <Square className="mt-[1px] size-[13px] shrink-0 text-muted-foreground" />
+                <span className="text-[12.5px] text-foreground">{item}</span>
+              </li>
+            ))}
+          </ul>
         </DrawerSection>
       ) : null}
 
       <DrawerSection>
         <div className="flex justify-end">
           <Button onClick={save} disabled={saving || !dirty}>
-            <Save className="size-4" /> {saving ? 'Saving…' : 'Save note'}
+            <Save className="size-[13px]" /> {saving ? 'Saving…' : 'Save note'}
           </Button>
         </div>
       </DrawerSection>

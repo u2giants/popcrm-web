@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react'
 import { toast } from 'sonner'
-import { Ban, Save } from 'lucide-react'
+import { Ban, Save, X } from 'lucide-react'
 import { DetailDrawer, DescriptionItem, DescriptionList, DrawerSection } from '@/components/app/DetailDrawer'
 import { Combobox, type ComboOption } from '@/components/app/Combobox'
 import { CrmStatusBadge } from '@/features/crm/components/CrmStatusBadge'
@@ -47,12 +47,12 @@ function EmailDrawerForm({ row, onClose }: { row: CrmEmailMessage; onClose: () =
   const [opportunity, setOpportunity] = useState(idOf(row.opportunity))
   const [method, setMethod] = useState(row.routing_method || 'MANUAL')
   const [saving, setSaving] = useState(false)
+  const [ignoring, setIgnoring] = useState(false)
 
   const retailerOptions = useMemo<ComboOption[]>(
     () => retailers.map((r) => ({ value: r.id, label: r.name, hint: r.domain ?? undefined })),
     [retailers],
   )
-  // Departments are scoped to the chosen retailer when one is selected.
   const departmentOptions = useMemo<ComboOption[]>(
     () =>
       departments
@@ -97,17 +97,21 @@ function EmailDrawerForm({ row, onClose }: { row: CrmEmailMessage; onClose: () =
       toast.error('No subject to build a rule from')
       return
     }
+    setIgnoring(true)
     try {
       const rule = await createIgnoreRule({ name: pattern, pattern, match_type: 'CONTAINS', emails_skipped: 0 })
       setIgnoreRules((rows) => [rule, ...rows])
       toast.success('Ignore rule created from subject')
     } catch {
       toast.error('Could not create ignore rule')
+    } finally {
+      setIgnoring(false)
     }
   }
 
   return (
     <>
+      {/* Message header */}
       <DrawerSection>
         <DescriptionList>
           <DescriptionItem term="From">{row.sender || '—'}</DescriptionItem>
@@ -116,14 +120,22 @@ function EmailDrawerForm({ row, onClose }: { row: CrmEmailMessage; onClose: () =
         </DescriptionList>
       </DrawerSection>
 
+      {/* Email preview — styled as a mail excerpt */}
       <DrawerSection title="Preview">
-        <div className="max-h-48 overflow-y-auto rounded-md border bg-muted/30 p-3 text-sm whitespace-pre-wrap text-muted-foreground">
-          {row.body_preview || 'No preview available.'}
+        <div className="overflow-hidden rounded-[8px] border">
+          <div className="border-b bg-muted/40 px-[11px] py-[8px]">
+            <p className="text-[11.5px] font-[550] text-foreground">{row.subject || '(no subject)'}</p>
+            <p className="text-[11px] text-muted-foreground">{row.sender}</p>
+          </div>
+          <div className="max-h-44 overflow-y-auto px-[11px] py-[10px] text-[12px] leading-[1.65] text-muted-foreground whitespace-pre-wrap">
+            {row.body_preview || 'No preview available.'}
+          </div>
         </div>
       </DrawerSection>
 
+      {/* Routing fields */}
       <DrawerSection title="Routing">
-        <div className="grid gap-4 sm:grid-cols-2">
+        <div className="grid gap-[14px] sm:grid-cols-2">
           <div className="grid gap-1.5">
             <Label>Status</Label>
             <Select value={status} onValueChange={setStatus}>
@@ -184,14 +196,20 @@ function EmailDrawerForm({ row, onClose }: { row: CrmEmailMessage; onClose: () =
         </div>
       </DrawerSection>
 
+      {/* Action row — ignore rule left, cancel + save right */}
       <DrawerSection>
-        <div className="flex flex-wrap items-center justify-between gap-2">
-          <Button variant="outline" size="sm" onClick={ignoreSubject}>
-            <Ban className="size-4" /> Ignore this subject
+        <div className="flex items-center justify-between gap-2">
+          <Button variant="ghost" size="sm" onClick={ignoreSubject} disabled={ignoring} className="text-muted-foreground">
+            <Ban className="size-[13px]" /> Create ignore rule
           </Button>
-          <Button onClick={save} disabled={saving}>
-            <Save className="size-4" /> {saving ? 'Saving…' : 'Save routing'}
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button variant="outline" size="sm" onClick={onClose}>
+              <X className="size-[13px]" /> Cancel
+            </Button>
+            <Button size="sm" onClick={save} disabled={saving}>
+              <Save className="size-[13px]" /> {saving ? 'Saving…' : 'Apply routing'}
+            </Button>
+          </div>
         </div>
       </DrawerSection>
     </>

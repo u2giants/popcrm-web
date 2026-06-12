@@ -3,13 +3,32 @@ import { toast } from 'sonner'
 import { Save } from 'lucide-react'
 import { DetailDrawer, DescriptionItem, DescriptionList, DrawerSection } from '@/components/app/DetailDrawer'
 import { CrmStatusBadge } from '@/features/crm/components/CrmStatusBadge'
+import { StatusBadge } from '@/components/app/StatusBadge'
 import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
 import { useCrmData } from '@/features/crm/CrmDataContext'
 import { updateApprovalThread } from '@/features/crm/api'
+import { approvalTone } from '@/features/crm/constants'
 import { formatDate, relatedName } from '@/features/crm/format'
 import type { CrmLicensorApprovalThread } from '@/lib/types'
+
+const APPROVAL_STAGES = [
+  'Pending',
+  'Submitted',
+  'In Review',
+  'Revisions Requested',
+  'On Hold',
+  'Approved',
+  'Rejected',
+  'Completed',
+]
 
 export function ApprovalDrawer({
   row,
@@ -39,6 +58,7 @@ function ApprovalDrawerForm({ row }: { row: CrmLicensorApprovalThread }) {
   const dirty = stage !== (row.stage || '')
 
   async function saveStage() {
+    if (!dirty) return
     setSaving(true)
     const prev = row.stage
     setApprovals((rows) => rows.map((a) => (a.id === row.id ? { ...a, stage } : a)))
@@ -56,18 +76,35 @@ function ApprovalDrawerForm({ row }: { row: CrmLicensorApprovalThread }) {
 
   return (
     <>
+      {/* Stage selector */}
       <DrawerSection title="Stage">
         <div className="flex items-end gap-2">
           <div className="grid flex-1 gap-1.5">
             <Label className="sr-only">Stage</Label>
-            <Input value={stage} onChange={(e) => setStage(e.target.value)} placeholder="e.g. Submitted, Approved…" />
+            <Select value={stage} onValueChange={setStage}>
+              <SelectTrigger className="w-full">
+                <SelectValue placeholder="Select stage…" />
+              </SelectTrigger>
+              <SelectContent>
+                {APPROVAL_STAGES.map((s) => (
+                  <SelectItem key={s} value={s}>
+                    <div className="flex items-center gap-2">
+                      <StatusBadge tone={approvalTone(s)} dot>
+                        {s}
+                      </StatusBadge>
+                    </div>
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
           <Button onClick={saveStage} disabled={saving || !dirty}>
-            <Save className="size-4" /> Save
+            <Save className="size-[13px]" /> Save
           </Button>
         </div>
       </DrawerSection>
 
+      {/* Core details */}
       <DrawerSection>
         <DescriptionList>
           <DescriptionItem term="Property">{row.property_name || '—'}</DescriptionItem>
@@ -78,11 +115,18 @@ function ApprovalDrawerForm({ row }: { row: CrmLicensorApprovalThread }) {
         </DescriptionList>
       </DrawerSection>
 
-      <DrawerSection title="Licensor comments">
-        <div className="rounded-md border bg-muted/30 p-3 text-sm whitespace-pre-wrap text-foreground">
-          {row.licensor_comments || 'No comments yet.'}
-        </div>
-      </DrawerSection>
+      {/* Licensor comments */}
+      {row.licensor_comments ? (
+        <DrawerSection title="Licensor comments">
+          <div className="rounded-[8px] border-l-[3px] border-l-border bg-muted/20 px-[12px] py-[10px] text-[12.5px] leading-[1.65] text-foreground whitespace-pre-wrap">
+            {row.licensor_comments}
+          </div>
+        </DrawerSection>
+      ) : (
+        <DrawerSection title="Licensor comments">
+          <p className="text-[12px] text-muted-foreground">No comments yet.</p>
+        </DrawerSection>
+      )}
     </>
   )
 }
