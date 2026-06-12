@@ -526,7 +526,7 @@ function FilterPopover({
 }: {
   ref: React.Ref<HTMLDivElement>
   colKey: string
-  col: Column<unknown> | undefined
+  col: { filterLabel?: (value: string) => string } | undefined
   pos: { top: number; left: number }
   values: string[]
   allValues: string[]
