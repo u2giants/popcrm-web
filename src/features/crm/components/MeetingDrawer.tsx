@@ -8,7 +8,7 @@ import type { CrmMeetingNote } from '@/lib/types'
 function parseChecklist(text: string): string[] {
   return text
     .split(/\r?\n/)
-    .map((l) => l.replace(/^[\s\-\*•‣◦]+/, '').trim())
+    .map((l) => l.replace(/^[\s\-*•‣◦]+/, '').trim())
     .filter(Boolean)
 }
 

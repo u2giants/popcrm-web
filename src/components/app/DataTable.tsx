@@ -174,8 +174,7 @@ export function DataTable<T>({
       const current = prev[key] ?? []
       const next = current.includes(value) ? current.filter((v) => v !== value) : [...current, value]
       if (!next.length) {
-        const { [key]: _removed, ...rest } = prev
-        return rest
+        return Object.fromEntries(Object.entries(prev).filter(([k]) => k !== key))
       }
       return { ...prev, [key]: next }
     })
@@ -189,10 +188,7 @@ export function DataTable<T>({
 
   function clearColFilter(key: string) {
     setPage(0)
-    setFilterSets((prev) => {
-      const { [key]: _removed, ...rest } = prev
-      return rest
-    })
+    setFilterSets((prev) => Object.fromEntries(Object.entries(prev).filter(([k]) => k !== key)))
   }
 
   // Column resize via mouse drag
@@ -247,7 +243,7 @@ export function DataTable<T>({
   return (
     <div
       className="overflow-hidden rounded-[13px] border bg-card"
-      onClick={() => { colMenuOpen && setColMenuOpen(false); openFilter && setOpenFilter(null) }}
+      onClick={() => { if (colMenuOpen) setColMenuOpen(false); if (openFilter) setOpenFilter(null) }}
     >
       {/* Toolbar */}
       <div
