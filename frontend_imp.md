@@ -1,5 +1,13 @@
 # POP CRM Frontend Beautification Implementation Plan
 
+> **Status: historical plan — implemented.** This document is the original design
+> brief and is kept for rationale (chart-library choice, design tokens, layout
+> decisions). It describes the **pre-redesign** codebase, so file references like
+> `src/features/crm/CrmPage.tsx` and `src/components/AppShell.tsx` no longer exist —
+> they were replaced by `src/app/`, `src/features/crm/pages/`, and
+> `src/components/app/`. For the **current** structure and conventions, read
+> `AGENTS.md`. Do not treat this file as the current spec.
+
 ## Purpose
 
 This document is the complete implementation brief for redesigning the POP CRM frontend into a polished, production-quality application using **Tailwind Plus Application UI** and a **token-themed chart library** (shadcn charts by default), while preserving the existing custom Directus-backed CRM logic.

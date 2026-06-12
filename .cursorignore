@@ -4,7 +4,7 @@ dist/
 .cache/
 coverage/
 *.local
-# leftover Vite-template assets (unused — see AGENTS.md §10)
+# leftover Vite-template assets (unused — see AGENTS.md "What to ignore")
 src/assets/react.svg
 src/assets/vite.svg
 src/assets/hero.png
