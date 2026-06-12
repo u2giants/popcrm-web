@@ -27,6 +27,21 @@ import type { CrmEmailMessage } from '@/lib/types'
 
 type Segment = 'needs' | 'routed' | 'skipped' | 'all'
 
+const METHOD_LABEL: Record<string, string> = {
+  DETERMINISTIC: 'Rule match',
+  AI: 'AI classify',
+  MANUAL: 'Manual',
+}
+
+function MethodChip({ method }: { method: string | null | undefined }) {
+  if (!method) return <span className="text-muted-foreground">—</span>
+  return (
+    <span className="inline-flex items-center rounded-full border px-[8px] py-[2px] text-[11px] font-[550] text-muted-foreground">
+      {METHOD_LABEL[method] ?? label(method)}
+    </span>
+  )
+}
+
 export function EmailRoutingPage() {
   const { emails, ignoreRules, loading, error, refresh, firefliesOk, stats } = useCrmData()
   const [segment, setSegment] = useState<Segment>('needs')
@@ -74,16 +89,18 @@ export function EmailRoutingPage() {
       cell: (e) => <RelationLabel value={e.retailer} />,
     },
     {
-      key: 'department',
-      header: 'Department',
-      hideBelow: 'xl',
-      sortValue: (e) => relatedName(e.department),
-      cell: (e) => <RelationLabel value={e.department} />,
+      key: 'routing_method',
+      header: 'Method',
+      hideBelow: 'lg',
+      sortValue: (e) => e.routing_method ?? '',
+      filterValue: (e) => e.routing_method,
+      cell: (e) => <MethodChip method={e.routing_method} />,
     },
     {
       key: 'routing_status',
       header: 'Status',
       sortValue: (e) => e.routing_status ?? '',
+      filterValue: (e) => e.routing_status,
       cell: (e) => <CrmStatusBadge kind="routing" status={e.routing_status} />,
     },
   ]

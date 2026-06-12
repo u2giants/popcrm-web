@@ -64,7 +64,7 @@ function buildWeeklyVolume(
 
 export function OverviewPage() {
   const navigate = useNavigate()
-  const { stats, emails, opportunities, meetings, tasks, approvals, loading, error, refresh, firefliesOk } =
+  const { stats, emails, opportunities, meetings, approvals, loading, error, refresh, firefliesOk } =
     useCrmData()
 
   const routingSlices = useMemo<DonutSlice[]>(() => {
@@ -99,10 +99,6 @@ export function OverviewPage() {
     [emails],
   )
   const recentMeetings = useMemo(() => meetings.slice(0, 6), [meetings])
-  const openTasks = useMemo(
-    () => tasks.filter((t) => t.status !== 'DONE' && t.status !== 'CANCELED').slice(0, 6),
-    [tasks],
-  )
   const pendingApprovals = useMemo(
     () => approvals.filter((a) => !isApprovalResolved(a.stage)).slice(0, 6),
     [approvals],
@@ -277,19 +273,6 @@ export function OverviewPage() {
                 secondary: <RelationLabel value={m.retailer} />,
                 trailing: <span className="text-[11px] text-muted-foreground">{formatDate(m.date)}</span>,
                 onClick: () => navigate(`/meetings?meeting=${m.id}`),
-              }))}
-            />
-            <ActivityPanel
-              title="Open tasks"
-              icon={<ListTodo className="size-4" />}
-              empty="No open tasks."
-              onView={() => navigate('/tasks')}
-              items={openTasks.map((t) => ({
-                id: t.id,
-                primary: t.title || 'Task',
-                secondary: <RelationLabel value={t.opportunity} />,
-                trailing: <CrmStatusBadge kind="task" status={t.status} dot={false} />,
-                onClick: () => navigate(`/tasks?task=${t.id}`),
               }))}
             />
             <ActivityPanel
