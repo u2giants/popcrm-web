@@ -244,8 +244,8 @@ export async function updateTask(id: string, values: Partial<CrmTask>) {
 export async function fetchApprovalThreads(limit = 200): Promise<CrmLicensorApprovalThread[]> {
   return directus.request(
     readItems('crm_licensor_approval_thread', {
-      fields: ['id', 'name', 'licensor_name', 'approval_status', 'submitted_at', 'approved_at', 'latest_comment', { opportunity: ['id', 'name', 'stage'] }],
-      sort: ['approval_status', '-submitted_at'],
+      fields: ['id', 'name', 'property_name', 'stage', 'submitted_date', 'response_date', 'due_date', 'licensor_comments', { opportunity: ['id', 'name', 'stage'] }],
+      sort: ['stage', '-submitted_date'],
       limit,
     }),
   ) as Promise<CrmLicensorApprovalThread[]>

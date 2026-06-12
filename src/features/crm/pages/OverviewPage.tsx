@@ -32,7 +32,7 @@ import {
 import { useCrmData } from '@/features/crm/CrmDataContext'
 import { CrmStatusBadge } from '@/features/crm/components/CrmStatusBadge'
 import { RelationLabel } from '@/features/crm/components/RelationLabel'
-import { OPPORTUNITY_STAGES, needsRouting } from '@/features/crm/constants'
+import { OPPORTUNITY_STAGES, isApprovalResolved, needsRouting } from '@/features/crm/constants'
 import { formatDate, label } from '@/features/crm/format'
 
 const ROUTING_CHART: ChartConfig = {
@@ -81,7 +81,7 @@ export function OverviewPage() {
     [tasks],
   )
   const pendingApprovals = useMemo(
-    () => approvals.filter((a) => a.approval_status !== 'APPROVED' && a.approval_status !== 'REJECTED').slice(0, 6),
+    () => approvals.filter((a) => !isApprovalResolved(a.stage)).slice(0, 6),
     [approvals],
   )
 
@@ -220,9 +220,9 @@ export function OverviewPage() {
               onView={() => navigate('/approvals')}
               items={pendingApprovals.map((a) => ({
                 id: a.id,
-                primary: a.name || a.licensor_name || 'Approval',
+                primary: a.name || a.property_name || 'Approval',
                 secondary: <RelationLabel value={a.opportunity} />,
-                trailing: <CrmStatusBadge kind="approval" status={a.approval_status} dot={false} />,
+                trailing: <CrmStatusBadge kind="approval" status={a.stage} dot={false} />,
                 onClick: () => navigate(`/approvals?approval=${a.id}`),
               }))}
             />

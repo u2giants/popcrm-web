@@ -26,14 +26,6 @@ export const ROUTING_STATUSES = [
 
 export const TASK_STATUSES = ['TODO', 'IN_PROGRESS', 'DONE', 'CANCELED'] as const
 
-export const APPROVAL_STATUSES = [
-  'PENDING',
-  'SUBMITTED',
-  'APPROVED',
-  'REJECTED',
-  'REVISION_REQUESTED',
-] as const
-
 export const MATCH_TYPES = ['CONTAINS', 'STARTS_WITH', 'EXACT'] as const
 
 export const AI_MODELS = [
@@ -119,19 +111,21 @@ export function taskTone(status: string | null | undefined): StatusTone {
   }
 }
 
-export function approvalTone(status: string | null | undefined): StatusTone {
-  switch (status) {
-    case 'APPROVED':
-      return 'success'
-    case 'REJECTED':
-      return 'danger'
-    case 'REVISION_REQUESTED':
-      return 'warning'
-    case 'SUBMITTED':
-      return 'info'
-    default:
-      return 'neutral'
-  }
+// The approval `stage` is a free-form string in Directus (no fixed enum), so
+// tone is matched on keywords rather than exact values.
+export function approvalTone(stage: string | null | undefined): StatusTone {
+  const s = (stage ?? '').toLowerCase()
+  if (/(approv|complete|signed)/.test(s)) return 'success'
+  if (/(reject|declin|denied)/.test(s)) return 'danger'
+  if (/(revis|hold|change)/.test(s)) return 'warning'
+  if (/(submit|review|pending|sent)/.test(s)) return 'info'
+  return 'neutral'
+}
+
+// An approval is "resolved" once its stage reads as approved/rejected/closed.
+export function isApprovalResolved(stage: string | null | undefined): boolean {
+  const s = (stage ?? '').toLowerCase()
+  return /(approv|reject|declin|denied|complete|closed|signed)/.test(s)
 }
 
 export const WORKER_CADENCE = [

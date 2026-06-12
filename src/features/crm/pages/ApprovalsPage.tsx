@@ -18,39 +18,37 @@ import type { CrmLicensorApprovalThread } from '@/lib/types'
 export function ApprovalsPage() {
   const { approvals, loading, error, refresh } = useCrmData()
   const [query, setQuery] = useState('')
-  const [status, setStatus] = useState('')
-  const [licensor, setLicensor] = useState('')
+  const [stage, setStage] = useState('')
   const [selected, select] = useRecordSelection<CrmLicensorApprovalThread>('approval', approvals)
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase()
     return approvals.filter(
       (a) =>
-        (!q || textOf(a.name, a.licensor_name, a.latest_comment, relatedName(a.opportunity)).includes(q)) &&
-        (!status || a.approval_status === status) &&
-        (!licensor || a.licensor_name === licensor),
+        (!q || textOf(a.name, a.property_name, a.licensor_comments, relatedName(a.opportunity)).includes(q)) &&
+        (!stage || a.stage === stage),
     )
-  }, [approvals, query, status, licensor])
+  }, [approvals, query, stage])
 
   const columns: Column<CrmLicensorApprovalThread>[] = [
     {
       key: 'name',
       header: 'Approval',
-      sortValue: (a) => (a.name || a.licensor_name || '').toLowerCase(),
+      sortValue: (a) => (a.name || a.property_name || '').toLowerCase(),
       className: 'w-full max-w-0',
       cell: (a) => (
         <div className="min-w-0">
-          <div className="truncate font-medium text-foreground">{a.name || a.licensor_name || 'Approval'}</div>
-          <div className="truncate text-xs text-muted-foreground">{a.latest_comment}</div>
+          <div className="truncate font-medium text-foreground">{a.name || a.property_name || 'Approval'}</div>
+          <div className="truncate text-xs text-muted-foreground">{a.licensor_comments}</div>
         </div>
       ),
     },
     {
-      key: 'licensor_name',
-      header: 'Licensor',
+      key: 'property_name',
+      header: 'Property',
       hideBelow: 'md',
-      sortValue: (a) => a.licensor_name ?? '',
-      cell: (a) => <span className="text-muted-foreground">{a.licensor_name || '—'}</span>,
+      sortValue: (a) => a.property_name ?? '',
+      cell: (a) => <span className="text-muted-foreground">{a.property_name || '—'}</span>,
     },
     {
       key: 'opportunity',
@@ -60,18 +58,18 @@ export function ApprovalsPage() {
       cell: (a) => <RelationLabel value={a.opportunity} />,
     },
     {
-      key: 'submitted_at',
+      key: 'submitted_date',
       header: 'Submitted',
       hideBelow: 'xl',
-      sortValue: (a) => a.submitted_at ?? '',
+      sortValue: (a) => a.submitted_date ?? '',
       className: 'text-muted-foreground',
-      cell: (a) => formatDate(a.submitted_at),
+      cell: (a) => formatDate(a.submitted_date),
     },
     {
-      key: 'approval_status',
+      key: 'stage',
       header: 'Status',
-      sortValue: (a) => a.approval_status ?? '',
-      cell: (a) => <CrmStatusBadge kind="approval" status={a.approval_status} />,
+      sortValue: (a) => a.stage ?? '',
+      cell: (a) => <CrmStatusBadge kind="approval" status={a.stage} />,
     },
   ]
 
@@ -84,26 +82,17 @@ export function ApprovalsPage() {
         <PageToolbar
           search={query}
           onSearch={setQuery}
-          searchPlaceholder="Search name, licensor, comment…"
-          showClear={!!(status || licensor)}
-          onClear={() => { setStatus(''); setLicensor('') }}
+          searchPlaceholder="Search name, property, comments…"
+          showClear={!!stage}
+          onClear={() => setStage('')}
           filters={
-            <>
-              <FilterSelect
-                value={status}
-                onChange={setStatus}
-                allLabel="All statuses"
-                placeholder="Status"
-                options={uniqueValues(approvals, (a) => a.approval_status)}
-              />
-              <FilterSelect
-                value={licensor}
-                onChange={setLicensor}
-                allLabel="All licensors"
-                placeholder="Licensor"
-                options={uniqueValues(approvals, (a) => a.licensor_name)}
-              />
-            </>
+            <FilterSelect
+              value={stage}
+              onChange={setStage}
+              allLabel="All stages"
+              placeholder="Stage"
+              options={uniqueValues(approvals, (a) => a.stage)}
+            />
           }
         />
       }
@@ -120,7 +109,7 @@ export function ApprovalsPage() {
           emptyIcon={<ShieldCheck className="size-5" />}
           emptyTitle="No approvals match"
           emptyDescription="Adjust your search or filters."
-          initialSort={{ key: 'submitted_at', dir: 'desc' }}
+          initialSort={{ key: 'submitted_date', dir: 'desc' }}
         />
       )}
       <ApprovalDrawer row={selected} onClose={() => select(null)} />

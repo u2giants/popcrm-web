@@ -22,7 +22,7 @@ import {
   fetchRetailers,
   fetchTasks,
 } from './api'
-import { FIREFLIES_HEALTH_URL, needsRouting } from './constants'
+import { FIREFLIES_HEALTH_URL, isApprovalResolved, needsRouting } from './constants'
 import type {
   Buyer,
   CrmAiModelConfig,
@@ -87,8 +87,7 @@ interface CrmDataValue {
 const CrmDataContext = createContext<CrmDataValue | null>(null)
 
 const OPEN_TASK = (t: CrmTask) => t.status !== 'DONE' && t.status !== 'CANCELED'
-const PENDING_APPROVAL = (a: CrmLicensorApprovalThread) =>
-  a.approval_status !== 'APPROVED' && a.approval_status !== 'REJECTED'
+const PENDING_APPROVAL = (a: CrmLicensorApprovalThread) => !isApprovalResolved(a.stage)
 
 export function CrmDataProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true)

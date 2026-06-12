@@ -148,11 +148,12 @@ export interface CrmTask {
 export interface CrmLicensorApprovalThread {
   id: string
   name: string | null
-  licensor_name: string | null
-  approval_status: string | null
-  submitted_at: string | null
-  approved_at: string | null
-  latest_comment: string | null
+  property_name: string | null
+  stage: string | null
+  submitted_date: string | null
+  response_date: string | null
+  due_date: string | null
+  licensor_comments: string | null
   opportunity: string | CrmOpportunity | null
 }
 
