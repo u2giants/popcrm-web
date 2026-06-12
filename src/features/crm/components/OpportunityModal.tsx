@@ -2,6 +2,9 @@ import { useMemo, useState, useRef, useEffect } from 'react'
 import { toast } from 'sonner'
 import {
   ChevronLeft,
+  Link2,
+  Maximize2,
+  Minimize2,
   X,
   Sparkles,
   Send,
@@ -67,6 +70,7 @@ export function OpportunityModal({
   onClose: () => void
 }) {
   const ref = useRef<HTMLDivElement>(null)
+  const [expanded, setExpanded] = useState(false)
 
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
@@ -75,6 +79,11 @@ export function OpportunityModal({
     if (row) document.addEventListener('keydown', onKey)
     return () => document.removeEventListener('keydown', onKey)
   }, [row, onClose])
+
+  // Reset expanded state when modal closes
+  useEffect(() => {
+    if (!row) setExpanded(false)
+  }, [row])
 
   // Prevent body scroll while open
   useEffect(() => {
@@ -94,16 +103,18 @@ export function OpportunityModal({
       {/* Modal shell */}
       <div
         ref={ref}
-        className="flex flex-col overflow-hidden rounded-[16px] bg-card shadow-[var(--shadow-lg)]"
+        className="flex flex-col overflow-hidden bg-card shadow-[var(--shadow-lg)]"
         style={{
-          width: 'min(1160px, 96vw)',
-          height: 'min(880px, 92vh)',
+          width: expanded ? '100vw' : 'min(1160px, 96vw)',
+          height: expanded ? '100vh' : 'min(880px, 92vh)',
+          borderRadius: expanded ? 0 : 16,
           animation: 'modal-pop 200ms cubic-bezier(0.22,0.61,0.36,1)',
+          transition: 'width 180ms ease, height 180ms ease, border-radius 180ms ease',
         }}
         role="dialog"
         aria-modal="true"
       >
-        <ModalInner row={row} onClose={onClose} />
+        <ModalInner row={row} onClose={onClose} expanded={expanded} onToggleExpand={() => setExpanded((e) => !e)} />
       </div>
       <style>{`
         @keyframes modal-pop {
@@ -115,10 +126,21 @@ export function OpportunityModal({
   )
 }
 
-function ModalInner({ row, onClose }: { row: CrmOpportunity; onClose: () => void }) {
+function ModalInner({
+  row,
+  onClose,
+  expanded,
+  onToggleExpand,
+}: {
+  row: CrmOpportunity
+  onClose: () => void
+  expanded: boolean
+  onToggleExpand: () => void
+}) {
   const { notes, tasks, setOpportunities } = useCrmData()
   const [stage, setStage] = useState(row.stage || OPPORTUNITY_STAGES[0])
   const [composerText, setComposerText] = useState('')
+  const aiRef = useRef<HTMLDivElement>(null)
 
   const relatedNotes = useMemo(
     () => notes.filter((n) => idOf(n.opportunity) === row.id).slice(0, 20),
@@ -128,6 +150,26 @@ function ModalInner({ row, onClose }: { row: CrmOpportunity; onClose: () => void
     () => tasks.filter((t) => idOf(t.opportunity) === row.id).slice(0, 10),
     [tasks, row.id],
   )
+
+  function askAi() {
+    if (row.ai_summary && aiRef.current) {
+      aiRef.current.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
+      aiRef.current.animate(
+        [{ boxShadow: '0 0 0 3px color-mix(in oklch, var(--chart-5) 40%, transparent)' }, { boxShadow: '0 0 0 0px transparent' }],
+        { duration: 1200, easing: 'ease-out' },
+      )
+    } else {
+      toast('No AI summary for this program yet.')
+    }
+  }
+
+  function share() {
+    const url = `${window.location.origin}/pipeline?opportunity=${row.id}`
+    navigator.clipboard.writeText(url).then(
+      () => toast.success('Link copied to clipboard'),
+      () => toast.error('Could not copy link'),
+    )
+  }
 
   async function changeStage(next: string) {
     const prev = stage
@@ -146,10 +188,11 @@ function ModalInner({ row, onClose }: { row: CrmOpportunity; onClose: () => void
   return (
     <>
       {/* Top bar */}
-      <div className="flex h-[48px] shrink-0 items-center gap-[10px] border-b bg-card px-[16px]">
+      <div className="flex h-[48px] shrink-0 items-center gap-[8px] border-b bg-card px-[16px]">
         <button
           onClick={onClose}
           className="flex size-[28px] items-center justify-center rounded-[7px] text-muted-foreground hover:bg-accent hover:text-foreground"
+          aria-label="Back"
         >
           <ChevronLeft className="size-[16px]" />
         </button>
@@ -160,7 +203,40 @@ function ModalInner({ row, onClose }: { row: CrmOpportunity; onClose: () => void
           <span className="mx-[5px] opacity-40">▸</span>
           <span className="text-foreground">{label(stage)}</span>
         </span>
+
         <div className="flex-1" />
+
+        {/* Ask AI */}
+        <button
+          onClick={askAi}
+          className="flex h-[28px] items-center gap-[5px] rounded-[7px] px-[9px] text-[12px] font-[550] transition-colors hover:bg-accent"
+          style={{ color: 'var(--chart-5)' }}
+        >
+          <Sparkles className="size-[13px]" />
+          <span className="hidden sm:inline">Ask AI</span>
+        </button>
+
+        {/* Share */}
+        <button
+          onClick={share}
+          className="flex size-[28px] items-center justify-center rounded-[7px] text-muted-foreground hover:bg-accent hover:text-foreground"
+          aria-label="Copy link"
+          title="Copy link"
+        >
+          <Link2 className="size-[14px]" />
+        </button>
+
+        {/* Expand / collapse */}
+        <button
+          onClick={onToggleExpand}
+          className="flex size-[28px] items-center justify-center rounded-[7px] text-muted-foreground hover:bg-accent hover:text-foreground"
+          aria-label={expanded ? 'Collapse' : 'Expand'}
+          title={expanded ? 'Collapse' : 'Expand to full screen'}
+        >
+          {expanded ? <Minimize2 className="size-[14px]" /> : <Maximize2 className="size-[14px]" />}
+        </button>
+
+        {/* Close */}
         <button
           onClick={onClose}
           className="flex size-[28px] items-center justify-center rounded-[7px] text-muted-foreground hover:bg-accent hover:text-foreground"
@@ -194,6 +270,7 @@ function ModalInner({ row, onClose }: { row: CrmOpportunity; onClose: () => void
             {/* AI summary callout */}
             {row.ai_summary ? (
               <div
+                ref={aiRef}
                 className="mb-[20px] flex gap-[10px] rounded-[10px] border p-[14px]"
                 style={{ background: 'color-mix(in oklch, var(--chart-5) 8%, var(--card))', borderColor: 'color-mix(in oklch, var(--chart-5) 30%, transparent)' }}
               >
