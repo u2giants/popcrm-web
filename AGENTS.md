@@ -284,7 +284,8 @@ and triggers Coolify. CI never SSHes into or mutates the server. Full detail in
 - **SSH is not the normal path.** Manual `docker run` on the host is emergency/
   break-glass only; restore the Coolify-managed deploy immediately afterward.
 - Branching: single-branch model — commit to `main`; do not create feature
-  branches for this repo. Docs-only changes (`docs/**`, `**/*.md`) skip the build.
+  branches for this repo. Documentation / AI-context-only changes (`docs/**`,
+  `**/*.md`, `.claudeignore`, `.cursorignore`, `.copilotignore`) skip the build.
 
 ## Critical incidents
 

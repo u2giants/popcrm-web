@@ -24,8 +24,9 @@ Every release is traceable from: GitHub Actions run history → the `sha-<commit
 tag in GHCR → Coolify's deployment history → the repo commit. The running build's
 commit + timestamp are also shown in the app header (top bar).
 
-To release: merge/commit to `main`. That's it. Docs-only changes
-(`docs/**`, `**/*.md`) are path-ignored and do not trigger a build.
+To release: merge/commit to `main`. That's it. Documentation / AI-context-only
+changes (`docs/**`, `**/*.md`, `.claudeignore`, `.cursorignore`, `.copilotignore`)
+are path-ignored and do not trigger a build.
 
 ## Topology (the facts an owner needs to audit / recreate)
 

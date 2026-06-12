@@ -9,10 +9,14 @@ name: Build and Deploy
 on:
   push:
     branches: [main]
-    # Docs-only changes don't ship a new build (§29). The app serves no markdown.
+    # Docs / AI-context-only changes don't ship a new build (§29). The app serves
+    # no markdown, and the ignore files only affect AI tooling, not the bundle.
     paths-ignore:
       - 'docs/**'
       - '**/*.md'
+      - '.claudeignore'
+      - '.cursorignore'
+      - '.copilotignore'
   workflow_dispatch:
 
 concurrency:
