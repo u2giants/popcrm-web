@@ -110,48 +110,42 @@ export function CrmDataProvider({ children }: { children: ReactNode }) {
   const load = useCallback(async () => {
     setLoading(true)
     setError(false)
-    try {
-      const [
-        opps,
-        companies,
-        contacts,
-        depts,
-        messages,
-        meetingRows,
-        rules,
-        configs,
-        noteRows,
-        taskRows,
-        approvalRows,
-      ] = await Promise.all([
-        fetchOpportunities(),
-        fetchRetailers(-1),
-        fetchBuyers(-1),
-        fetchDepartments(),
-        fetchEmailMessages(-1),
-        fetchMeetingNotes(-1),
-        fetchIgnoreRules(),
-        fetchAiModelConfigs(),
-        fetchNotes(),
-        fetchTasks(),
-        fetchApprovalThreads(),
-      ])
-      setOpportunities(opps)
-      setRetailers(companies)
-      setBuyers(contacts)
-      setDepartments(depts)
-      setEmails(messages)
-      setMeetings(meetingRows)
-      setIgnoreRules(rules)
-      setAiConfigs(configs)
-      setNotes(noteRows)
-      setTasks(taskRows)
-      setApprovals(approvalRows)
-    } catch {
-      setError(true)
-    } finally {
-      setLoading(false)
+
+    // Load every collection independently. One collection being forbidden
+    // (e.g. a Directus permission gap) or failing must NOT blank the whole app —
+    // that section just stays empty. We only surface a hard error if everything
+    // fails (auth/network down).
+    const sources: Array<{ name: string; run: () => Promise<unknown>; set: (v: never) => void }> = [
+      { name: 'opportunities', run: fetchOpportunities, set: setOpportunities as (v: never) => void },
+      { name: 'accounts', run: () => fetchRetailers(-1), set: setRetailers as (v: never) => void },
+      { name: 'contacts', run: () => fetchBuyers(-1), set: setBuyers as (v: never) => void },
+      { name: 'departments', run: () => fetchDepartments(), set: setDepartments as (v: never) => void },
+      { name: 'emails', run: () => fetchEmailMessages(-1), set: setEmails as (v: never) => void },
+      { name: 'meetings', run: () => fetchMeetingNotes(-1), set: setMeetings as (v: never) => void },
+      { name: 'ignore rules', run: fetchIgnoreRules, set: setIgnoreRules as (v: never) => void },
+      { name: 'AI config', run: fetchAiModelConfigs, set: setAiConfigs as (v: never) => void },
+      { name: 'notes', run: fetchNotes, set: setNotes as (v: never) => void },
+      { name: 'tasks', run: fetchTasks, set: setTasks as (v: never) => void },
+      { name: 'approvals', run: fetchApprovalThreads, set: setApprovals as (v: never) => void },
+    ]
+
+    const results = await Promise.allSettled(sources.map((s) => s.run()))
+    const failed: string[] = []
+    results.forEach((result, i) => {
+      if (result.status === 'fulfilled') {
+        sources[i].set(result.value as never)
+      } else {
+        failed.push(sources[i].name)
+        sources[i].set([] as never)
+      }
+    })
+
+    if (failed.length) {
+      console.warn(`CRM: could not load ${failed.join(', ')} (continuing with the rest)`)
     }
+    // Hard error only when nothing loaded at all.
+    setError(failed.length === sources.length)
+    setLoading(false)
   }, [])
 
   useEffect(() => {
