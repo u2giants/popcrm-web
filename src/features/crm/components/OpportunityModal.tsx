@@ -19,7 +19,7 @@ import {
 import { Button } from '@/components/ui/button'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { useCrmData } from '@/features/crm/CrmDataContext'
-import { setOpportunityStage } from '@/features/crm/api'
+import { createNote, setOpportunityStage } from '@/features/crm/api'
 import { OPPORTUNITY_STAGES, stageChipClass } from '@/features/crm/constants'
 import { formatDate, idOf, label, relatedName } from '@/features/crm/format'
 import { cn } from '@/lib/utils'
@@ -137,9 +137,10 @@ function ModalInner({
   expanded: boolean
   onToggleExpand: () => void
 }) {
-  const { notes, tasks, setOpportunities } = useCrmData()
+  const { notes, tasks, setOpportunities, setNotes } = useCrmData()
   const [stage, setStage] = useState(row.stage || OPPORTUNITY_STAGES[0])
   const [composerText, setComposerText] = useState('')
+  const [sending, setSending] = useState(false)
   const aiRef = useRef<HTMLDivElement>(null)
 
   const relatedNotes = useMemo(
@@ -169,6 +170,28 @@ function ModalInner({
       () => toast.success('Link copied to clipboard'),
       () => toast.error('Could not copy link'),
     )
+  }
+
+  async function sendComment() {
+    const body = composerText.trim()
+    if (!body || sending) return
+    setSending(true)
+    setComposerText('')
+    try {
+      const note = await createNote({
+        title: 'Comment',
+        body,
+        opportunity: row.id,
+        retailer: typeof row.retailer === 'string' ? row.retailer : row.retailer?.id ?? null,
+        source: 'MANUAL',
+      })
+      setNotes((prev) => [note, ...prev])
+    } catch {
+      toast.error('Could not save comment')
+      setComposerText(body)
+    } finally {
+      setSending(false)
+    }
   }
 
   async function changeStage(next: string) {
@@ -414,13 +437,19 @@ function ModalInner({
                   onChange={(e) => setComposerText(e.target.value)}
                   placeholder="Add a comment…"
                   className="flex-1 bg-transparent text-[12.5px] placeholder:text-muted-foreground focus:outline-none"
-                  onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { setComposerText(''); e.preventDefault() } }}
+                  disabled={sending}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' && !e.shiftKey) {
+                      e.preventDefault()
+                      sendComment()
+                    }
+                  }}
                 />
               </div>
               <Button
                 size="icon-sm"
-                disabled={!composerText.trim()}
-                onClick={() => setComposerText('')}
+                disabled={!composerText.trim() || sending}
+                onClick={sendComment}
                 aria-label="Send"
               >
                 <Send className="size-[13px]" />
