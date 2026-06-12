@@ -4,6 +4,7 @@ import { Building2 } from 'lucide-react'
 import { AppPage, ListBar } from '@/components/app/AppPage'
 import { DataTable, type Column, type EditOption } from '@/components/app/DataTable'
 import { StatusBadge } from '@/components/app/StatusBadge'
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { ErrorState } from '@/components/app/states'
 import { useCrmData } from '@/features/crm/CrmDataContext'
 import { useRecordSelection } from '@/features/crm/useRecordSelection'
@@ -18,9 +19,15 @@ import type { Retailer } from '@/lib/types'
 const STATUS_OPTIONS: EditOption[] = CUSTOMER_STATUSES.map((v) => ({ value: v, label: customerStatusLabel(v) }))
 const CHAIN_OPTIONS: EditOption[] = CHAIN_TYPES.map((v) => ({ value: v, label: label(v) }))
 
+type Segment = 'active' | 'triage' | 'dismissed' | 'all'
+
+// Normalize to the canonical bucket (empty/null == New Company / UNASSIGNED).
+const statusOf = (r: Retailer) => r.customer_status || 'UNASSIGNED'
+
 export function AccountsPage() {
   const { retailers, setRetailers, buyers, opportunities, loading, error, refresh } = useCrmData()
   const [query, setQuery] = useState('')
+  const [segment, setSegment] = useState<Segment>('active')
   const [selected, select] = useRecordSelection<Retailer>('retailer', retailers)
 
   // Inline edit / drag-copy for the Status and Chain columns.
@@ -49,12 +56,32 @@ export function AccountsPage() {
     return { contacts, opps }
   }, [buyers, opportunities])
 
+  // Segment counts. "active" hides Not-a-Customer (OTHER); "triage" = New
+  // Companies (UNASSIGNED) awaiting review.
+  const segCounts = useMemo(() => {
+    let active = 0
+    let triage = 0
+    let dismissed = 0
+    for (const r of retailers) {
+      const s = statusOf(r)
+      if (s === 'OTHER') dismissed++
+      else active++
+      if (s === 'UNASSIGNED') triage++
+    }
+    return { active, triage, dismissed, all: retailers.length }
+  }, [retailers])
+
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase()
-    return retailers.filter(
-      (r) => !q || textOf(r.name, r.domain, r.routing_aliases, r.customer_status, r.chain_type).includes(q),
-    )
-  }, [retailers, query])
+    return retailers.filter((r) => {
+      const s = statusOf(r)
+      if (segment === 'active' && s === 'OTHER') return false
+      if (segment === 'triage' && s !== 'UNASSIGNED') return false
+      if (segment === 'dismissed' && s !== 'OTHER') return false
+      if (q && !textOf(r.name, r.domain, r.routing_aliases, r.customer_status, r.chain_type).includes(q)) return false
+      return true
+    })
+  }, [retailers, query, segment])
 
   const columns: Column<Retailer>[] = [
     {
@@ -129,6 +156,25 @@ export function AccountsPage() {
           search={query}
           onSearch={setQuery}
           searchPlaceholder="Search name, domain, aliases…"
+          extra={
+            <Tabs value={segment} onValueChange={(v) => setSegment(v as Segment)}>
+              <TabsList>
+                {([
+                  { id: 'active', label: 'Accounts', count: segCounts.active },
+                  { id: 'triage', label: 'Triage', count: segCounts.triage },
+                  { id: 'dismissed', label: 'Not a customer', count: segCounts.dismissed },
+                  { id: 'all', label: 'All', count: segCounts.all },
+                ] as { id: Segment; label: string; count: number }[]).map((s) => (
+                  <TabsTrigger key={s.id} value={s.id} className="gap-1.5">
+                    {s.label}
+                    <span className="rounded-full bg-muted-foreground/15 px-1.5 text-[11px] tabular-nums">
+                      {s.count.toLocaleString()}
+                    </span>
+                  </TabsTrigger>
+                ))}
+              </TabsList>
+            </Tabs>
+          }
         />
       }
     >
@@ -143,8 +189,12 @@ export function AccountsPage() {
           onCellEdit={editCell}
           loading={loading}
           emptyIcon={<Building2 className="size-5" />}
-          emptyTitle="No accounts match"
-          emptyDescription="Adjust your search or column filters."
+          emptyTitle={segment === 'triage' ? 'Triage queue is clear' : 'No accounts match'}
+          emptyDescription={
+            segment === 'triage'
+              ? 'No new companies awaiting review.'
+              : 'Adjust your search or column filters.'
+          }
           initialSort={{ key: 'name', dir: 'asc' }}
         />
       )}
