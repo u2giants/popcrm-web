@@ -7,8 +7,8 @@ import { AccountLogo } from '@/components/app/AccountLogo'
 import { Button } from '@/components/ui/button'
 import { useCrmData } from '@/features/crm/CrmDataContext'
 import { ChainBadge, StageBadge } from '@/features/crm/components/CrmStatusBadge'
-import { customerStatusTone } from '@/features/crm/constants'
-import { idOf, label } from '@/features/crm/format'
+import { customerStatusLabel, customerStatusTone } from '@/features/crm/constants'
+import { idOf } from '@/features/crm/format'
 import type { Retailer } from '@/lib/types'
 
 function fmtAmount(val: string | number | null | undefined): string {
@@ -48,11 +48,9 @@ export function AccountDrawer({ row, onClose }: { row: Retailer | null; onClose:
       status={
         row ? (
           <>
-            {row.customer_status ? (
-              <StatusBadge tone={customerStatusTone(row.customer_status)} dot>
-                {label(row.customer_status)}
-              </StatusBadge>
-            ) : null}
+            <StatusBadge tone={customerStatusTone(row.customer_status)} dot>
+              {customerStatusLabel(row.customer_status)}
+            </StatusBadge>
             {row.chain_type ? <ChainBadge chain={row.chain_type} /> : null}
           </>
         ) : undefined
@@ -87,13 +85,9 @@ export function AccountDrawer({ row, onClose }: { row: Retailer | null; onClose:
           <DrawerSection>
             <DescriptionList>
               <DescriptionItem term="Status">
-                {row.customer_status ? (
-                  <StatusBadge tone={customerStatusTone(row.customer_status)} dot>
-                    {label(row.customer_status)}
-                  </StatusBadge>
-                ) : (
-                  <span className="text-muted-foreground">—</span>
-                )}
+                <StatusBadge tone={customerStatusTone(row.customer_status)} dot>
+                  {customerStatusLabel(row.customer_status)}
+                </StatusBadge>
               </DescriptionItem>
               <DescriptionItem term="Chain type">
                 {row.chain_type ? <ChainBadge chain={row.chain_type} /> : '—'}

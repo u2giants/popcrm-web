@@ -10,12 +10,12 @@ import { useRecordSelection } from '@/features/crm/useRecordSelection'
 import { AccountDrawer } from '@/features/crm/components/AccountDrawer'
 import { ChainBadge } from '@/features/crm/components/CrmStatusBadge'
 import { updateRetailer } from '@/features/crm/api'
-import { CHAIN_TYPES, CUSTOMER_STATUSES, customerStatusTone } from '@/features/crm/constants'
+import { CHAIN_TYPES, CUSTOMER_STATUSES, customerStatusLabel, customerStatusTone } from '@/features/crm/constants'
 import { idOf, label, textOf } from '@/features/crm/format'
 import { AccountLogo } from '@/components/app/AccountLogo'
 import type { Retailer } from '@/lib/types'
 
-const STATUS_OPTIONS: EditOption[] = CUSTOMER_STATUSES.map((v) => ({ value: v, label: label(v) }))
+const STATUS_OPTIONS: EditOption[] = CUSTOMER_STATUSES.map((v) => ({ value: v, label: customerStatusLabel(v) }))
 const CHAIN_OPTIONS: EditOption[] = CHAIN_TYPES.map((v) => ({ value: v, label: label(v) }))
 
 export function AccountsPage() {
@@ -77,18 +77,15 @@ export function AccountsPage() {
     {
       key: 'customer_status',
       header: 'Status',
-      sortValue: (r) => r.customer_status ?? '',
-      filterValue: (r) => label(r.customer_status),
+      sortValue: (r) => customerStatusLabel(r.customer_status),
+      filterValue: (r) => customerStatusLabel(r.customer_status),
       editOptions: STATUS_OPTIONS,
-      editValue: (r) => r.customer_status,
-      cell: (r) =>
-        r.customer_status ? (
-          <StatusBadge tone={customerStatusTone(r.customer_status)} dot>
-            {label(r.customer_status)}
-          </StatusBadge>
-        ) : (
-          <span className="text-muted-foreground">—</span>
-        ),
+      editValue: (r) => r.customer_status || 'UNASSIGNED',
+      cell: (r) => (
+        <StatusBadge tone={customerStatusTone(r.customer_status)} dot>
+          {customerStatusLabel(r.customer_status)}
+        </StatusBadge>
+      ),
     },
     {
       key: 'chain_type',

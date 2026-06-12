@@ -1,6 +1,7 @@
 // Domain constants and status→presentation mappings for the CRM.
 // Keep these token-driven (no ad-hoc Tailwind colors): badge variants and
 // stage chip classes map to the shared design tokens in src/index.css.
+import { label } from './format'
 
 export const OPPORTUNITY_STAGES = [
   'DIRECTIVE_RECEIVED',
@@ -46,8 +47,24 @@ export const CHAIN_TYPES = [
   'OTHER',
 ] as const
 
-// Account status → badge tone. Green active, yellow potential, red other,
-// neutral for "New Company" (UNASSIGNED).
+// Account-status display labels. Context-specific (NOT global label() overrides):
+// `OTHER` means "Other" for chain_type/contact_type, but "Not a Customer" here.
+// `UNASSIGNED`, empty and null all collapse to the single "New Company" bucket.
+export const CUSTOMER_STATUS_LABEL: Record<string, string> = {
+  ACTIVE_CUSTOMER: 'Active Customer',
+  POTENTIAL_CUSTOMER: 'Potential Customer',
+  OTHER: 'Not a Customer',
+  UNASSIGNED: 'New Company',
+}
+
+export function customerStatusLabel(status: string | null | undefined): string {
+  if (!status) return 'New Company'
+  return CUSTOMER_STATUS_LABEL[status] ?? label(status)
+}
+
+// Account status → badge tone. Green = active customer, yellow = potential,
+// blue = New Company (untriaged, needs review), gray = Not a Customer
+// (reviewed, no CRM action needed). No red — none of these is an alert.
 export function customerStatusTone(status: string | null | undefined): StatusTone {
   switch (status) {
     case 'ACTIVE_CUSTOMER':
@@ -55,9 +72,10 @@ export function customerStatusTone(status: string | null | undefined): StatusTon
     case 'POTENTIAL_CUSTOMER':
       return 'warning'
     case 'OTHER':
-      return 'danger'
-    default:
       return 'neutral'
+    default:
+      // UNASSIGNED / empty / null = New Company
+      return 'info'
   }
 }
 
