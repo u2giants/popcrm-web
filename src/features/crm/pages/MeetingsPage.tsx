@@ -43,6 +43,7 @@ export function MeetingsPage() {
       key: 'name',
       header: 'Meeting',
       sortValue: (m) => m.name?.toLowerCase() ?? '',
+      filterValue: (m) => m.name,
       className: 'w-full max-w-0',
       cell: (m) => (
         <div className="min-w-0">

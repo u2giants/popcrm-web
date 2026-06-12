@@ -59,6 +59,7 @@ export function EmailRoutingPage() {
       key: 'subject',
       header: 'Subject',
       sortValue: (e) => e.subject?.toLowerCase() ?? '',
+      filterValue: (e) => e.subject,
       className: 'w-full max-w-0',
       cell: (e) => (
         <div className="min-w-0">

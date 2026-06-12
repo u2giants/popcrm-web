@@ -35,6 +35,7 @@ export function ApprovalsPage() {
       key: 'name',
       header: 'Approval',
       sortValue: (a) => (a.name || a.property_name || '').toLowerCase(),
+      filterValue: (a) => a.name || a.property_name,
       className: 'w-full max-w-0',
       cell: (a) => (
         <div className="min-w-0">

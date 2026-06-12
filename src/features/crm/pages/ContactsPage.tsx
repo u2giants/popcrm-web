@@ -38,6 +38,7 @@ export function ContactsPage() {
       key: 'name',
       header: 'Name',
       sortValue: (b) => b.name?.toLowerCase(),
+      filterValue: (b) => b.name,
       cell: (b) => <span className="font-medium text-foreground">{b.name}</span>,
     },
     {

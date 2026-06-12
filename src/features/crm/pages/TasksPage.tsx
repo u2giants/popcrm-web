@@ -54,6 +54,7 @@ export function TasksPage() {
       key: 'title',
       header: 'Task',
       sortValue: (t) => t.title?.toLowerCase() ?? '',
+      filterValue: (t) => t.title,
       className: 'w-full max-w-0',
       cell: (t) => (
         <div className="min-w-0">

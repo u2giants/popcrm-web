@@ -50,6 +50,7 @@ export function AccountsPage() {
       key: 'name',
       header: 'Account',
       sortValue: (r) => r.name?.toLowerCase(),
+      filterValue: (r) => r.name,
       cell: (r) => <span className="font-medium text-foreground">{r.name}</span>,
     },
     {

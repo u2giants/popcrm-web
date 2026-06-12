@@ -50,6 +50,7 @@ export function NotesPage() {
       key: 'title',
       header: 'Note',
       sortValue: (n) => n.title?.toLowerCase() ?? '',
+      filterValue: (n) => n.title,
       className: 'w-full max-w-0',
       cell: (n) => (
         <div className="min-w-0">
