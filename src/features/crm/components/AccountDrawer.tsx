@@ -1,10 +1,27 @@
 import { useMemo } from 'react'
+import { Building2, Mail, Route } from 'lucide-react'
 import { DetailDrawer, DescriptionItem, DescriptionList, DrawerSection } from '@/components/app/DetailDrawer'
 import { StatusBadge } from '@/components/app/StatusBadge'
-import { Badge } from '@/components/ui/badge'
+import { NameAvatar } from '@/components/app/NameAvatar'
 import { useCrmData } from '@/features/crm/CrmDataContext'
-import { idOf, label, relatedName } from '@/features/crm/format'
+import { StageBadge } from '@/features/crm/components/CrmStatusBadge'
+import { idOf, label } from '@/features/crm/format'
 import type { Retailer } from '@/lib/types'
+
+const STATUS_TONE: Record<string, 'success' | 'info' | 'warning' | 'neutral'> = {
+  ACTIVE: 'success',
+  PROSPECT: 'info',
+  AT_RISK: 'warning',
+}
+
+function fmtAmount(val: string | number | null | undefined): string {
+  if (val == null || val === '') return '—'
+  const n = typeof val === 'string' ? parseFloat(val.replace(/[^0-9.-]/g, '')) : Number(val)
+  if (!isFinite(n)) return '—'
+  if (n >= 1_000_000) return `$${(n / 1_000_000).toFixed(2)}M`
+  if (n >= 1_000) return `$${(n / 1_000).toFixed(0)}k`
+  return `$${n.toFixed(0)}`
+}
 
 export function AccountDrawer({ row, onClose }: { row: Retailer | null; onClose: () => void }) {
   const { buyers, departments, opportunities, emails } = useCrmData()
@@ -30,89 +47,181 @@ export function AccountDrawer({ row, onClose }: { row: Retailer | null; onClose:
       onClose={onClose}
       title={row?.name || 'Account'}
       subtitle={row?.domain ?? undefined}
-      status={row ? <StatusBadge tone="info">{label(row.customer_status)}</StatusBadge> : undefined}
+      status={
+        row ? (
+          <>
+            <StatusBadge tone={STATUS_TONE[row.customer_status ?? ''] ?? 'neutral'} dot>
+              {label(row.customer_status)}
+            </StatusBadge>
+            {row.chain_type ? (
+              <StatusBadge tone="neutral" dot={false}>{label(row.chain_type)}</StatusBadge>
+            ) : null}
+          </>
+        ) : undefined
+      }
     >
       {row ? (
         <>
+          {/* Mini stat cards */}
+          <DrawerSection>
+            <div className="grid grid-cols-2 gap-[10px]">
+              <StatCard
+                icon={<Building2 className="size-[14px]" />}
+                iconColor="oklch(0.62 0.15 165)"
+                label="Contacts"
+                value={related.contacts.length}
+              />
+              <StatCard
+                icon={<Route className="size-[14px]" />}
+                iconColor="oklch(0.62 0.17 300)"
+                label="Programs"
+                value={related.opps.length}
+              />
+            </div>
+          </DrawerSection>
+
+          {/* Core details */}
           <DrawerSection>
             <DescriptionList>
-              <DescriptionItem term="Customer status">{label(row.customer_status)}</DescriptionItem>
+              <DescriptionItem term="Status">
+                <StatusBadge tone={STATUS_TONE[row.customer_status ?? ''] ?? 'neutral'} dot>
+                  {label(row.customer_status)}
+                </StatusBadge>
+              </DescriptionItem>
               <DescriptionItem term="Chain type">{label(row.chain_type)}</DescriptionItem>
-              <DescriptionItem term="Domain">{row.domain || '—'}</DescriptionItem>
-              <DescriptionItem term="Contacts">{related.contacts.length}</DescriptionItem>
+              <DescriptionItem term="Domain">
+                {row.domain ? (
+                  <span className="font-mono text-[11.5px]">{row.domain}</span>
+                ) : '—'}
+              </DescriptionItem>
             </DescriptionList>
           </DrawerSection>
 
+          {/* Routing aliases */}
           {aliases.length ? (
             <DrawerSection title="Routing aliases">
-              <div className="flex flex-wrap gap-1.5">
+              <div className="flex flex-wrap gap-[6px]">
                 {aliases.map((a) => (
-                  <Badge key={a} variant="outline" className="font-mono text-xs">
+                  <span key={a} className="rounded-[5px] border bg-muted/50 px-[7px] py-[2px] font-mono text-[11px] text-muted-foreground">
                     {a}
-                  </Badge>
+                  </span>
                 ))}
               </div>
             </DrawerSection>
           ) : null}
 
-          {related.depts.length ? (
-            <DrawerSection title={`Departments (${related.depts.length})`}>
-              <div className="flex flex-wrap gap-1.5">
-                {related.depts.map((d) => (
-                  <Badge key={d.id} variant="secondary">
-                    {d.name}
-                  </Badge>
-                ))}
-              </div>
-            </DrawerSection>
-          ) : null}
-
-          <DrawerSection title={`Opportunities (${related.opps.length})`}>
-            {related.opps.length ? (
-              <ul className="divide-y rounded-md border">
-                {related.opps.slice(0, 8).map((o) => (
-                  <li key={o.id} className="flex items-center justify-between gap-2 px-3 py-2 text-sm">
-                    <span className="truncate">{o.name || 'Untitled program'}</span>
-                    <span className="shrink-0 text-xs text-muted-foreground">{label(o.stage)}</span>
-                  </li>
-                ))}
-              </ul>
-            ) : (
-              <p className="text-sm text-muted-foreground">No opportunities yet.</p>
-            )}
-          </DrawerSection>
-
+          {/* Contacts list with avatars */}
           <DrawerSection title={`Contacts (${related.contacts.length})`}>
             {related.contacts.length ? (
-              <ul className="divide-y rounded-md border">
+              <ul className="divide-y rounded-[8px] border">
                 {related.contacts.slice(0, 8).map((c) => (
-                  <li key={c.id} className="flex items-center justify-between gap-2 px-3 py-2 text-sm">
-                    <span className="truncate">{c.name}</span>
-                    <span className="shrink-0 truncate text-xs text-muted-foreground">{c.email || '—'}</span>
+                  <li key={c.id} className="flex items-center gap-[9px] px-[11px] py-[8px]">
+                    <NameAvatar name={c.last_name || c.name} size={22} />
+                    <div className="min-w-0 flex-1">
+                      <div className="truncate text-[12.5px] font-[500] text-foreground">{c.name}</div>
+                      <div className="truncate text-[11px] text-muted-foreground">{c.email || c.job_title || '—'}</div>
+                    </div>
                   </li>
                 ))}
               </ul>
             ) : (
-              <p className="text-sm text-muted-foreground">No contacts yet.</p>
+              <p className="text-[12px] text-muted-foreground">No contacts yet.</p>
             )}
           </DrawerSection>
 
-          <DrawerSection title="Recent email">
-            {related.recentEmails.length ? (
-              <ul className="divide-y rounded-md border">
-                {related.recentEmails.map((e) => (
-                  <li key={e.id} className="px-3 py-2 text-sm">
-                    <div className="truncate font-medium">{e.subject || '(no subject)'}</div>
-                    <div className="truncate text-xs text-muted-foreground">{relatedName(e.opportunity)}</div>
+          {/* Programs list with stage chips + amount */}
+          <DrawerSection title={`Programs (${related.opps.length})`}>
+            {related.opps.length ? (
+              <ul className="divide-y rounded-[8px] border">
+                {related.opps.slice(0, 8).map((o) => (
+                  <li key={o.id} className="flex items-center gap-[8px] px-[11px] py-[8px]">
+                    <div className="min-w-0 flex-1">
+                      <div className="truncate text-[12.5px] font-[500] text-foreground">
+                        {o.name || 'Untitled program'}
+                      </div>
+                      {o.season_year ? (
+                        <div className="text-[11px] text-muted-foreground">{o.season_year}</div>
+                      ) : null}
+                    </div>
+                    <div className="flex shrink-0 items-center gap-[6px]">
+                      {o.amount ? (
+                        <span className="text-[11.5px] font-[650] tabular-nums text-foreground">
+                          {fmtAmount(o.amount)}
+                        </span>
+                      ) : null}
+                      <StageBadge stage={o.stage} />
+                    </div>
                   </li>
                 ))}
               </ul>
             ) : (
-              <p className="text-sm text-muted-foreground">No recent email.</p>
+              <p className="text-[12px] text-muted-foreground">No opportunities yet.</p>
             )}
           </DrawerSection>
+
+          {/* Recent email */}
+          {related.recentEmails.length ? (
+            <DrawerSection title="Recent email">
+              <ul className="divide-y rounded-[8px] border">
+                {related.recentEmails.map((e) => (
+                  <li key={e.id} className="flex items-center gap-[9px] px-[11px] py-[8px]">
+                    <Mail className="size-[13px] shrink-0 text-muted-foreground" />
+                    <div className="min-w-0">
+                      <div className="truncate text-[12.5px] font-[500] text-foreground">
+                        {e.subject || '(no subject)'}
+                      </div>
+                      <div className="truncate text-[11px] text-muted-foreground">{e.sender}</div>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            </DrawerSection>
+          ) : null}
+
+          {/* Departments */}
+          {related.depts.length ? (
+            <DrawerSection title={`Departments (${related.depts.length})`}>
+              <div className="flex flex-wrap gap-[6px]">
+                {related.depts.map((d) => (
+                  <span key={d.id} className="rounded-full bg-muted px-[8px] py-[3px] text-[11.5px] text-muted-foreground">
+                    {d.name}
+                  </span>
+                ))}
+              </div>
+            </DrawerSection>
+          ) : null}
         </>
       ) : null}
     </DetailDrawer>
+  )
+}
+
+function StatCard({
+  icon,
+  iconColor,
+  label,
+  value,
+}: {
+  icon: React.ReactNode
+  iconColor: string
+  label: string
+  value: number
+}) {
+  return (
+    <div className="flex items-center gap-[10px] rounded-[9px] border bg-muted/30 px-[12px] py-[10px]">
+      <span
+        className="flex size-[28px] shrink-0 items-center justify-center rounded-[7px]"
+        style={{
+          background: `color-mix(in oklch, ${iconColor} 15%, transparent)`,
+          color: iconColor,
+        }}
+      >
+        {icon}
+      </span>
+      <div>
+        <div className="text-[18px] font-[700] tabular-nums leading-none text-foreground">{value}</div>
+        <div className="mt-[2px] text-[11px] text-muted-foreground">{label}</div>
+      </div>
+    </div>
   )
 }

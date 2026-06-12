@@ -11,10 +11,15 @@ function initTheme(): 'light' | 'dark' {
   return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'
 }
 
+function initDensity(): 'comfortable' | 'compact' {
+  return localStorage.getItem('popcrm_density') === 'compact' ? 'compact' : 'comfortable'
+}
+
 export function AppLayout() {
   const [mobileNav, setMobileNav] = useState(false)
   const [search, setSearch] = useState(false)
   const [theme, setTheme] = useState<'light' | 'dark'>(initTheme)
+  const [density, setDensity] = useState<'comfortable' | 'compact'>(initDensity)
 
   // ⌘K / Ctrl-K opens the global command palette.
   useEffect(() => {
@@ -38,6 +43,15 @@ export function AppLayout() {
     setTheme((t) => (t === 'dark' ? 'light' : 'dark'))
   }
 
+  useEffect(() => {
+    document.documentElement.classList.toggle('density-compact', density === 'compact')
+    localStorage.setItem('popcrm_density', density)
+  }, [density])
+
+  function toggleDensity() {
+    setDensity((d) => (d === 'compact' ? 'comfortable' : 'compact'))
+  }
+
   return (
     <div className="flex h-svh overflow-hidden bg-background">
       <AppSidebar />
@@ -56,6 +70,8 @@ export function AppLayout() {
           onOpenSearch={() => setSearch(true)}
           theme={theme}
           onToggleTheme={toggleTheme}
+          density={density}
+          onToggleDensity={toggleDensity}
         />
         <main className="min-h-0 flex-1 overflow-hidden">
           <Outlet />

@@ -303,3 +303,8 @@
 
     ::selection { background: color-mix(in oklch, var(--primary) 28%, transparent); }
 }
+
+/* Density: compact mode — 36px table rows (default comfortable = 40px) */
+.density-compact tbody tr td {
+    height: 36px;
+}

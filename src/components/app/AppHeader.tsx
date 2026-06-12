@@ -1,4 +1,4 @@
-import { Menu, Moon, RefreshCcw, Search, Sun } from 'lucide-react'
+import { AlignJustify, Menu, Moon, RefreshCcw, Search, Sun } from 'lucide-react'
 import { useAuth } from '@/auth/auth'
 import { useCrmData } from '@/features/crm/CrmDataContext'
 import { Button } from '@/components/ui/button'
@@ -40,11 +40,15 @@ export function AppHeader({
   onOpenSearch,
   theme,
   onToggleTheme,
+  density,
+  onToggleDensity,
 }: {
   onOpenMobileNav: () => void
   onOpenSearch: () => void
   theme: 'light' | 'dark'
   onToggleTheme: () => void
+  density: 'comfortable' | 'compact'
+  onToggleDensity: () => void
 }) {
   const { user, logout } = useAuth()
   const { refresh, loading, firefliesOk } = useCrmData()
@@ -97,6 +101,21 @@ export function AppHeader({
             <TooltipContent>Build commit · {COMMIT_DATE}</TooltipContent>
           </Tooltip>
         ) : null}
+
+        {/* Density toggle */}
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button
+              variant="outline"
+              size="icon-sm"
+              onClick={onToggleDensity}
+              title={density === 'compact' ? 'Comfortable density' : 'Compact density'}
+            >
+              <AlignJustify className="size-[17px]" />
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent>{density === 'compact' ? 'Switch to comfortable' : 'Switch to compact'}</TooltipContent>
+        </Tooltip>
 
         {/* Theme toggle */}
         <Tooltip>
