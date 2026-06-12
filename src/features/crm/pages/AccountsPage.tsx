@@ -1,7 +1,6 @@
 import { useMemo, useState } from 'react'
 import { Building2 } from 'lucide-react'
 import { AppPage, ListBar } from '@/components/app/AppPage'
-import { FilterSelect } from '@/components/app/FilterSelect'
 import { DataTable, type Column } from '@/components/app/DataTable'
 import { StatusBadge } from '@/components/app/StatusBadge'
 import { ErrorState } from '@/components/app/states'
@@ -9,14 +8,12 @@ import { useCrmData } from '@/features/crm/CrmDataContext'
 import { useRecordSelection } from '@/features/crm/useRecordSelection'
 import { AccountDrawer } from '@/features/crm/components/AccountDrawer'
 import { idOf, label, textOf } from '@/features/crm/format'
-import { uniqueValues } from '@/features/crm/pages/_shared'
+import { NameAvatar } from '@/components/app/NameAvatar'
 import type { Retailer } from '@/lib/types'
 
 export function AccountsPage() {
   const { retailers, buyers, opportunities, loading, error, refresh } = useCrmData()
   const [query, setQuery] = useState('')
-  const [status, setStatus] = useState('')
-  const [chain, setChain] = useState('')
   const [selected, select] = useRecordSelection<Retailer>('retailer', retailers)
 
   const counts = useMemo(() => {
@@ -36,12 +33,15 @@ export function AccountsPage() {
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase()
     return retailers.filter(
-      (r) =>
-        (!q || textOf(r.name, r.domain, r.routing_aliases, r.customer_status, r.chain_type).includes(q)) &&
-        (!status || r.customer_status === status) &&
-        (!chain || r.chain_type === chain),
+      (r) => !q || textOf(r.name, r.domain, r.routing_aliases, r.customer_status, r.chain_type).includes(q),
     )
-  }, [retailers, query, status, chain])
+  }, [retailers, query])
+
+  const STATUS_TONE: Record<string, 'success' | 'info' | 'warning' | 'neutral'> = {
+    ACTIVE: 'success',
+    PROSPECT: 'info',
+    AT_RISK: 'warning',
+  }
 
   const columns: Column<Retailer>[] = [
     {
@@ -49,32 +49,42 @@ export function AccountsPage() {
       header: 'Account',
       sortValue: (r) => r.name?.toLowerCase(),
       filterValue: (r) => r.name,
-      cell: (r) => <span className="font-medium text-foreground">{r.name}</span>,
-    },
-    {
-      key: 'domain',
-      header: 'Domain',
-      hideBelow: 'md',
-      sortValue: (r) => r.domain ?? '',
-      cell: (r) => <span className="text-muted-foreground">{r.domain || '—'}</span>,
+      cell: (r) => (
+        <div className="flex items-center gap-[9px]">
+          <NameAvatar name={r.name} size={20} />
+          <div className="min-w-0">
+            <div className="truncate font-[500] text-foreground">{r.name}</div>
+            {r.domain ? (
+              <div className="truncate text-[11px] text-muted-foreground">{r.domain}</div>
+            ) : null}
+          </div>
+        </div>
+      ),
     },
     {
       key: 'customer_status',
       header: 'Status',
       sortValue: (r) => r.customer_status ?? '',
-      cell: (r) => <StatusBadge tone="info" dot={false}>{label(r.customer_status)}</StatusBadge>,
+      filterValue: (r) => label(r.customer_status),
+      cell: (r) => (
+        <StatusBadge tone={STATUS_TONE[r.customer_status ?? ''] ?? 'neutral'} dot>
+          {label(r.customer_status)}
+        </StatusBadge>
+      ),
     },
     {
       key: 'chain_type',
-      header: 'Chain type',
+      header: 'Chain',
       hideBelow: 'lg',
       sortValue: (r) => r.chain_type ?? '',
+      filterValue: (r) => label(r.chain_type),
       cell: (r) => <span className="text-muted-foreground">{label(r.chain_type)}</span>,
     },
     {
       key: 'contacts',
       header: 'Contacts',
       hideBelow: 'lg',
+      numeric: true,
       sortValue: (r) => counts.contacts.get(r.id) ?? 0,
       className: 'text-right tabular-nums',
       headClassName: 'text-right',
@@ -82,8 +92,9 @@ export function AccountsPage() {
     },
     {
       key: 'opps',
-      header: 'Opportunities',
+      header: 'Programs',
       hideBelow: 'xl',
+      numeric: true,
       sortValue: (r) => counts.opps.get(r.id) ?? 0,
       className: 'text-right tabular-nums',
       headClassName: 'text-right',
@@ -96,31 +107,11 @@ export function AccountsPage() {
       listBar={
         <ListBar
           title="Accounts"
-          subtitle="Retailers and accounts"
+          subtitle="Retailer accounts"
           count={filtered.length}
           search={query}
           onSearch={setQuery}
           searchPlaceholder="Search name, domain, aliases…"
-          showClear={!!(status || chain)}
-          onClear={() => { setStatus(''); setChain('') }}
-          filters={
-            <>
-              <FilterSelect
-                value={status}
-                onChange={setStatus}
-                allLabel="All statuses"
-                placeholder="Status"
-                options={uniqueValues(retailers, (r) => r.customer_status)}
-              />
-              <FilterSelect
-                value={chain}
-                onChange={setChain}
-                allLabel="All chain types"
-                placeholder="Chain type"
-                options={uniqueValues(retailers, (r) => r.chain_type)}
-              />
-            </>
-          }
         />
       }
     >
@@ -135,7 +126,7 @@ export function AccountsPage() {
           loading={loading}
           emptyIcon={<Building2 className="size-5" />}
           emptyTitle="No accounts match"
-          emptyDescription="Adjust your search or filters."
+          emptyDescription="Adjust your search or column filters."
           initialSort={{ key: 'name', dir: 'asc' }}
         />
       )}

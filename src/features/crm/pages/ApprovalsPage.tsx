@@ -1,7 +1,6 @@
 import { useMemo, useState } from 'react'
 import { ShieldCheck } from 'lucide-react'
 import { AppPage, ListBar } from '@/components/app/AppPage'
-import { FilterSelect } from '@/components/app/FilterSelect'
 import { DataTable, type Column } from '@/components/app/DataTable'
 import { ErrorState } from '@/components/app/states'
 import { CrmStatusBadge } from '@/features/crm/components/CrmStatusBadge'
@@ -10,23 +9,19 @@ import { useCrmData } from '@/features/crm/CrmDataContext'
 import { useRecordSelection } from '@/features/crm/useRecordSelection'
 import { ApprovalDrawer } from '@/features/crm/components/ApprovalDrawer'
 import { formatDate, relatedName, textOf } from '@/features/crm/format'
-import { uniqueValues } from '@/features/crm/pages/_shared'
 import type { CrmLicensorApprovalThread } from '@/lib/types'
 
 export function ApprovalsPage() {
   const { approvals, loading, error, refresh } = useCrmData()
   const [query, setQuery] = useState('')
-  const [stage, setStage] = useState('')
   const [selected, select] = useRecordSelection<CrmLicensorApprovalThread>('approval', approvals)
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase()
     return approvals.filter(
-      (a) =>
-        (!q || textOf(a.name, a.property_name, a.licensor_comments, relatedName(a.opportunity)).includes(q)) &&
-        (!stage || a.stage === stage),
+      (a) => !q || textOf(a.name, a.property_name, a.licensor_comments, relatedName(a.opportunity)).includes(q),
     )
-  }, [approvals, query, stage])
+  }, [approvals, query])
 
   const columns: Column<CrmLicensorApprovalThread>[] = [
     {
@@ -47,6 +42,7 @@ export function ApprovalsPage() {
       header: 'Property',
       hideBelow: 'md',
       sortValue: (a) => a.property_name ?? '',
+      filterValue: (a) => a.property_name,
       cell: (a) => <span className="text-muted-foreground">{a.property_name || '—'}</span>,
     },
     {
@@ -54,6 +50,7 @@ export function ApprovalsPage() {
       header: 'Opportunity',
       hideBelow: 'lg',
       sortValue: (a) => relatedName(a.opportunity),
+      filterValue: (a) => relatedName(a.opportunity),
       cell: (a) => <RelationLabel value={a.opportunity} />,
     },
     {
@@ -61,6 +58,7 @@ export function ApprovalsPage() {
       header: 'Submitted',
       hideBelow: 'xl',
       sortValue: (a) => a.submitted_date ?? '',
+      filterValue: (a) => a.submitted_date,
       className: 'text-muted-foreground',
       cell: (a) => formatDate(a.submitted_date),
     },
@@ -68,6 +66,7 @@ export function ApprovalsPage() {
       key: 'stage',
       header: 'Status',
       sortValue: (a) => a.stage ?? '',
+      filterValue: (a) => a.stage,
       cell: (a) => <CrmStatusBadge kind="approval" status={a.stage} />,
     },
   ]
@@ -82,17 +81,6 @@ export function ApprovalsPage() {
           search={query}
           onSearch={setQuery}
           searchPlaceholder="Search name, property, comments…"
-          showClear={!!stage}
-          onClear={() => setStage('')}
-          filters={
-            <FilterSelect
-              value={stage}
-              onChange={setStage}
-              allLabel="All stages"
-              placeholder="Stage"
-              options={uniqueValues(approvals, (a) => a.stage)}
-            />
-          }
         />
       }
     >
@@ -107,7 +95,7 @@ export function ApprovalsPage() {
           loading={loading}
           emptyIcon={<ShieldCheck className="size-5" />}
           emptyTitle="No approvals match"
-          emptyDescription="Adjust your search or filters."
+          emptyDescription="Adjust your search or column filters."
           initialSort={{ key: 'submitted_date', dir: 'desc' }}
         />
       )}

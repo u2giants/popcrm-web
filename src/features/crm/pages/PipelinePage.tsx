@@ -6,12 +6,21 @@ import { ScrollArea } from '@/components/ui/scroll-area'
 import { ErrorState, CardGridSkeleton } from '@/components/app/states'
 import { useCrmData } from '@/features/crm/CrmDataContext'
 import { useRecordSelection } from '@/features/crm/useRecordSelection'
-import { OpportunityDrawer } from '@/features/crm/components/OpportunityDrawer'
+import { OpportunityModal } from '@/features/crm/components/OpportunityModal'
 import { OPPORTUNITY_STAGES, stageChipClass } from '@/features/crm/constants'
-import { idOf, label, relatedName, textOf } from '@/features/crm/format'
+import { idOf, label, relatedName, textOf, formatDate } from '@/features/crm/format'
 import { uniqueValues } from '@/features/crm/pages/_shared'
 import { cn } from '@/lib/utils'
 import type { CrmOpportunity } from '@/lib/types'
+
+function fmtAmount(val: string | number | null | undefined): string | null {
+  if (val == null || val === '') return null
+  const n = typeof val === 'string' ? parseFloat(val.replace(/[^0-9.-]/g, '')) : Number(val)
+  if (!isFinite(n)) return null
+  if (n >= 1_000_000) return `$${(n / 1_000_000).toFixed(2)}M`
+  if (n >= 1_000) return `$${(n / 1_000).toFixed(0)}k`
+  return `$${n.toFixed(0)}`
+}
 
 export function PipelinePage() {
   const { opportunities, retailers, loading, error, refresh } = useCrmData()
@@ -113,31 +122,7 @@ export function PipelinePage() {
                     </div>
                   ) : null}
                   {group.rows.map((opp) => (
-                    <button
-                      key={opp.id}
-                      onClick={() => select(opp)}
-                      className="rounded-[9px] border bg-card p-[11px] text-left shadow-[var(--shadow-xs)] transition-all hover:border-primary/30 hover:shadow-[var(--shadow-sm)]"
-                    >
-                      <div className="flex items-start justify-between gap-2">
-                        <span className="line-clamp-2 text-[12.5px] font-[500] text-foreground">
-                          {opp.name || 'Untitled program'}
-                        </span>
-                        {opp.ai_summary ? (
-                          <Sparkles className="mt-0.5 size-[13px] shrink-0 text-primary" />
-                        ) : null}
-                      </div>
-                      <div className="mt-[7px] space-y-[3px] text-[11.5px] text-muted-foreground">
-                        <div className="truncate">{relatedName(opp.retailer)}</div>
-                        {relatedName(opp.department) !== '—' ? (
-                          <div className="truncate">{relatedName(opp.department)}</div>
-                        ) : null}
-                        {opp.production_po_number || opp.sales_order_number ? (
-                          <div className="truncate font-[500] text-foreground/60">
-                            PO/SO {opp.production_po_number || opp.sales_order_number}
-                          </div>
-                        ) : null}
-                      </div>
-                    </button>
+                    <OppCard key={opp.id} opp={opp} onClick={() => select(opp)} />
                   ))}
                 </div>
               </section>
@@ -146,7 +131,52 @@ export function PipelinePage() {
         </ScrollArea>
       )}
 
-      <OpportunityDrawer row={selected} onClose={() => select(null)} />
+      <OpportunityModal row={selected} onClose={() => select(null)} />
     </AppPage>
+  )
+}
+
+function OppCard({ opp, onClick }: { opp: CrmOpportunity; onClick: () => void }) {
+  const amount = fmtAmount(opp.amount)
+  const closeDate = formatDate(opp.close_date)
+  const hasFooter = !!(amount || closeDate)
+
+  return (
+    <button
+      onClick={onClick}
+      className="rounded-[9px] border bg-card text-left shadow-[var(--shadow-xs)] transition-all hover:border-primary/30 hover:shadow-[var(--shadow-sm)]"
+    >
+      <div className="p-[11px]">
+        <div className="flex items-start justify-between gap-2">
+          <span className="line-clamp-2 text-[12.5px] font-[500] text-foreground">
+            {opp.name || 'Untitled program'}
+          </span>
+          {opp.ai_summary ? (
+            <Sparkles className="mt-0.5 size-[13px] shrink-0 text-primary" />
+          ) : null}
+        </div>
+        <div className="mt-[7px] space-y-[3px] text-[11.5px] text-muted-foreground">
+          <div className="truncate">{relatedName(opp.retailer)}</div>
+          {relatedName(opp.department) !== '—' ? (
+            <div className="truncate">{relatedName(opp.department)}</div>
+          ) : null}
+          {opp.production_po_number || opp.sales_order_number ? (
+            <div className="truncate font-mono text-[11px] text-foreground/50">
+              {opp.production_po_number || opp.sales_order_number}
+            </div>
+          ) : null}
+        </div>
+      </div>
+      {hasFooter ? (
+        <div className="flex items-center justify-between gap-2 border-t px-[11px] py-[7px]">
+          {amount ? (
+            <span className="text-[12px] font-[650] tabular-nums text-foreground">{amount}</span>
+          ) : <span />}
+          {closeDate ? (
+            <span className="text-[10.5px] text-muted-foreground">{closeDate}</span>
+          ) : null}
+        </div>
+      ) : null}
+    </button>
   )
 }

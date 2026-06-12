@@ -2,7 +2,6 @@ import { useMemo, useState } from 'react'
 import { toast } from 'sonner'
 import { NotebookTabs, Plus } from 'lucide-react'
 import { AppPage, ListBar } from '@/components/app/AppPage'
-import { FilterSelect } from '@/components/app/FilterSelect'
 import { DataTable, type Column } from '@/components/app/DataTable'
 import { Combobox, type ComboOption } from '@/components/app/Combobox'
 import { Button } from '@/components/ui/button'
@@ -24,25 +23,21 @@ import { useRecordSelection } from '@/features/crm/useRecordSelection'
 import { NoteDrawer } from '@/features/crm/components/NoteDrawer'
 import { createNote } from '@/features/crm/api'
 import { label, relatedName, textOf } from '@/features/crm/format'
-import { uniqueValues } from '@/features/crm/pages/_shared'
 import { StatusBadge } from '@/components/app/StatusBadge'
 import type { CrmNote } from '@/lib/types'
 
 export function NotesPage() {
   const { notes, retailers, opportunities, loading, error, refresh, setNotes } = useCrmData()
   const [query, setQuery] = useState('')
-  const [source, setSource] = useState('')
   const [creating, setCreating] = useState(false)
   const [selected, select] = useRecordSelection<CrmNote>('note', notes)
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase()
     return notes.filter(
-      (n) =>
-        (!q || textOf(n.title, n.body, n.action_items, relatedName(n.retailer), relatedName(n.opportunity)).includes(q)) &&
-        (!source || n.source === source),
+      (n) => !q || textOf(n.title, n.body, n.action_items, relatedName(n.retailer), relatedName(n.opportunity)).includes(q),
     )
-  }, [notes, query, source])
+  }, [notes, query])
 
   const columns: Column<CrmNote>[] = [
     {
@@ -63,6 +58,7 @@ export function NotesPage() {
       header: 'Account',
       hideBelow: 'md',
       sortValue: (n) => relatedName(n.retailer),
+      filterValue: (n) => relatedName(n.retailer),
       cell: (n) => <RelationLabel value={n.retailer} />,
     },
     {
@@ -70,6 +66,7 @@ export function NotesPage() {
       header: 'Opportunity',
       hideBelow: 'lg',
       sortValue: (n) => relatedName(n.opportunity),
+      filterValue: (n) => relatedName(n.opportunity),
       cell: (n) => <RelationLabel value={n.opportunity} />,
     },
     {
@@ -77,6 +74,7 @@ export function NotesPage() {
       header: 'Source',
       hideBelow: 'lg',
       sortValue: (n) => n.source ?? '',
+      filterValue: (n) => label(n.source),
       cell: (n) => n.source ? <StatusBadge tone="neutral" dot={false}>{label(n.source)}</StatusBadge> : '—',
     },
   ]
@@ -91,17 +89,6 @@ export function NotesPage() {
           search={query}
           onSearch={setQuery}
           searchPlaceholder="Search title, body, action items…"
-          showClear={!!source}
-          onClear={() => setSource('')}
-          filters={
-            <FilterSelect
-              value={source}
-              onChange={setSource}
-              allLabel="All sources"
-              placeholder="Source"
-              options={uniqueValues(notes, (n) => n.source)}
-            />
-          }
           actions={
             <Button size="sm" onClick={() => setCreating(true)}>
               <Plus className="size-4" /> New note
@@ -216,12 +203,8 @@ function NewNoteDialog({
           </div>
         </div>
         <DialogFooter>
-          <Button variant="outline" onClick={onClose} disabled={busy}>
-            Cancel
-          </Button>
-          <Button onClick={submit} disabled={busy}>
-            {busy ? 'Creating…' : 'Create note'}
-          </Button>
+          <Button variant="outline" onClick={onClose} disabled={busy}>Cancel</Button>
+          <Button onClick={submit} disabled={busy}>{busy ? 'Creating…' : 'Create note'}</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>

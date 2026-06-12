@@ -10,12 +10,13 @@ import {
   ShieldCheck,
   ArrowRight,
 } from 'lucide-react'
-import { AppPage, ListBar } from '@/components/app/AppPage'
+import { AppPage, ListBar, SectionHeader } from '@/components/app/AppPage'
 import { MetricCard } from '@/components/app/MetricCard'
 import { CardGridSkeleton, ErrorState } from '@/components/app/states'
 import { StatusBadge } from '@/components/app/StatusBadge'
 import { ChartDonut, type DonutSlice } from '@/components/app/ChartDonut'
 import { ChartHBar, type HBarItem } from '@/components/app/ChartHBar'
+import { ChartAreaVolume, type AreaSeries } from '@/components/app/ChartAreaVolume'
 import { useCrmData } from '@/features/crm/CrmDataContext'
 import { CrmStatusBadge } from '@/features/crm/components/CrmStatusBadge'
 import { RelationLabel } from '@/features/crm/components/RelationLabel'
@@ -37,6 +38,28 @@ const ROUTING_NAMES: Record<string, string> = {
   UNROUTED: 'Unrouted',
   CUSTOMER_EMAIL_NO_COMPANY: 'No company',
   SKIPPED: 'Skipped',
+}
+
+// Build a 12-week rolling volume series from an array of ISO date strings.
+function buildWeeklyVolume(
+  emails: { received_at: string | null; routing_status: string | null }[],
+): AreaSeries[] {
+  const now = Date.now()
+  const MS_WEEK = 7 * 24 * 3600 * 1000
+  const weeks: { label: string; ingested: number; routed: number }[] = []
+  for (let i = 11; i >= 0; i--) {
+    const weekStart = now - (i + 1) * MS_WEEK
+    const weekEnd = now - i * MS_WEEK
+    const inWeek = emails.filter((e) => {
+      if (!e.received_at) return false
+      const t = new Date(e.received_at).getTime()
+      return t >= weekStart && t < weekEnd
+    })
+    const d = new Date(weekEnd)
+    const label = `${d.getMonth() + 1}/${d.getDate()}`
+    weeks.push({ label, ingested: inWeek.length, routed: inWeek.filter((e) => e.routing_status === 'ROUTED').length })
+  }
+  return weeks
 }
 
 export function OverviewPage() {
@@ -68,6 +91,8 @@ export function OverviewPage() {
       })),
     [opportunities],
   )
+
+  const emailVolume = useMemo(() => buildWeeklyVolume(emails), [emails])
 
   const recentUnrouted = useMemo(
     () => emails.filter((e) => needsRouting(e.routing_status)).slice(0, 6),
@@ -111,7 +136,7 @@ export function OverviewPage() {
           <CardGridSkeleton count={2} />
         </div>
       ) : (
-        <div className="space-y-6">
+        <div className="space-y-5">
           {/* KPI strip */}
           <div className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-7">
             <MetricCard
@@ -167,28 +192,52 @@ export function OverviewPage() {
             />
           </div>
 
-          {/* Charts */}
-          <div className="grid gap-4 lg:grid-cols-2">
+          {/* Row 1: Email volume (wider) + Routing health */}
+          <div className="grid gap-4 lg:grid-cols-[1.4fr_1fr]">
             <div className="rounded-[12px] border bg-card p-5 shadow-[var(--shadow-xs)]">
-              <div className="mb-[12px]">
-                <p className="text-[13px] font-[650] tracking-[-0.005em] text-foreground">
-                  Email routing health
-                </p>
-                <p className="mt-[1px] text-[11.5px] text-muted-foreground">
-                  {stats.emails.toLocaleString()} messages ingested
-                </p>
+              <SectionHeader
+                title="Email volume"
+                description="12-week ingest vs. auto-routed"
+                className="mb-[12px]"
+              />
+              <ChartAreaVolume
+                data={emailVolume}
+                primaryKey="ingested"
+                secondaryKey="routed"
+                height={150}
+              />
+            </div>
+            <div className="rounded-[12px] border bg-card p-5 shadow-[var(--shadow-xs)]">
+              <div className="mb-[12px] flex items-start justify-between gap-2">
+                <div>
+                  <p className="text-[13px] font-[650] tracking-[-0.005em] text-foreground">
+                    Routing health
+                  </p>
+                  <p className="mt-[1px] text-[11.5px] text-muted-foreground">
+                    {stats.emails.toLocaleString()} messages
+                  </p>
+                </div>
+                <button
+                  onClick={() => navigate('/email')}
+                  className="inline-flex items-center gap-[4px] text-[11.5px] font-[500] text-primary hover:underline"
+                >
+                  Open queue <ArrowRight className="size-[13px]" />
+                </button>
               </div>
               {routingSlices.length ? (
                 <ChartDonut
                   data={routingSlices}
-                  centerLabel={stats.emails.toLocaleString()}
-                  centerSub="total"
+                  centerLabel={`${Math.round((routingSlices.find(s => s.key === 'ROUTED')?.value ?? 0) / Math.max(stats.emails, 1) * 100)}%`}
+                  centerSub="routed"
                 />
               ) : (
                 <p className="mt-6 text-[12px] text-muted-foreground">No email data yet.</p>
               )}
             </div>
+          </div>
 
+          {/* Row 2: Pipeline distribution (wider) + Needs routing activity */}
+          <div className="grid gap-4 lg:grid-cols-[1.4fr_1fr]">
             <div className="rounded-[12px] border bg-card p-5 shadow-[var(--shadow-xs)]">
               <div className="mb-[14px]">
                 <p className="text-[13px] font-[650] tracking-[-0.005em] text-foreground">
@@ -200,10 +249,6 @@ export function OverviewPage() {
               </div>
               <ChartHBar data={stageBars} />
             </div>
-          </div>
-
-          {/* Activity panels */}
-          <div className="grid gap-4 lg:grid-cols-2">
             <ActivityPanel
               title="Needs routing"
               icon={<MailWarning className="size-4" />}
@@ -217,6 +262,10 @@ export function OverviewPage() {
                 onClick: () => navigate(`/email?message=${e.id}`),
               }))}
             />
+          </div>
+
+          {/* Row 3: Recent meetings + Pending approvals */}
+          <div className="grid gap-4 lg:grid-cols-2">
             <ActivityPanel
               title="Recent meetings"
               icon={<CalendarDays className="size-4" />}

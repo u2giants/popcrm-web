@@ -2,7 +2,6 @@ import { useMemo, useState } from 'react'
 import { toast } from 'sonner'
 import { ListTodo } from 'lucide-react'
 import { AppPage, ListBar } from '@/components/app/AppPage'
-import { FilterSelect } from '@/components/app/FilterSelect'
 import { DataTable, type Column } from '@/components/app/DataTable'
 import {
   Select,
@@ -24,17 +23,14 @@ import type { CrmTask } from '@/lib/types'
 export function TasksPage() {
   const { tasks, loading, error, refresh, setTasks } = useCrmData()
   const [query, setQuery] = useState('')
-  const [status, setStatus] = useState('')
   const [selected, select] = useRecordSelection<CrmTask>('task', tasks)
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase()
     return tasks.filter(
-      (t) =>
-        (!q || textOf(t.title, t.body, relatedName(t.retailer), relatedName(t.opportunity), relatedName(t.assignee)).includes(q)) &&
-        (!status || t.status === status),
+      (t) => !q || textOf(t.title, t.body, relatedName(t.retailer), relatedName(t.opportunity), relatedName(t.assignee)).includes(q),
     )
-  }, [tasks, query, status])
+  }, [tasks, query])
 
   async function quickStatus(task: CrmTask, next: string) {
     const prev = task.status
@@ -66,6 +62,7 @@ export function TasksPage() {
       header: 'Opportunity',
       hideBelow: 'lg',
       sortValue: (t) => relatedName(t.opportunity),
+      filterValue: (t) => relatedName(t.opportunity),
       cell: (t) => <RelationLabel value={t.opportunity} />,
     },
     {
@@ -73,6 +70,7 @@ export function TasksPage() {
       header: 'Assignee',
       hideBelow: 'xl',
       sortValue: (t) => relatedName(t.assignee),
+      filterValue: (t) => relatedName(t.assignee),
       cell: (t) => <RelationLabel value={t.assignee} />,
     },
     {
@@ -80,6 +78,7 @@ export function TasksPage() {
       header: 'Due',
       hideBelow: 'md',
       sortValue: (t) => t.due_at ?? '',
+      filterValue: (t) => t.due_at,
       className: 'text-muted-foreground',
       cell: (t) => (t.due_at ? formatDateTime(t.due_at) : '—'),
     },
@@ -87,6 +86,7 @@ export function TasksPage() {
       key: 'status',
       header: 'Status',
       sortValue: (t) => t.status ?? '',
+      filterValue: (t) => label(t.status),
       cell: (t) => (
         <div onClick={(e) => e.stopPropagation()}>
           <Select value={t.status || 'TODO'} onValueChange={(v) => quickStatus(t, v)}>
@@ -116,17 +116,6 @@ export function TasksPage() {
           search={query}
           onSearch={setQuery}
           searchPlaceholder="Search title, body, assignee…"
-          showClear={!!status}
-          onClear={() => setStatus('')}
-          filters={
-            <FilterSelect
-              value={status}
-              onChange={setStatus}
-              allLabel="All statuses"
-              placeholder="Status"
-              options={TASK_STATUSES.map((s) => ({ value: s, label: label(s) }))}
-            />
-          }
         />
       }
     >
@@ -141,7 +130,7 @@ export function TasksPage() {
           loading={loading}
           emptyIcon={<ListTodo className="size-5" />}
           emptyTitle="No tasks match"
-          emptyDescription="Adjust your search or filters."
+          emptyDescription="Adjust your search or column filters."
           initialSort={{ key: 'status', dir: 'asc' }}
         />
       )}
