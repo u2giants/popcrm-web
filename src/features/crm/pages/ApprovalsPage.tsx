@@ -39,28 +39,11 @@ export function ApprovalsPage() {
     },
     {
       key: 'property_name',
-      header: 'Property',
+      header: 'Licensor',
       hideBelow: 'md',
       sortValue: (a) => a.property_name ?? '',
       filterValue: (a) => a.property_name,
       cell: (a) => <span className="text-muted-foreground">{a.property_name || '—'}</span>,
-    },
-    {
-      key: 'opportunity',
-      header: 'Opportunity',
-      hideBelow: 'lg',
-      sortValue: (a) => relatedName(a.opportunity),
-      filterValue: (a) => relatedName(a.opportunity),
-      cell: (a) => <RelationLabel value={a.opportunity} />,
-    },
-    {
-      key: 'submitted_date',
-      header: 'Submitted',
-      hideBelow: 'xl',
-      sortValue: (a) => a.submitted_date ?? '',
-      filterValue: (a) => a.submitted_date,
-      className: 'text-muted-foreground',
-      cell: (a) => formatDate(a.submitted_date),
     },
     {
       key: 'stage',
@@ -68,6 +51,36 @@ export function ApprovalsPage() {
       sortValue: (a) => a.stage ?? '',
       filterValue: (a) => a.stage,
       cell: (a) => <CrmStatusBadge kind="approval" status={a.stage} />,
+    },
+    {
+      key: 'submitted_date',
+      header: 'Submitted',
+      hideBelow: 'lg',
+      sortValue: (a) => a.submitted_date ?? '',
+      filterValue: (a) => a.submitted_date,
+      className: 'text-muted-foreground',
+      cell: (a) => formatDate(a.submitted_date),
+    },
+    {
+      key: 'opportunity',
+      header: 'Program',
+      hideBelow: 'xl',
+      sortValue: (a) => relatedName(a.opportunity),
+      filterValue: (a) => relatedName(a.opportunity),
+      cell: (a) => <RelationLabel value={a.opportunity} />,
+    },
+    {
+      key: 'licensor_comments',
+      header: 'Latest comment',
+      hideBelow: 'xl',
+      sortValue: (a) => a.licensor_comments ?? '',
+      filterValue: (a) => a.licensor_comments,
+      className: 'max-w-[220px]',
+      cell: (a) => (
+        <span className="block truncate text-muted-foreground">
+          {a.licensor_comments || '—'}
+        </span>
+      ),
     },
   ]
 

@@ -1,8 +1,21 @@
 // Display formatting helpers shared across CRM screens.
 
+// Overrides for values whose generic snake→title conversion is wrong or ugly.
+const LABEL_OVERRIDES: Record<string, string> = {
+  AI: 'AI',
+  DETERMINISTIC: 'Rule match',
+  COMPANY_ONLY: 'Company only',
+  COMPANY_DEPT: 'Company + dept',
+  COMPANY_EMAIL_NO_COMPANY: 'Company (no match)',
+  CUSTOMER_EMAIL_NO_COMPANY: 'Unmatched sender',
+  IN_PROGRESS: 'In progress',
+  TODO: 'To do',
+}
+
 // Turn an UPPER_SNAKE enum or snake field name into a readable label.
 export function label(value: string | null | undefined) {
   if (!value) return 'Unspecified'
+  if (LABEL_OVERRIDES[value]) return LABEL_OVERRIDES[value]
   return value
     .toLowerCase()
     .split('_')
