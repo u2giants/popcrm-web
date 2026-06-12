@@ -1,24 +1,6 @@
-import { useMemo, useState, type ReactNode } from 'react'
-import { ChevronDown, ChevronsUpDown, ChevronUp, Funnel, Search, X } from 'lucide-react'
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table'
+import { useMemo, useRef, useState, type ReactNode } from 'react'
+import { ChevronDown, ChevronUp, ChevronsUpDown, Columns3, GripVertical, ListFilter, Search, X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import { Checkbox } from '@/components/ui/checkbox'
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu'
-import { Input } from '@/components/ui/input'
 import { LoadingState, EmptyState } from '@/components/app/states'
 import { cn } from '@/lib/utils'
 
@@ -40,26 +22,9 @@ export interface Column<T> {
   className?: string
   headClassName?: string
   hideBelow?: Breakpoint
-}
-
-type ColumnFilter = {
-  search: string
-  excluded: string[]
-}
-
-type FilterOption = {
-  value: string
-  label: string
-}
-
-function normalizeFilterValue(value: string | number | null | undefined) {
-  if (value == null || value === '') return '__blank__'
-  return String(value)
-}
-
-function formatFilterLabel(value: string | number | null | undefined) {
-  if (value == null || value === '') return 'Blank'
-  return String(value)
+  numeric?: boolean
+  width?: number
+  minWidth?: number
 }
 
 export function DataTable<T>({
@@ -85,69 +50,54 @@ export function DataTable<T>({
   pageSize?: number
   initialSort?: { key: string; dir: 'asc' | 'desc' }
 }) {
-  const [sort, setSort] = useState<{ key: string; dir: 'asc' | 'desc' } | null>(
-    initialSort ?? null,
+  const [sort, setSort] = useState<{ key: string; dir: 'asc' | 'desc' } | null>(initialSort ?? null)
+  const [filterText, setFilterText] = useState<Record<string, string>>({})
+  const [showFilters, setShowFilters] = useState(false)
+  const [colOrder, setColOrder] = useState<string[]>(() => columns.map((c) => c.key))
+  const [colHidden, setColHidden] = useState<Record<string, boolean>>({})
+  const [colWidths, setColWidths] = useState<Record<string, number>>(() =>
+    Object.fromEntries(columns.map((c) => [c.key, c.width ?? 0])),
   )
-  const [filters, setFilters] = useState<Record<string, ColumnFilter>>({})
+  const [colMenuOpen, setColMenuOpen] = useState(false)
   const [page, setPage] = useState(0)
+  const dragKey = useRef<string | null>(null)
+  const [dropKey, setDropKey] = useState<string | null>(null)
+  const resizing = useRef<{ key: string; startX: number; startW: number } | null>(null)
 
-  const filterOptions = useMemo(() => {
-    const next: Record<string, FilterOption[]> = {}
+  const byKey = useMemo(() => Object.fromEntries(columns.map((c) => [c.key, c])), [columns])
+  const orderedCols = colOrder.map((k) => byKey[k]).filter(Boolean)
+  // hideBelow columns stay in DOM — responsive hiding is handled via className on td/th
+  const allVisibleCols = orderedCols.filter((c) => !colHidden[c.key])
 
-    for (const col of columns) {
-      const valueOf = col.filterValue ?? col.sortValue
-      if (!valueOf) continue
-
-      const options = new Map<string, string>()
-      for (const row of rows) {
-        const value = valueOf(row)
-        const key = normalizeFilterValue(value)
-        if (!options.has(key)) options.set(key, formatFilterLabel(value))
-      }
-
-      next[col.key] = [...options.entries()]
-        .map(([value, label]) => ({ value, label }))
-        .sort((a, b) => a.label.localeCompare(b.label, undefined, { numeric: true }))
-    }
-
-    return next
-  }, [rows, columns])
+  const activeFilters = Object.entries(filterText).filter(([, v]) => v?.trim())
 
   const filtered = useMemo(() => {
+    if (!activeFilters.length) return rows
     return rows.filter((row) =>
-      columns.every((col) => {
-        const active = filters[col.key]
-        const valueOf = col.filterValue ?? col.sortValue
-        if (!active || !valueOf) return true
-
-        const value = valueOf(row)
-        const normalized = normalizeFilterValue(value)
-        if (active.excluded.includes(normalized)) return false
-
-        const search = active.search.trim().toLowerCase()
-        if (search && !formatFilterLabel(value).toLowerCase().includes(search)) return false
-
-        return true
+      activeFilters.every(([key, text]) => {
+        const col = byKey[key]
+        const valueOf = col?.filterValue ?? col?.sortValue
+        if (!valueOf) return true
+        return String(valueOf(row) ?? '').toLowerCase().includes(text.trim().toLowerCase())
       }),
     )
-  }, [rows, columns, filters])
+  }, [rows, activeFilters, byKey])
 
   const sorted = useMemo(() => {
     if (!sort) return filtered
-    const col = columns.find((c) => c.key === sort.key)
+    const col = byKey[sort.key]
     if (!col?.sortValue) return filtered
     const sv = col.sortValue
     const factor = sort.dir === 'asc' ? 1 : -1
     return [...filtered].sort((a, b) => {
-      const av = sv(a)
-      const bv = sv(b)
+      const av = sv(a), bv = sv(b)
       if (av == null && bv == null) return 0
       if (av == null) return 1
       if (bv == null) return -1
       if (typeof av === 'number' && typeof bv === 'number') return (av - bv) * factor
       return String(av).localeCompare(String(bv)) * factor
     })
-  }, [filtered, sort, columns])
+  }, [filtered, sort, byKey])
 
   const pageCount = Math.max(1, Math.ceil(sorted.length / pageSize))
   const safePage = Math.min(page, pageCount - 1)
@@ -162,228 +112,316 @@ export function DataTable<T>({
     })
   }
 
-  function setSortDir(key: string, dir: 'asc' | 'desc' | null) {
+  function setColFilter(key: string, value: string) {
     setPage(0)
-    setSort(dir ? { key, dir } : null)
-  }
-
-  function updateFilter(key: string, updater: (filter: ColumnFilter) => ColumnFilter) {
-    setPage(0)
-    setFilters((prev) => {
-      const nextFilter = updater(prev[key] ?? { search: '', excluded: [] })
+    setFilterText((prev) => {
       const next = { ...prev }
-      if (!nextFilter.search && nextFilter.excluded.length === 0) {
-        delete next[key]
-      } else {
-        next[key] = nextFilter
-      }
+      if (!value.trim()) delete next[key]
+      else next[key] = value
       return next
     })
   }
 
-  function clearFilter(key: string) {
-    setPage(0)
-    setFilters((prev) => {
-      const next = { ...prev }
-      delete next[key]
+  // Column resize via mouse drag
+  function onResizeDown(e: React.MouseEvent, key: string) {
+    e.preventDefault()
+    e.stopPropagation()
+    const th = (e.currentTarget as HTMLElement).closest('th')
+    resizing.current = { key, startX: e.clientX, startW: th?.offsetWidth ?? colWidths[key] ?? 160 }
+    function onMove(ev: MouseEvent) {
+      const r = resizing.current
+      if (!r) return
+      const minW = byKey[r.key]?.minWidth ?? 80
+      setColWidths((prev) => ({ ...prev, [r.key]: Math.max(minW, r.startW + (ev.clientX - r.startX)) }))
+    }
+    function onUp() {
+      resizing.current = null
+      window.removeEventListener('mousemove', onMove)
+      window.removeEventListener('mouseup', onUp)
+    }
+    window.addEventListener('mousemove', onMove)
+    window.addEventListener('mouseup', onUp)
+  }
+
+  // Column reorder via HTML5 drag
+  function onDrop(targetKey: string) {
+    const from = dragKey.current
+    if (!from || from === targetKey) { setDropKey(null); return }
+    setColOrder((prev) => {
+      const next = prev.filter((k) => k !== from)
+      const i = next.indexOf(targetKey)
+      next.splice(i, 0, from)
       return next
     })
+    dragKey.current = null
+    setDropKey(null)
   }
 
   if (loading) {
     return (
-      <div className="rounded-lg border bg-card p-2">
+      <div className="overflow-hidden rounded-[13px] border bg-card p-2">
         <LoadingState rows={8} />
       </div>
     )
   }
 
-  if (!sorted.length) {
-    if (!rows.length) {
-      return <EmptyState title={emptyTitle} description={emptyDescription} icon={emptyIcon} />
-    }
+  if (!rows.length) {
+    return <EmptyState title={emptyTitle} description={emptyDescription} icon={emptyIcon} />
   }
 
+  const hasWidths = allVisibleCols.some((c) => colWidths[c.key] > 0)
+
   return (
-    <div className="overflow-hidden rounded-lg border bg-card">
-      <Table>
-        <TableHeader className="sticky top-0 z-10 bg-muted/60 backdrop-blur">
-          <TableRow className="hover:bg-transparent">
-            {columns.map((col) => {
-              const active = sort?.key === col.key
-              const sortable = !!col.sortValue
-              const columnFilter = filters[col.key]
-              const filterable = !!(col.filterValue ?? col.sortValue)
-              const options = filterOptions[col.key] ?? []
-              const filtered =
-                !!columnFilter && (!!columnFilter.search || columnFilter.excluded.length > 0)
-              return (
-                <TableHead
-                  key={col.key}
+    <div
+      className="overflow-hidden rounded-[13px] border bg-card"
+      onClick={() => colMenuOpen && setColMenuOpen(false)}
+    >
+      {/* Toolbar */}
+      <div
+        className="flex items-center gap-2 border-b bg-card px-[10px] py-[7px]"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <span className="text-[11.5px] font-[500] text-muted-foreground">
+          {sorted.length.toLocaleString()} rows
+          {activeFilters.length > 0
+            ? ` · ${activeFilters.length} filter${activeFilters.length !== 1 ? 's' : ''}`
+            : ''}
+        </span>
+        <div className="ml-auto flex items-center gap-1.5">
+          {activeFilters.length > 0 && (
+            <Button
+              variant="ghost"
+              size="icon-xs"
+              onClick={() => setFilterText({})}
+              title="Clear all filters"
+            >
+              <X className="size-3.5" />
+            </Button>
+          )}
+          <Button
+            variant={showFilters ? 'default' : 'ghost'}
+            size="sm"
+            className="h-[28px] gap-1.5 px-[10px] text-[12px]"
+            onClick={() => setShowFilters((s) => !s)}
+          >
+            <ListFilter className="size-[14px]" />
+            Filters
+          </Button>
+          {/* Columns visibility menu */}
+          <div className="relative">
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-[28px] gap-1.5 px-[10px] text-[12px]"
+              onClick={(e) => { e.stopPropagation(); setColMenuOpen((o) => !o) }}
+            >
+              <Columns3 className="size-[14px]" />
+              Columns
+            </Button>
+            {colMenuOpen && (
+              <div
+                className="absolute right-0 top-[calc(100%+6px)] z-20 w-[220px] overflow-y-auto rounded-[11px] border bg-popover p-[7px]"
+                style={{ maxHeight: 320, boxShadow: 'var(--shadow-lg)' }}
+                onClick={(e) => e.stopPropagation()}
+              >
+                {orderedCols.map((col) => (
+                  <button
+                    key={col.key}
+                    className="flex w-full cursor-grab items-center gap-[9px] rounded-[7px] px-[8px] py-[6px] text-[12.5px] hover:bg-accent"
+                    draggable
+                    onDragStart={() => { dragKey.current = col.key }}
+                    onDragOver={(e) => e.preventDefault()}
+                    onDrop={() => onDrop(col.key)}
+                    onClick={() => setColHidden((h) => ({ ...h, [col.key]: !h[col.key] }))}
+                  >
+                    <GripVertical className="size-[13px] shrink-0 text-muted-foreground" />
+                    <span
+                      className={cn(
+                        'flex size-[16px] shrink-0 items-center justify-center rounded-[5px] border',
+                        !colHidden[col.key]
+                          ? 'border-primary bg-primary text-primary-foreground'
+                          : 'border-border-strong',
+                      )}
+                    >
+                      {!colHidden[col.key] && (
+                        <svg className="size-[11px]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
+                        </svg>
+                      )}
+                    </span>
+                    <span className="flex-1 truncate text-left">{col.header}</span>
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* Scrollable table */}
+      <div className="overflow-auto">
+        <table
+          className="w-full min-w-full border-collapse"
+          style={{ tableLayout: hasWidths ? 'fixed' : undefined }}
+        >
+          {hasWidths && (
+            <colgroup>
+              {allVisibleCols.map((col) => (
+                <col key={col.key} style={colWidths[col.key] ? { width: colWidths[col.key] } : undefined} />
+              ))}
+            </colgroup>
+          )}
+
+          <thead>
+            {/* Sort header row */}
+            <tr className="border-b bg-muted">
+              {allVisibleCols.map((col) => {
+                const sortable = !!col.sortValue
+                const filterable = !!(col.filterValue ?? col.sortValue)
+                const active = sort?.key === col.key
+                return (
+                  <th
+                    key={col.key}
+                    className={cn(
+                      'relative select-none border-b-0 px-[14px] py-[7px] text-left text-[11px] font-[600] uppercase tracking-[0.04em] whitespace-nowrap text-muted-foreground',
+                      col.numeric && 'text-right',
+                      dropKey === col.key &&
+                        'before:absolute before:inset-y-0 before:left-0 before:w-[2px] before:bg-primary before:content-[""]',
+                      col.headClassName ?? col.className?.replace('max-w-0', ''),
+                      col.hideBelow && HIDE_CLASS[col.hideBelow],
+                    )}
+                    draggable
+                    onDragStart={() => { dragKey.current = col.key }}
+                    onDragOver={(e) => {
+                      e.preventDefault()
+                      if (dropKey !== col.key) setDropKey(col.key)
+                    }}
+                    onDragLeave={() => setDropKey((k) => (k === col.key ? null : k))}
+                    onDrop={() => onDrop(col.key)}
+                  >
+                    <div className={cn('flex items-center gap-[4px]', col.numeric && 'flex-row-reverse')}>
+                      {sortable ? (
+                        <button
+                          type="button"
+                          className="inline-flex min-w-0 items-center gap-[4px] hover:text-foreground"
+                          onClick={() => toggleSort(col.key)}
+                        >
+                          <span className="truncate">{col.header}</span>
+                          {active ? (
+                            sort?.dir === 'asc' ? (
+                              <ChevronUp className="size-3 shrink-0 opacity-70" />
+                            ) : (
+                              <ChevronDown className="size-3 shrink-0 opacity-70" />
+                            )
+                          ) : (
+                            <ChevronsUpDown className="size-3 shrink-0 opacity-30" />
+                          )}
+                        </button>
+                      ) : (
+                        <span className="truncate">{col.header}</span>
+                      )}
+                      {filterable && (
+                        <button
+                          type="button"
+                          className={cn(
+                            'ml-auto flex size-[20px] shrink-0 items-center justify-center rounded-[5px] opacity-50 transition-colors hover:bg-accent hover:opacity-100',
+                            filterText[col.key] && 'bg-primary/14 text-primary opacity-100',
+                          )}
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            setShowFilters(true)
+                            setTimeout(() => document.getElementById(`flt-${col.key}`)?.focus(), 30)
+                          }}
+                          title={`Filter ${String(col.header)}`}
+                        >
+                          <ListFilter className="size-3" />
+                        </button>
+                      )}
+                    </div>
+                    {/* Resize handle */}
+                    <div
+                      className="absolute top-0 right-[-3px] z-[3] h-full w-[7px] cursor-col-resize"
+                      onMouseDown={(e) => onResizeDown(e, col.key)}
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      <div className="absolute top-[6px] right-[3px] bottom-[6px] w-[2px] rounded-[2px] transition-colors hover:bg-primary" />
+                    </div>
+                  </th>
+                )
+              })}
+            </tr>
+
+            {/* Floating filter row */}
+            {showFilters && (
+              <tr className="border-b">
+                {allVisibleCols.map((col) => (
+                  <th
+                    key={col.key}
+                    className={cn(
+                      'bg-muted/55 px-[8px] py-[5px]',
+                      col.hideBelow && HIDE_CLASS[col.hideBelow],
+                    )}
+                  >
+                    {(col.filterValue ?? col.sortValue) ? (
+                      <div className="relative">
+                        <Search className="pointer-events-none absolute top-1/2 left-[7px] size-3 -translate-y-1/2 text-muted-foreground" />
+                        <input
+                          id={`flt-${col.key}`}
+                          className="h-[26px] w-full rounded-[6px] border bg-card pl-[25px] pr-[8px] text-[11.5px] font-normal normal-case tracking-normal placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-ring"
+                          placeholder="Filter…"
+                          value={filterText[col.key] ?? ''}
+                          onChange={(e) => setColFilter(col.key, e.target.value)}
+                        />
+                      </div>
+                    ) : null}
+                  </th>
+                ))}
+              </tr>
+            )}
+          </thead>
+
+          <tbody>
+            {pageRows.length ? (
+              pageRows.map((row) => (
+                <tr
+                  key={getRowId(row)}
+                  onClick={onRowClick ? () => onRowClick(row) : undefined}
                   className={cn(
-                    // Header never inherits the cell's width-collapsing class
-                    // (max-w-0 is a truncation trick that only belongs on <td>).
-                    col.headClassName ?? col.className?.replace('max-w-0', ''),
-                    col.hideBelow && HIDE_CLASS[col.hideBelow],
+                    'border-b transition-colors duration-[100ms] last:border-b-0',
+                    onRowClick && 'cursor-pointer hover:bg-accent/55',
                   )}
                 >
-                  <div className="flex min-w-0 items-center justify-between gap-1">
-                    {sortable ? (
-                      <button
-                        type="button"
-                        onClick={() => toggleSort(col.key)}
-                        className="inline-flex min-w-0 items-center gap-1 hover:text-foreground"
-                      >
-                        <span className="truncate">{col.header}</span>
-                        {active ? (
-                          sort?.dir === 'asc' ? (
-                            <ChevronUp className="size-3.5" />
-                          ) : (
-                            <ChevronDown className="size-3.5" />
-                          )
-                        ) : (
-                          <ChevronsUpDown className="size-3.5 opacity-40" />
-                        )}
-                      </button>
-                    ) : (
-                      <span className="truncate">{col.header}</span>
-                    )}
-                    {filterable ? (
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="icon-xs"
-                            className={cn(
-                              '-mr-1 text-muted-foreground hover:text-foreground',
-                              filtered && 'bg-primary/10 text-primary hover:text-primary',
-                            )}
-                            aria-label={`Filter ${String(col.header)}`}
-                          >
-                            <Funnel className="size-3.5" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="start" className="w-64">
-                          <DropdownMenuLabel className="flex items-center justify-between gap-2">
-                            <span className="truncate">{col.header}</span>
-                            {filtered ? (
-                              <Button
-                                type="button"
-                                variant="ghost"
-                                size="icon-xs"
-                                onClick={(event) => {
-                                  event.stopPropagation()
-                                  clearFilter(col.key)
-                                }}
-                                aria-label="Clear filter"
-                              >
-                                <X className="size-3.5" />
-                              </Button>
-                            ) : null}
-                          </DropdownMenuLabel>
-                          {sortable ? (
-                            <>
-                              <DropdownMenuItem onClick={() => setSortDir(col.key, 'asc')}>
-                                <ChevronUp className="size-3.5" />
-                                Sort ascending
-                              </DropdownMenuItem>
-                              <DropdownMenuItem onClick={() => setSortDir(col.key, 'desc')}>
-                                <ChevronDown className="size-3.5" />
-                                Sort descending
-                              </DropdownMenuItem>
-                              {active ? (
-                                <DropdownMenuItem onClick={() => setSortDir(col.key, null)}>
-                                  <X className="size-3.5" />
-                                  Clear sort
-                                </DropdownMenuItem>
-                              ) : null}
-                              <DropdownMenuSeparator />
-                            </>
-                          ) : null}
-                          <div className="p-2" onClick={(event) => event.stopPropagation()}>
-                            <div className="relative">
-                              <Search className="pointer-events-none absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" />
-                              <Input
-                                value={columnFilter?.search ?? ''}
-                                onChange={(event) =>
-                                  updateFilter(col.key, (filter) => ({
-                                    ...filter,
-                                    search: event.target.value,
-                                  }))
-                                }
-                                placeholder="Search this column"
-                                className="h-8 pl-8 text-xs"
-                              />
-                            </div>
-                          </div>
-                          <DropdownMenuSeparator />
-                          <div className="max-h-56 overflow-y-auto p-1">
-                            {options.length ? (
-                              options.map((option) => {
-                                const checked = !columnFilter?.excluded.includes(option.value)
-                                return (
-                                  <label
-                                    key={option.value}
-                                    className="flex cursor-pointer items-center gap-2 rounded-sm px-2 py-1.5 text-xs hover:bg-accent"
-                                    onClick={(event) => event.stopPropagation()}
-                                  >
-                                    <Checkbox
-                                      checked={checked}
-                                      onCheckedChange={(next) =>
-                                        updateFilter(col.key, (filter) => ({
-                                          ...filter,
-                                          excluded: next
-                                            ? filter.excluded.filter((value) => value !== option.value)
-                                            : [...new Set([...filter.excluded, option.value])],
-                                        }))
-                                      }
-                                    />
-                                    <span className="min-w-0 flex-1 truncate">{option.label}</span>
-                                  </label>
-                                )
-                              })
-                            ) : (
-                              <div className="px-2 py-1.5 text-xs text-muted-foreground">No values</div>
-                            )}
-                          </div>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    ) : null}
-                  </div>
-                </TableHead>
-              )
-            })}
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {pageRows.length ? (
-            pageRows.map((row) => (
-              <TableRow
-                key={getRowId(row)}
-                onClick={onRowClick ? () => onRowClick(row) : undefined}
-                className={cn(onRowClick && 'cursor-pointer')}
-              >
-                {columns.map((col) => (
-                  <TableCell
-                    key={col.key}
-                    className={cn(col.className, col.hideBelow && HIDE_CLASS[col.hideBelow])}
-                  >
-                    {col.cell(row)}
-                  </TableCell>
-                ))}
-              </TableRow>
-            ))
-          ) : (
-            <TableRow className="hover:bg-transparent">
-              <TableCell colSpan={columns.length} className="h-28 text-center text-muted-foreground">
-                No rows match the table filters.
-              </TableCell>
-            </TableRow>
-          )}
-        </TableBody>
-      </Table>
-      {pageCount > 1 ? (
+                  {allVisibleCols.map((col) => (
+                    <td
+                      key={col.key}
+                      className={cn(
+                        'h-10 px-[14px] py-0 text-[12.5px] align-middle',
+                        col.numeric && 'text-right font-[650] tabular-nums',
+                        col.className,
+                        col.hideBelow && HIDE_CLASS[col.hideBelow],
+                      )}
+                    >
+                      {col.cell(row)}
+                    </td>
+                  ))}
+                </tr>
+              ))
+            ) : (
+              <tr>
+                <td
+                  colSpan={allVisibleCols.length}
+                  className="h-20 text-center text-[12.5px] text-muted-foreground"
+                >
+                  No rows match the filters.
+                </td>
+              </tr>
+            )}
+          </tbody>
+        </table>
+      </div>
+
+      {/* Pagination */}
+      {pageCount > 1 && (
         <div className="flex items-center justify-between border-t px-3 py-2 text-xs text-muted-foreground">
           <span>
             {safePage * pageSize + 1}–{Math.min((safePage + 1) * pageSize, sorted.length)} of{' '}
@@ -411,7 +449,7 @@ export function DataTable<T>({
             </Button>
           </div>
         </div>
-      ) : null}
+      )}
     </div>
   )
 }

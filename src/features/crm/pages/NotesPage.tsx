@@ -1,12 +1,10 @@
 import { useMemo, useState } from 'react'
 import { toast } from 'sonner'
 import { NotebookTabs, Plus } from 'lucide-react'
-import { AppPage } from '@/components/app/AppPage'
-import { PageToolbar } from '@/components/app/PageToolbar'
+import { AppPage, ListBar } from '@/components/app/AppPage'
 import { FilterSelect } from '@/components/app/FilterSelect'
 import { DataTable, type Column } from '@/components/app/DataTable'
 import { Combobox, type ComboOption } from '@/components/app/Combobox'
-import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -27,6 +25,7 @@ import { NoteDrawer } from '@/features/crm/components/NoteDrawer'
 import { createNote } from '@/features/crm/api'
 import { label, relatedName, textOf } from '@/features/crm/format'
 import { uniqueValues } from '@/features/crm/pages/_shared'
+import { StatusBadge } from '@/components/app/StatusBadge'
 import type { CrmNote } from '@/lib/types'
 
 export function NotesPage() {
@@ -78,21 +77,17 @@ export function NotesPage() {
       header: 'Source',
       hideBelow: 'lg',
       sortValue: (n) => n.source ?? '',
-      cell: (n) => (n.source ? <Badge variant="secondary">{label(n.source)}</Badge> : '—'),
+      cell: (n) => n.source ? <StatusBadge tone="neutral" dot={false}>{label(n.source)}</StatusBadge> : '—',
     },
   ]
 
   return (
     <AppPage
-      title="Notes"
-      description="Manual and imported CRM notes."
-      actions={
-        <Button size="sm" onClick={() => setCreating(true)}>
-          <Plus className="size-4" /> New note
-        </Button>
-      }
-      toolbar={
-        <PageToolbar
+      listBar={
+        <ListBar
+          title="Notes"
+          subtitle="Manual and imported CRM notes"
+          count={filtered.length}
           search={query}
           onSearch={setQuery}
           searchPlaceholder="Search title, body, action items…"
@@ -106,6 +101,11 @@ export function NotesPage() {
               placeholder="Source"
               options={uniqueValues(notes, (n) => n.source)}
             />
+          }
+          actions={
+            <Button size="sm" onClick={() => setCreating(true)}>
+              <Plus className="size-4" /> New note
+            </Button>
           }
         />
       }

@@ -1,10 +1,8 @@
 import { useMemo, useState } from 'react'
 import { ShieldCheck } from 'lucide-react'
-import { AppPage } from '@/components/app/AppPage'
-import { PageToolbar } from '@/components/app/PageToolbar'
+import { AppPage, ListBar } from '@/components/app/AppPage'
 import { FilterSelect } from '@/components/app/FilterSelect'
 import { DataTable, type Column } from '@/components/app/DataTable'
-import { Badge } from '@/components/ui/badge'
 import { ErrorState } from '@/components/app/states'
 import { CrmStatusBadge } from '@/features/crm/components/CrmStatusBadge'
 import { RelationLabel } from '@/features/crm/components/RelationLabel'
@@ -76,11 +74,11 @@ export function ApprovalsPage() {
 
   return (
     <AppPage
-      title="Approvals"
-      description="Licensor approval threads and their status."
-      actions={<Badge variant="outline">{filtered.length.toLocaleString()} shown</Badge>}
-      toolbar={
-        <PageToolbar
+      listBar={
+        <ListBar
+          title="Approvals"
+          subtitle="Licensor approval threads"
+          count={filtered.length}
           search={query}
           onSearch={setQuery}
           searchPlaceholder="Search name, property, comments…"

@@ -1,10 +1,8 @@
 import { useMemo, useState } from 'react'
 import { CalendarDays } from 'lucide-react'
-import { AppPage } from '@/components/app/AppPage'
-import { PageToolbar } from '@/components/app/PageToolbar'
+import { AppPage, ListBar } from '@/components/app/AppPage'
 import { FilterSelect } from '@/components/app/FilterSelect'
 import { DataTable, type Column } from '@/components/app/DataTable'
-import { Badge } from '@/components/ui/badge'
 import { ErrorState } from '@/components/app/states'
 import { RelationLabel } from '@/features/crm/components/RelationLabel'
 import { useCrmData } from '@/features/crm/CrmDataContext'
@@ -12,6 +10,7 @@ import { useRecordSelection } from '@/features/crm/useRecordSelection'
 import { MeetingDrawer } from '@/features/crm/components/MeetingDrawer'
 import { idOf, formatDate, label, relatedName, textOf } from '@/features/crm/format'
 import { uniqueValues } from '@/features/crm/pages/_shared'
+import { StatusBadge } from '@/components/app/StatusBadge'
 import type { CrmMeetingNote } from '@/lib/types'
 
 export function MeetingsPage() {
@@ -71,17 +70,17 @@ export function MeetingsPage() {
       header: 'Source',
       hideBelow: 'lg',
       sortValue: (m) => m.source ?? '',
-      cell: (m) => (m.source ? <Badge variant="secondary">{label(m.source)}</Badge> : '—'),
+      cell: (m) => m.source ? <StatusBadge tone="neutral" dot={false}>{label(m.source)}</StatusBadge> : '—',
     },
   ]
 
   return (
     <AppPage
-      title="Meetings"
-      description="Fireflies and imported meeting notes."
-      actions={<Badge variant="outline">{filtered.length.toLocaleString()} shown</Badge>}
-      toolbar={
-        <PageToolbar
+      listBar={
+        <ListBar
+          title="Meetings"
+          subtitle="Fireflies and imported meeting notes"
+          count={filtered.length}
           search={query}
           onSearch={setQuery}
           searchPlaceholder="Search title, participants, summary…"

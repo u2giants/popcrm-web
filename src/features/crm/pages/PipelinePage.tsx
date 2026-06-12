@@ -1,9 +1,7 @@
 import { useMemo, useState } from 'react'
 import { Sparkles } from 'lucide-react'
-import { AppPage } from '@/components/app/AppPage'
-import { PageToolbar } from '@/components/app/PageToolbar'
+import { AppPage, ListBar } from '@/components/app/AppPage'
 import { FilterSelect } from '@/components/app/FilterSelect'
-import { Badge } from '@/components/ui/badge'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { ErrorState, CardGridSkeleton } from '@/components/app/states'
 import { useCrmData } from '@/features/crm/CrmDataContext'
@@ -45,12 +43,12 @@ export function PipelinePage() {
 
   return (
     <AppPage
-      title="Pipeline"
-      description="Program opportunities by stage."
       scroll={false}
-      actions={<Badge variant="outline">{filtered.length.toLocaleString()} programs</Badge>}
-      toolbar={
-        <PageToolbar
+      listBar={
+        <ListBar
+          title="Pipeline"
+          subtitle="Program opportunities by stage"
+          count={filtered.length}
           search={query}
           onSearch={setQuery}
           searchPlaceholder="Search name, retailer, PO, SO…"
@@ -98,17 +96,19 @@ export function PipelinePage() {
             {grouped.map((group) => (
               <section
                 key={group.stage}
-                className="flex w-72 shrink-0 flex-col rounded-lg border bg-muted/30"
+                className="flex w-[272px] shrink-0 flex-col rounded-[12px] border bg-muted/30"
               >
-                <div className="sticky top-0 z-10 flex items-center justify-between gap-2 rounded-t-lg border-b bg-card/95 px-3 py-2.5 backdrop-blur">
-                  <span className={cn('rounded-full px-2 py-0.5 text-xs font-medium', stageChipClass(group.stage))}>
+                <div className="sticky top-0 z-10 flex items-center justify-between gap-2 rounded-t-[12px] border-b bg-card/95 px-[12px] py-[10px] backdrop-blur">
+                  <span className={cn('rounded-full px-[8px] py-[3px] text-[11px] font-[600]', stageChipClass(group.stage))}>
                     {label(group.stage)}
                   </span>
-                  <Badge variant="secondary" className="tabular-nums">{group.rows.length}</Badge>
+                  <span className="rounded-full bg-muted px-[7px] py-[1.5px] text-[11px] tabular-nums text-muted-foreground">
+                    {group.rows.length}
+                  </span>
                 </div>
-                <div className="flex flex-col gap-2 p-2">
+                <div className="flex flex-col gap-[7px] p-[8px]">
                   {group.rows.length === 0 ? (
-                    <div className="rounded-md border border-dashed p-3 text-center text-xs text-muted-foreground">
+                    <div className="rounded-[8px] border border-dashed p-3 text-center text-[11.5px] text-muted-foreground">
                       No programs
                     </div>
                   ) : null}
@@ -116,23 +116,25 @@ export function PipelinePage() {
                     <button
                       key={opp.id}
                       onClick={() => select(opp)}
-                      className="rounded-md border bg-card p-3 text-left shadow-xs transition-colors hover:border-primary/40 hover:bg-accent/30"
+                      className="rounded-[9px] border bg-card p-[11px] text-left shadow-[var(--shadow-xs)] transition-all hover:border-primary/30 hover:shadow-[var(--shadow-sm)]"
                     >
                       <div className="flex items-start justify-between gap-2">
-                        <span className="line-clamp-2 text-sm font-medium text-foreground">
+                        <span className="line-clamp-2 text-[12.5px] font-[500] text-foreground">
                           {opp.name || 'Untitled program'}
                         </span>
                         {opp.ai_summary ? (
-                          <Sparkles className="mt-0.5 size-3.5 shrink-0 text-primary" />
+                          <Sparkles className="mt-0.5 size-[13px] shrink-0 text-primary" />
                         ) : null}
                       </div>
-                      <div className="mt-2 space-y-0.5 text-xs text-muted-foreground">
+                      <div className="mt-[7px] space-y-[3px] text-[11.5px] text-muted-foreground">
                         <div className="truncate">{relatedName(opp.retailer)}</div>
                         {relatedName(opp.department) !== '—' ? (
                           <div className="truncate">{relatedName(opp.department)}</div>
                         ) : null}
                         {opp.production_po_number || opp.sales_order_number ? (
-                          <div className="truncate">PO/SO {opp.production_po_number || opp.sales_order_number}</div>
+                          <div className="truncate font-[500] text-foreground/60">
+                            PO/SO {opp.production_po_number || opp.sales_order_number}
+                          </div>
                         ) : null}
                       </div>
                     </button>

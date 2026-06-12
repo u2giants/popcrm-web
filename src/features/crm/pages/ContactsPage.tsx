@@ -1,10 +1,8 @@
 import { useMemo, useState } from 'react'
 import { Contact } from 'lucide-react'
-import { AppPage } from '@/components/app/AppPage'
-import { PageToolbar } from '@/components/app/PageToolbar'
+import { AppPage, ListBar } from '@/components/app/AppPage'
 import { FilterSelect } from '@/components/app/FilterSelect'
 import { DataTable, type Column } from '@/components/app/DataTable'
-import { Badge } from '@/components/ui/badge'
 import { ErrorState } from '@/components/app/states'
 import { RelationLabel } from '@/features/crm/components/RelationLabel'
 import { useCrmData } from '@/features/crm/CrmDataContext'
@@ -12,6 +10,7 @@ import { useRecordSelection } from '@/features/crm/useRecordSelection'
 import { ContactDrawer } from '@/features/crm/components/ContactDrawer'
 import { idOf, label, relatedName, textOf } from '@/features/crm/format'
 import { uniqueValues } from '@/features/crm/pages/_shared'
+import { StatusBadge } from '@/components/app/StatusBadge'
 import type { Buyer } from '@/lib/types'
 
 export function ContactsPage() {
@@ -66,17 +65,17 @@ export function ContactsPage() {
       header: 'Type',
       hideBelow: 'lg',
       sortValue: (b) => b.contact_type ?? '',
-      cell: (b) => (b.contact_type ? <Badge variant="secondary">{label(b.contact_type)}</Badge> : '—'),
+      cell: (b) => b.contact_type ? <StatusBadge tone="neutral" dot={false}>{label(b.contact_type)}</StatusBadge> : '—',
     },
   ]
 
   return (
     <AppPage
-      title="Contacts"
-      description="Buyers and contacts across all accounts."
-      actions={<Badge variant="outline">{filtered.length.toLocaleString()} shown</Badge>}
-      toolbar={
-        <PageToolbar
+      listBar={
+        <ListBar
+          title="Contacts"
+          subtitle="Buyers across all accounts"
+          count={filtered.length}
           search={query}
           onSearch={setQuery}
           searchPlaceholder="Search name, email, title…"

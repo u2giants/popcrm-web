@@ -1,11 +1,9 @@
 import { useMemo, useState } from 'react'
 import { toast } from 'sonner'
 import { ListTodo } from 'lucide-react'
-import { AppPage } from '@/components/app/AppPage'
-import { PageToolbar } from '@/components/app/PageToolbar'
+import { AppPage, ListBar } from '@/components/app/AppPage'
 import { FilterSelect } from '@/components/app/FilterSelect'
 import { DataTable, type Column } from '@/components/app/DataTable'
-import { Badge } from '@/components/ui/badge'
 import {
   Select,
   SelectContent,
@@ -110,11 +108,11 @@ export function TasksPage() {
 
   return (
     <AppPage
-      title="Tasks"
-      description="Open work across accounts and opportunities."
-      actions={<Badge variant="outline">{filtered.length.toLocaleString()} shown</Badge>}
-      toolbar={
-        <PageToolbar
+      listBar={
+        <ListBar
+          title="Tasks"
+          subtitle="Open work across accounts and opportunities"
+          count={filtered.length}
           search={query}
           onSearch={setQuery}
           searchPlaceholder="Search title, body, assignee…"

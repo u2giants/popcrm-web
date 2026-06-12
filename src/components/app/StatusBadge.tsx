@@ -4,11 +4,11 @@ import type { StatusTone } from '@/features/crm/constants'
 // Tone → token-driven classes. Status uses both color and text (a11y: color is
 // never the only signal). Tones map onto the shared design tokens.
 const TONE_CLASS: Record<StatusTone, string> = {
-  neutral: 'bg-muted text-muted-foreground',
-  info: 'bg-stage-dev text-stage-dev-fg',
-  success: 'bg-stage-approved text-stage-approved-fg',
-  warning: 'bg-stage-onhold text-stage-onhold-fg',
-  danger: 'bg-destructive/12 text-destructive',
+  neutral: 'bg-chip-neutral text-chip-neutral-fg',
+  info:    'bg-chip-info text-chip-info-fg',
+  success: 'bg-chip-success text-chip-success-fg',
+  warning: 'bg-chip-warning text-chip-warning-fg',
+  danger:  'bg-chip-danger text-chip-danger-fg',
 }
 
 export function StatusBadge({

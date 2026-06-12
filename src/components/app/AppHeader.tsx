@@ -1,4 +1,4 @@
-import { Menu, RefreshCcw, Search } from 'lucide-react'
+import { Menu, Moon, RefreshCcw, Search, Sun } from 'lucide-react'
 import { useAuth } from '@/auth/auth'
 import { useCrmData } from '@/features/crm/CrmDataContext'
 import { Button } from '@/components/ui/button'
@@ -19,8 +19,6 @@ import {
 } from '@/components/ui/dropdown-menu'
 import { initials } from '@/features/crm/format'
 
-// Build identity, injected at build time (see vite.config.ts). The commit date
-// is rendered in New York time (EST/EDT) so it matches the team's timezone.
 const COMMIT_HASH = typeof __COMMIT_HASH__ === 'string' ? __COMMIT_HASH__ : ''
 const COMMIT_DATE = (() => {
   if (typeof __COMMIT_DATE__ !== 'string' || !__COMMIT_DATE__) return ''
@@ -40,16 +38,20 @@ const COMMIT_DATE = (() => {
 export function AppHeader({
   onOpenMobileNav,
   onOpenSearch,
+  theme,
+  onToggleTheme,
 }: {
   onOpenMobileNav: () => void
   onOpenSearch: () => void
+  theme: 'light' | 'dark'
+  onToggleTheme: () => void
 }) {
   const { user, logout } = useAuth()
   const { refresh, loading, firefliesOk } = useCrmData()
   const name = [user?.first_name, user?.last_name].filter(Boolean).join(' ') || user?.email || 'User'
 
   return (
-    <header className="flex h-14 shrink-0 items-center gap-2 border-b bg-background px-3 sm:px-4">
+    <header className="flex h-[52px] shrink-0 items-center gap-[10px] border-b bg-card px-[18px]">
       <Button
         variant="ghost"
         size="icon-sm"
@@ -57,17 +59,18 @@ export function AppHeader({
         onClick={onOpenMobileNav}
         title="Open navigation"
       >
-        <Menu className="size-5" />
+        <Menu className="size-[17px]" />
       </Button>
 
+      {/* Search bar — opens command palette */}
       <button
         type="button"
         onClick={onOpenSearch}
-        className="flex h-9 w-full max-w-sm items-center gap-2 rounded-md border bg-card px-3 text-sm text-muted-foreground transition-colors hover:bg-accent/40"
+        className="flex h-[34px] w-full max-w-[420px] items-center gap-[9px] rounded-[9px] border bg-background px-[11px] text-[13px] text-muted-foreground transition-colors duration-[120ms] hover:border-border-strong"
       >
-        <Search className="size-4" />
+        <Search className="size-[15px] shrink-0" />
         <span className="flex-1 text-left">Search accounts, contacts, programs…</span>
-        <kbd className="hidden rounded border bg-muted px-1.5 text-[10px] font-medium sm:inline">⌘K</kbd>
+        <kbd className="hidden rounded border bg-muted px-[5px] text-[10.5px] font-[600] sm:inline">⌘K</kbd>
       </button>
 
       <div className="ml-auto flex items-center gap-2">
@@ -82,6 +85,39 @@ export function AppHeader({
           <TooltipContent>Fireflies meeting-notes webhook health</TooltipContent>
         </Tooltip>
 
+        {/* Build identity */}
+        {COMMIT_HASH ? (
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <div className="hidden flex-col items-end leading-tight md:flex">
+                <span className="font-mono text-[10.5px] text-muted-foreground">#{COMMIT_HASH}</span>
+                <span className="text-[10px] text-muted-foreground">{COMMIT_DATE}</span>
+              </div>
+            </TooltipTrigger>
+            <TooltipContent>Build commit · {COMMIT_DATE}</TooltipContent>
+          </Tooltip>
+        ) : null}
+
+        {/* Theme toggle */}
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button
+              variant="outline"
+              size="icon-sm"
+              onClick={onToggleTheme}
+              title={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
+            >
+              {theme === 'dark' ? (
+                <Sun className="size-[17px]" />
+              ) : (
+                <Moon className="size-[17px]" />
+              )}
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent>{theme === 'dark' ? 'Light mode' : 'Dark mode'}</TooltipContent>
+        </Tooltip>
+
+        {/* Refresh */}
         <Tooltip>
           <TooltipTrigger asChild>
             <Button
@@ -91,29 +127,18 @@ export function AppHeader({
               disabled={loading}
               title="Refresh data"
             >
-              <RefreshCcw className={loading ? 'size-4 animate-spin' : 'size-4'} />
+              <RefreshCcw className={loading ? 'size-[17px] animate-spin' : 'size-[17px]'} />
             </Button>
           </TooltipTrigger>
           <TooltipContent>Refresh CRM data</TooltipContent>
         </Tooltip>
 
-        {COMMIT_HASH ? (
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <div className="hidden flex-col items-end leading-tight md:flex">
-                <span className="font-mono text-xs text-muted-foreground">#{COMMIT_HASH}</span>
-                <span className="text-[11px] text-muted-foreground">{COMMIT_DATE}</span>
-              </div>
-            </TooltipTrigger>
-            <TooltipContent>Build commit · {COMMIT_DATE}</TooltipContent>
-          </Tooltip>
-        ) : null}
-
+        {/* Avatar / user menu */}
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button variant="ghost" size="icon" className="rounded-full">
-              <Avatar className="size-8">
-                <AvatarFallback className="text-xs">{initials(name)}</AvatarFallback>
+              <Avatar className="size-[30px]">
+                <AvatarFallback className="text-[11px] font-[650]">{initials(name)}</AvatarFallback>
               </Avatar>
             </Button>
           </DropdownMenuTrigger>

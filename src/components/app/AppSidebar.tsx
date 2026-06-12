@@ -1,72 +1,151 @@
 import { NavLink } from 'react-router-dom'
-import { CircleDot } from 'lucide-react'
-import { NAV_ITEMS } from '@/app/navigation'
+import { Route } from 'lucide-react'
+import { NAV_SECTIONS } from '@/app/navigation'
 import { useCrmData } from '@/features/crm/CrmDataContext'
 import { cn } from '@/lib/utils'
 
-// Sidebar contents shared by the desktop rail and the mobile drawer.
-export function AppSidebarContent({ onNavigate }: { onNavigate?: () => void }) {
-  const { stats } = useCrmData()
+function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
+  const { stats, firefliesOk } = useCrmData()
 
-  // Per-item badge counts surface where work is waiting.
   const badges: Record<string, number> = {
     '/email': stats.needsRouting,
     '/tasks': stats.openTasks,
     '/approvals': stats.pendingApprovals,
   }
 
+  const healthOk = firefliesOk !== false
+
   return (
-    <div className="flex h-full flex-col bg-sidebar text-sidebar-foreground">
-      <div className="flex h-14 shrink-0 items-center gap-2 border-b border-sidebar-border px-4">
-        <div className="flex size-7 items-center justify-center rounded-md bg-primary text-primary-foreground">
-          <CircleDot className="size-4" />
+    <div className="flex h-full flex-col" style={{ background: 'var(--sidebar)', color: 'var(--sidebar-foreground)' }}>
+
+      {/* Brand lockup */}
+      <div
+        className="flex h-[52px] shrink-0 items-center gap-[10px] px-4"
+        style={{ borderBottom: '1px solid var(--sidebar-border)' }}
+      >
+        <div
+          className="flex size-7 shrink-0 items-center justify-center rounded-lg text-white"
+          style={{
+            background: 'linear-gradient(140deg, var(--sidebar-primary), oklch(0.560 0.170 270))',
+            boxShadow: '0 2px 8px color-mix(in oklch, var(--sidebar-primary) 45%, transparent)',
+          }}
+        >
+          <Route className="size-[15px]" />
         </div>
-        <div className="flex flex-col leading-tight">
-          <span className="text-sm font-semibold">POP CRM</span>
-          <span className="text-[11px] text-muted-foreground">Customer Operations</span>
+        <div className="flex min-w-0 flex-col leading-tight">
+          <span className="text-[13px] font-[650] tracking-[-0.01em]">POP CRM</span>
+          <span className="text-[10.5px]" style={{ color: 'var(--sidebar-muted)' }}>
+            Customer Operations
+          </span>
         </div>
       </div>
-      <nav className="flex-1 space-y-0.5 overflow-y-auto p-3">
-        {NAV_ITEMS.map((item) => {
-          const Icon = item.icon
-          const badge = badges[item.to]
-          return (
-            <NavLink
-              key={item.to}
-              to={item.to}
-              end={item.end}
-              onClick={onNavigate}
-              className={({ isActive }) =>
-                cn(
-                  'flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors',
-                  isActive
-                    ? 'bg-sidebar-accent text-sidebar-accent-foreground'
-                    : 'text-muted-foreground hover:bg-sidebar-accent/60 hover:text-sidebar-foreground',
-                )
-              }
+
+      {/* Nav sections */}
+      <nav className="flex-1 overflow-y-auto py-[10px]">
+        {NAV_SECTIONS.map((section) => (
+          <div key={section.label}>
+            <div
+              className="px-[20px] pb-[6px] pt-[14px] text-[10px] font-[600] uppercase tracking-[0.07em]"
+              style={{ color: 'var(--sidebar-muted)' }}
             >
-              <Icon className="size-4 shrink-0" />
-              <span className="flex-1 truncate">{item.label}</span>
-              {badge ? (
-                <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-primary/12 px-1.5 text-[11px] font-semibold text-primary">
-                  {badge}
-                </span>
-              ) : null}
-            </NavLink>
-          )
-        })}
+              {section.label}
+            </div>
+            {section.items.map((item) => {
+              const Icon = item.icon
+              const badge = badges[item.to]
+              return (
+                <NavLink
+                  key={item.to}
+                  to={item.to}
+                  end={item.end}
+                  onClick={onNavigate}
+                  className={({ isActive }) =>
+                    cn(
+                      'relative flex w-full items-center gap-[11px] py-[7px] text-[13px] font-[500] transition-colors duration-[120ms]',
+                      isActive
+                        ? 'border-l-[3px] pl-[17px] pr-[10px] text-white'
+                        : 'border-l-[3px] border-transparent pl-[17px] pr-[10px] hover:text-sidebar-accent-foreground',
+                    )
+                  }
+                  style={({ isActive }) =>
+                    isActive
+                      ? {
+                          borderColor: 'var(--sidebar-primary)',
+                          background: 'color-mix(in oklch, var(--sidebar-primary) 18%, var(--sidebar-accent))',
+                          boxShadow: 'inset 0 0 0 1px color-mix(in oklch, var(--sidebar-primary) 30%, transparent)',
+                        }
+                      : undefined
+                  }
+                >
+                  {({ isActive }) => (
+                    <>
+                      {/* Colored icon tile */}
+                      <span
+                        className="flex size-[26px] shrink-0 items-center justify-center rounded-[7px] text-white transition-transform duration-[120ms] group-hover:scale-[1.06]"
+                        style={{
+                          background: `linear-gradient(150deg, ${item.iconColor}, color-mix(in oklch, ${item.iconColor} 72%, black))`,
+                          boxShadow: 'inset 0 0 0 1px rgba(255,255,255,0.08), 0 1px 2px rgba(0,0,0,0.25)',
+                          opacity: isActive ? 1 : 0.92,
+                        }}
+                      >
+                        <Icon className="size-[15px]" />
+                      </span>
+                      <span className="flex-1 truncate text-left">{item.label}</span>
+                      {badge ? (
+                        <span
+                          className="flex h-[18px] min-w-[18px] items-center justify-center rounded-full px-[5px] text-[10.5px] font-[650] tabular-nums text-white"
+                          style={{
+                            background: item.badgeMuted
+                              ? 'var(--sidebar-accent)'
+                              : 'var(--sidebar-primary)',
+                            color: item.badgeMuted ? 'var(--sidebar-foreground)' : 'white',
+                          }}
+                        >
+                          {badge}
+                        </span>
+                      ) : null}
+                    </>
+                  )}
+                </NavLink>
+              )
+            })}
+          </div>
+        ))}
       </nav>
-      <div className="border-t border-sidebar-border px-4 py-3 text-[11px] text-muted-foreground">
-        Backed by Directus · data.designflow.app
+
+      {/* System health footer */}
+      <div
+        className="flex shrink-0 items-center gap-[9px] px-[12px] py-[10px]"
+        style={{ borderTop: '1px solid var(--sidebar-border)' }}
+      >
+        <span
+          className="size-[7px] shrink-0 rounded-full"
+          style={{
+            background: healthOk ? 'var(--success)' : 'var(--warning)',
+            boxShadow: healthOk
+              ? '0 0 0 3px color-mix(in oklch, var(--success) 22%, transparent)'
+              : '0 0 0 3px color-mix(in oklch, var(--warning) 22%, transparent)',
+          }}
+        />
+        <div className="min-w-0" style={{ color: 'var(--sidebar-muted)', fontSize: 11, lineHeight: 1.25 }}>
+          <b style={{ color: 'var(--sidebar-foreground)', fontWeight: 600, display: 'block', fontSize: 11.5 }}>
+            {healthOk ? 'All systems normal' : 'Check Fireflies'}
+          </b>
+          Directus · data.designflow.app
+        </div>
       </div>
     </div>
   )
 }
 
+export function AppSidebarContent({ onNavigate }: { onNavigate?: () => void }) {
+  return <SidebarContent onNavigate={onNavigate} />
+}
+
 export function AppSidebar() {
   return (
-    <aside className="hidden w-60 shrink-0 border-r border-sidebar-border lg:block">
-      <AppSidebarContent />
+    <aside className="hidden w-[232px] shrink-0 lg:block" style={{ borderRight: '1px solid var(--sidebar-border)' }}>
+      <SidebarContent />
     </aside>
   )
 }

@@ -1,8 +1,7 @@
 import { useMemo, useState } from 'react'
 import { toast } from 'sonner'
 import { MailWarning, Plus } from 'lucide-react'
-import { AppPage } from '@/components/app/AppPage'
-import { PageToolbar } from '@/components/app/PageToolbar'
+import { AppPage, ListBar, SectionHeader } from '@/components/app/AppPage'
 import { DataTable, type Column } from '@/components/app/DataTable'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Badge } from '@/components/ui/badge'
@@ -16,7 +15,6 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { ErrorState } from '@/components/app/states'
-import { SectionHeader } from '@/components/app/AppPage'
 import { CrmStatusBadge } from '@/features/crm/components/CrmStatusBadge'
 import { RelationLabel } from '@/features/crm/components/RelationLabel'
 import { useCrmData } from '@/features/crm/CrmDataContext'
@@ -99,31 +97,32 @@ export function EmailRoutingPage() {
 
   return (
     <AppPage
-      title="Email Routing"
-      description="Outlook-ingested email routed to accounts, departments and opportunities."
-      actions={
-        <CrmStatusBadge kind="routing" status={firefliesOk ? 'ROUTED' : undefined} dot={false} />
-      }
-      toolbar={
-        <div className="space-y-3">
-          <Tabs value={segment} onValueChange={(v) => setSegment(v as Segment)}>
-            <TabsList>
-              {segments.map((s) => (
-                <TabsTrigger key={s.id} value={s.id} className="gap-1.5">
-                  {s.label}
-                  <span className="rounded-full bg-muted-foreground/15 px-1.5 text-[11px] tabular-nums">
-                    {s.count.toLocaleString()}
-                  </span>
-                </TabsTrigger>
-              ))}
-            </TabsList>
-          </Tabs>
-          <PageToolbar
-            search={query}
-            onSearch={setQuery}
-            searchPlaceholder="Search subject, sender, recipient…"
-          />
-        </div>
+      listBar={
+        <ListBar
+          title="Email Routing"
+          subtitle="Outlook-ingested messages"
+          count={filtered.length}
+          search={query}
+          onSearch={setQuery}
+          searchPlaceholder="Search subject, sender, recipient…"
+          actions={
+            <CrmStatusBadge kind="routing" status={firefliesOk ? 'ROUTED' : undefined} dot={false} />
+          }
+          extra={
+            <Tabs value={segment} onValueChange={(v) => setSegment(v as Segment)}>
+              <TabsList>
+                {segments.map((s) => (
+                  <TabsTrigger key={s.id} value={s.id} className="gap-1.5">
+                    {s.label}
+                    <span className="rounded-full bg-muted-foreground/15 px-1.5 text-[11px] tabular-nums">
+                      {s.count.toLocaleString()}
+                    </span>
+                  </TabsTrigger>
+                ))}
+              </TabsList>
+            </Tabs>
+          }
+        />
       }
     >
       {error ? (
@@ -155,7 +154,7 @@ export function EmailRoutingPage() {
   function RoutingSidebar() {
     return (
       <aside className="space-y-4">
-        <section className="rounded-lg border bg-card p-4">
+        <section className="rounded-[12px] border bg-card p-4 shadow-[var(--shadow-xs)]">
           <SectionHeader title="Worker cadence" description="Backend automation schedule" />
           <dl className="mt-3 space-y-2 text-sm">
             {WORKER_CADENCE.map((w) => (
@@ -206,7 +205,7 @@ export function EmailRoutingPage() {
     }
 
     return (
-      <section className="rounded-lg border bg-card p-4">
+      <section className="rounded-[12px] border bg-card p-4 shadow-[var(--shadow-xs)]">
         <SectionHeader title="Ignore rules" description={`${ignoreRules.length} active`} />
         <div className="mt-3 flex gap-2">
           <Input
@@ -233,15 +232,15 @@ export function EmailRoutingPage() {
         </div>
         <ul className="mt-3 space-y-2">
           {ignoreRules.slice(0, 12).map((rule) => (
-            <li key={rule.id} className="rounded-md border bg-muted/30 p-2">
-              <div className="truncate text-sm font-medium">{rule.pattern}</div>
-              <div className="mt-0.5 text-xs text-muted-foreground">
+            <li key={rule.id} className="rounded-[8px] border bg-muted/30 p-2">
+              <div className="truncate text-[12.5px] font-medium">{rule.pattern}</div>
+              <div className="mt-0.5 text-[11.5px] text-muted-foreground">
                 {label(rule.match_type)} · {rule.emails_skipped || 0} skipped
               </div>
             </li>
           ))}
           {!ignoreRules.length ? (
-            <li className="rounded-md border border-dashed p-3 text-center text-xs text-muted-foreground">
+            <li className="rounded-[8px] border border-dashed p-3 text-center text-[11.5px] text-muted-foreground">
               No ignore rules yet.
             </li>
           ) : null}

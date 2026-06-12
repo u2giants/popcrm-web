@@ -5,9 +5,16 @@ import { AppSidebar, AppSidebarContent } from '@/components/app/AppSidebar'
 import { AppHeader } from '@/components/app/AppHeader'
 import { CommandSearch } from '@/components/app/CommandSearch'
 
+function initTheme(): 'light' | 'dark' {
+  const stored = localStorage.getItem('popcrm_theme')
+  if (stored === 'dark' || stored === 'light') return stored
+  return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'
+}
+
 export function AppLayout() {
   const [mobileNav, setMobileNav] = useState(false)
   const [search, setSearch] = useState(false)
+  const [theme, setTheme] = useState<'light' | 'dark'>(initTheme)
 
   // ⌘K / Ctrl-K opens the global command palette.
   useEffect(() => {
@@ -21,12 +28,22 @@ export function AppLayout() {
     return () => window.removeEventListener('keydown', onKey)
   }, [])
 
+  // Sync .dark class to <html> and persist choice.
+  useEffect(() => {
+    document.documentElement.classList.toggle('dark', theme === 'dark')
+    localStorage.setItem('popcrm_theme', theme)
+  }, [theme])
+
+  function toggleTheme() {
+    setTheme((t) => (t === 'dark' ? 'light' : 'dark'))
+  }
+
   return (
     <div className="flex h-svh overflow-hidden bg-background">
       <AppSidebar />
 
       <Sheet open={mobileNav} onOpenChange={setMobileNav}>
-        <SheetContent side="left" className="w-64 p-0" showCloseButton={false}>
+        <SheetContent side="left" className="w-[232px] p-0" showCloseButton={false}>
           <SheetTitle className="sr-only">Navigation</SheetTitle>
           <SheetDescription className="sr-only">POP CRM primary navigation</SheetDescription>
           <AppSidebarContent onNavigate={() => setMobileNav(false)} />
@@ -34,7 +51,12 @@ export function AppLayout() {
       </Sheet>
 
       <div className="flex min-w-0 flex-1 flex-col">
-        <AppHeader onOpenMobileNav={() => setMobileNav(true)} onOpenSearch={() => setSearch(true)} />
+        <AppHeader
+          onOpenMobileNav={() => setMobileNav(true)}
+          onOpenSearch={() => setSearch(true)}
+          theme={theme}
+          onToggleTheme={toggleTheme}
+        />
         <main className="min-h-0 flex-1 overflow-hidden">
           <Outlet />
         </main>

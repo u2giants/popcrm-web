@@ -17,19 +17,42 @@ export interface NavItem {
   label: string
   icon: LucideIcon
   end?: boolean
+  iconColor: string
+  badgeMuted?: boolean
 }
 
-// Primary sidebar navigation. Order matters — it is the IA defined in
-// frontend_imp.md. Each entry maps to a deep-linkable route.
-export const NAV_ITEMS: NavItem[] = [
-  { to: '/', label: 'Overview', icon: LayoutDashboard, end: true },
-  { to: '/pipeline', label: 'Pipeline', icon: Route },
-  { to: '/accounts', label: 'Accounts', icon: Building2 },
-  { to: '/contacts', label: 'Contacts', icon: Contact },
-  { to: '/email', label: 'Email Routing', icon: MailWarning },
-  { to: '/meetings', label: 'Meetings', icon: CalendarDays },
-  { to: '/notes', label: 'Notes', icon: NotebookTabs },
-  { to: '/tasks', label: 'Tasks', icon: ListTodo },
-  { to: '/approvals', label: 'Approvals', icon: ShieldCheck },
-  { to: '/settings', label: 'Settings', icon: Settings2 },
+export interface NavSection {
+  label: string
+  items: NavItem[]
+}
+
+export const NAV_SECTIONS: NavSection[] = [
+  {
+    label: 'Operate',
+    items: [
+      { to: '/', label: 'Overview', icon: LayoutDashboard, end: true, iconColor: 'oklch(0.60 0.17 255)' },
+      { to: '/pipeline', label: 'Pipeline', icon: Route, iconColor: 'oklch(0.62 0.17 300)' },
+      { to: '/email', label: 'Email Routing', icon: MailWarning, iconColor: 'oklch(0.62 0.16 25)' },
+    ],
+  },
+  {
+    label: 'Records',
+    items: [
+      { to: '/accounts', label: 'Accounts', icon: Building2, iconColor: 'oklch(0.60 0.15 200)' },
+      { to: '/contacts', label: 'Contacts', icon: Contact, iconColor: 'oklch(0.62 0.15 165)' },
+      { to: '/meetings', label: 'Meetings', icon: CalendarDays, iconColor: 'oklch(0.66 0.15 60)' },
+    ],
+  },
+  {
+    label: 'Workflow',
+    items: [
+      { to: '/notes', label: 'Notes', icon: NotebookTabs, iconColor: 'oklch(0.64 0.15 130)' },
+      { to: '/tasks', label: 'Tasks', icon: ListTodo, iconColor: 'oklch(0.64 0.16 95)', badgeMuted: true },
+      { to: '/approvals', label: 'Approvals', icon: ShieldCheck, iconColor: 'oklch(0.60 0.16 340)', badgeMuted: true },
+      { to: '/settings', label: 'Settings', icon: Settings2, iconColor: 'oklch(0.55 0.02 256)' },
+    ],
+  },
 ]
+
+// Flat list kept for backward compatibility (CommandSearch, etc.)
+export const NAV_ITEMS: NavItem[] = NAV_SECTIONS.flatMap((s) => s.items)

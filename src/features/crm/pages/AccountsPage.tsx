@@ -1,11 +1,9 @@
 import { useMemo, useState } from 'react'
 import { Building2 } from 'lucide-react'
-import { AppPage } from '@/components/app/AppPage'
-import { PageToolbar } from '@/components/app/PageToolbar'
+import { AppPage, ListBar } from '@/components/app/AppPage'
 import { FilterSelect } from '@/components/app/FilterSelect'
 import { DataTable, type Column } from '@/components/app/DataTable'
 import { StatusBadge } from '@/components/app/StatusBadge'
-import { Badge } from '@/components/ui/badge'
 import { ErrorState } from '@/components/app/states'
 import { useCrmData } from '@/features/crm/CrmDataContext'
 import { useRecordSelection } from '@/features/crm/useRecordSelection'
@@ -95,11 +93,11 @@ export function AccountsPage() {
 
   return (
     <AppPage
-      title="Accounts"
-      description="Retailers and accounts across the customer base."
-      actions={<Badge variant="outline">{filtered.length.toLocaleString()} shown</Badge>}
-      toolbar={
-        <PageToolbar
+      listBar={
+        <ListBar
+          title="Accounts"
+          subtitle="Retailers and accounts"
+          count={filtered.length}
           search={query}
           onSearch={setQuery}
           searchPlaceholder="Search name, domain, aliases…"

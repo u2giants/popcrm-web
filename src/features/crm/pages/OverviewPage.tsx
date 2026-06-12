@@ -1,15 +1,6 @@
 import { useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
 import {
-  Bar,
-  BarChart,
-  Cell,
-  Pie,
-  PieChart,
-  XAxis,
-  YAxis,
-} from 'recharts'
-import {
   Building2,
   CalendarDays,
   Contact,
@@ -19,54 +10,61 @@ import {
   ShieldCheck,
   ArrowRight,
 } from 'lucide-react'
-import { AppPage, SectionHeader } from '@/components/app/AppPage'
+import { AppPage, ListBar } from '@/components/app/AppPage'
 import { MetricCard } from '@/components/app/MetricCard'
 import { CardGridSkeleton, ErrorState } from '@/components/app/states'
 import { StatusBadge } from '@/components/app/StatusBadge'
-import {
-  ChartContainer,
-  ChartTooltip,
-  ChartTooltipContent,
-  type ChartConfig,
-} from '@/components/ui/chart'
+import { ChartDonut, type DonutSlice } from '@/components/app/ChartDonut'
+import { ChartHBar, type HBarItem } from '@/components/app/ChartHBar'
 import { useCrmData } from '@/features/crm/CrmDataContext'
 import { CrmStatusBadge } from '@/features/crm/components/CrmStatusBadge'
 import { RelationLabel } from '@/features/crm/components/RelationLabel'
 import { OPPORTUNITY_STAGES, isApprovalResolved, needsRouting } from '@/features/crm/constants'
 import { formatDate, label } from '@/features/crm/format'
 
-const ROUTING_CHART: ChartConfig = {
-  ROUTED: { label: 'Routed', color: 'var(--chart-3)' },
-  COMPANY_ONLY: { label: 'Company only', color: 'var(--chart-1)' },
-  COMPANY_DEPT: { label: 'Company + dept', color: 'var(--chart-2)' },
-  UNROUTED: { label: 'Unrouted', color: 'var(--chart-4)' },
-  CUSTOMER_EMAIL_NO_COMPANY: { label: 'No company', color: 'var(--chart-5)' },
-  SKIPPED: { label: 'Skipped', color: 'var(--muted-foreground)' },
+const ROUTING_COLORS: Record<string, string> = {
+  ROUTED: 'var(--chart-3)',
+  COMPANY_ONLY: 'var(--chart-1)',
+  COMPANY_DEPT: 'var(--chart-2)',
+  UNROUTED: 'var(--chart-4)',
+  CUSTOMER_EMAIL_NO_COMPANY: 'var(--chart-5)',
+  SKIPPED: 'var(--muted-foreground)',
 }
-
-const STAGE_CHART: ChartConfig = { count: { label: 'Programs', color: 'var(--chart-1)' } }
+const ROUTING_NAMES: Record<string, string> = {
+  ROUTED: 'Routed',
+  COMPANY_ONLY: 'Company only',
+  COMPANY_DEPT: 'Company + dept',
+  UNROUTED: 'Unrouted',
+  CUSTOMER_EMAIL_NO_COMPANY: 'No company',
+  SKIPPED: 'Skipped',
+}
 
 export function OverviewPage() {
   const navigate = useNavigate()
   const { stats, emails, opportunities, meetings, tasks, approvals, loading, error, refresh, firefliesOk } =
     useCrmData()
 
-  const routingData = useMemo(() => {
+  const routingSlices = useMemo<DonutSlice[]>(() => {
     const counts = new Map<string, number>()
     for (const e of emails) {
       const key = e.routing_status || 'UNROUTED'
       counts.set(key, (counts.get(key) ?? 0) + 1)
     }
-    return Object.keys(ROUTING_CHART)
-      .map((key) => ({ key, name: String(ROUTING_CHART[key].label), value: counts.get(key) ?? 0 }))
+    return Object.keys(ROUTING_COLORS)
+      .map((key) => ({
+        key,
+        name: ROUTING_NAMES[key] ?? key,
+        value: counts.get(key) ?? 0,
+        color: ROUTING_COLORS[key],
+      }))
       .filter((d) => d.value > 0)
   }, [emails])
 
-  const stageData = useMemo(
+  const stageBars = useMemo<HBarItem[]>(
     () =>
       OPPORTUNITY_STAGES.map((stage) => ({
-        stage: label(stage),
-        count: opportunities.filter((o) => (o.stage || OPPORTUNITY_STAGES[0]) === stage).length,
+        label: label(stage),
+        value: opportunities.filter((o) => (o.stage || OPPORTUNITY_STAGES[0]) === stage).length,
       })),
     [opportunities],
   )
@@ -95,12 +93,16 @@ export function OverviewPage() {
 
   return (
     <AppPage
-      title="Overview"
-      description="Operational snapshot of accounts, routing and pipeline."
-      actions={
-        <StatusBadge tone={firefliesOk === false ? 'danger' : firefliesOk ? 'success' : 'neutral'}>
-          Fireflies {firefliesOk === null ? '…' : firefliesOk ? 'online' : 'offline'}
-        </StatusBadge>
+      listBar={
+        <ListBar
+          title="Overview"
+          subtitle="Operational snapshot"
+          actions={
+            <StatusBadge tone={firefliesOk === false ? 'danger' : firefliesOk ? 'success' : 'neutral'}>
+              Fireflies {firefliesOk === null ? '…' : firefliesOk ? 'online' : 'offline'}
+            </StatusBadge>
+          }
+        />
       }
     >
       {loading ? (
@@ -112,63 +114,91 @@ export function OverviewPage() {
         <div className="space-y-6">
           {/* KPI strip */}
           <div className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-7">
-            <MetricCard label="Accounts" value={stats.accounts.toLocaleString()} icon={<Building2 className="size-4" />} onClick={() => navigate('/accounts')} />
-            <MetricCard label="Contacts" value={stats.contacts.toLocaleString()} icon={<Contact className="size-4" />} onClick={() => navigate('/contacts')} />
-            <MetricCard label="Open programs" value={stats.openOpportunities.toLocaleString()} icon={<Route className="size-4" />} tone="accent" onClick={() => navigate('/pipeline')} />
-            <MetricCard label="Needs routing" value={stats.needsRouting.toLocaleString()} icon={<MailWarning className="size-4" />} tone={stats.needsRouting ? 'danger' : 'default'} onClick={() => navigate('/email')} />
-            <MetricCard label="Meetings" value={stats.meetings.toLocaleString()} icon={<CalendarDays className="size-4" />} onClick={() => navigate('/meetings')} />
-            <MetricCard label="Open tasks" value={stats.openTasks.toLocaleString()} icon={<ListTodo className="size-4" />} onClick={() => navigate('/tasks')} />
-            <MetricCard label="Approvals" value={stats.pendingApprovals.toLocaleString()} icon={<ShieldCheck className="size-4" />} onClick={() => navigate('/approvals')} />
+            <MetricCard
+              label="Accounts"
+              value={stats.accounts.toLocaleString()}
+              icon={<Building2 className="size-4" />}
+              iconColor="oklch(0.60 0.15 200)"
+              onClick={() => navigate('/accounts')}
+            />
+            <MetricCard
+              label="Contacts"
+              value={stats.contacts.toLocaleString()}
+              icon={<Contact className="size-4" />}
+              iconColor="oklch(0.62 0.15 165)"
+              onClick={() => navigate('/contacts')}
+            />
+            <MetricCard
+              label="Open programs"
+              value={stats.openOpportunities.toLocaleString()}
+              icon={<Route className="size-4" />}
+              iconColor="oklch(0.62 0.17 300)"
+              tone="accent"
+              onClick={() => navigate('/pipeline')}
+            />
+            <MetricCard
+              label="Needs routing"
+              value={stats.needsRouting.toLocaleString()}
+              icon={<MailWarning className="size-4" />}
+              iconColor="oklch(0.62 0.16 25)"
+              tone={stats.needsRouting ? 'danger' : 'default'}
+              onClick={() => navigate('/email')}
+            />
+            <MetricCard
+              label="Meetings"
+              value={stats.meetings.toLocaleString()}
+              icon={<CalendarDays className="size-4" />}
+              iconColor="oklch(0.66 0.15 60)"
+              onClick={() => navigate('/meetings')}
+            />
+            <MetricCard
+              label="Open tasks"
+              value={stats.openTasks.toLocaleString()}
+              icon={<ListTodo className="size-4" />}
+              iconColor="oklch(0.64 0.16 95)"
+              onClick={() => navigate('/tasks')}
+            />
+            <MetricCard
+              label="Approvals"
+              value={stats.pendingApprovals.toLocaleString()}
+              icon={<ShieldCheck className="size-4" />}
+              iconColor="oklch(0.60 0.16 340)"
+              onClick={() => navigate('/approvals')}
+            />
           </div>
 
           {/* Charts */}
           <div className="grid gap-4 lg:grid-cols-2">
-            <div className="rounded-lg border bg-card p-5">
-              <SectionHeader title="Email routing health" description={`${stats.emails.toLocaleString()} messages ingested`} />
-              {routingData.length ? (
-                <div className="mt-2 flex flex-col items-center gap-4 sm:flex-row">
-                  <ChartContainer config={ROUTING_CHART} className="aspect-square h-48">
-                    <PieChart>
-                      <ChartTooltip content={<ChartTooltipContent hideLabel />} />
-                      <Pie data={routingData} dataKey="value" nameKey="name" innerRadius={48} strokeWidth={2}>
-                        {routingData.map((d) => (
-                          <Cell key={d.key} fill={`var(--color-${d.key})`} />
-                        ))}
-                      </Pie>
-                    </PieChart>
-                  </ChartContainer>
-                  <ul className="flex-1 space-y-1.5">
-                    {routingData.map((d) => (
-                      <li key={d.key} className="flex items-center gap-2 text-sm">
-                        <span className="size-2.5 rounded-[3px]" style={{ background: `var(--color-${d.key})` }} />
-                        <span className="flex-1 text-muted-foreground">{d.name}</span>
-                        <span className="font-medium tabular-nums">{d.value.toLocaleString()}</span>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
+            <div className="rounded-[12px] border bg-card p-5 shadow-[var(--shadow-xs)]">
+              <div className="mb-[12px]">
+                <p className="text-[13px] font-[650] tracking-[-0.005em] text-foreground">
+                  Email routing health
+                </p>
+                <p className="mt-[1px] text-[11.5px] text-muted-foreground">
+                  {stats.emails.toLocaleString()} messages ingested
+                </p>
+              </div>
+              {routingSlices.length ? (
+                <ChartDonut
+                  data={routingSlices}
+                  centerLabel={stats.emails.toLocaleString()}
+                  centerSub="total"
+                />
               ) : (
-                <p className="mt-6 text-sm text-muted-foreground">No email data yet.</p>
+                <p className="mt-6 text-[12px] text-muted-foreground">No email data yet.</p>
               )}
             </div>
 
-            <div className="rounded-lg border bg-card p-5">
-              <SectionHeader title="Pipeline distribution" description="Opportunities by stage" />
-              <ChartContainer config={STAGE_CHART} className="mt-2 aspect-auto h-48 w-full">
-                <BarChart data={stageData} layout="vertical" margin={{ left: 8, right: 16 }}>
-                  <XAxis type="number" hide />
-                  <YAxis
-                    type="category"
-                    dataKey="stage"
-                    width={120}
-                    tickLine={false}
-                    axisLine={false}
-                    tick={{ fontSize: 11 }}
-                  />
-                  <ChartTooltip content={<ChartTooltipContent />} />
-                  <Bar dataKey="count" fill="var(--color-count)" radius={[0, 4, 4, 0]} barSize={14} />
-                </BarChart>
-              </ChartContainer>
+            <div className="rounded-[12px] border bg-card p-5 shadow-[var(--shadow-xs)]">
+              <div className="mb-[14px]">
+                <p className="text-[13px] font-[650] tracking-[-0.005em] text-foreground">
+                  Pipeline distribution
+                </p>
+                <p className="mt-[1px] text-[11.5px] text-muted-foreground">
+                  Opportunities by stage
+                </p>
+              </div>
+              <ChartHBar data={stageBars} />
             </div>
           </div>
 
@@ -196,7 +226,7 @@ export function OverviewPage() {
                 id: m.id,
                 primary: m.name || 'Meeting',
                 secondary: <RelationLabel value={m.retailer} />,
-                trailing: <span className="text-xs text-muted-foreground">{formatDate(m.date)}</span>,
+                trailing: <span className="text-[11px] text-muted-foreground">{formatDate(m.date)}</span>,
                 onClick: () => navigate(`/meetings?meeting=${m.id}`),
               }))}
             />
@@ -255,17 +285,17 @@ function ActivityPanel({
   onView: () => void
 }) {
   return (
-    <section className="flex flex-col rounded-lg border bg-card">
-      <div className="flex items-center justify-between border-b px-4 py-3">
-        <div className="flex items-center gap-2 text-sm font-semibold">
+    <section className="flex flex-col rounded-[12px] border bg-card shadow-[var(--shadow-xs)]">
+      <div className="flex items-center justify-between border-b px-[14px] py-[11px]">
+        <div className="flex items-center gap-[7px] text-[13px] font-[650] tracking-[-0.005em] text-foreground">
           <span className="text-muted-foreground">{icon}</span>
           {title}
         </div>
         <button
           onClick={onView}
-          className="inline-flex items-center gap-1 text-xs font-medium text-primary hover:underline"
+          className="inline-flex items-center gap-[4px] text-[11.5px] font-[500] text-primary hover:underline"
         >
-          View all <ArrowRight className="size-3.5" />
+          View all <ArrowRight className="size-[13px]" />
         </button>
       </div>
       {items.length ? (
@@ -274,11 +304,11 @@ function ActivityPanel({
             <li key={item.id}>
               <button
                 onClick={item.onClick}
-                className="flex w-full items-center gap-3 px-4 py-2.5 text-left hover:bg-accent/40"
+                className="flex w-full items-center gap-3 px-[14px] py-[9px] text-left transition-colors hover:bg-accent/40"
               >
                 <div className="min-w-0 flex-1">
-                  <div className="truncate text-sm font-medium text-foreground">{item.primary}</div>
-                  <div className="truncate text-xs text-muted-foreground">{item.secondary}</div>
+                  <div className="truncate text-[12.5px] font-[500] text-foreground">{item.primary}</div>
+                  <div className="truncate text-[11.5px] text-muted-foreground">{item.secondary}</div>
                 </div>
                 {item.trailing ? <div className="shrink-0">{item.trailing}</div> : null}
               </button>
@@ -286,7 +316,7 @@ function ActivityPanel({
           ))}
         </ul>
       ) : (
-        <p className="px-4 py-8 text-center text-sm text-muted-foreground">{empty}</p>
+        <p className="px-4 py-8 text-center text-[12px] text-muted-foreground">{empty}</p>
       )}
     </section>
   )
