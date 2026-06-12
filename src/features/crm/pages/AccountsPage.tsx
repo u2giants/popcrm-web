@@ -1,20 +1,39 @@
 import { useMemo, useState } from 'react'
+import { toast } from 'sonner'
 import { Building2 } from 'lucide-react'
 import { AppPage, ListBar } from '@/components/app/AppPage'
-import { DataTable, type Column } from '@/components/app/DataTable'
+import { DataTable, type Column, type EditOption } from '@/components/app/DataTable'
 import { StatusBadge } from '@/components/app/StatusBadge'
 import { ErrorState } from '@/components/app/states'
 import { useCrmData } from '@/features/crm/CrmDataContext'
 import { useRecordSelection } from '@/features/crm/useRecordSelection'
 import { AccountDrawer } from '@/features/crm/components/AccountDrawer'
+import { ChainBadge } from '@/features/crm/components/CrmStatusBadge'
+import { updateRetailer } from '@/features/crm/api'
+import { CHAIN_TYPES, CUSTOMER_STATUSES, customerStatusTone } from '@/features/crm/constants'
 import { idOf, label, textOf } from '@/features/crm/format'
 import { NameAvatar } from '@/components/app/NameAvatar'
 import type { Retailer } from '@/lib/types'
 
+const STATUS_OPTIONS: EditOption[] = CUSTOMER_STATUSES.map((v) => ({ value: v, label: label(v) }))
+const CHAIN_OPTIONS: EditOption[] = CHAIN_TYPES.map((v) => ({ value: v, label: label(v) }))
+
 export function AccountsPage() {
-  const { retailers, buyers, opportunities, loading, error, refresh } = useCrmData()
+  const { retailers, setRetailers, buyers, opportunities, loading, error, refresh } = useCrmData()
   const [query, setQuery] = useState('')
   const [selected, select] = useRecordSelection<Retailer>('retailer', retailers)
+
+  // Inline edit / drag-copy for the Status and Chain columns.
+  async function editCell(row: Retailer, key: string, value: string) {
+    const prev = (row as unknown as Record<string, unknown>)[key]
+    setRetailers((rows) => rows.map((r) => (r.id === row.id ? { ...r, [key]: value } : r)))
+    try {
+      await updateRetailer(row.id, { [key]: value } as Partial<Retailer>)
+    } catch {
+      setRetailers((rows) => rows.map((r) => (r.id === row.id ? { ...r, [key]: prev } : r)))
+      toast.error('Could not save change')
+    }
+  }
 
   const counts = useMemo(() => {
     const contacts = new Map<string, number>()
@@ -36,12 +55,6 @@ export function AccountsPage() {
       (r) => !q || textOf(r.name, r.domain, r.routing_aliases, r.customer_status, r.chain_type).includes(q),
     )
   }, [retailers, query])
-
-  const STATUS_TONE: Record<string, 'success' | 'info' | 'warning' | 'neutral'> = {
-    ACTIVE: 'success',
-    PROSPECT: 'info',
-    AT_RISK: 'warning',
-  }
 
   const columns: Column<Retailer>[] = [
     {
@@ -66,11 +79,16 @@ export function AccountsPage() {
       header: 'Status',
       sortValue: (r) => r.customer_status ?? '',
       filterValue: (r) => label(r.customer_status),
-      cell: (r) => (
-        <StatusBadge tone={STATUS_TONE[r.customer_status ?? ''] ?? 'neutral'} dot>
-          {label(r.customer_status)}
-        </StatusBadge>
-      ),
+      editOptions: STATUS_OPTIONS,
+      editValue: (r) => r.customer_status,
+      cell: (r) =>
+        r.customer_status ? (
+          <StatusBadge tone={customerStatusTone(r.customer_status)} dot>
+            {label(r.customer_status)}
+          </StatusBadge>
+        ) : (
+          <span className="text-muted-foreground">—</span>
+        ),
     },
     {
       key: 'chain_type',
@@ -78,7 +96,9 @@ export function AccountsPage() {
       hideBelow: 'lg',
       sortValue: (r) => r.chain_type ?? '',
       filterValue: (r) => label(r.chain_type),
-      cell: (r) => <span className="text-muted-foreground">{label(r.chain_type)}</span>,
+      editOptions: CHAIN_OPTIONS,
+      editValue: (r) => r.chain_type,
+      cell: (r) => <ChainBadge chain={r.chain_type} />,
     },
     {
       key: 'contacts',
@@ -123,6 +143,7 @@ export function AccountsPage() {
           columns={columns}
           getRowId={(r) => r.id}
           onRowClick={(r) => select(r)}
+          onCellEdit={editCell}
           loading={loading}
           emptyIcon={<Building2 className="size-5" />}
           emptyTitle="No accounts match"

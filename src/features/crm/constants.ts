@@ -26,6 +26,53 @@ export const ROUTING_STATUSES = [
 
 export const TASK_STATUSES = ['TODO', 'IN_PROGRESS', 'DONE', 'CANCELED'] as const
 
+// Real Directus choices for retailer.customer_status / retailer.chain_type
+// (source: u2giants/directus pm-system/crm-schema.mjs). Order = display order.
+export const CUSTOMER_STATUSES = [
+  'ACTIVE_CUSTOMER',
+  'POTENTIAL_CUSTOMER',
+  'OTHER',
+  'UNASSIGNED',
+] as const
+
+export const CHAIN_TYPES = [
+  'OFF_PRICE',
+  'SPECIALTY',
+  'VALUE',
+  'MASS_MARKET',
+  'GROCERY_DRUG',
+  'ECOM',
+  'CLUB',
+  'OTHER',
+] as const
+
+// Account status → badge tone. Green active, yellow potential, red other,
+// neutral for "New Company" (UNASSIGNED).
+export function customerStatusTone(status: string | null | undefined): StatusTone {
+  switch (status) {
+    case 'ACTIVE_CUSTOMER':
+      return 'success'
+    case 'POTENTIAL_CUSTOMER':
+      return 'warning'
+    case 'OTHER':
+      return 'danger'
+    default:
+      return 'neutral'
+  }
+}
+
+// Each chain type gets a distinct OKLCH hue so the chips read apart at a glance.
+export const CHAIN_HUE: Record<string, number> = {
+  OFF_PRICE: 25,
+  SPECIALTY: 300,
+  VALUE: 145,
+  MASS_MARKET: 255,
+  GROCERY_DRUG: 95,
+  ECOM: 200,
+  CLUB: 340,
+  OTHER: 60,
+}
+
 export const MATCH_TYPES = ['CONTAINS', 'STARTS_WITH', 'EXACT'] as const
 
 export const AI_MODELS = [
