@@ -48,14 +48,16 @@ Then load additional docs only when relevant:
 | Change data shape, Directus fields, queries, or identifiers | `AGENTS.md`, `docs/architecture.md`, `src/lib/types.ts`, `src/features/crm/api.ts` | Deployment docs unless rollout changes |
 | Investigate bugs or incidents | `AGENTS.md` (Critical incidents), area-relevant source, `HANDOFF.md` if present | Unrelated docs |
 | Continue unfinished work | `AGENTS.md`, `HANDOFF.md` (if present) and the docs it names | Docs outside the handoff scope |
-| Understand the redesign rationale (charts, tokens, layout) | `frontend_imp.md` (historical plan — largely implemented) | Everything else |
+| Understand the redesign rationale (charts, tokens, layout) | `frontend_imp.md` (historical plan — fully implemented) | Everything else |
 | Claude Code session | `CLAUDE.md`, then `AGENTS.md` | Other docs unless the task requires them |
 | Documentation-only cleanup | `AGENTS.md`, `README.md`, affected `docs/`, ignore files | Source files except to verify accuracy |
 
 Notes:
 - `HANDOFF.md` is **absent** when there is no unfinished work. If it exists, it is
   required reading for continuation tasks.
-- `frontend_imp.md` is a large background design plan, not a current spec.
+- `frontend_imp.md` is a large background design plan — now fully implemented. It is in
+  `.claudeignore`/`.cursorignore` to keep it out of routine AI context.
+- `design_handoff_popcrm_elevation/` is a historical design-spec directory — also ignored.
 
 ## Repository structure
 
@@ -186,6 +188,8 @@ Do not load these into AI context unless explicitly needed:
 - `.env`, `*.local`
 - `.cache/`, `coverage/`
 - Leftover Vite-template assets (unused): `src/assets/react.svg`, `src/assets/vite.svg`, `src/assets/hero.png`, `public/icons.svg`
+- `design_handoff_popcrm_elevation/` — historical design spec directory (fully implemented)
+- `frontend_imp.md` — historical design plan (fully implemented)
 
 These align with `.claudeignore` and `.cursorignore`.
 
@@ -338,7 +342,16 @@ now break-glass only (see `docs/deployment.md`).
 | Status | Item | Owner/next action |
 |---|---|---|
 | done | Redesign, CI/CD pipeline, Coolify cutover, data-load fixes | Completed in commits up to `3592b88` |
-| open | Server-side pagination / Directus aggregates | Currently client-side; revisit if record volumes grow (see `frontend_imp.md` Phase 9) |
+| done | Full UI redesign: all pages, drawers, charts, tokens, board/list toggles | All screens complete; `frontend_imp.md` fully implemented |
+| done | Tasks board view | Kanban columns (TODO/In progress/Done/Blocked) with TaskCard, drag-to-status via chip |
+| done | Pipeline list/board toggle | DataTable list view + existing board; segmented control in ListBar |
+| done | OpportunityModal: Ask AI, Share, Expand/collapse | All three top-bar actions wired; composer calls `createNote` API |
+| done | `label()` enum overrides | `AI`, `DETERMINISTIC`, `IN_PROGRESS`, `TODO`, routing statuses all map to readable labels |
+| done | Email routing: Method column | Replaced Department column; `MethodChip` + `MethodConfidence` in drawer |
+| done | Overview activity panels | Reduced to 2 (Meetings + Approvals); deep-links via `useRecordSelection` |
+| done | Approvals columns | Name · Licensor · Status · Submitted · Program · Latest comment per spec |
+| done | All record drawers polished | Meeting/Task/Email/Note/Approval drawers match spec |
+| open | Server-side pagination / Directus aggregates | Currently client-side; revisit if record volumes grow |
 | open | Bump CI actions off Node 20 | GitHub deprecates Node-20 actions (~2026-06-16); update `actions/*` and `docker/*` versions in `deploy.yml` |
 | known | Pre-existing lint warnings in `src/auth/auth.tsx` | 3 warnings (`any`, setState-in-effect, unused disable) accepted; do not add new warnings elsewhere |
 | unknown | `crm_licensor_approval_thread.stage` values | Free-form, 0 rows today; verify real values via backend when approval data exists |
