@@ -39,6 +39,31 @@ export function EmailDrawer({
   )
 }
 
+const METHOD_META: Record<string, { label: string; confidence: number; color: string }> = {
+  DETERMINISTIC: { label: 'Rule match', confidence: 99, color: 'oklch(0.60 0.15 165)' },
+  AI:            { label: 'AI classify', confidence: 78, color: 'oklch(0.62 0.17 300)' },
+}
+
+function MethodConfidence({ method }: { method: string }) {
+  const meta = METHOD_META[method] ?? { label: method, confidence: 50, color: 'oklch(0.60 0.12 250)' }
+  return (
+    <div className="flex flex-col gap-[6px]">
+      <div className="flex items-center justify-between">
+        <span className="text-[12.5px] font-[550] text-foreground">{meta.label}</span>
+        <span className="font-mono text-[11.5px] font-[650] tabular-nums" style={{ color: meta.color }}>
+          {meta.confidence}%
+        </span>
+      </div>
+      <div className="h-[6px] w-full overflow-hidden rounded-full bg-muted">
+        <div
+          className="h-full rounded-full transition-all duration-500"
+          style={{ width: `${meta.confidence}%`, background: meta.color }}
+        />
+      </div>
+    </div>
+  )
+}
+
 function EmailDrawerForm({ row, onClose }: { row: CrmEmailMessage; onClose: () => void }) {
   const { retailers, opportunities, departments, setEmails, setIgnoreRules } = useCrmData()
   const [status, setStatus] = useState(row.routing_status || 'UNROUTED')
@@ -132,6 +157,13 @@ function EmailDrawerForm({ row, onClose }: { row: CrmEmailMessage; onClose: () =
           </div>
         </div>
       </DrawerSection>
+
+      {/* Detected-by + confidence meter */}
+      {row.routing_method && row.routing_method !== 'MANUAL' ? (
+        <DrawerSection title="Detected by">
+          <MethodConfidence method={row.routing_method} />
+        </DrawerSection>
+      ) : null}
 
       {/* Routing fields */}
       <DrawerSection title="Routing">

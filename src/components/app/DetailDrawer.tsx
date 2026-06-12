@@ -28,7 +28,7 @@ export function DetailDrawer({
 }) {
   return (
     <Sheet open={open} onOpenChange={(o) => { if (!o) onClose() }}>
-      <SheetContent className={cn('flex w-full flex-col gap-0 p-0 sm:max-w-[480px]', className)}>
+      <SheetContent className={cn('flex w-full flex-col gap-0 p-0 max-w-[94vw] sm:max-w-[480px]', className)}>
         <SheetTitle className="sr-only">
           {typeof title === 'string' ? title : 'Record detail'}
         </SheetTitle>

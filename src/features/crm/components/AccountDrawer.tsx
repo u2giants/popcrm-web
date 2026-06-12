@@ -1,8 +1,9 @@
 import { useMemo } from 'react'
-import { Building2, Mail, Route } from 'lucide-react'
+import { Building2, Mail, Route, X } from 'lucide-react'
 import { DetailDrawer, DescriptionItem, DescriptionList, DrawerSection } from '@/components/app/DetailDrawer'
 import { StatusBadge } from '@/components/app/StatusBadge'
 import { NameAvatar } from '@/components/app/NameAvatar'
+import { Button } from '@/components/ui/button'
 import { useCrmData } from '@/features/crm/CrmDataContext'
 import { StageBadge } from '@/features/crm/components/CrmStatusBadge'
 import { idOf, label } from '@/features/crm/format'
@@ -58,6 +59,11 @@ export function AccountDrawer({ row, onClose }: { row: Retailer | null; onClose:
             ) : null}
           </>
         ) : undefined
+      }
+      footer={
+        <Button variant="outline" size="sm" onClick={onClose}>
+          <X className="size-[13px]" /> Close
+        </Button>
       }
     >
       {row ? (
