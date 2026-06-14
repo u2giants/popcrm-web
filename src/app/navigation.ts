@@ -31,16 +31,17 @@ export const NAV_SECTIONS: NavSection[] = [
     label: 'Operate',
     items: [
       { to: '/', label: 'Overview', icon: LayoutDashboard, end: true, iconColor: 'oklch(0.60 0.17 255)' },
-      { to: '/pipeline', label: 'Pipeline', icon: Route, iconColor: 'oklch(0.62 0.17 300)' },
       { to: '/email', label: 'Email Routing', icon: MailWarning, iconColor: 'oklch(0.62 0.16 25)' },
+      { to: '/meetings', label: 'Meetings', icon: CalendarDays, iconColor: 'oklch(0.66 0.15 60)' },
     ],
   },
   {
     label: 'Records',
     items: [
       { to: '/accounts', label: 'Accounts', icon: Building2, iconColor: 'oklch(0.60 0.15 200)' },
+      { to: '/departments', label: 'Departments', icon: Building2, iconColor: 'oklch(0.60 0.15 230)' },
+      { to: '/programs', label: 'Programs', icon: Route, iconColor: 'oklch(0.62 0.17 300)' },
       { to: '/contacts', label: 'Contacts', icon: Contact, iconColor: 'oklch(0.62 0.15 165)' },
-      { to: '/meetings', label: 'Meetings', icon: CalendarDays, iconColor: 'oklch(0.66 0.15 60)' },
     ],
   },
   {

@@ -1,15 +1,17 @@
 import { useMemo, useState } from 'react'
+import { toast } from 'sonner'
 import { CalendarDays } from 'lucide-react'
 import { AppPage, ListBar } from '@/components/app/AppPage'
-import { DataTable, type Column } from '@/components/app/DataTable'
+import { DataTable, type Column, type EditOption } from '@/components/app/DataTable'
 import { ErrorState } from '@/components/app/states'
 import { RelationLabel } from '@/features/crm/components/RelationLabel'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { useCrmData } from '@/features/crm/CrmDataContext'
 import { useRecordSelection } from '@/features/crm/useRecordSelection'
 import { MeetingDrawer } from '@/features/crm/components/MeetingDrawer'
-import { formatDate, label, relatedName, textOf } from '@/features/crm/format'
+import { formatDate, idOf, label, relatedName, textOf } from '@/features/crm/format'
 import { StatusBadge } from '@/components/app/StatusBadge'
+import { updateMeetingNote } from '@/features/crm/api'
 import type { CrmMeetingNote, Retailer } from '@/lib/types'
 
 type Segment = 'customers' | 'triage' | 'dismissed' | 'all'
@@ -23,10 +25,54 @@ function acctStatusOf(m: CrmMeetingNote): string {
 }
 
 export function MeetingsPage() {
-  const { meetings, loading, error, refresh } = useCrmData()
+  const { meetings, setMeetings, retailers, departments, buyers, loading, error, refresh } = useCrmData()
   const [query, setQuery] = useState('')
   const [segment, setSegment] = useState<Segment>('customers')
   const [selected, select] = useRecordSelection<CrmMeetingNote>('meeting', meetings)
+  const retailerById = useMemo(() => new Map(retailers.map((r) => [r.id, r])), [retailers])
+  const departmentById = useMemo(() => new Map(departments.map((d) => [d.id, d])), [departments])
+  const buyerById = useMemo(() => new Map(buyers.map((b) => [b.id, b])), [buyers])
+  const accountOptions = useMemo<EditOption[]>(
+    () => [{ value: '', label: 'Unassigned' }, ...retailers.map((r) => ({ value: r.id, label: r.name }))],
+    [retailers],
+  )
+  const departmentOptions = useMemo<EditOption[]>(
+    () => [{ value: '', label: 'Unassigned' }, ...departments.map((d) => ({ value: d.id, label: d.name }))],
+    [departments],
+  )
+  const contactOptions = useMemo<EditOption[]>(
+    () => [{ value: '', label: 'Unassigned' }, ...buyers.map((b) => ({ value: b.id, label: b.name }))],
+    [buyers],
+  )
+  const sourceOptions = useMemo<EditOption[]>(
+    () => [
+      { value: '', label: 'Unspecified' },
+      ...Array.from(new Set(meetings.map((m) => m.source).filter(Boolean) as string[]))
+        .sort((a, b) => label(a).localeCompare(label(b)))
+        .map((v) => ({ value: v, label: label(v) })),
+    ],
+    [meetings],
+  )
+
+  async function editCell(row: CrmMeetingNote, key: string, value: string) {
+    const prev = (row as unknown as Record<string, unknown>)[key]
+    const nextValue = value || null
+    const expanded =
+      key === 'retailer'
+        ? retailerById.get(value) ?? null
+        : key === 'department'
+          ? departmentById.get(value) ?? null
+          : key === 'contact'
+            ? buyerById.get(value) ?? null
+            : nextValue
+    setMeetings((rows) => rows.map((m) => (m.id === row.id ? { ...m, [key]: expanded } : m)))
+    try {
+      await updateMeetingNote(row.id, { [key]: nextValue } as Partial<CrmMeetingNote>)
+    } catch {
+      setMeetings((rows) => rows.map((m) => (m.id === row.id ? { ...m, [key]: prev } : m)))
+      toast.error('Could not save change')
+    }
+  }
 
   const segCounts = useMemo(() => {
     let customers = 0
@@ -57,6 +103,7 @@ export function MeetingsPage() {
     {
       key: 'date',
       header: 'Date',
+      opensDetail: true,
       sortValue: (m) => m.date ?? '',
       filterValue: (m) => m.date,
       className: 'text-muted-foreground',
@@ -65,6 +112,7 @@ export function MeetingsPage() {
     {
       key: 'name',
       header: 'Meeting',
+      opensDetail: true,
       sortValue: (m) => m.name?.toLowerCase() ?? '',
       filterValue: (m) => m.name,
       className: 'w-full max-w-0',
@@ -81,6 +129,8 @@ export function MeetingsPage() {
       hideBelow: 'md',
       sortValue: (m) => relatedName(m.retailer),
       filterValue: (m) => relatedName(m.retailer),
+      editOptions: accountOptions,
+      editValue: (m) => idOf(m.retailer),
       cell: (m) => <RelationLabel value={m.retailer} />,
     },
     {
@@ -89,7 +139,19 @@ export function MeetingsPage() {
       hideBelow: 'lg',
       sortValue: (m) => relatedName(m.contact),
       filterValue: (m) => relatedName(m.contact),
+      editOptions: contactOptions,
+      editValue: (m) => idOf(m.contact),
       cell: (m) => <RelationLabel value={m.contact} />,
+    },
+    {
+      key: 'department',
+      header: 'Department',
+      hideBelow: 'lg',
+      sortValue: (m) => relatedName(m.department),
+      filterValue: (m) => relatedName(m.department),
+      editOptions: departmentOptions,
+      editValue: (m) => idOf(m.department),
+      cell: (m) => <RelationLabel value={m.department} />,
     },
     {
       key: 'source',
@@ -97,6 +159,8 @@ export function MeetingsPage() {
       hideBelow: 'lg',
       sortValue: (m) => m.source ?? '',
       filterValue: (m) => label(m.source),
+      editOptions: sourceOptions,
+      editValue: (m) => m.source,
       cell: (m) => m.source ? <StatusBadge tone="neutral" dot={false}>{label(m.source)}</StatusBadge> : '—',
     },
   ]
@@ -111,7 +175,7 @@ export function MeetingsPage() {
           search={query}
           onSearch={setQuery}
           searchPlaceholder="Search title, participants, summary…"
-          extra={
+          segments={
             <Tabs value={segment} onValueChange={(v) => setSegment(v as Segment)}>
               <TabsList>
                 {([
@@ -141,6 +205,7 @@ export function MeetingsPage() {
           columns={columns}
           getRowId={(m) => m.id}
           onRowClick={(m) => select(m)}
+          onCellEdit={editCell}
           loading={loading}
           emptyIcon={<CalendarDays className="size-5" />}
           emptyTitle={segment === 'triage' ? 'Triage queue is clear' : 'No meetings match'}

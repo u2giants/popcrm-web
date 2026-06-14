@@ -32,6 +32,8 @@ export interface Column<T> {
   editOptions?: EditOption[]
   /** Current raw value of an editable cell (used by the editor + drag-to-copy). */
   editValue?: (row: T) => string | null | undefined
+  /** When set, this cell opens the row detail action. */
+  opensDetail?: boolean
   className?: string
   headClassName?: string
   hideBelow?: Breakpoint
@@ -94,6 +96,7 @@ export function DataTable<T>({
   const byKey = useMemo(() => Object.fromEntries(columns.map((c) => [c.key, c])), [columns])
   const orderedCols = colOrder.map((k) => byKey[k]).filter(Boolean)
   const allVisibleCols = orderedCols.filter((c) => !colHidden[c.key])
+  const hasExplicitDetailCols = columns.some((c) => c.opensDetail)
 
   const activeFilterEntries = useMemo(
     () => Object.entries(filterSets).filter(([, v]) => v.length > 0),
@@ -578,6 +581,7 @@ export function DataTable<T>({
                   >
                     {allVisibleCols.map((col) => {
                       const editable = !!col.editOptions && !!onCellEdit
+                      const opensDetail = !!onRowClick && (col.opensDetail || (!hasExplicitDetailCols && !editable))
                       const inFill = fillRangeHas(rowId, col.key)
                       const isEditing = editCell?.rowId === rowId && editCell.key === col.key
                       return (
@@ -591,14 +595,14 @@ export function DataTable<T>({
                                   const r = (e.currentTarget as HTMLElement).getBoundingClientRect()
                                   setEditCell({ rowId, key: col.key, top: r.bottom + 2, left: r.left })
                                 }
-                              : onRowClick
+                              : opensDetail
                                 ? () => onRowClick(row)
                                 : undefined
                           }
                           className={cn(
                             'group/cell relative h-10 px-[14px] py-0 text-[12.5px] align-middle',
                             col.numeric && 'text-right font-[650] tabular-nums',
-                            (onRowClick || editable) && 'cursor-pointer',
+                            (opensDetail || editable) && 'cursor-pointer',
                             isEditing && 'bg-primary/10 ring-1 ring-inset ring-primary/40',
                             inFill && 'bg-primary/10 ring-1 ring-inset ring-primary/40',
                             col.className,

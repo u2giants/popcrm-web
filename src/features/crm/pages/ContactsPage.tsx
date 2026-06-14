@@ -1,7 +1,8 @@
 import { useMemo, useState } from 'react'
+import { toast } from 'sonner'
 import { Contact } from 'lucide-react'
 import { AppPage, ListBar } from '@/components/app/AppPage'
-import { DataTable, type Column } from '@/components/app/DataTable'
+import { DataTable, type Column, type EditOption } from '@/components/app/DataTable'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { ErrorState } from '@/components/app/states'
 import { RelationLabel } from '@/features/crm/components/RelationLabel'
@@ -11,15 +12,65 @@ import { ContactDrawer } from '@/features/crm/components/ContactDrawer'
 import { idOf, label, relatedName, textOf } from '@/features/crm/format'
 import { StatusBadge } from '@/components/app/StatusBadge'
 import { NameAvatar } from '@/components/app/NameAvatar'
+import { updateBuyer } from '@/features/crm/api'
 import type { Buyer } from '@/lib/types'
 
 type Segment = 'customer' | 'department' | 'triage' | 'all'
 
 export function ContactsPage() {
-  const { buyers, loading, error, refresh } = useCrmData()
+  const { buyers, setBuyers, retailers, departments, loading, error, refresh } = useCrmData()
   const [query, setQuery] = useState('')
   const [segment, setSegment] = useState<Segment>('customer')
   const [selected, select] = useRecordSelection<Buyer>('contact', buyers)
+  const retailerById = useMemo(() => new Map(retailers.map((r) => [r.id, r])), [retailers])
+  const departmentById = useMemo(() => new Map(departments.map((d) => [d.id, d])), [departments])
+  const accountOptions = useMemo<EditOption[]>(
+    () => [
+      { value: '', label: 'Unassigned' },
+      ...retailers.map((r) => ({ value: r.id, label: r.name })),
+    ],
+    [retailers],
+  )
+  const departmentOptions = useMemo<EditOption[]>(
+    () => [
+      { value: '', label: 'Unassigned' },
+      ...departments.map((d) => ({ value: d.id, label: d.name })),
+    ],
+    [departments],
+  )
+  const typeOptions = useMemo<EditOption[]>(
+    () => [
+      { value: '', label: 'Unspecified' },
+      ...Array.from(new Set(buyers.map((b) => b.contact_type).filter(Boolean) as string[]))
+        .sort((a, b) => label(a).localeCompare(label(b)))
+        .map((v) => ({ value: v, label: label(v) })),
+    ],
+    [buyers],
+  )
+
+  async function editCell(row: Buyer, key: string, value: string) {
+    const prev = (row as unknown as Record<string, unknown>)[key]
+    const nextValue = value || null
+    const expanded =
+      key === 'retailer'
+        ? retailerById.get(value) ?? null
+        : key === 'department'
+          ? departmentById.get(value) ?? null
+          : nextValue
+    setBuyers((rows) => rows.map((b) => (b.id === row.id ? { ...b, [key]: expanded } : b)))
+    try {
+      await updateBuyer(row.id, { [key]: nextValue } as Partial<Buyer>)
+    } catch {
+      setBuyers((rows) => rows.map((b) => (b.id === row.id ? { ...b, [key]: prev } : b)))
+      toast.error('Could not save change')
+    }
+  }
+
+  function isCustomerContact(b: Buyer) {
+    const r = b.retailer
+    if (!r || typeof r === 'string') return false
+    return r.customer_status === 'ACTIVE_CUSTOMER' || r.customer_status === 'POTENTIAL_CUSTOMER'
+  }
 
   const segCounts = useMemo(() => {
     let customer = 0
@@ -27,9 +78,9 @@ export function ContactsPage() {
     let triage = 0
     for (const b of buyers) {
       const hasDepartment = Boolean(idOf(b.department))
-      const hasRetailer = Boolean(idOf(b.retailer))
+      const isCustomer = isCustomerContact(b)
       if (hasDepartment) department++
-      else if (hasRetailer) customer++
+      else if (isCustomer) customer++
       else triage++
     }
     return { customer, department, triage, all: buyers.length }
@@ -39,10 +90,10 @@ export function ContactsPage() {
     const q = query.trim().toLowerCase()
     return buyers.filter((b) => {
       const hasDepartment = Boolean(idOf(b.department))
-      const hasRetailer = Boolean(idOf(b.retailer))
-      if (segment === 'customer' && (!hasRetailer || hasDepartment)) return false
+      const isCustomer = isCustomerContact(b)
+      if (segment === 'customer' && (!isCustomer || hasDepartment)) return false
       if (segment === 'department' && !hasDepartment) return false
-      if (segment === 'triage' && (hasRetailer || hasDepartment)) return false
+      if (segment === 'triage' && (isCustomer || hasDepartment)) return false
       if (q && !textOf(b.name, b.email, b.job_title, relatedName(b.retailer), relatedName(b.department)).includes(q)) return false
       return true
     })
@@ -52,6 +103,7 @@ export function ContactsPage() {
     {
       key: 'name',
       header: 'Contact',
+      opensDetail: true,
       sortValue: (b) => b.name?.toLowerCase(),
       filterValue: (b) => b.name,
       cell: (b) => (
@@ -79,6 +131,8 @@ export function ContactsPage() {
       header: 'Account',
       sortValue: (b) => relatedName(b.retailer),
       filterValue: (b) => relatedName(b.retailer),
+      editOptions: accountOptions,
+      editValue: (b) => idOf(b.retailer),
       cell: (b) => <RelationLabel value={b.retailer} />,
     },
     {
@@ -87,6 +141,8 @@ export function ContactsPage() {
       hideBelow: 'lg',
       sortValue: (b) => relatedName(b.department),
       filterValue: (b) => relatedName(b.department),
+      editOptions: departmentOptions,
+      editValue: (b) => idOf(b.department),
       cell: (b) => <span className="text-muted-foreground">{relatedName(b.department)}</span>,
     },
     {
@@ -95,6 +151,8 @@ export function ContactsPage() {
       hideBelow: 'lg',
       sortValue: (b) => b.contact_type ?? '',
       filterValue: (b) => label(b.contact_type),
+      editOptions: typeOptions,
+      editValue: (b) => b.contact_type,
       cell: (b) => b.contact_type ? <StatusBadge tone="info" dot={false}>{label(b.contact_type)}</StatusBadge> : '—',
     },
   ]
@@ -139,6 +197,7 @@ export function ContactsPage() {
           columns={columns}
           getRowId={(b) => b.id}
           onRowClick={(b) => select(b)}
+          onCellEdit={editCell}
           loading={loading}
           emptyIcon={<Contact className="size-5" />}
           emptyTitle={segment === 'triage' ? 'Triage queue is clear' : 'No contacts match'}

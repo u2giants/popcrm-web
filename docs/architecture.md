@@ -54,8 +54,10 @@ full refresh.
 | `OverviewPage` | `/` | KPI strip, email volume chart, routing donut, pipeline bar, activity panels |
 | `PipelinePage` | `/pipeline` | Board (kanban by stage) + List (DataTable) toggle |
 | `AccountsPage` | `/accounts` | DataTable + AccountDrawer. Segmented tabs: **Accounts** (default — hides "Not a Customer"), **Triage** (New Companies awaiting review), **Not a customer**, **All**. Status & Chain cells are inline-editable colored chips |
-| `ContactsPage` | `/contacts` | DataTable + ContactDrawer |
-| `EmailRoutingPage` | `/email` | Segmented tabs (needs/routed/skipped/all); ignore-rules sidebar |
+| `DepartmentsPage` | `/departments` | DataTable over CRM departments |
+| `ProgramsPage` | `/programs` | DataTable over CRM opportunities/programs + OpportunityModal |
+| `ContactsPage` | `/contacts` | DataTable + ContactDrawer. Segmented tabs: **Cust Contacts** (linked to Active/Potential account), **Dept. Contacts**, **Triage**, **All** |
+| `EmailRoutingPage` | `/email` | Segmented tabs (company/dept/program/triage/admin-only all); ignore-rules sidebar |
 | `MeetingsPage` | `/meetings` | DataTable + MeetingDrawer |
 | `NotesPage` | `/notes` | DataTable + NoteDrawer |
 | `TasksPage` | `/tasks` | Board (kanban by status) + List (DataTable) toggle |
@@ -67,8 +69,8 @@ full refresh.
 | Component | Purpose |
 |---|---|
 | `AppPage` | Page wrapper with scroll container; `listBar` slot for the top toolbar |
-| `ListBar` | One-row page header: title · count · spacer · search · extra (tabs/filters) · actions |
-| `DataTable` | Sortable table with column visibility, resize (visible separator), reorder. Per-column tools in the header: a persistent filter icon → checkbox **value popover** (set filter), and a quick-**search box with value autocomplete**. Optional inline editing: columns with `editOptions` render click-to-edit dropdowns and a spreadsheet **drag-to-copy** fill handle; edits persist via the `onCellEdit` prop. Popovers/autocomplete use fixed positioning to escape `overflow:hidden` |
+| `ListBar` | One-row page header: title · count · optional inline segments · spacer · search · filters · actions; `extra` remains a deliberate second row |
+| `DataTable` | Sortable table with column visibility, resize (visible separator), reorder. Per-column tools in the header: a persistent filter icon → checkbox **value popover** (set filter), and a quick-**search box with value autocomplete**. Optional inline editing: columns with `editOptions` render click-to-edit dropdowns and a spreadsheet **drag-to-copy** fill handle; edits persist via the `onCellEdit` prop. Columns with `opensDetail` are the only detail-drawer triggers once any column opts in. Popovers/autocomplete use fixed positioning to escape `overflow:hidden` |
 | `AccountLogo` | Brand logo from logo.dev keyed on `retailer.domain` (token `VITE_LOGODEV_TOKEN`), falling back to `NameAvatar` initials when no domain/token or on image error |
 | `DetailDrawer` | Side-sheet shell used by all record drawers |
 | `MetricCard` | KPI tile with icon, value, label, optional tone/color, onClick |

@@ -87,6 +87,7 @@ export function AccountsPage() {
     {
       key: 'name',
       header: 'Account',
+      opensDetail: true,
       sortValue: (r) => r.name?.toLowerCase(),
       filterValue: (r) => r.name,
       cell: (r) => (

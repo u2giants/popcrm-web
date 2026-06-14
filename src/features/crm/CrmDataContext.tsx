@@ -73,6 +73,7 @@ interface CrmDataValue {
   setOpportunities: Dispatch<SetStateAction<CrmOpportunity[]>>
   setRetailers: Dispatch<SetStateAction<Retailer[]>>
   setBuyers: Dispatch<SetStateAction<Buyer[]>>
+  setDepartments: Dispatch<SetStateAction<CrmDepartment[]>>
   setEmails: Dispatch<SetStateAction<CrmEmailMessage[]>>
   setMeetings: Dispatch<SetStateAction<CrmMeetingNote[]>>
   setIgnoreRules: Dispatch<SetStateAction<CrmIgnoreRule[]>>
@@ -193,6 +194,7 @@ export function CrmDataProvider({ children }: { children: ReactNode }) {
     setOpportunities,
     setRetailers,
     setBuyers,
+    setDepartments,
     setEmails,
     setMeetings,
     setIgnoreRules,

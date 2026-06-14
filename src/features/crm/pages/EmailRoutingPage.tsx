@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react'
 import { toast } from 'sonner'
 import { MailWarning, Plus } from 'lucide-react'
 import { AppPage, ListBar, SectionHeader } from '@/components/app/AppPage'
-import { DataTable, type Column } from '@/components/app/DataTable'
+import { DataTable, type Column, type EditOption } from '@/components/app/DataTable'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -20,12 +20,13 @@ import { RelationLabel } from '@/features/crm/components/RelationLabel'
 import { useCrmData } from '@/features/crm/CrmDataContext'
 import { useRecordSelection } from '@/features/crm/useRecordSelection'
 import { EmailDrawer } from '@/features/crm/components/EmailDrawer'
-import { createIgnoreRule } from '@/features/crm/api'
-import { MATCH_TYPES, WORKER_CADENCE, needsRouting } from '@/features/crm/constants'
-import { formatDateTime, label, relatedName, textOf } from '@/features/crm/format'
+import { createIgnoreRule, updateEmailMessage } from '@/features/crm/api'
+import { MATCH_TYPES, ROUTING_STATUSES, WORKER_CADENCE, needsRouting } from '@/features/crm/constants'
+import { formatDateTime, idOf, label, relatedName, textOf } from '@/features/crm/format'
+import { useAuth } from '@/auth/auth'
 import type { CrmEmailMessage } from '@/lib/types'
 
-type Segment = 'needs' | 'routed' | 'skipped' | 'all'
+type Segment = 'company' | 'department' | 'program' | 'triage' | 'all'
 
 const METHOD_LABEL: Record<string, string> = {
   DETERMINISTIC: 'Rule match',
@@ -43,18 +44,96 @@ function MethodChip({ method }: { method: string | null | undefined }) {
 }
 
 export function EmailRoutingPage() {
-  const { emails, ignoreRules, loading, error, refresh, firefliesOk, stats } = useCrmData()
-  const [segment, setSegment] = useState<Segment>('needs')
+  const {
+    emails,
+    setEmails,
+    ignoreRules,
+    retailers,
+    departments,
+    opportunities,
+    loading,
+    error,
+    refresh,
+    firefliesOk,
+  } = useCrmData()
+  const { user } = useAuth()
+  const roleText = `${user?.role?.name ?? ''} ${user?.role?.id ?? ''}`.toLowerCase()
+  const canSeeAll = /admin/.test(roleText)
+  const [segment, setSegment] = useState<Segment>('company')
   const [query, setQuery] = useState('')
   const [selected, select] = useRecordSelection<CrmEmailMessage>('message', emails)
+  const retailerById = useMemo(() => new Map(retailers.map((r) => [r.id, r])), [retailers])
+  const departmentById = useMemo(() => new Map(departments.map((d) => [d.id, d])), [departments])
+  const opportunityById = useMemo(() => new Map(opportunities.map((o) => [o.id, o])), [opportunities])
+  const accountOptions = useMemo<EditOption[]>(
+    () => [{ value: '', label: 'Unassigned' }, ...retailers.map((r) => ({ value: r.id, label: r.name }))],
+    [retailers],
+  )
+  const departmentOptions = useMemo<EditOption[]>(
+    () => [{ value: '', label: 'Unassigned' }, ...departments.map((d) => ({ value: d.id, label: d.name }))],
+    [departments],
+  )
+  const programOptions = useMemo<EditOption[]>(
+    () => [
+      { value: '', label: 'Unassigned' },
+      ...opportunities.map((o) => ({ value: o.id, label: o.name || 'Untitled program' })),
+    ],
+    [opportunities],
+  )
+  const statusOptions = useMemo<EditOption[]>(
+    () => ROUTING_STATUSES.map((v) => ({ value: v, label: label(v) })),
+    [],
+  )
+
+  function emailBucket(e: CrmEmailMessage): Exclude<Segment, 'all'> {
+    if (needsRouting(e.routing_status)) return 'triage'
+    if (idOf(e.opportunity)) return 'program'
+    if (idOf(e.department)) return 'department'
+    if (idOf(e.retailer)) return 'company'
+    return 'triage'
+  }
+
+  async function editCell(row: CrmEmailMessage, key: string, value: string) {
+    const prev = (row as unknown as Record<string, unknown>)[key]
+    const nextValue = value || null
+    const expanded =
+      key === 'retailer'
+        ? retailerById.get(value) ?? null
+        : key === 'department'
+          ? departmentById.get(value) ?? null
+          : key === 'opportunity'
+            ? opportunityById.get(value) ?? null
+            : nextValue
+    setEmails((rows) => rows.map((e) => (e.id === row.id ? { ...e, [key]: expanded } : e)))
+    try {
+      await updateEmailMessage(row.id, { [key]: nextValue } as Partial<CrmEmailMessage>)
+    } catch {
+      setEmails((rows) => rows.map((e) => (e.id === row.id ? { ...e, [key]: prev } : e)))
+      toast.error('Could not save change')
+    }
+  }
+
+  const segCounts = useMemo(() => {
+    const counts = { company: 0, department: 0, program: 0, triage: 0, all: emails.length }
+    for (const e of emails) counts[emailBucket(e)]++
+    return counts
+  }, [emails])
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase()
     return emails.filter((e) => {
-      if (segment === 'needs' && !needsRouting(e.routing_status)) return false
-      if (segment === 'routed' && e.routing_status !== 'ROUTED') return false
-      if (segment === 'skipped' && e.routing_status !== 'SKIPPED') return false
-      if (q && !textOf(e.subject, e.sender, e.recipients, relatedName(e.retailer), relatedName(e.department)).includes(q)) return false
+      if (segment !== 'all' && emailBucket(e) !== segment) return false
+      if (
+        q &&
+        !textOf(
+          e.subject,
+          e.sender,
+          e.recipients,
+          relatedName(e.retailer),
+          relatedName(e.department),
+          relatedName(e.opportunity),
+        ).includes(q)
+      ) return false
       return true
     })
   }, [emails, segment, query])
@@ -63,6 +142,7 @@ export function EmailRoutingPage() {
     {
       key: 'received_at',
       header: 'Date',
+      opensDetail: true,
       hideBelow: 'md',
       sortValue: (e) => e.received_at ?? '',
       className: 'text-muted-foreground',
@@ -71,6 +151,7 @@ export function EmailRoutingPage() {
     {
       key: 'subject',
       header: 'Subject',
+      opensDetail: true,
       sortValue: (e) => e.subject?.toLowerCase() ?? '',
       filterValue: (e) => e.subject,
       className: 'w-full max-w-0',
@@ -86,11 +167,35 @@ export function EmailRoutingPage() {
       header: 'Account',
       hideBelow: 'lg',
       sortValue: (e) => relatedName(e.retailer),
+      filterValue: (e) => relatedName(e.retailer),
+      editOptions: accountOptions,
+      editValue: (e) => idOf(e.retailer),
       cell: (e) => <RelationLabel value={e.retailer} />,
+    },
+    {
+      key: 'department',
+      header: 'Dept.',
+      hideBelow: 'lg',
+      sortValue: (e) => relatedName(e.department),
+      filterValue: (e) => relatedName(e.department),
+      editOptions: departmentOptions,
+      editValue: (e) => idOf(e.department),
+      cell: (e) => <RelationLabel value={e.department} />,
+    },
+    {
+      key: 'opportunity',
+      header: 'Program',
+      hideBelow: 'xl',
+      sortValue: (e) => relatedName(e.opportunity),
+      filterValue: (e) => relatedName(e.opportunity),
+      editOptions: programOptions,
+      editValue: (e) => idOf(e.opportunity),
+      cell: (e) => <RelationLabel value={e.opportunity} />,
     },
     {
       key: 'routing_method',
       header: 'Method',
+      opensDetail: true,
       hideBelow: 'lg',
       sortValue: (e) => e.routing_method ?? '',
       filterValue: (e) => e.routing_method,
@@ -103,15 +208,18 @@ export function EmailRoutingPage() {
       sortValue: (e) => e.routing_status ?? '',
       filterValue: (e) => e.routing_status,
       filterLabel: (v) => label(v),
+      editOptions: statusOptions,
+      editValue: (e) => e.routing_status,
       cell: (e) => <CrmStatusBadge kind="routing" status={e.routing_status} />,
     },
   ]
 
   const segments: { id: Segment; label: string; count: number }[] = [
-    { id: 'needs', label: 'Needs routing', count: stats.needsRouting },
-    { id: 'routed', label: 'Routed', count: stats.routed },
-    { id: 'skipped', label: 'Skipped', count: stats.skipped },
-    { id: 'all', label: 'All', count: emails.length },
+    { id: 'company', label: 'Company', count: segCounts.company },
+    { id: 'department', label: 'Dept.', count: segCounts.department },
+    { id: 'program', label: 'Program', count: segCounts.program },
+    { id: 'triage', label: 'Triage', count: segCounts.triage },
+    ...(canSeeAll ? [{ id: 'all' as const, label: 'All', count: segCounts.all }] : []),
   ]
 
   return (
@@ -127,7 +235,7 @@ export function EmailRoutingPage() {
           actions={
             <CrmStatusBadge kind="routing" status={firefliesOk ? 'ROUTED' : undefined} dot={false} />
           }
-          extra={
+          segments={
             <Tabs value={segment} onValueChange={(v) => setSegment(v as Segment)}>
               <TabsList>
                 {segments.map((s) => (
@@ -153,12 +261,13 @@ export function EmailRoutingPage() {
             columns={columns}
             getRowId={(e) => e.id}
             onRowClick={(e) => select(e)}
+            onCellEdit={editCell}
             loading={loading}
             emptyIcon={<MailWarning className="size-5" />}
-            emptyTitle={segment === 'needs' ? 'Inbox zero on routing' : 'No messages match'}
+            emptyTitle={segment === 'triage' ? 'Inbox zero on routing' : 'No messages match'}
             emptyDescription={
-              segment === 'needs'
-                ? 'Every message has been routed or skipped.'
+              segment === 'triage'
+                ? 'Every message has a CRM routing decision.'
                 : 'Adjust your search or segment.'
             }
           />

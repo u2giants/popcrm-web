@@ -88,7 +88,7 @@ export async function fetchBuyers(limit = 300): Promise<Buyer[]> {
         'job_title',
         'contact_type',
         'scope',
-        { retailer: ['id', 'name'] },
+        { retailer: ['id', 'name', 'customer_status'] },
         { department: ['id', 'name'] },
       ],
       sort: ['name'],
@@ -117,6 +117,10 @@ export async function fetchDepartments(limit = -1): Promise<CrmDepartment[]> {
       limit,
     }),
   ) as Promise<CrmDepartment[]>
+}
+
+export async function updateDepartment(id: string, values: Partial<CrmDepartment>) {
+  return directus.request(updateItem('crm_department', id, values as never))
 }
 
 export async function fetchEmailMessages(limit = 300): Promise<CrmEmailMessage[]> {
@@ -165,6 +169,10 @@ export async function fetchMeetingNotes(limit = 100): Promise<CrmMeetingNote[]> 
       limit,
     }),
   ) as Promise<CrmMeetingNote[]>
+}
+
+export async function updateMeetingNote(id: string, values: Partial<CrmMeetingNote>) {
+  return directus.request(updateItem('crm_meeting_note', id, values as never))
 }
 
 export async function fetchIgnoreRules(): Promise<CrmIgnoreRule[]> {
