@@ -145,7 +145,7 @@ export async function fetchMeetingNotes(limit = 100): Promise<CrmMeetingNote[]> 
         'action_items',
         'source',
         'fireflies_transcript_id',
-        { retailer: ['id', 'name'] },
+        { retailer: ['id', 'name', 'customer_status'] },
         { department: ['id', 'name'] },
         { contact: ['id', 'name', 'email'] },
       ],
