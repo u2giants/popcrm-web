@@ -19,7 +19,7 @@ import {
 import { Button } from '@/components/ui/button'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { useCrmData } from '@/features/crm/CrmDataContext'
-import { createNote, setOpportunityStage } from '@/features/crm/api'
+import { askOpportunityAi, createNote, setOpportunityStage } from '@/features/crm/api'
 import { OPPORTUNITY_STAGES, stageChipClass } from '@/features/crm/constants'
 import { formatDate, idOf, label, relatedName } from '@/features/crm/format'
 import { cn } from '@/lib/utils'
@@ -141,6 +141,9 @@ function ModalInner({
   const [stage, setStage] = useState(row.stage || OPPORTUNITY_STAGES[0])
   const [composerText, setComposerText] = useState('')
   const [sending, setSending] = useState(false)
+  const [aiQuestion, setAiQuestion] = useState('')
+  const [aiAnswer, setAiAnswer] = useState('')
+  const [asking, setAsking] = useState(false)
   const aiRef = useRef<HTMLDivElement>(null)
 
   const relatedNotes = useMemo(
@@ -152,15 +155,20 @@ function ModalInner({
     [tasks, row.id],
   )
 
-  function askAi() {
-    if (row.ai_summary && aiRef.current) {
-      aiRef.current.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
-      aiRef.current.animate(
-        [{ boxShadow: '0 0 0 3px color-mix(in oklch, var(--chart-5) 40%, transparent)' }, { boxShadow: '0 0 0 0px transparent' }],
-        { duration: 1200, easing: 'ease-out' },
-      )
-    } else {
-      toast('No AI summary for this program yet.')
+  async function askAi(questionOverride?: string) {
+    const question = (questionOverride ?? aiQuestion).trim() || window.prompt('Ask AI about this program')?.trim()
+    if (!question || asking) return
+    setAiQuestion(question)
+    setAsking(true)
+    setAiAnswer('')
+    try {
+      const answer = await askOpportunityAi(row.id, question)
+      setAiAnswer(answer || 'No answer returned.')
+      requestAnimationFrame(() => aiRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' }))
+    } catch {
+      toast.error('AI answer failed')
+    } finally {
+      setAsking(false)
     }
   }
 
@@ -231,7 +239,7 @@ function ModalInner({
 
         {/* Ask AI */}
         <button
-          onClick={askAi}
+          onClick={() => void askAi()}
           className="flex h-[28px] items-center gap-[5px] rounded-[7px] px-[9px] text-[12px] font-[550] transition-colors hover:bg-accent"
           style={{ color: 'var(--chart-5)' }}
         >
@@ -291,14 +299,22 @@ function ModalInner({
             </div>
 
             {/* AI summary callout */}
-            {row.ai_summary ? (
+            {row.ai_summary || aiAnswer ? (
               <div
                 ref={aiRef}
                 className="mb-[20px] flex gap-[10px] rounded-[10px] border p-[14px]"
                 style={{ background: 'color-mix(in oklch, var(--chart-5) 8%, var(--card))', borderColor: 'color-mix(in oklch, var(--chart-5) 30%, transparent)' }}
               >
                 <Sparkles className="mt-[1px] size-[14px] shrink-0" style={{ color: 'var(--chart-5)' }} />
-                <p className="text-[12.5px] leading-relaxed text-foreground">{row.ai_summary}</p>
+                <div className="min-w-0 flex-1">
+                  {row.ai_summary ? <p className="text-[12.5px] leading-relaxed text-foreground">{row.ai_summary}</p> : null}
+                  {aiAnswer ? (
+                    <div className={cn('whitespace-pre-wrap text-[12.5px] leading-relaxed text-foreground', row.ai_summary ? 'mt-[10px] border-t pt-[10px]' : '')}>
+                      <p className="mb-[5px] text-[11.5px] font-[650] text-muted-foreground">{aiQuestion}</p>
+                      {aiAnswer}
+                    </div>
+                  ) : null}
+                </div>
               </div>
             ) : null}
 
@@ -312,6 +328,7 @@ function ModalInner({
                   ['Stage', <span className={cn('rounded-full px-[7px] py-[2px] text-[11px] font-[600]', stageChipClass(stage))}>{label(stage)}</span>],
                   ['Account', relatedName(row.retailer)],
                   ['Department', relatedName(row.department)],
+                  ['Poppim project', relatedName(row.project)],
                   ['Program type', label(row.program_type)],
                   ['Season / year', row.season_year],
                   ['Division', row.division],
@@ -347,6 +364,7 @@ function ModalInner({
                 Fields
               </h3>
               <FieldRow icon={<Building2 className="size-[13px]" />} iconColor="oklch(0.60 0.15 200)" fieldLabel="Account" value={relatedName(row.retailer)} />
+              <FieldRow icon={<Link2 className="size-[13px]" />} iconColor="oklch(0.61 0.16 245)" fieldLabel="Poppim project" value={relatedName(row.project)} />
               <FieldRow icon={<DollarSign className="size-[13px]" />} iconColor="oklch(0.60 0.17 155)" fieldLabel="Est. value" value={fmtAmount(row.amount)} />
               <FieldRow icon={<Package className="size-[13px]" />} iconColor="oklch(0.62 0.15 165)" fieldLabel="Factory" value={relatedName(row.factory)} />
               <FieldRow icon={<Tag className="size-[13px]" />} iconColor="oklch(0.64 0.15 130)" fieldLabel="Program type" value={label(row.program_type)} />
@@ -429,6 +447,32 @@ function ModalInner({
 
           {/* Composer */}
           <div className="shrink-0 border-t bg-background px-[14px] py-[12px]">
+            <div className="mb-[8px] flex items-center gap-[8px]">
+              <Sparkles className="size-[14px] shrink-0" style={{ color: 'var(--chart-5)' }} />
+              <div className="flex min-h-[34px] flex-1 items-center rounded-[9px] border bg-card px-[10px]">
+                <input
+                  value={aiQuestion}
+                  onChange={(e) => setAiQuestion(e.target.value)}
+                  placeholder="Ask AI"
+                  className="flex-1 bg-transparent text-[12.5px] placeholder:text-muted-foreground focus:outline-none"
+                  disabled={asking}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      e.preventDefault()
+                      void askAi()
+                    }
+                  }}
+                />
+              </div>
+              <Button
+                size="sm"
+                variant="outline"
+                disabled={!aiQuestion.trim() || asking}
+                onClick={() => void askAi()}
+              >
+                {asking ? 'Asking...' : 'Ask'}
+              </Button>
+            </div>
             <div className="flex items-end gap-[8px]">
               <NameAvatar name="You" size={26} />
               <div className="flex min-h-[36px] flex-1 items-center rounded-[9px] border bg-card px-[10px]">

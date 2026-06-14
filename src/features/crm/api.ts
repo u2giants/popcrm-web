@@ -51,6 +51,18 @@ export async function updateOpportunity(id: string, values: Partial<CrmOpportuni
   return directus.request(updateItem('crm_opportunity', id, values as never))
 }
 
+export async function askOpportunityAi(id: string, question: string): Promise<string> {
+  const res = await fetch('https://crm-fireflies.designflow.app/s/opportunity-chat', {
+    method: 'POST',
+    credentials: 'include',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ opportunityId: id, question }),
+  })
+  if (!res.ok) throw new Error(`AI request failed: ${res.status}`)
+  const json = (await res.json()) as { answer?: string }
+  return json.answer || ''
+}
+
 export async function fetchRetailers(limit = 300): Promise<Retailer[]> {
   return directus.request(
     readItems('retailer', {

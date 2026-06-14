@@ -352,6 +352,9 @@ export function DataTable<T>({
   }
 
   const hasWidths = allVisibleCols.some((c) => colWidths[c.key] > 0)
+  const tableWidth = hasWidths
+    ? allVisibleCols.reduce((sum, col) => sum + (colWidths[col.key] || col.width || col.minWidth || 120), 0)
+    : undefined
 
   return (
     <div
@@ -439,8 +442,11 @@ export function DataTable<T>({
       {/* Scrollable table */}
       <div className="overflow-auto">
         <table
-          className="w-full min-w-full border-collapse"
-          style={{ tableLayout: hasWidths ? 'fixed' : undefined }}
+          className="w-max border-collapse"
+          style={{
+            tableLayout: hasWidths ? 'fixed' : undefined,
+            width: tableWidth,
+          }}
         >
           {hasWidths && (
             <colgroup>
