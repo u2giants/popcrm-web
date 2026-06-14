@@ -2,27 +2,51 @@ import { useMemo, useState } from 'react'
 import { Contact } from 'lucide-react'
 import { AppPage, ListBar } from '@/components/app/AppPage'
 import { DataTable, type Column } from '@/components/app/DataTable'
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { ErrorState } from '@/components/app/states'
 import { RelationLabel } from '@/features/crm/components/RelationLabel'
 import { useCrmData } from '@/features/crm/CrmDataContext'
 import { useRecordSelection } from '@/features/crm/useRecordSelection'
 import { ContactDrawer } from '@/features/crm/components/ContactDrawer'
-import { label, relatedName, textOf } from '@/features/crm/format'
+import { idOf, label, relatedName, textOf } from '@/features/crm/format'
 import { StatusBadge } from '@/components/app/StatusBadge'
 import { NameAvatar } from '@/components/app/NameAvatar'
 import type { Buyer } from '@/lib/types'
 
+type Segment = 'customer' | 'department' | 'triage' | 'all'
+
 export function ContactsPage() {
   const { buyers, loading, error, refresh } = useCrmData()
   const [query, setQuery] = useState('')
+  const [segment, setSegment] = useState<Segment>('customer')
   const [selected, select] = useRecordSelection<Buyer>('contact', buyers)
+
+  const segCounts = useMemo(() => {
+    let customer = 0
+    let department = 0
+    let triage = 0
+    for (const b of buyers) {
+      const hasDepartment = Boolean(idOf(b.department))
+      const hasRetailer = Boolean(idOf(b.retailer))
+      if (hasDepartment) department++
+      else if (hasRetailer) customer++
+      else triage++
+    }
+    return { customer, department, triage, all: buyers.length }
+  }, [buyers])
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase()
-    return buyers.filter(
-      (b) => !q || textOf(b.name, b.email, b.job_title, relatedName(b.retailer), relatedName(b.department)).includes(q),
-    )
-  }, [buyers, query])
+    return buyers.filter((b) => {
+      const hasDepartment = Boolean(idOf(b.department))
+      const hasRetailer = Boolean(idOf(b.retailer))
+      if (segment === 'customer' && (!hasRetailer || hasDepartment)) return false
+      if (segment === 'department' && !hasDepartment) return false
+      if (segment === 'triage' && (hasRetailer || hasDepartment)) return false
+      if (q && !textOf(b.name, b.email, b.job_title, relatedName(b.retailer), relatedName(b.department)).includes(q)) return false
+      return true
+    })
+  }, [buyers, query, segment])
 
   const columns: Column<Buyer>[] = [
     {
@@ -85,6 +109,25 @@ export function ContactsPage() {
           search={query}
           onSearch={setQuery}
           searchPlaceholder="Search name, email, title…"
+          segments={
+            <Tabs value={segment} onValueChange={(v) => setSegment(v as Segment)}>
+              <TabsList>
+                {([
+                  { id: 'customer', label: 'Cust Contacts', count: segCounts.customer },
+                  { id: 'department', label: 'Dept. Contacts', count: segCounts.department },
+                  { id: 'triage', label: 'Triage', count: segCounts.triage },
+                  { id: 'all', label: 'All', count: segCounts.all },
+                ] as { id: Segment; label: string; count: number }[]).map((s) => (
+                  <TabsTrigger key={s.id} value={s.id} className="gap-1.5">
+                    {s.label}
+                    <span className="rounded-full bg-muted-foreground/15 px-1.5 text-[11px] tabular-nums">
+                      {s.count.toLocaleString()}
+                    </span>
+                  </TabsTrigger>
+                ))}
+              </TabsList>
+            </Tabs>
+          }
         />
       }
     >
@@ -98,8 +141,12 @@ export function ContactsPage() {
           onRowClick={(b) => select(b)}
           loading={loading}
           emptyIcon={<Contact className="size-5" />}
-          emptyTitle="No contacts match"
-          emptyDescription="Adjust your search or column filters."
+          emptyTitle={segment === 'triage' ? 'Triage queue is clear' : 'No contacts match'}
+          emptyDescription={
+            segment === 'triage'
+              ? 'No contacts are missing account and department links.'
+              : 'Adjust your search or column filters.'
+          }
           initialSort={{ key: 'name', dir: 'asc' }}
         />
       )}

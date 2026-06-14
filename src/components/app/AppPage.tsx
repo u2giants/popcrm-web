@@ -87,7 +87,7 @@ export function SectionHeader({
 }
 
 // One-row page header for list screens.
-// Layout: title [count] [subtitle] · flex-1 · [search] [filters] [clear] [actions]
+// Layout: title [count] [subtitle] [segments] · flex-1 · [search] [filters] [clear] [actions]
 // Pass extra={<Tabs>} for a second row (e.g. email routing segments).
 export function ListBar({
   title,
@@ -100,6 +100,7 @@ export function ListBar({
   onClear,
   filters,
   actions,
+  segments,
   extra,
 }: {
   title: string
@@ -112,6 +113,7 @@ export function ListBar({
   onClear?: () => void
   filters?: ReactNode
   actions?: ReactNode
+  segments?: ReactNode
   extra?: ReactNode
 }) {
   return (
@@ -128,6 +130,7 @@ export function ListBar({
             {count.toLocaleString()}
           </span>
         ) : null}
+        {segments ? <div className="shrink-0">{segments}</div> : null}
         <div className="flex-1" />
         {onSearch ? (
           <div className="relative">

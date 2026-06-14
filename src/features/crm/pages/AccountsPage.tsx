@@ -156,7 +156,7 @@ export function AccountsPage() {
           search={query}
           onSearch={setQuery}
           searchPlaceholder="Search name, domain, aliases…"
-          extra={
+          segments={
             <Tabs value={segment} onValueChange={(v) => setSegment(v as Segment)}>
               <TabsList>
                 {([
