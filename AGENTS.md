@@ -276,6 +276,14 @@ only Active/Potential customer accounts; triage rows may offer Active/Potential
 plus `OTHER` ("Not a Customer") accounts so users can classify contacts without
 showing every account in the system.
 
+Likewise the Department dropdown is row-aware (`departmentOptionsFor`): it filters
+`crm_department` by the row's selected account (`idOf(d.retailer) === accountId`),
+matching the pattern in `EmailDrawer`. With no account selected it falls back to
+all departments. Changing a row's account also clears any department that no
+longer belongs to the new account (handled in `editCell`). Previously the
+Department column used a single static list of every department regardless of the
+chosen account.
+
 ### Fireflies health does not prove meeting ingestion
 
 What changed:

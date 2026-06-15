@@ -53,11 +53,16 @@ export function ContactsPage() {
     ],
     [retailers],
   )
-  const departmentOptions = useMemo<EditOption[]>(
-    () => [
-      { value: '', label: 'Unassigned' },
-      ...departments.map((d) => ({ value: d.id, label: d.name })),
-    ],
+  const departmentOptionsFor = useMemo(
+    () => (b: Buyer): EditOption[] => {
+      const accountId = idOf(b.retailer)
+      return [
+        { value: '', label: 'Unassigned' },
+        ...departments
+          .filter((d) => !accountId || idOf(d.retailer) === accountId)
+          .map((d) => ({ value: d.id, label: d.name })),
+      ]
+    },
     [departments],
   )
   const typeOptions = useMemo<EditOption[]>(
@@ -79,11 +84,31 @@ export function ContactsPage() {
         : key === 'department'
           ? departmentById.get(value) ?? null
           : nextValue
-    setBuyers((rows) => rows.map((b) => (b.id === row.id ? { ...b, [key]: expanded } : b)))
+    // When the account changes, drop any department that no longer belongs to it.
+    const clearStaleDepartment =
+      key === 'retailer' &&
+      idOf(row.department) !== '' &&
+      idOf(departmentById.get(idOf(row.department))?.retailer) !== value
+    const patch: Partial<Buyer> = clearStaleDepartment
+      ? ({ [key]: nextValue, department: null } as Partial<Buyer>)
+      : ({ [key]: nextValue } as Partial<Buyer>)
+    setBuyers((rows) =>
+      rows.map((b) =>
+        b.id === row.id
+          ? { ...b, [key]: expanded, ...(clearStaleDepartment ? { department: null } : {}) }
+          : b,
+      ),
+    )
     try {
-      await updateBuyer(row.id, { [key]: nextValue } as Partial<Buyer>)
+      await updateBuyer(row.id, patch)
     } catch {
-      setBuyers((rows) => rows.map((b) => (b.id === row.id ? { ...b, [key]: prev } : b)))
+      setBuyers((rows) =>
+        rows.map((b) =>
+          b.id === row.id
+            ? { ...b, [key]: prev, ...(clearStaleDepartment ? { department: row.department } : {}) }
+            : b,
+        ),
+      )
       toast.error('Could not save change')
     }
   }
@@ -163,7 +188,7 @@ export function ContactsPage() {
       hideBelow: 'lg',
       sortValue: (b) => relatedName(b.department),
       filterValue: (b) => relatedName(b.department),
-      editOptions: departmentOptions,
+      editOptions: departmentOptionsFor,
       editValue: (b) => idOf(b.department),
       cell: (b) => <span className="text-muted-foreground">{relatedName(b.department)}</span>,
     },
