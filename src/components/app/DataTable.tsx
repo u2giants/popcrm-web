@@ -88,6 +88,7 @@ export function DataTable<T>({
   const [dropKey, setDropKey] = useState<string | null>(null)
   const resizing = useRef<{ key: string; startX: number; startW: number } | null>(null)
   const filterPopoverRef = useRef<HTMLDivElement | null>(null)
+  const editDropdownRef = useRef<HTMLDivElement | null>(null)
 
   // Inline editing + drag-to-copy state
   const [editCell, setEditCell] = useState<{ rowId: string; key: string; top: number; left: number } | null>(null)
@@ -212,14 +213,23 @@ export function DataTable<T>({
     }
   }, [openFilter])
 
-  // Close edit dropdown on Escape.
+  // Close edit dropdown on Escape or outside click.
   useEffect(() => {
     if (!editCell) return
     function onKey(e: KeyboardEvent) {
       if (e.key === 'Escape') setEditCell(null)
     }
+    function onPointer(e: PointerEvent) {
+      if (editDropdownRef.current && !editDropdownRef.current.contains(e.target as Node)) {
+        setEditCell(null)
+      }
+    }
     document.addEventListener('keydown', onKey)
-    return () => document.removeEventListener('keydown', onKey)
+    document.addEventListener('pointerdown', onPointer)
+    return () => {
+      document.removeEventListener('keydown', onKey)
+      document.removeEventListener('pointerdown', onPointer)
+    }
   }, [editCell])
 
   function toggleSort(key: string) {
@@ -746,6 +756,7 @@ export function DataTable<T>({
         const options = editOptionsFor(col, row)
         return (
           <div
+            ref={editDropdownRef}
             className="fixed z-50 max-h-[260px] w-[200px] overflow-y-auto rounded-[10px] border bg-popover p-[5px]"
             style={{ top: editCell.top, left: editCell.left, boxShadow: 'var(--shadow-lg)' }}
             onClick={(e) => e.stopPropagation()}
