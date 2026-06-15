@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
+import { Fragment, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { ChevronDown, ChevronUp, ChevronsUpDown, Columns3, GripVertical, ListFilter, Search, X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { LoadingState, EmptyState } from '@/components/app/states'
@@ -29,7 +29,7 @@ export interface Column<T> {
   /** Show a per-column quick-search box in the header. Defaults to filterable && !numeric. */
   headerSearch?: boolean
   /** Make cells inline-editable: clicking a cell opens a value dropdown instead of the row action. */
-  editOptions?: EditOption[]
+  editOptions?: EditOption[] | ((row: T) => EditOption[])
   /** Current raw value of an editable cell (used by the editor + drag-to-copy). */
   editValue?: (row: T) => string | null | undefined
   /** When set, this cell opens the row detail action. */
@@ -54,6 +54,7 @@ export function DataTable<T>({
   emptyIcon,
   pageSize = 50,
   initialSort,
+  groupBy,
 }: {
   rows: T[]
   columns: Column<T>[]
@@ -67,6 +68,7 @@ export function DataTable<T>({
   emptyIcon?: ReactNode
   pageSize?: number
   initialSort?: { key: string; dir: 'asc' | 'desc' }
+  groupBy?: (row: T) => ReactNode
 }) {
   const [sort, setSort] = useState<{ key: string; dir: 'asc' | 'desc' } | null>(initialSort ?? null)
   const [filterSets, setFilterSets] = useState<Record<string, string[]>>({})
@@ -97,6 +99,11 @@ export function DataTable<T>({
   const orderedCols = colOrder.map((k) => byKey[k]).filter(Boolean)
   const allVisibleCols = orderedCols.filter((c) => !colHidden[c.key])
   const hasExplicitDetailCols = columns.some((c) => c.opensDetail)
+
+  function editOptionsFor(col: Column<T>, row: T): EditOption[] {
+    if (!col.editOptions) return []
+    return typeof col.editOptions === 'function' ? col.editOptions(row) : col.editOptions
+  }
 
   const activeFilterEntries = useMemo(
     () => Object.entries(filterSets).filter(([, v]) => v.length > 0),
@@ -571,62 +578,77 @@ export function DataTable<T>({
               pageRows.map((row) => {
                 const rowId = getRowId(row)
                 const rowIndex = pageRowIndex.get(rowId) ?? 0
+                const group = groupBy?.(row)
+                const prev = rowIndex > 0 ? pageRows[rowIndex - 1] : undefined
+                const prevGroup = prev ? groupBy?.(prev) : undefined
+                const showGroup = groupBy && String(group ?? '') !== String(prevGroup ?? '')
                 return (
-                  <tr
-                    key={rowId}
-                    className={cn(
-                      'border-b transition-colors duration-[100ms] last:border-b-0',
-                      onRowClick && 'hover:bg-accent/55',
-                    )}
-                  >
-                    {allVisibleCols.map((col) => {
-                      const editable = !!col.editOptions && !!onCellEdit
-                      const opensDetail = !!onRowClick && (col.opensDetail || (!hasExplicitDetailCols && !editable))
-                      const inFill = fillRangeHas(rowId, col.key)
-                      const isEditing = editCell?.rowId === rowId && editCell.key === col.key
-                      return (
+                  <Fragment key={rowId}>
+                    {showGroup ? (
+                      <tr className="border-b bg-muted/70">
                         <td
-                          key={col.key}
-                          data-row-index={rowIndex}
-                          onClick={
-                            editable
-                              ? (e) => {
-                                  e.stopPropagation()
-                                  const r = (e.currentTarget as HTMLElement).getBoundingClientRect()
-                                  setEditCell({ rowId, key: col.key, top: r.bottom + 2, left: r.left })
-                                }
-                              : opensDetail
-                                ? () => onRowClick(row)
-                                : undefined
-                          }
-                          className={cn(
-                            'group/cell relative h-10 px-[14px] py-0 text-[12.5px] align-middle',
-                            col.numeric && 'text-right font-[650] tabular-nums',
-                            (opensDetail || editable) && 'cursor-pointer',
-                            isEditing && 'bg-primary/10 ring-1 ring-inset ring-primary/40',
-                            inFill && 'bg-primary/10 ring-1 ring-inset ring-primary/40',
-                            col.className,
-                            col.hideBelow && HIDE_CLASS[col.hideBelow],
-                          )}
+                          colSpan={allVisibleCols.length}
+                          className="h-8 px-[14px] text-[11px] font-[650] uppercase tracking-[0.04em] text-muted-foreground"
                         >
-                          {col.cell(row)}
-                          {/* Fill handle (spreadsheet drag-to-copy) */}
-                          {editable && (
-                            <span
-                              role="button"
-                              aria-label="Drag to copy down"
-                              title="Drag to copy"
-                              className="absolute bottom-[3px] right-[3px] z-[2] size-[8px] cursor-crosshair rounded-[2px] border border-card bg-primary opacity-0 transition-opacity group-hover/cell:opacity-100"
-                              onMouseDown={(e) =>
-                                onFillDown(e, col.key, rowId, String(col.editValue?.(row) ?? ''))
-                              }
-                              onClick={(e) => e.stopPropagation()}
-                            />
-                          )}
+                          {group}
                         </td>
-                      )
-                    })}
-                  </tr>
+                      </tr>
+                    ) : null}
+                    <tr
+                      className={cn(
+                        'border-b transition-colors duration-[100ms] last:border-b-0',
+                        onRowClick && 'hover:bg-accent/55',
+                      )}
+                    >
+                      {allVisibleCols.map((col) => {
+                        const editable = !!col.editOptions && !!onCellEdit
+                        const opensDetail = !!onRowClick && (col.opensDetail || (!hasExplicitDetailCols && !editable))
+                        const inFill = fillRangeHas(rowId, col.key)
+                        const isEditing = editCell?.rowId === rowId && editCell.key === col.key
+                        return (
+                          <td
+                            key={col.key}
+                            data-row-index={rowIndex}
+                            onClick={
+                              editable
+                                ? (e) => {
+                                    e.stopPropagation()
+                                    const r = (e.currentTarget as HTMLElement).getBoundingClientRect()
+                                    setEditCell({ rowId, key: col.key, top: r.bottom + 2, left: r.left })
+                                  }
+                                : opensDetail
+                                  ? () => onRowClick(row)
+                                  : undefined
+                            }
+                            className={cn(
+                              'group/cell relative h-10 px-[14px] py-0 text-[12.5px] align-middle',
+                              col.numeric && 'text-right font-[650] tabular-nums',
+                              (opensDetail || editable) && 'cursor-pointer',
+                              isEditing && 'bg-primary/10 ring-1 ring-inset ring-primary/40',
+                              inFill && 'bg-primary/10 ring-1 ring-inset ring-primary/40',
+                              col.className,
+                              col.hideBelow && HIDE_CLASS[col.hideBelow],
+                            )}
+                          >
+                            {col.cell(row)}
+                            {/* Fill handle (spreadsheet drag-to-copy) */}
+                            {editable && (
+                              <span
+                                role="button"
+                                aria-label="Drag to copy down"
+                                title="Drag to copy"
+                                className="absolute bottom-[3px] right-[3px] z-[2] size-[8px] cursor-crosshair rounded-[2px] border border-card bg-primary opacity-0 transition-opacity group-hover/cell:opacity-100"
+                                onMouseDown={(e) =>
+                                  onFillDown(e, col.key, rowId, String(col.editValue?.(row) ?? ''))
+                                }
+                                onClick={(e) => e.stopPropagation()}
+                              />
+                            )}
+                          </td>
+                        )
+                      })}
+                    </tr>
+                  </Fragment>
                 )
               })
             ) : (
@@ -721,13 +743,14 @@ export function DataTable<T>({
         const row = pageRows.find((r) => getRowId(r) === editCell.rowId)
         if (!col?.editOptions || !row) return null
         const current = String(col.editValue?.(row) ?? '')
+        const options = editOptionsFor(col, row)
         return (
           <div
             className="fixed z-50 max-h-[260px] w-[200px] overflow-y-auto rounded-[10px] border bg-popover p-[5px]"
             style={{ top: editCell.top, left: editCell.left, boxShadow: 'var(--shadow-lg)' }}
             onClick={(e) => e.stopPropagation()}
           >
-            {col.editOptions.map((opt) => (
+            {options.map((opt) => (
               <button
                 key={opt.value}
                 className={cn(

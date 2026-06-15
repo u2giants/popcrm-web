@@ -17,6 +17,14 @@ import type { Buyer } from '@/lib/types'
 
 type Segment = 'customer' | 'department' | 'triage' | 'all'
 
+function isCustomerAccount(status: string | null | undefined) {
+  return status === 'ACTIVE_CUSTOMER' || status === 'POTENTIAL_CUSTOMER'
+}
+
+function isTriageAccount(status: string | null | undefined) {
+  return isCustomerAccount(status) || status === 'OTHER'
+}
+
 export function ContactsPage() {
   const { buyers, setBuyers, retailers, departments, loading, error, refresh } = useCrmData()
   const [query, setQuery] = useState('')
@@ -24,10 +32,24 @@ export function ContactsPage() {
   const [selected, select] = useRecordSelection<Buyer>('contact', buyers)
   const retailerById = useMemo(() => new Map(retailers.map((r) => [r.id, r])), [retailers])
   const departmentById = useMemo(() => new Map(departments.map((d) => [d.id, d])), [departments])
-  const accountOptions = useMemo<EditOption[]>(
+  const customerAccountOptions = useMemo<EditOption[]>(
     () => [
       { value: '', label: 'Unassigned' },
-      ...retailers.map((r) => ({ value: r.id, label: r.name })),
+      ...retailers
+        .filter((r) => isCustomerAccount(r.customer_status))
+        .map((r) => ({ value: r.id, label: r.name })),
+    ],
+    [retailers],
+  )
+  const triageAccountOptions = useMemo<EditOption[]>(
+    () => [
+      { value: '', label: 'Unassigned' },
+      ...retailers
+        .filter((r) => isTriageAccount(r.customer_status))
+        .map((r) => ({
+          value: r.id,
+          label: r.customer_status === 'OTHER' ? `${r.name} (Not a customer)` : r.name,
+        })),
     ],
     [retailers],
   )
@@ -69,7 +91,7 @@ export function ContactsPage() {
   function isCustomerContact(b: Buyer) {
     const r = b.retailer
     if (!r || typeof r === 'string') return false
-    return r.customer_status === 'ACTIVE_CUSTOMER' || r.customer_status === 'POTENTIAL_CUSTOMER'
+    return isCustomerAccount(r.customer_status)
   }
 
   const segCounts = useMemo(() => {
@@ -79,9 +101,9 @@ export function ContactsPage() {
     for (const b of buyers) {
       const hasDepartment = Boolean(idOf(b.department))
       const isCustomer = isCustomerContact(b)
-      if (hasDepartment) department++
-      else if (isCustomer) customer++
-      else triage++
+      if (!isCustomer) triage++
+      else if (hasDepartment) department++
+      else customer++
     }
     return { customer, department, triage, all: buyers.length }
   }, [buyers])
@@ -92,8 +114,8 @@ export function ContactsPage() {
       const hasDepartment = Boolean(idOf(b.department))
       const isCustomer = isCustomerContact(b)
       if (segment === 'customer' && (!isCustomer || hasDepartment)) return false
-      if (segment === 'department' && !hasDepartment) return false
-      if (segment === 'triage' && (isCustomer || hasDepartment)) return false
+      if (segment === 'department' && (!isCustomer || !hasDepartment)) return false
+      if (segment === 'triage' && isCustomer) return false
       if (q && !textOf(b.name, b.email, b.job_title, relatedName(b.retailer), relatedName(b.department)).includes(q)) return false
       return true
     })
@@ -131,7 +153,7 @@ export function ContactsPage() {
       header: 'Account',
       sortValue: (b) => relatedName(b.retailer),
       filterValue: (b) => relatedName(b.retailer),
-      editOptions: accountOptions,
+      editOptions: (b) => (isCustomerContact(b) ? customerAccountOptions : triageAccountOptions),
       editValue: (b) => idOf(b.retailer),
       cell: (b) => <RelationLabel value={b.retailer} />,
     },

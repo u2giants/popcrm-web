@@ -5,6 +5,8 @@ import { DataTable, type Column } from '@/components/app/DataTable'
 import { ErrorState } from '@/components/app/states'
 import { RelationLabel } from '@/features/crm/components/RelationLabel'
 import { useCrmData } from '@/features/crm/CrmDataContext'
+import { useRecordSelection } from '@/features/crm/useRecordSelection'
+import { DepartmentDrawer } from '@/features/crm/components/DepartmentDrawer'
 import { label, relatedName, textOf } from '@/features/crm/format'
 import { StatusBadge } from '@/components/app/StatusBadge'
 import type { CrmDepartment } from '@/lib/types'
@@ -12,31 +14,39 @@ import type { CrmDepartment } from '@/lib/types'
 export function DepartmentsPage() {
   const { departments, loading, error, refresh } = useCrmData()
   const [query, setQuery] = useState('')
+  const [selected, select] = useRecordSelection<CrmDepartment>('department', departments)
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase()
-    return departments.filter(
-      (d) =>
-        !q ||
-        textOf(d.name, d.category, d.division, relatedName(d.retailer), relatedName(d.primary_buyer)).includes(q),
-    )
+    return departments
+      .filter(
+        (d) =>
+          !q ||
+          textOf(d.name, d.category, d.division, relatedName(d.retailer), relatedName(d.primary_buyer)).includes(q),
+      )
+      .sort((a, b) => {
+        const account = relatedName(a.retailer).localeCompare(relatedName(b.retailer))
+        if (account) return account
+        return (a.name || '').localeCompare(b.name || '')
+      })
   }, [departments, query])
 
   const columns: Column<CrmDepartment>[] = [
-    {
-      key: 'name',
-      header: 'Department',
-      sortValue: (d) => d.name?.toLowerCase() ?? '',
-      filterValue: (d) => d.name,
-      className: 'w-full max-w-0',
-      cell: (d) => <span className="font-[500] text-foreground">{d.name || 'Untitled department'}</span>,
-    },
     {
       key: 'retailer',
       header: 'Account',
       sortValue: (d) => relatedName(d.retailer),
       filterValue: (d) => relatedName(d.retailer),
       cell: (d) => <RelationLabel value={d.retailer} />,
+    },
+    {
+      key: 'name',
+      header: 'Department',
+      opensDetail: true,
+      sortValue: (d) => d.name?.toLowerCase() ?? '',
+      filterValue: (d) => d.name,
+      className: 'w-full max-w-0',
+      cell: (d) => <span className="font-[500] text-foreground">{d.name || 'Untitled department'}</span>,
     },
     {
       key: 'primary_buyer',
@@ -84,13 +94,16 @@ export function DepartmentsPage() {
           rows={filtered}
           columns={columns}
           getRowId={(d) => d.id}
+          onRowClick={(d) => select(d)}
           loading={loading}
+          groupBy={(d) => relatedName(d.retailer)}
           emptyIcon={<Building2 className="size-5" />}
           emptyTitle="No departments match"
           emptyDescription="Adjust your search or column filters."
-          initialSort={{ key: 'name', dir: 'asc' }}
+          initialSort={{ key: 'retailer', dir: 'asc' }}
         />
       )}
+      <DepartmentDrawer row={selected} onClose={() => select(null)} />
     </AppPage>
   )
 }

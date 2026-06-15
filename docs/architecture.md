@@ -21,6 +21,14 @@ Fireflies
   -> Directus CRM collections
 ```
 
+Important operational note: the Fireflies `/health` endpoint only proves the
+webhook server is up. It does not prove Fireflies is delivering webhook events.
+On 2026-06-14, Directus had 27 `crm_meeting_note` rows with latest meeting date
+`2026-04-14`, while the Fireflies API listed newer transcripts through
+`2026-06-11` and worker/proxy logs showed no recent webhook deliveries. Verify
+stale ingestion from Directus row dates, worker/proxy logs, and the Fireflies
+dashboard webhook configuration.
+
 The frontend has no database and stores no CRM data locally. It uses browser session authentication against Directus.
 
 ## Data loading
@@ -54,9 +62,9 @@ full refresh.
 | `OverviewPage` | `/` | KPI strip, email volume chart, routing donut, pipeline bar, activity panels |
 | `PipelinePage` | `/pipeline` | Board (kanban by stage) + List (DataTable) toggle |
 | `AccountsPage` | `/accounts` | DataTable + AccountDrawer. Segmented tabs: **Accounts** (default — hides "Not a Customer"), **Triage** (New Companies awaiting review), **Not a customer**, **All**. Status & Chain cells are inline-editable colored chips |
-| `DepartmentsPage` | `/departments` | DataTable over CRM departments |
+| `DepartmentsPage` | `/departments` | DataTable grouped/sorted by Account. Department-name clicks open `DepartmentDrawer` with assigned contacts and programs |
 | `ProgramsPage` | `/programs` | DataTable over CRM opportunities/programs + OpportunityModal |
-| `ContactsPage` | `/contacts` | DataTable + ContactDrawer. Segmented tabs: **Cust Contacts** (linked to Active/Potential account), **Dept. Contacts**, **Triage**, **All** |
+| `ContactsPage` | `/contacts` | DataTable + ContactDrawer. Segmented tabs: **Cust Contacts** (linked to Active/Potential account, no department), **Dept. Contacts** (linked to Active/Potential account and department), **Triage** (not linked to a customer account), **All**. Account inline-edit choices are row-aware |
 | `EmailRoutingPage` | `/email` | Segmented tabs (company/dept/program/triage/admin-only all); ignore-rules sidebar |
 | `MeetingsPage` | `/meetings` | DataTable + MeetingDrawer |
 | `NotesPage` | `/notes` | DataTable + NoteDrawer |
@@ -70,7 +78,7 @@ full refresh.
 |---|---|
 | `AppPage` | Page wrapper with scroll container; `listBar` slot for the top toolbar |
 | `ListBar` | One-row page header: title · count · optional inline segments · spacer · search · filters · actions; `extra` remains a deliberate second row |
-| `DataTable` | Sortable table with column visibility, resize (visible separator), reorder. Per-column tools in the header: a persistent filter icon → checkbox **value popover** (set filter), and a quick-**search box with value autocomplete**. Optional inline editing: columns with `editOptions` render click-to-edit dropdowns and a spreadsheet **drag-to-copy** fill handle; edits persist via the `onCellEdit` prop. Columns with `opensDetail` are the only detail-drawer triggers once any column opts in. Popovers/autocomplete use fixed positioning to escape `overflow:hidden` |
+| `DataTable` | Sortable table with column visibility, resize (visible separator), reorder, and optional `groupBy` row group headers. Per-column tools in the header: a persistent filter icon → checkbox **value popover** (set filter), and a quick-**search box with value autocomplete**. Optional inline editing: columns with `editOptions` render click-to-edit dropdowns and a spreadsheet **drag-to-copy** fill handle; `editOptions` may be a static array or row-aware function. Edits persist via the `onCellEdit` prop. Columns with `opensDetail` are the only detail-drawer triggers once any column opts in. Popovers/autocomplete use fixed positioning to escape `overflow:hidden` |
 | `AccountLogo` | Brand logo from logo.dev keyed on `retailer.domain` (token `VITE_LOGODEV_TOKEN`), falling back to `NameAvatar` initials when no domain/token or on image error |
 | `DetailDrawer` | Side-sheet shell used by all record drawers |
 | `MetricCard` | KPI tile with icon, value, label, optional tone/color, onClick |
@@ -91,6 +99,7 @@ Each drawer is a `DetailDrawer` with domain-specific sections. All support deep-
 | `OpportunityModal` | Full-screen-capable dialog; board card click; Ask AI scroll, Share clipboard, Expand toggle; composer calls `createNote` |
 | `AccountDrawer` | Logo avatar (`AccountLogo`) in header, colored status/chain chips, contact list, opportunity list, close button footer |
 | `ContactDrawer` | Related account, opportunity list |
+| `DepartmentDrawer` | Department detail panel with core fields, all contacts assigned to that department, and all programs assigned to that department |
 | `EmailDrawer` | Mail-header preview band; `MethodConfidence` bar; Apply routing / Create ignore rule actions |
 | `MeetingDrawer` | Participant chips (`NameAvatar`), Fireflies transcript tile, action items checklist |
 | `TaskDrawer` | Clickable status chips, overdue amber callout, assignee avatar |

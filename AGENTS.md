@@ -256,6 +256,46 @@ Putting `OTHER` (or `UNASSIGNED`) into the global `label()` overrides silently
 corrupts chain/contact/routing labels. Status colors: green active, yellow
 potential, blue New Company (untriaged), gray Not-a-Customer — no red.
 
+### Contacts page customer segmentation and account edit choices
+
+What changed:
+Contacts are customer-facing only when their linked account has
+`customer_status` `ACTIVE_CUSTOMER` or `POTENTIAL_CUSTOMER`. `Cust Contacts`
+requires that customer account and no department; `Dept. Contacts` requires that
+customer account and a department; all contacts not linked to a customer account
+belong in `Triage`.
+
+Why:
+Contacts linked to reviewed non-customers (`OTHER`) or untriaged accounts were
+previously appearing in customer/dept sections, which overstated the customer
+contact list.
+
+Future sessions should:
+Keep `ContactsPage` account dropdowns row-aware. Customer/dept rows should offer
+only Active/Potential customer accounts; triage rows may offer Active/Potential
+plus `OTHER` ("Not a Customer") accounts so users can classify contacts without
+showing every account in the system.
+
+### Fireflies health does not prove meeting ingestion
+
+What changed:
+On 2026-06-14, `/health` for `crm-fireflies.designflow.app` returned 200 and the
+`popcrm-fireflies` container was running, but Directus had only 27
+`crm_meeting_note` rows with latest meeting date `2026-04-14`. The Fireflies API
+listed newer transcripts through `2026-06-11`, while worker/proxy logs showed no
+recent webhook deliveries.
+
+Why:
+The health endpoint only proves the webhook server is reachable. It does not
+prove Fireflies is configured to send "transcription complete" events to
+`https://crm-fireflies.designflow.app/s/fireflies-webhook`.
+
+Future sessions should:
+When meeting ingestion is stale, check Directus row dates, `popcrm-fireflies`
+logs, proxy logs, and the Fireflies dashboard webhook configuration before
+debugging the frontend. Do not assume a green Fireflies badge means notes are
+ingesting.
+
 ### Account logos are domain-derived (logo.dev), not stored
 
 Looks like:
