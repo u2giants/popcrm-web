@@ -63,18 +63,29 @@ export async function askOpportunityAi(id: string, question: string): Promise<st
   return json.answer || ''
 }
 
-// The CRM is the triage/curation surface, so it works over the FULL ingested company
-// /contact registries (ingested_domains / ingested_contact) — not the curated retailer/
-// buyer tables the PIM app uses. Setting customer_status to ACTIVE/POTENTIAL here fires the
-// promote_customer trigger that copies the company into the curated `retailer` table.
-// See the directus repo: migration/split-customers-from-ingested.sql + HANDOFF.md.
+// Two surfaces, two sources (see directus migration/split-customers-from-ingested.sql):
+//   • Operational CRM (opportunities, departments, tasks, notes, pipeline, overview, pickers)
+//     uses the CURATED retailer/buyer tables — real customers only. fetchRetailers/fetchBuyers.
+//   • TRIAGE pages (Accounts, Contacts, Email Routing, Meetings) work over the FULL ingested
+//     registries. fetchIngestedDomains/fetchIngestedContacts.
+// updateRetailer/updateBuyer write the ingested master (where the CRM edits companies/contacts
+// and sets customer_status); the promote_customer trigger projects customers into retailer.
+const RETAILER_FIELDS = ['id', 'name', 'domain', 'customer_status', 'chain_type', 'routing_aliases'] as const
+const BUYER_FIELDS = [
+  'id', 'name', 'email', 'phone', 'job_title', 'contact_type', 'scope',
+  { retailer: ['id', 'name', 'customer_status'] },
+  { department: ['id', 'name'] },
+] as const
+
 export async function fetchRetailers(limit = 300): Promise<Retailer[]> {
   return directus.request(
-    readItems('ingested_domains', {
-      fields: ['id', 'name', 'domain', 'customer_status', 'chain_type', 'routing_aliases'],
-      sort: ['name'],
-      limit,
-    }),
+    readItems('retailer', { fields: RETAILER_FIELDS as never, sort: ['name'], limit }),
+  ) as Promise<Retailer[]>
+}
+
+export async function fetchIngestedDomains(limit = -1): Promise<Retailer[]> {
+  return directus.request(
+    readItems('ingested_domains', { fields: RETAILER_FIELDS as never, sort: ['name'], limit }),
   ) as Promise<Retailer[]>
 }
 
@@ -84,21 +95,13 @@ export async function updateRetailer(id: string, values: Partial<Retailer>) {
 
 export async function fetchBuyers(limit = 300): Promise<Buyer[]> {
   return directus.request(
-    readItems('ingested_contact', {
-      fields: [
-        'id',
-        'name',
-        'email',
-        'phone',
-        'job_title',
-        'contact_type',
-        'scope',
-        { retailer: ['id', 'name', 'customer_status'] },
-        { department: ['id', 'name'] },
-      ],
-      sort: ['name'],
-      limit,
-    }),
+    readItems('buyer', { fields: BUYER_FIELDS as never, sort: ['name'], limit }),
+  ) as Promise<Buyer[]>
+}
+
+export async function fetchIngestedContacts(limit = -1): Promise<Buyer[]> {
+  return directus.request(
+    readItems('ingested_contact', { fields: BUYER_FIELDS as never, sort: ['name'], limit }),
   ) as Promise<Buyer[]>
 }
 

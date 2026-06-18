@@ -48,7 +48,7 @@ export function EmailRoutingPage() {
     emails,
     setEmails,
     ignoreRules,
-    retailers,
+    ingestedDomains: retailers,
     departments,
     opportunities,
     loading,

@@ -26,7 +26,16 @@ function isTriageAccount(status: string | null | undefined) {
 }
 
 export function ContactsPage() {
-  const { buyers, setBuyers, retailers, departments, loading, error, refresh } = useCrmData()
+  // Triage page → work over the full ingested company/contact registries.
+  const {
+    ingestedContacts: buyers,
+    setIngestedContacts: setBuyers,
+    ingestedDomains: retailers,
+    departments,
+    loading,
+    error,
+    refresh,
+  } = useCrmData()
   const [query, setQuery] = useState('')
   const [segment, setSegment] = useState<Segment>('customer')
   const [selected, select] = useRecordSelection<Buyer>('contact', buyers)

@@ -25,7 +25,17 @@ function acctStatusOf(m: CrmMeetingNote): string {
 }
 
 export function MeetingsPage() {
-  const { meetings, setMeetings, retailers, departments, buyers, loading, error, refresh } = useCrmData()
+  // Triage page → work over the full ingested company/contact registries.
+  const {
+    meetings,
+    setMeetings,
+    ingestedDomains: retailers,
+    departments,
+    ingestedContacts: buyers,
+    loading,
+    error,
+    refresh,
+  } = useCrmData()
   const [query, setQuery] = useState('')
   const [segment, setSegment] = useState<Segment>('customers')
   const [selected, select] = useRecordSelection<CrmMeetingNote>('meeting', meetings)

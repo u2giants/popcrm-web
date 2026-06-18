@@ -25,7 +25,16 @@ type Segment = 'active' | 'triage' | 'dismissed' | 'all'
 const statusOf = (r: Retailer) => r.customer_status || 'UNASSIGNED'
 
 export function AccountsPage() {
-  const { retailers, setRetailers, buyers, opportunities, loading, error, refresh } = useCrmData()
+  // Triage page → work over the full ingested company/contact registries.
+  const {
+    ingestedDomains: retailers,
+    setIngestedDomains: setRetailers,
+    ingestedContacts: buyers,
+    opportunities,
+    loading,
+    error,
+    refresh,
+  } = useCrmData()
   const [query, setQuery] = useState('')
   const [segment, setSegment] = useState<Segment>('active')
   const [selected, select] = useRecordSelection<Retailer>('retailer', retailers)

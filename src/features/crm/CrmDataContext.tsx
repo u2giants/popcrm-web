@@ -16,6 +16,8 @@ import {
   fetchDepartments,
   fetchEmailMessages,
   fetchIgnoreRules,
+  fetchIngestedContacts,
+  fetchIngestedDomains,
   fetchMeetingNotes,
   fetchNotes,
   fetchOpportunities,
@@ -61,6 +63,10 @@ interface CrmDataValue {
   opportunities: CrmOpportunity[]
   retailers: Retailer[]
   buyers: Buyer[]
+  // Full ingested registries — used only by the triage pages (Accounts, Contacts,
+  // Email Routing, Meetings). Operational pages/pickers use retailers/buyers (customers).
+  ingestedDomains: Retailer[]
+  ingestedContacts: Buyer[]
   departments: CrmDepartment[]
   emails: CrmEmailMessage[]
   meetings: CrmMeetingNote[]
@@ -73,6 +79,8 @@ interface CrmDataValue {
   setOpportunities: Dispatch<SetStateAction<CrmOpportunity[]>>
   setRetailers: Dispatch<SetStateAction<Retailer[]>>
   setBuyers: Dispatch<SetStateAction<Buyer[]>>
+  setIngestedDomains: Dispatch<SetStateAction<Retailer[]>>
+  setIngestedContacts: Dispatch<SetStateAction<Buyer[]>>
   setDepartments: Dispatch<SetStateAction<CrmDepartment[]>>
   setEmails: Dispatch<SetStateAction<CrmEmailMessage[]>>
   setMeetings: Dispatch<SetStateAction<CrmMeetingNote[]>>
@@ -98,6 +106,8 @@ export function CrmDataProvider({ children }: { children: ReactNode }) {
   const [opportunities, setOpportunities] = useState<CrmOpportunity[]>([])
   const [retailers, setRetailers] = useState<Retailer[]>([])
   const [buyers, setBuyers] = useState<Buyer[]>([])
+  const [ingestedDomains, setIngestedDomains] = useState<Retailer[]>([])
+  const [ingestedContacts, setIngestedContacts] = useState<Buyer[]>([])
   const [departments, setDepartments] = useState<CrmDepartment[]>([])
   const [emails, setEmails] = useState<CrmEmailMessage[]>([])
   const [meetings, setMeetings] = useState<CrmMeetingNote[]>([])
@@ -119,6 +129,8 @@ export function CrmDataProvider({ children }: { children: ReactNode }) {
       { name: 'opportunities', run: fetchOpportunities, set: setOpportunities as (v: never) => void },
       { name: 'accounts', run: () => fetchRetailers(-1), set: setRetailers as (v: never) => void },
       { name: 'contacts', run: () => fetchBuyers(-1), set: setBuyers as (v: never) => void },
+      { name: 'ingested domains', run: () => fetchIngestedDomains(-1), set: setIngestedDomains as (v: never) => void },
+      { name: 'ingested contacts', run: () => fetchIngestedContacts(-1), set: setIngestedContacts as (v: never) => void },
       { name: 'departments', run: () => fetchDepartments(), set: setDepartments as (v: never) => void },
       { name: 'emails', run: () => fetchEmailMessages(-1), set: setEmails as (v: never) => void },
       { name: 'meetings', run: () => fetchMeetingNotes(-1), set: setMeetings as (v: never) => void },
@@ -183,6 +195,8 @@ export function CrmDataProvider({ children }: { children: ReactNode }) {
     opportunities,
     retailers,
     buyers,
+    ingestedDomains,
+    ingestedContacts,
     departments,
     emails,
     meetings,
@@ -194,6 +208,8 @@ export function CrmDataProvider({ children }: { children: ReactNode }) {
     setOpportunities,
     setRetailers,
     setBuyers,
+    setIngestedDomains,
+    setIngestedContacts,
     setDepartments,
     setEmails,
     setMeetings,
