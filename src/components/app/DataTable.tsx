@@ -92,6 +92,7 @@ export function DataTable<T>({
 
   // Inline editing + drag-to-copy state
   const [editCell, setEditCell] = useState<{ rowId: string; key: string; top: number; left: number } | null>(null)
+  const [editQuery, setEditQuery] = useState('')
   const [fill, setFill] = useState<{ key: string; sourceRowId: string; value: string; throughIndex: number } | null>(null)
   const fillRef = useRef(fill)
   useEffect(() => { fillRef.current = fill }, [fill])
@@ -624,6 +625,7 @@ export function DataTable<T>({
                                 ? (e) => {
                                     e.stopPropagation()
                                     const r = (e.currentTarget as HTMLElement).getBoundingClientRect()
+                                    setEditQuery('')
                                     setEditCell({ rowId, key: col.key, top: r.bottom + 2, left: r.left })
                                   }
                                 : opensDetail
@@ -754,33 +756,54 @@ export function DataTable<T>({
         if (!col?.editOptions || !row) return null
         const current = String(col.editValue?.(row) ?? '')
         const options = editOptionsFor(col, row)
+        const q = editQuery.trim().toLowerCase()
+        const filtered = q ? options.filter((o) => o.label.toLowerCase().includes(q)) : options
+        const showSearch = options.length > 3
+        async function pick(value: string) {
+          setEditCell(null)
+          if (value !== current) await onCellEdit?.(row!, editCell!.key, value)
+        }
         return (
           <div
             ref={editDropdownRef}
-            className="fixed z-50 max-h-[260px] w-[200px] overflow-y-auto rounded-[10px] border bg-popover p-[5px]"
+            className="fixed z-50 max-h-[280px] w-[220px] overflow-hidden rounded-[10px] border bg-popover p-[5px]"
             style={{ top: editCell.top, left: editCell.left, boxShadow: 'var(--shadow-lg)' }}
             onClick={(e) => e.stopPropagation()}
           >
-            {options.map((opt) => (
-              <button
-                key={opt.value}
-                className={cn(
-                  'flex w-full items-center justify-between gap-2 rounded-[7px] px-[8px] py-[6px] text-left text-[12.5px] hover:bg-accent',
-                  opt.value === current && 'font-[600] text-primary',
-                )}
-                onClick={async () => {
-                  setEditCell(null)
-                  if (opt.value !== current) await onCellEdit?.(row, editCell.key, opt.value)
+            {showSearch && (
+              <input
+                autoFocus
+                value={editQuery}
+                onChange={(e) => setEditQuery(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') { e.preventDefault(); if (filtered[0]) void pick(filtered[0].value) }
                 }}
-              >
-                <span className="truncate">{opt.label}</span>
-                {opt.value === current && (
-                  <svg className="size-[13px] shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
-                  </svg>
-                )}
-              </button>
-            ))}
+                placeholder="Search…"
+                className="mb-1 w-full rounded-[7px] border bg-background px-[8px] py-[6px] text-[12.5px] outline-none focus:border-ring"
+              />
+            )}
+            <div className="max-h-[230px] overflow-y-auto">
+              {filtered.map((opt) => (
+                <button
+                  key={opt.value}
+                  className={cn(
+                    'flex w-full items-center justify-between gap-2 rounded-[7px] px-[8px] py-[6px] text-left text-[12.5px] hover:bg-accent',
+                    opt.value === current && 'font-[600] text-primary',
+                  )}
+                  onClick={() => void pick(opt.value)}
+                >
+                  <span className="truncate">{opt.label}</span>
+                  {opt.value === current && (
+                    <svg className="size-[13px] shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
+                    </svg>
+                  )}
+                </button>
+              ))}
+              {filtered.length === 0 && (
+                <div className="px-[8px] py-[6px] text-[12px] text-muted-foreground">No matches</div>
+              )}
+            </div>
           </div>
         )
       })()}

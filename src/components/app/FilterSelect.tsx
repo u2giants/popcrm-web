@@ -1,12 +1,7 @@
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
+import { Combobox } from '@/components/app/Combobox'
 
 // A compact filter dropdown with an "all" sentinel. Value '' means no filter.
+// Backed by the searchable Combobox so any filter can be typed into.
 export function FilterSelect({
   value,
   onChange,
@@ -23,18 +18,14 @@ export function FilterSelect({
   className?: string
 }) {
   return (
-    <Select value={value || '__all__'} onValueChange={(v) => onChange(v === '__all__' ? '' : v)}>
-      <SelectTrigger size="sm" className={className}>
-        <SelectValue placeholder={placeholder} />
-      </SelectTrigger>
-      <SelectContent>
-        <SelectItem value="__all__">{allLabel}</SelectItem>
-        {options.map((o) => (
-          <SelectItem key={o.value} value={o.value}>
-            {o.label}
-          </SelectItem>
-        ))}
-      </SelectContent>
-    </Select>
+    <Combobox
+      value={value}
+      onChange={onChange}
+      options={options}
+      placeholder={placeholder ?? allLabel}
+      allowClear
+      clearLabel={allLabel}
+      className={className}
+    />
   )
 }
