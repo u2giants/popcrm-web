@@ -158,8 +158,12 @@ export interface CrmLicensorApprovalThread {
 }
 
 export interface Schema {
+  // Curated PIM-facing tables (customers only). The CRM works over the full ingested
+  // registries below; see features/crm/api.ts.
   retailer: Retailer[]
   buyer: Buyer[]
+  ingested_domains: Retailer[]
+  ingested_contact: Buyer[]
   factory: Factory[]
   project: Project[]
   crm_department: CrmDepartment[]

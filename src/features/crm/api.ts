@@ -1,4 +1,4 @@
-import { createItem, readItems, updateItem } from '@directus/sdk'
+import { createItem, deleteItem, readItems, updateItem } from '@directus/sdk'
 import { directus } from '@/lib/directus'
 import type {
   CrmAiModelConfig,
@@ -63,9 +63,14 @@ export async function askOpportunityAi(id: string, question: string): Promise<st
   return json.answer || ''
 }
 
+// The CRM is the triage/curation surface, so it works over the FULL ingested company
+// /contact registries (ingested_domains / ingested_contact) — not the curated retailer/
+// buyer tables the PIM app uses. Setting customer_status to ACTIVE/POTENTIAL here fires the
+// promote_customer trigger that copies the company into the curated `retailer` table.
+// See the directus repo: migration/split-customers-from-ingested.sql + HANDOFF.md.
 export async function fetchRetailers(limit = 300): Promise<Retailer[]> {
   return directus.request(
-    readItems('retailer', {
+    readItems('ingested_domains', {
       fields: ['id', 'name', 'domain', 'customer_status', 'chain_type', 'routing_aliases'],
       sort: ['name'],
       limit,
@@ -74,12 +79,12 @@ export async function fetchRetailers(limit = 300): Promise<Retailer[]> {
 }
 
 export async function updateRetailer(id: string, values: Partial<Retailer>) {
-  return directus.request(updateItem('retailer', id, values as never))
+  return directus.request(updateItem('ingested_domains', id, values as never))
 }
 
 export async function fetchBuyers(limit = 300): Promise<Buyer[]> {
   return directus.request(
-    readItems('buyer', {
+    readItems('ingested_contact', {
       fields: [
         'id',
         'name',
@@ -98,7 +103,7 @@ export async function fetchBuyers(limit = 300): Promise<Buyer[]> {
 }
 
 export async function updateBuyer(id: string, values: Partial<Buyer>) {
-  return directus.request(updateItem('buyer', id, values as never))
+  return directus.request(updateItem('ingested_contact', id, values as never))
 }
 
 export async function fetchDepartments(limit = -1): Promise<CrmDepartment[]> {
@@ -121,6 +126,14 @@ export async function fetchDepartments(limit = -1): Promise<CrmDepartment[]> {
 
 export async function updateDepartment(id: string, values: Partial<CrmDepartment>) {
   return directus.request(updateItem('crm_department', id, values as never))
+}
+
+export async function createDepartment(values: Partial<CrmDepartment>) {
+  return directus.request(createItem('crm_department', values as never)) as Promise<CrmDepartment>
+}
+
+export async function deleteDepartment(id: string) {
+  return directus.request(deleteItem('crm_department', id))
 }
 
 export async function fetchEmailMessages(limit = 300): Promise<CrmEmailMessage[]> {
