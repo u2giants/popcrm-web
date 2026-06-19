@@ -15,6 +15,7 @@ const MeetingsPage = lazy(() => import('@/features/crm/pages/MeetingsPage').then
 const NotesPage = lazy(() => import('@/features/crm/pages/NotesPage').then((m) => ({ default: m.NotesPage })))
 const TasksPage = lazy(() => import('@/features/crm/pages/TasksPage').then((m) => ({ default: m.TasksPage })))
 const ApprovalsPage = lazy(() => import('@/features/crm/pages/ApprovalsPage').then((m) => ({ default: m.ApprovalsPage })))
+const DataAdminPage = lazy(() => import('@/features/crm/pages/DataAdminPage').then((m) => ({ default: m.DataAdminPage })))
 const SettingsPage = lazy(() => import('@/features/crm/pages/SettingsPage').then((m) => ({ default: m.SettingsPage })))
 
 function PageFallback() {
@@ -45,6 +46,7 @@ export function AppRoutes() {
         <Route path="notes" element={<Suspense fallback={<PageFallback />}><NotesPage /></Suspense>} />
         <Route path="tasks" element={<Suspense fallback={<PageFallback />}><TasksPage /></Suspense>} />
         <Route path="approvals" element={<Suspense fallback={<PageFallback />}><ApprovalsPage /></Suspense>} />
+        <Route path="data-admin" element={<Suspense fallback={<PageFallback />}><DataAdminPage /></Suspense>} />
         <Route path="settings" element={<Suspense fallback={<PageFallback />}><SettingsPage /></Suspense>} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Route>
