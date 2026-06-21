@@ -16,7 +16,7 @@ import { useCrmData } from '@/features/crm/CrmDataContext'
 import { updateAiModelConfig } from '@/features/crm/api'
 import { AI_MODELS, AI_MODEL_FIELDS, WORKER_CADENCE } from '@/features/crm/constants'
 import { label } from '@/features/crm/format'
-import { DIRECTUS_URL } from '@/lib/directus'
+import { SUPABASE_URL } from '@/lib/supabase'
 import type { CrmAiModelConfig } from '@/lib/types'
 
 export function SettingsPage() {
@@ -35,7 +35,7 @@ export function SettingsPage() {
   }
 
   const endpoints = [
-    { label: 'Directus API', url: DIRECTUS_URL },
+    { label: 'Supabase API', url: SUPABASE_URL ?? '—' },
     { label: 'Fireflies webhook', url: 'https://crm-fireflies.designflow.app' },
     { label: 'Production', url: 'https://crm.designflow.app' },
   ]

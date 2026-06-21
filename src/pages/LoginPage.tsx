@@ -1,13 +1,12 @@
 import { useState } from 'react'
 import { Route } from 'lucide-react'
 import { useAuth } from '@/auth/auth'
-import { microsoftLoginUrl } from '@/lib/directus'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 
 export function LoginPage() {
-  const { login } = useAuth()
+  const { login, loginWithMicrosoft } = useAuth()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState<string | null>(null)
@@ -52,7 +51,9 @@ export function LoginPage() {
             <Button
               className="w-full"
               size="lg"
-              onClick={() => (window.location.href = microsoftLoginUrl())}
+              onClick={() => {
+                loginWithMicrosoft().catch(() => setError('Could not start Microsoft sign-in.'))
+              }}
             >
               <MicrosoftIcon />
               Continue with Microsoft

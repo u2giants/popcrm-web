@@ -1,10 +1,16 @@
-export interface DirectusUser {
+// App identity, sourced from Supabase Auth + app.profile (via api.current_user_profile).
+// Field names kept Directus-compatible (first_name/last_name/avatar/role) so existing
+// UI (AppHeader, EmailRoutingPage, relatedName) keeps working unchanged.
+export interface AppUser {
   id: string
+  name?: string | null
   first_name: string | null
   last_name: string | null
   email: string | null
   avatar: string | null
+  title?: string | null
   role: { id: string; name: string } | null
+  roles?: string[]
 }
 
 export interface Retailer {
@@ -142,7 +148,7 @@ export interface CrmTask {
   contact: string | Buyer | null
   opportunity: string | CrmOpportunity | null
   department: string | CrmDepartment | null
-  assignee: string | DirectusUser | null
+  assignee: string | AppUser | null
 }
 
 export interface CrmLicensorApprovalThread {
@@ -157,23 +163,3 @@ export interface CrmLicensorApprovalThread {
   opportunity: string | CrmOpportunity | null
 }
 
-export interface Schema {
-  // Curated PIM-facing tables (customers only). The CRM works over the full ingested
-  // registries below; see features/crm/api.ts.
-  retailer: Retailer[]
-  buyer: Buyer[]
-  ingested_domains: Retailer[]
-  ingested_contact: Buyer[]
-  factory: Factory[]
-  project: Project[]
-  crm_department: CrmDepartment[]
-  crm_opportunity: CrmOpportunity[]
-  crm_email_message: CrmEmailMessage[]
-  crm_meeting_note: CrmMeetingNote[]
-  crm_ignore_rule: CrmIgnoreRule[]
-  crm_ai_model_config: CrmAiModelConfig[]
-  crm_note: CrmNote[]
-  crm_task: CrmTask[]
-  crm_licensor_approval_thread: CrmLicensorApprovalThread[]
-  directus_users: DirectusUser[]
-}
