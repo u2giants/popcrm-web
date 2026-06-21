@@ -12,5 +12,9 @@ router; this file only adds Claude Code-specific notes.
   `docker run` on the host is break-glass only.
 - **Branching:** single-branch model — commit directly to `main`; do not create
   feature branches for this repo.
+- **Shared database / cross-app:** before any shared Supabase database, schema,
+  migration, or cross-app change, read and follow `shared-db/AGENTS.md` (the
+  cross-app coordination playbook) — app code here is `main`-only; `shared-db`
+  changes use branch+PR and the AI owns the merge.
 - Background on the redesign (charts, tokens, layout) lives in `frontend_imp.md`
   (historical plan, largely implemented).
