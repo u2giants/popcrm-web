@@ -88,6 +88,8 @@ jobs:
             COMMIT_HASH=${{ steps.vars.outputs.sha7 }}
             COMMIT_DATE=${{ github.event.head_commit.timestamp || github.event.repository.updated_at }}
             VITE_LOGODEV_TOKEN=${{ secrets.LOGODEV_TOKEN }}
+            VITE_SUPABASE_URL=${{ secrets.VITE_SUPABASE_URL }}
+            VITE_SUPABASE_ANON_KEY=${{ secrets.VITE_SUPABASE_ANON_KEY }}
 
   deploy:
     needs: build-and-push
