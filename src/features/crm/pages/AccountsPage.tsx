@@ -170,7 +170,7 @@ export function AccountsPage() {
             <Tabs value={segment} onValueChange={(v) => setSegment(v as Segment)}>
               <TabsList>
                 {([
-                  { id: 'active', label: 'Accounts', count: segCounts.active },
+                  { id: 'active', label: 'Customers', count: segCounts.active },
                   { id: 'triage', label: 'Triage', count: segCounts.triage },
                   { id: 'dismissed', label: 'Not a customer', count: segCounts.dismissed },
                   { id: 'all', label: 'All', count: segCounts.all },
