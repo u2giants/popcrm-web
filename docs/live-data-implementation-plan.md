@@ -266,6 +266,24 @@ record.
 This phase also has a shared-db prerequisite if it needs new aggregate views,
 search views, or RPCs. Those schema/API additions belong in `u2giants/shared-db`
 and must follow its branch + PR process before the frontend depends on them.
+Document the database change as part of that PR, not after it. The shared
+database is used by CRM, PIM, DAM, and the Directus/worker stack, so undocumented
+views/RPCs become production risk for other sessions. The shared-db PR must
+include:
+
+- The migration SQL with comments explaining the contract, access model,
+  indexes, and why the change is additive.
+- Updates to the canonical schema design docs in `u2giants/shared-db`, especially
+  `docs/unified-supabase-schema-map.md` and any relevant relationship or
+  implementation notes.
+- An app-facing contract note covering view/RPC names, columns, segment/count
+  semantics, auth/RLS behavior, and which apps are expected to consume it.
+- A verification note with preview project checks, exact SQL/count comparisons,
+  authenticated REST checks, and rollback/fallback instructions.
+- A frontend rollout note explaining when `popcrm-web` may depend on the new API
+  and how older frontend bundles continue to work while the migration rolls out.
+- PR description detail sufficient for a future AI session to understand the
+  moving parts without rediscovering them from SQL.
 
 - Add or use lightweight aggregate endpoints/views for dashboard counts.
 - Keep recent activity panels as bounded queries.
