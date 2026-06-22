@@ -1,9 +1,8 @@
 # popcrm-web Supabase Migration — Session Handoff (2026-06-21)
 
 CRM (`u2giants/popcrm-web`) migrated from the Directus backend to the shared
-Supabase project, **preview-complete**: schema + frontend + worker are done and
-validated locally; nothing touches production. The live `db push` to the preview
-branch is the one remaining step (see Known Gaps).
+Supabase project. This note began as the 2026-06-21 preview handoff; production
+was later reconciled on 2026-06-22 (see updates below).
 
 ## New migrations (this PR)
 
@@ -14,6 +13,7 @@ branch is the one remaining step (see Known Gaps).
 | `20260621110200_crm_api_views.sql` | `security_invoker` browser views, one per screen (see table below). No raw email bodies / transcripts / ingest payloads. |
 | `20260621110300_crm_api_rpcs.sql` | `current_user_profile()` identity contract; guarded `crm_update_account` / `crm_update_contact` (core writes) and `crm_set_opportunity_stage`. |
 | `20260621110400_crm_rls_realtime.sql` | `profile_select_staff` policy (assignee/owner display); realtime for meeting_note/department/approval; **exposes `api, crm, pim, core` schemas to PostgREST**. |
+| `20260622033500_crm_contact_view_access_gate.sql` | Recreates `api.crm_contact_list` as `security_invoker=false` with an explicit `app.has_app_access('crm')` guard to avoid PostgREST/RLS timeout during paged contact loads. |
 
 Validated by applying the full chain (4 baseline + these 5) to a throwaway
 Postgres 15 with Supabase auth stubs: all apply cleanly; integrity trigger,
@@ -77,8 +77,72 @@ The original Directus `crm-worker.mjs` is kept for rollback. Worker runtime need
 
 ## Data migration / reconciliation
 
-Not performed (no production Directus dump in scope this session). The preview
-branch has no CRM data yet, so smoke tests need either a data load or seed rows.
+Completed against production Supabase on 2026-06-22.
+
+Verified source/target reconciliation:
+
+- company source refs: `3846/3846`; canonical companies: `3744`
+- contact source refs: `9401/9401`; canonical contacts: `8654`
+- departments: `38/38`
+- emails: `11267/11267` (included 1 missing `crm.email_message` insert:
+  `e6850651-289f-4adf-a71a-aafe5fd08620`)
+- meetings: `27/27`
+- zero-count CRM tables matched their Directus source counts
+- remaining contact relationships were reconciled by upserting 743 `buyer`
+  relationship rows into `core.contact_company`
+
+Contacts page segment counts after reconciliation and the view fix:
+
+- Cust Contacts: `690`
+- Dept. Contacts: `57`
+- Triage: `7907`
+- All: `8654`
+
+Identity/access caveat found during reconciliation: a Supabase Auth user can sign
+in while still seeing empty CRM lists if their `auth.users.id` is not linked from
+`app.profile.auth_user_id` or if `app.app_access` lacks `crm`.
+
+## 2026-06-22 Contacts view timeout fix
+
+What changed:
+`api.crm_contact_list` was recreated by
+`20260622033500_crm_contact_view_access_gate.sql` with
+`security_invoker=false` and an explicit `app.has_app_access('crm')` predicate.
+The frontend also stopped applying server-side PostgREST ordering/filtering for
+the Contacts bootstrap path.
+
+Why:
+The original `security_invoker` contact view timed out on the browser's third
+1,000-row page when PostgREST applied ordering/filtering on derived fields such
+as `name` and `company_customer_status`. `CrmDataContext` then loaded contacts as
+empty, making `/contacts` show zeroes even though 8,654 contacts were present.
+
+Future sessions should:
+Keep Contacts bootstrap reads unfiltered/unordered and segment/sort client-side.
+When debugging "zero contacts", verify authenticated REST pages across the full
+range (`0-999`, `1000-1999`, `2000-2999`, etc.) and the user's
+profile/app-access mapping before rerunning imports.
+
+## 2026-06-22 Live-query refactor cap regression
+
+What changed:
+The TanStack Query refactor initially added hard-coded limits to page hooks
+before server-side pagination/search/count contracts existed. Accounts loaded
+only 100 companies, Email Routing 50 messages, Pipeline/Programs 100
+opportunities, Notes 50, Tasks 100, and related drawers/global search used the
+same partial datasets.
+
+Why:
+The refactor moved loading from one global bootstrap to page-scoped hooks, but a
+bounded client-side dataset was still rendered as if it were the full table. The
+database import was intact; the UI was asking for too little data.
+
+Future sessions should:
+Do not add positive limits to CRM list hooks unless the view/RPC also supports
+server-side search/filtering/pagination and returns true total/segment counts.
+Until then, use full paged reads (`limit = -1`) or explicit full segment reads.
+Contacts and Accounts may load heavy secondary segments on demand, but their tab
+counts must come from real count queries or full segment data.
 
 ## Preview test results
 
@@ -87,7 +151,10 @@ unreachable from the migration environment (`ECONNREFUSED`) via both the Supabas
 CLI and the management API, and no preview DB password was available. SQL was
 instead validated on a local Postgres 15 (see above).
 
-## Production promotion checklist (exact migrations)
+## Production promotion checklist (historical)
+
+This was the original 2026-06-21 checklist. Production has since been promoted
+and reconciled; keep the order for fresh environments or rollback/replay audits.
 
 Apply in this order, preview first then production, via `supabase db push`:
 
@@ -101,16 +168,19 @@ Apply in this order, preview first then production, via `supabase db push`:
 20260621110200_crm_api_views.sql           (this PR)
 20260621110300_crm_api_rpcs.sql            (this PR)
 20260621110400_crm_rls_realtime.sql        (this PR)
+20260622033500_crm_contact_view_access_gate.sql
 ```
-
-Production (`qsllyeztdwjgirsysgai`) does **not** yet have the baseline migrations,
-so a first push there will include them — confirm that is intended or split the rollout.
 
 ## Known gaps
 
-- **Apply to preview** (`supabase link --project-ref tcscehehgeiijilylezv && supabase db push`) from a network that can reach the branch DB, then **regenerate `database.types.ts`** from preview and set preview env vars.
-- **Phase 5 identity**: configure the Azure provider in Supabase Auth and seed `app.profile` / `app.user_role` / `app.app_access` for CRM users — without a provisioned profile a signed-in user has no CRM access and lists come back empty.
-- **Data import + reconciliation** (Phase 7) and **role-based RLS tests** (Phase 6) still to run against preview.
+- **Preview parity**: if the preview branch is used again, apply the production
+  migration chain there, regenerate `database.types.ts`, set preview env vars,
+  and load seed/production-like CRM data before smoke testing.
+- **Identity provisioning**: new CRM users still need `app.profile` /
+  `app.user_role` / `app.app_access` mapping. Without a provisioned CRM profile a
+  signed-in user has no CRM access and lists come back empty.
+- **Role-based RLS tests**: broader per-role coverage is still needed beyond the
+  authenticated/admin spot checks from the production fix.
 - `crm.note.opportunity_id` is `on delete cascade` (baseline) and `crm.note` has no `factory`; meeting attendees have no shared table (stored in `meeting_note.metadata`).
 - RPC `coalesce` semantics mean passing `null` does not clear a contact field (edge case).
 - No CRM screen or worker command still depends on Directus; the Directus worker/backend remain only as read-only rollback.

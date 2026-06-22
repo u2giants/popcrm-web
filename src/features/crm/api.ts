@@ -33,6 +33,8 @@ const CUSTOMER_STATUSES = ['ACTIVE_CUSTOMER', 'POTENTIAL_CUSTOMER']
 
 type Row = Record<string, unknown>
 type Order = { col: string; asc?: boolean }
+export type AccountSegment = 'active' | 'triage' | 'dismissed' | 'all'
+export type AccountSegmentCounts = Record<AccountSegment, number>
 export type ContactSegment = 'customer' | 'department' | 'triage' | 'all'
 export type ContactSegmentCounts = Record<ContactSegment, number>
 
@@ -105,6 +107,44 @@ function isMissingApiObject(error: unknown): boolean {
   const e = error as { code?: string; message?: string; details?: string }
   const text = `${e.message ?? ''} ${e.details ?? ''}`.toLowerCase()
   return e.code === '42P01' || e.code === 'PGRST205' || text.includes('could not find') || text.includes('does not exist')
+}
+
+function applyAccountSegment(q: ReturnType<typeof anyDb.schema>, segment: AccountSegment) {
+  if (segment === 'active') return q.in('customer_status', CUSTOMER_STATUSES)
+  if (segment === 'triage') return q.or('customer_status.eq.UNASSIGNED,customer_status.is.null')
+  if (segment === 'dismissed') return q.eq('customer_status', 'OTHER')
+  return q
+}
+
+async function fetchAccountSegmentRows(segment: AccountSegment, limit = -1): Promise<Row[]> {
+  if (segment === 'all') return fetchRows('crm_account_list', [{ col: 'name' }], limit)
+  const PAGE = 1000
+  const out: Row[] = []
+  let from = 0
+  for (;;) {
+    const cappedEnd = limit >= 0 ? Math.min(from + PAGE - 1, limit - 1) : from + PAGE - 1
+    const q = applyAccountSegment(
+      anyDb.schema("api").from('crm_account_list').select('*').order('name').range(from, cappedEnd),
+      segment,
+    )
+    const { data, error } = await q
+    if (error) throw error
+    const rows = (data ?? []) as Row[]
+    out.push(...rows)
+    if (rows.length < PAGE || (limit >= 0 && out.length >= limit)) break
+    from += PAGE
+  }
+  return limit >= 0 ? out.slice(0, limit) : out
+}
+
+async function countAccountSegment(segment: AccountSegment): Promise<number> {
+  const q = applyAccountSegment(
+    anyDb.schema("api").from('crm_account_list').select('*', { count: 'exact', head: true }),
+    segment,
+  )
+  const { count, error } = await q
+  if (error) throw error
+  return count ?? 0
 }
 
 // Rename UI keys to columns (handles relation id coercion); drop undefined.
@@ -328,6 +368,21 @@ export async function fetchRetailers(limit = -1): Promise<Retailer[]> {
 export async function fetchIngestedDomains(limit = -1): Promise<Retailer[]> {
   const rows = await fetchRows('crm_account_list', [{ col: 'name' }], limit)
   return rows.map(toRetailer)
+}
+
+export async function fetchAccountSegment(segment: AccountSegment, limit = -1): Promise<Retailer[]> {
+  const rows = await fetchAccountSegmentRows(segment, limit)
+  return rows.map(toRetailer)
+}
+
+export async function fetchAccountSegmentCounts(): Promise<AccountSegmentCounts> {
+  const [active, triage, dismissed, all] = await Promise.all([
+    countAccountSegment('active'),
+    countAccountSegment('triage'),
+    countAccountSegment('dismissed'),
+    countAccountSegment('all'),
+  ])
+  return { active, triage, dismissed, all }
 }
 
 export async function updateRetailer(id: string, values: Partial<Retailer>) {

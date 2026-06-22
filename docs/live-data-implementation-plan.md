@@ -140,8 +140,9 @@ Replace the all-CRM bootstrap with page-scoped, bounded data loading.
 - Add server-side pagination and filtering to list queries during the first
   migration pass. "Page-scoped" must mean a bounded slice, not "fetch every row
   for this one collection."
-- Decide default page sizes per surface before migrating each page. Initial
-  starting points:
+- Historical note: the original default page-size starting points below caused a
+  production regression when implemented without server-side totals/search.
+  Do not reuse them unless the corresponding API contract exists:
   - Email Routing: 50 newest queue rows, with server-side segment/status/search
     filters.
   - Tasks: 100 active or filtered rows, with server-side status/search filters.
@@ -344,6 +345,20 @@ Recommended defaults:
 - `placeholderData` / previous data: enabled for list pages.
 - `retry`: conservative, with visible error states for page-level failures.
 
+## Superseded Limit Guidance
+
+The original plan below proposed 50/100-row page slices before the CRM had
+server-side pagination/search/filtering and true aggregate count contracts. That
+caused the 2026-06-22 live-query refactor regression: Accounts, Email Routing,
+Pipeline/Programs, Notes, Tasks, drawers, overview stats, and command search
+showed partial datasets as if they were complete.
+
+Future work should treat the old row-count suggestions as historical only. A CRM
+screen may use bounded queries only when the backend/API contract also returns
+the correct total/segment counts and performs the search/filtering server-side.
+Otherwise use full paged reads (`limit = -1`) or explicit full segment reads, as
+Contacts and Accounts now do for their primary tabs.
+
 ## Risks and Constraints
 
 - Setter coupling is the top migration risk. Existing consumers use raw
@@ -351,9 +366,9 @@ Recommended defaults:
   insertion. Those call sites cannot be safely hidden behind a read-only
   compatibility wrapper; they must move to mutation hooks with their migrated
   page/component.
-- Page-scoped queries must also be bounded. Moving an unbounded `limit: -1`
-  fetch from app startup to page open still leaves users waiting on full-table
-  reads.
+- Page-scoped queries must either represent the full dataset shown by the UI or
+  be backed by a server-side pagination/search/count contract. Do not cap a
+  client-filtered table and still label it "All" or use it for tab counts.
 - Phase 4 Realtime enablement requires a shared-db PR for publication and
   realtime authorization/RLS changes.
 - Phase 5 aggregate/search endpoints require a shared-db PR when new views or

@@ -12,7 +12,14 @@ import { ChainBadge } from '@/features/crm/components/CrmStatusBadge'
 import { CHAIN_TYPES, CUSTOMER_STATUSES, customerStatusLabel, customerStatusTone } from '@/features/crm/constants'
 import { idOf, label, textOf } from '@/features/crm/format'
 import { AccountLogo } from '@/components/app/AccountLogo'
-import { listData, useIngestedContactsQuery, useIngestedDomainsQuery, useOpportunitiesQuery, useUpdateAccountMutation } from '@/features/crm/queries'
+import {
+  listData,
+  useAccountSegmentCountsQuery,
+  useAccountSegmentQuery,
+  useIngestedContactsQuery,
+  useOpportunitiesQuery,
+  useUpdateAccountMutation,
+} from '@/features/crm/queries'
 import type { Retailer } from '@/lib/types'
 
 const STATUS_OPTIONS: EditOption[] = CUSTOMER_STATUSES.map((v) => ({ value: v, label: customerStatusLabel(v) }))
@@ -24,15 +31,39 @@ type Segment = 'active' | 'triage' | 'dismissed' | 'all'
 const statusOf = (r: Retailer) => r.customer_status || 'UNASSIGNED'
 
 export function AccountsPage() {
-  const retailersQuery = useIngestedDomainsQuery(-1)
+  const [query, setQuery] = useState('')
+  const [segment, setSegment] = useState<Segment>('active')
+  const activeAccountsQuery = useAccountSegmentQuery('active')
+  const triageAccountsQuery = useAccountSegmentQuery('triage')
+  const dismissedAccountsQuery = useAccountSegmentQuery('dismissed', -1, segment === 'dismissed')
+  const allAccountsQuery = useAccountSegmentQuery('all', -1, segment === 'all')
+  const countsQuery = useAccountSegmentCountsQuery()
   const buyersQuery = useIngestedContactsQuery(-1)
   const opportunitiesQuery = useOpportunitiesQuery(-1)
   const updateAccountMutation = useUpdateAccountMutation()
-  const retailers = listData(retailersQuery.data)
   const buyers = listData(buyersQuery.data)
   const opportunities = listData(opportunitiesQuery.data)
-  const [query, setQuery] = useState('')
-  const [segment, setSegment] = useState<Segment>('active')
+  const activeAccounts = listData(activeAccountsQuery.data)
+  const triageAccounts = listData(triageAccountsQuery.data)
+  const dismissedAccounts = listData(dismissedAccountsQuery.data)
+  const allAccounts = listData(allAccountsQuery.data)
+  const activeAccountsForSegment =
+    segment === 'all'
+      ? allAccounts
+      : segment === 'dismissed'
+        ? dismissedAccounts
+        : segment === 'triage'
+          ? triageAccounts
+          : activeAccounts
+  const activeAccountsFetch =
+    segment === 'all'
+      ? allAccountsQuery
+      : segment === 'dismissed'
+        ? dismissedAccountsQuery
+        : segment === 'triage'
+          ? triageAccountsQuery
+          : activeAccountsQuery
+  const retailers = activeAccountsForSegment
   const [selected, select] = useRecordSelection<Retailer>('retailer', retailers)
 
   // Inline edit / drag-copy for the Status and Chain columns.
@@ -60,18 +91,12 @@ export function AccountsPage() {
 
   // Segment counts. "active" hides Not-a-Customer (OTHER); "triage" = New
   // Companies (UNASSIGNED) awaiting review.
-  const segCounts = useMemo(() => {
-    let active = 0
-    let triage = 0
-    let dismissed = 0
-    for (const r of retailers) {
-      const s = statusOf(r)
-      if (s === 'OTHER') dismissed++
-      else if (s === 'UNASSIGNED') triage++
-      else active++
-    }
-    return { active, triage, dismissed, all: retailers.length }
-  }, [retailers])
+  const segCounts = countsQuery.data ?? {
+    active: activeAccounts.length,
+    triage: triageAccounts.length,
+    dismissed: dismissedAccounts.length,
+    all: allAccounts.length,
+  }
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase()
@@ -181,8 +206,8 @@ export function AccountsPage() {
         />
       }
     >
-      {retailersQuery.isError ? (
-        <ErrorState onRetry={() => void retailersQuery.refetch()} />
+      {activeAccountsFetch.isError ? (
+        <ErrorState onRetry={() => void activeAccountsFetch.refetch()} />
       ) : (
         <DataTable
           rows={filtered}
@@ -190,7 +215,7 @@ export function AccountsPage() {
           getRowId={(r) => r.id}
           onRowClick={(r) => select(r)}
           onCellEdit={editCell}
-          loading={retailersQuery.isPending}
+          loading={activeAccountsFetch.isPending}
           emptyIcon={<Building2 className="size-5" />}
           emptyTitle={segment === 'triage' ? 'Triage queue is clear' : 'No accounts match'}
           emptyDescription={

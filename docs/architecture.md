@@ -37,10 +37,13 @@ Auth in the browser, then loads the user's CRM profile with
 
 Data loading is page-scoped through TanStack Query hooks in
 `src/features/crm/queries.ts`. The app no longer bootstraps every CRM collection
-on mount. Each route asks for the bounded slices it needs, keeps previous data
-visible while refreshing, and refetches on window focus/reconnect. High-change
-surfaces such as Email Routing, Tasks, Meetings, and Notes also use conservative
-background refetch intervals.
+on mount. Until a screen has real server-side pagination/search/filtering plus
+true aggregate counts, list queries must load the full relevant dataset through
+the paged helpers in `api.ts`. A 2026-06-22 TanStack Query refactor briefly used
+hard-coded 50/100/300 row limits and made production screens look empty even
+though data was intact. Page-scoped is fine; arbitrary partial slices are not.
+High-change surfaces such as Email Routing, Tasks, Meetings, and Notes also use
+conservative background refetch intervals.
 
 Reads in `src/features/crm/api.ts` go through browser-safe `api.crm_*` views.
 Core account/contact writes use guarded RPCs (`api.crm_update_account`,
@@ -75,7 +78,7 @@ explicit `app.has_app_access('crm')` guard.
 | `src/lib/database.types.ts` | Generated Supabase schema types |
 | `src/lib/types.ts` | Frontend domain types/adapters used by components |
 | `src/features/crm/api.ts` | All Supabase view/RPC/table reads and writes |
-| `src/features/crm/queries.ts` | TanStack Query keys, bounded read hooks, mutation hooks, Fireflies health query |
+| `src/features/crm/queries.ts` | TanStack Query keys, full/segmented read hooks, mutation hooks, Fireflies health query |
 | `src/features/crm/realtime.ts` | Debounced Supabase Realtime invalidation scaffold |
 | `src/features/crm/constants.ts` | Enums, stage lists, tone/status helpers |
 | `src/features/crm/format.ts` | Display formatters: `label()`, `formatDate()`, `relatedName()`, etc. |

@@ -45,7 +45,7 @@ Then load additional docs only when relevant:
 | Add/change config, env vars, or runtime settings | `AGENTS.md`, `docs/configuration.md`, `docs/deployment.md` if prod/runtime is affected | Unrelated architecture docs |
 | Change local setup, dev/test/lint scripts, or tooling | `AGENTS.md`, `docs/development.md`, `package.json`, `eslint.config.js` | `docs/deployment.md` unless CI/CD changes |
 | Change deployment, Docker, CI/CD, hosting, release, or rollback | `AGENTS.md`, `docs/deployment.md`, `.github/workflows/deploy.yml`, `Dockerfile`, `nginx.conf` | Local-only dev docs |
-| Change data shape, Directus fields, queries, or identifiers | `AGENTS.md`, `docs/architecture.md`, `src/lib/types.ts`, `src/features/crm/api.ts` | Deployment docs unless rollout changes |
+| Change data shape, Supabase fields, queries, views, RPCs, or identifiers | `AGENTS.md`, `docs/architecture.md`, `src/lib/types.ts`, `src/lib/database.types.ts`, `src/features/crm/api.ts`, `shared-db/supabase/migrations/` | Deployment docs unless rollout changes |
 | Investigate bugs or incidents | `AGENTS.md` (Critical incidents), area-relevant source, `HANDOFF.md` if present | Unrelated docs |
 | Continue unfinished work | `AGENTS.md`, `HANDOFF.md` (if present) and the docs it names | Docs outside the handoff scope |
 | Understand the redesign rationale (charts, tokens, layout) | `frontend_imp.md` (historical plan — fully implemented) | Everything else |
@@ -233,7 +233,8 @@ Looks like:
 There's no `APPROVAL_STATUSES` enum; tone/labels are keyword-matched (`approvalTone`, `isApprovalResolved` in `constants.ts`).
 
 Actually:
-The Directus `stage` field has no fixed choices, and the collection currently has 0 rows.
+The CRM approval `stage` field has no fixed choices, and the collection currently
+has 0 rows.
 
 Why:
 The real schema differs from earlier assumptions; matching keywords is robust to unknown values.
@@ -313,10 +314,10 @@ If Contacts are zero, test the exact authenticated REST pages and check
 
 What changed:
 On 2026-06-14, `/health` for `crm-fireflies.designflow.app` returned 200 and the
-`popcrm-fireflies` container was running, but Directus had only 27
-`crm_meeting_note` rows with latest meeting date `2026-04-14`. The Fireflies API
-listed newer transcripts through `2026-06-11`, while worker/proxy logs showed no
-recent webhook deliveries.
+`popcrm-fireflies` container was running, but the CRM backend had only 27
+meeting-note rows with latest meeting date `2026-04-14`. The Fireflies API listed
+newer transcripts through `2026-06-11`, while worker/proxy logs showed no recent
+webhook deliveries.
 
 Why:
 The health endpoint only proves the webhook server is reachable. It does not
@@ -324,10 +325,9 @@ prove Fireflies is configured to send "transcription complete" events to
 `https://crm-fireflies.designflow.app/s/fireflies-webhook`.
 
 Future sessions should:
-When meeting ingestion is stale, check Directus row dates, `popcrm-fireflies`
-logs, proxy logs, and the Fireflies dashboard webhook configuration before
-debugging the frontend. Do not assume a green Fireflies badge means notes are
-ingesting.
+When meeting ingestion is stale, check CRM row dates, `popcrm-fireflies` logs,
+proxy logs, and the Fireflies dashboard webhook configuration before debugging
+the frontend. Do not assume a green Fireflies badge means notes are ingesting.
 
 ### Account logos are domain-derived (logo.dev), not stored
 
@@ -347,8 +347,8 @@ is the same mechanism Twenty used.
 
 Do not change because:
 Don't go looking for a logo file/field to migrate — there isn't one. Restoring real
-logos = keep the domain-derived approach (or add a Directus file field + uploads, a
-backend change in `u2giants/directus`).
+logos = keep the domain-derived approach (or add a Supabase file/storage-backed
+field + uploads, a shared database/backend change).
 
 ### Supabase profile links control whether signed-in users see CRM rows
 
@@ -426,6 +426,37 @@ and triggers Coolify. CI never SSHes into or mutates the server. Full detail in
   `**/*.md`, `.claudeignore`, `.cursorignore`, `.copilotignore`) skip the build.
 
 ## Critical incidents
+
+### 2026-06-22 Live-query refactor capped CRM screens
+
+What happened:
+After the TanStack Query refactor (`494b588`), primary CRM screens appeared to
+lose most records. Accounts loaded only the first 100 companies, Email Routing
+only 50 messages, Pipeline/Programs only 100 opportunities, Notes only 50, Tasks
+only 100, and related drawers/pickers/global search used the same partial slices.
+
+Impact:
+Production data was intact, but the UI presented partial datasets as complete
+lists and produced wrong tab counts, related-record counts, overview stats, and
+search results.
+
+Root cause:
+The refactor replaced global full loads with page-scoped query hooks but added
+hard-coded client limits before server-side pagination/search/count contracts
+existed. A bounded page query without an aggregate/count/search contract silently
+lies in this CRM.
+
+Recovery:
+`698885b` restored full paged reads (`limit = -1`) for main CRM record surfaces,
+drawers, command search, and overview stats. Follow-up work made Contacts load by
+server segment and Accounts load Customers/Triage eagerly while loading
+Not-a-Customer/All only on demand.
+
+Rule added to prevent recurrence:
+Do not add arbitrary positive limits to CRM list hooks unless the page also has
+server-side pagination, search/filtering, and true aggregate counts. If a page
+shows "All" or computes tab counts/client filters from a query, that query must
+represent the full relevant dataset or a documented server segment with counts.
 
 ### 2026-06-22 Contacts zero after Supabase cutover — contact view timeout/access gate
 
@@ -542,6 +573,7 @@ now break-glass only (see `docs/deployment.md`).
 | done | Account status data normalized | 24 null `customer_status` rows → `UNASSIGNED` (direct Directus PG write); now one "New Company" bucket |
 | done | Directus-to-Supabase CRM data import/reconciliation | Completed 2026-06-22; verified 8,654 contacts, 3,744 canonical companies, 38 departments, 11,267 emails, 27 meetings, and matching zero-count tables |
 | done | Contacts zero after Supabase cutover | Fixed 2026-06-22 via frontend client-side contact segmentation plus `api.crm_contact_list` access-gated view migration |
+| done | Live-query refactor cap regression | Fixed 2026-06-22; restored full reads/true counts for CRM screens and documented the "no arbitrary limits without server contracts" rule |
 | blocked | Account logos go live | Code deployed but inert until `LOGODEV_TOKEN` GitHub secret is set (publishable logo.dev key) — see HANDOFF.md. Falls back to initials until then |
 | open | Server-side pagination / Supabase aggregates | Currently client-side for CRM screens; revisit if record volumes grow |
 | open | Bump CI actions off Node 20 | GitHub deprecates Node-20 actions (~2026-06-16); update `actions/*` and `docker/*` versions in `deploy.yml` |

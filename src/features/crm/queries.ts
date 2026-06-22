@@ -2,6 +2,8 @@ import { useMutation, useQuery, useQueryClient, type QueryClient } from '@tansta
 import {
   createIgnoreRule,
   createNote,
+  fetchAccountSegment,
+  fetchAccountSegmentCounts,
   fetchAiModelConfigs,
   fetchAllContacts,
   fetchApprovalThreads,
@@ -29,6 +31,8 @@ import {
   updateOpportunity,
   updateRetailer,
   updateTask,
+  type AccountSegment,
+  type AccountSegmentCounts,
   type ContactSegment,
   type ContactSegmentCounts,
 } from './api'
@@ -53,6 +57,8 @@ export const crmKeys = {
   fireflies: () => [...crmKeys.all, 'fireflies'] as const,
   opportunities: (limit = -1) => [...crmKeys.all, 'opportunities', { limit }] as const,
   retailers: (limit = -1) => [...crmKeys.all, 'retailers', { limit }] as const,
+  accountSegment: (segment: AccountSegment, limit = -1) => [...crmKeys.all, 'accountSegment', segment, { limit }] as const,
+  accountSegmentCounts: () => [...crmKeys.all, 'accountSegmentCounts'] as const,
   buyers: (limit = -1) => [...crmKeys.all, 'buyers', { limit }] as const,
   ingestedDomains: (limit = -1) => [...crmKeys.all, 'ingestedDomains', { limit }] as const,
   ingestedContacts: (limit = -1) => [...crmKeys.all, 'ingestedContacts', { limit }] as const,
@@ -121,6 +127,25 @@ export function useOpportunitiesQuery(limit = -1) {
 
 export function useRetailersQuery(limit = -1) {
   return useQuery({ queryKey: crmKeys.retailers(limit), queryFn: () => fetchRetailers(limit), ...crmQueryDefaults, staleTime: 2 * 60_000 })
+}
+
+export function useAccountSegmentQuery(segment: AccountSegment, limit = -1, enabled = true) {
+  return useQuery({
+    queryKey: crmKeys.accountSegment(segment, limit),
+    queryFn: () => fetchAccountSegment(segment, limit),
+    ...crmQueryDefaults,
+    enabled,
+    staleTime: 2 * 60_000,
+  })
+}
+
+export function useAccountSegmentCountsQuery() {
+  return useQuery<AccountSegmentCounts>({
+    queryKey: crmKeys.accountSegmentCounts(),
+    queryFn: fetchAccountSegmentCounts,
+    ...crmQueryDefaults,
+    staleTime: 30_000,
+  })
 }
 
 export function useBuyersQuery(limit = -1) {
@@ -276,6 +301,7 @@ export function useUpdateAccountMutation() {
       const previous = queryClient.getQueriesData<Retailer[]>({ queryKey: [...crmKeys.all, 'ingestedDomains'] })
       updateMatchingLists<Retailer>(queryClient, [...crmKeys.all, 'ingestedDomains'], id, values)
       updateMatchingLists<Retailer>(queryClient, [...crmKeys.all, 'retailers'], id, values)
+      updateMatchingLists<Retailer>(queryClient, [...crmKeys.all, 'accountSegment'], id, values)
       return { previous }
     },
     onError: (_error, _vars, context) => {
@@ -284,6 +310,8 @@ export function useUpdateAccountMutation() {
     onSettled: () => {
       void queryClient.invalidateQueries({ queryKey: [...crmKeys.all, 'ingestedDomains'] })
       void queryClient.invalidateQueries({ queryKey: [...crmKeys.all, 'retailers'] })
+      void queryClient.invalidateQueries({ queryKey: [...crmKeys.all, 'accountSegment'] })
+      void queryClient.invalidateQueries({ queryKey: crmKeys.accountSegmentCounts() })
       void queryClient.invalidateQueries({ queryKey: crmKeys.stats() })
     },
   })

@@ -11,7 +11,7 @@ import {
 } from 'lucide-react'
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
-import { fetchBuyers, fetchEmailMessages, fetchOpportunities, fetchRetailers } from '@/features/crm/api'
+import { fetchEmailMessages, fetchIngestedContacts, fetchIngestedDomains, fetchOpportunities } from '@/features/crm/api'
 import { crmKeys, crmQueryDefaults, listData } from '@/features/crm/queries'
 import { relatedName, textOf } from '@/features/crm/format'
 import { cn } from '@/lib/utils'
@@ -30,10 +30,10 @@ interface Result {
 export function CommandSearch({ open, onClose }: { open: boolean; onClose: () => void }) {
   const navigate = useNavigate()
   const [query, setQuery] = useState('')
-  const retailersQ = useQuery({ queryKey: crmKeys.retailers(100), queryFn: () => fetchRetailers(100), enabled: open, ...crmQueryDefaults })
-  const buyersQ = useQuery({ queryKey: crmKeys.buyers(100), queryFn: () => fetchBuyers(100), enabled: open, ...crmQueryDefaults })
-  const opportunitiesQ = useQuery({ queryKey: crmKeys.opportunities(100), queryFn: () => fetchOpportunities(100), enabled: open, ...crmQueryDefaults })
-  const emailsQ = useQuery({ queryKey: crmKeys.emails(50), queryFn: () => fetchEmailMessages(50), enabled: open, ...crmQueryDefaults })
+  const retailersQ = useQuery({ queryKey: crmKeys.ingestedDomains(-1), queryFn: () => fetchIngestedDomains(-1), enabled: open, ...crmQueryDefaults })
+  const buyersQ = useQuery({ queryKey: crmKeys.ingestedContacts(-1), queryFn: () => fetchIngestedContacts(-1), enabled: open, ...crmQueryDefaults })
+  const opportunitiesQ = useQuery({ queryKey: crmKeys.opportunities(-1), queryFn: () => fetchOpportunities(-1), enabled: open, ...crmQueryDefaults })
+  const emailsQ = useQuery({ queryKey: crmKeys.emails(-1), queryFn: () => fetchEmailMessages(-1), enabled: open, ...crmQueryDefaults })
   const retailers = listData(retailersQ.data)
   const buyers = listData(buyersQ.data)
   const opportunities = listData(opportunitiesQ.data)
