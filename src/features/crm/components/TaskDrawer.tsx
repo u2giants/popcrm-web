@@ -3,8 +3,7 @@ import { toast } from 'sonner'
 import { AlertCircle, Clock } from 'lucide-react'
 import { DetailDrawer, DescriptionItem, DescriptionList, DrawerSection } from '@/components/app/DetailDrawer'
 import { StatusBadge } from '@/components/app/StatusBadge'
-import { useCrmData } from '@/features/crm/CrmDataContext'
-import { updateTask } from '@/features/crm/api'
+import { useUpdateTaskMutation } from '@/features/crm/queries'
 import { TASK_STATUSES, taskTone } from '@/features/crm/constants'
 import { formatDateTime, label, relatedName } from '@/features/crm/format'
 import { cn } from '@/lib/utils'
@@ -38,20 +37,18 @@ function isDueSoon(dueAt: string | null | undefined): boolean {
 }
 
 function TaskDrawerForm({ row }: { row: CrmTask }) {
-  const { setTasks } = useCrmData()
+  const updateTaskMutation = useUpdateTaskMutation()
   const [status, setStatus] = useState(row.status || 'TODO')
 
   async function changeStatus(next: string) {
     if (next === status) return
     const prev = status
     setStatus(next)
-    setTasks((rows) => rows.map((t) => (t.id === row.id ? { ...t, status: next } : t)))
     try {
-      await updateTask(row.id, { status: next })
+      await updateTaskMutation.mutateAsync({ id: row.id, values: { status: next } })
       toast.success(`Task → ${label(next)}`)
     } catch {
       setStatus(prev)
-      setTasks((rows) => rows.map((t) => (t.id === row.id ? { ...t, status: prev } : t)))
       toast.error('Could not update task')
     }
   }

@@ -7,8 +7,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
-import { useCrmData } from '@/features/crm/CrmDataContext'
-import { updateNote } from '@/features/crm/api'
+import { useUpdateNoteMutation } from '@/features/crm/queries'
 import { label, relatedName } from '@/features/crm/format'
 import type { CrmNote } from '@/lib/types'
 
@@ -40,7 +39,7 @@ export function NoteDrawer({ row, onClose }: { row: CrmNote | null; onClose: () 
 }
 
 function NoteDrawerForm({ row, onClose }: { row: CrmNote; onClose: () => void }) {
-  const { setNotes } = useCrmData()
+  const updateNoteMutation = useUpdateNoteMutation()
   const [title, setTitle] = useState(row.title || '')
   const [body, setBody] = useState(row.body || '')
   const [saving, setSaving] = useState(false)
@@ -52,8 +51,7 @@ function NoteDrawerForm({ row, onClose }: { row: CrmNote; onClose: () => void })
     setSaving(true)
     const values = { title: title.trim() || 'CRM note', body }
     try {
-      await updateNote(row.id, values)
-      setNotes((rows) => rows.map((n) => (n.id === row.id ? { ...n, ...values } : n)))
+      await updateNoteMutation.mutateAsync({ id: row.id, values })
       toast.success('Note saved')
       onClose()
     } catch {

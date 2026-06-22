@@ -5,7 +5,7 @@ import { StatusBadge } from '@/components/app/StatusBadge'
 import { NameAvatar } from '@/components/app/NameAvatar'
 import { AccountLogo } from '@/components/app/AccountLogo'
 import { Button } from '@/components/ui/button'
-import { useCrmData } from '@/features/crm/CrmDataContext'
+import { listData, useBuyersQuery, useDepartmentsQuery, useEmailsQuery, useOpportunitiesQuery } from '@/features/crm/queries'
 import { ChainBadge, StageBadge } from '@/features/crm/components/CrmStatusBadge'
 import { customerStatusLabel, customerStatusTone } from '@/features/crm/constants'
 import { idOf } from '@/features/crm/format'
@@ -21,7 +21,10 @@ function fmtAmount(val: string | number | null | undefined): string {
 }
 
 export function AccountDrawer({ row, onClose }: { row: Retailer | null; onClose: () => void }) {
-  const { buyers, departments, opportunities, emails } = useCrmData()
+  const buyers = listData(useBuyersQuery(300).data)
+  const departments = listData(useDepartmentsQuery(300).data)
+  const opportunities = listData(useOpportunitiesQuery(100).data)
+  const emails = listData(useEmailsQuery(50).data)
 
   const related = useMemo(() => {
     if (!row) return { contacts: [], depts: [], opps: [], recentEmails: [] }

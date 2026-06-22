@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { useQuery } from '@tanstack/react-query'
 import {
   Building2,
   Contact,
@@ -10,7 +11,8 @@ import {
 } from 'lucide-react'
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
-import { useCrmData } from '@/features/crm/CrmDataContext'
+import { fetchBuyers, fetchEmailMessages, fetchOpportunities, fetchRetailers } from '@/features/crm/api'
+import { crmKeys, crmQueryDefaults, listData } from '@/features/crm/queries'
 import { relatedName, textOf } from '@/features/crm/format'
 import { cn } from '@/lib/utils'
 
@@ -27,8 +29,15 @@ interface Result {
 // and deep-links to the relevant page with the record preselected via query param.
 export function CommandSearch({ open, onClose }: { open: boolean; onClose: () => void }) {
   const navigate = useNavigate()
-  const { retailers, buyers, opportunities, emails } = useCrmData()
   const [query, setQuery] = useState('')
+  const retailersQ = useQuery({ queryKey: crmKeys.retailers(100), queryFn: () => fetchRetailers(100), enabled: open, ...crmQueryDefaults })
+  const buyersQ = useQuery({ queryKey: crmKeys.buyers(100), queryFn: () => fetchBuyers(100), enabled: open, ...crmQueryDefaults })
+  const opportunitiesQ = useQuery({ queryKey: crmKeys.opportunities(100), queryFn: () => fetchOpportunities(100), enabled: open, ...crmQueryDefaults })
+  const emailsQ = useQuery({ queryKey: crmKeys.emails(50), queryFn: () => fetchEmailMessages(50), enabled: open, ...crmQueryDefaults })
+  const retailers = listData(retailersQ.data)
+  const buyers = listData(buyersQ.data)
+  const opportunities = listData(opportunitiesQ.data)
+  const emails = listData(emailsQ.data)
 
   const results = useMemo<Result[]>(() => {
     const q = query.trim().toLowerCase()

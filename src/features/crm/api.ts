@@ -262,8 +262,8 @@ const toIgnoreRule = (r: Row): CrmIgnoreRule => ({
 const OPP_MAP = { amount: 'estimated_value', retailer: 'company_id', contact: 'contact_id', department: 'department_id', factory: 'factory_id', project: 'project_id', owner: 'owner_profile_id' }
 const OPP_RELS = ['retailer', 'contact', 'department', 'factory', 'project', 'owner']
 
-export async function fetchOpportunities(): Promise<CrmOpportunity[]> {
-  const rows = await fetchRows('crm_opportunity_list', [{ col: 'stage' }, { col: 'name' }], -1)
+export async function fetchOpportunities(limit = 100): Promise<CrmOpportunity[]> {
+  const rows = await fetchRows('crm_opportunity_list', [{ col: 'stage' }, { col: 'name' }], limit)
   return rows.map(toOpportunity)
 }
 

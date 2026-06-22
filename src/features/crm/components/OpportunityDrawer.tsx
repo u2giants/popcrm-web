@@ -13,8 +13,15 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { useCrmData } from '@/features/crm/CrmDataContext'
-import { setOpportunityStage, updateOpportunity } from '@/features/crm/api'
+import {
+  listData,
+  useEmailsQuery,
+  useMeetingsQuery,
+  useNotesQuery,
+  useSetOpportunityStageMutation,
+  useTasksQuery,
+  useUpdateOpportunityMutation,
+} from '@/features/crm/queries'
 import { OPPORTUNITY_STAGES } from '@/features/crm/constants'
 import { formatDate, idOf, label, relatedName } from '@/features/crm/format'
 import type { CrmOpportunity } from '@/lib/types'
@@ -40,7 +47,12 @@ export function OpportunityDrawer({
 }
 
 function OpportunityDrawerForm({ row, onClose }: { row: CrmOpportunity; onClose: () => void }) {
-  const { emails, meetings, notes, tasks, setOpportunities } = useCrmData()
+  const emails = listData(useEmailsQuery(50).data)
+  const meetings = listData(useMeetingsQuery(50).data)
+  const notes = listData(useNotesQuery(50).data)
+  const tasks = listData(useTasksQuery(100).data)
+  const setStageMutation = useSetOpportunityStageMutation()
+  const updateOpportunityMutation = useUpdateOpportunityMutation()
   const [stage, setStage] = useState(row.stage || OPPORTUNITY_STAGES[0])
   const [summary, setSummary] = useState(row.ai_summary || '')
   const [saving, setSaving] = useState(false)
@@ -58,13 +70,11 @@ function OpportunityDrawerForm({ row, onClose }: { row: CrmOpportunity; onClose:
   async function changeStage(next: string) {
     const prev = stage
     setStage(next)
-    setOpportunities((rows) => rows.map((r) => (r.id === row.id ? { ...r, stage: next } : r)))
     try {
-      await setOpportunityStage(row.id, next)
+      await setStageMutation.mutateAsync({ id: row.id, stage: next })
       toast.success(`Stage → ${label(next)}`)
     } catch {
       setStage(prev)
-      setOpportunities((rows) => rows.map((r) => (r.id === row.id ? { ...r, stage: prev } : r)))
       toast.error('Could not update stage')
     }
   }
@@ -72,8 +82,7 @@ function OpportunityDrawerForm({ row, onClose }: { row: CrmOpportunity; onClose:
   async function saveSummary() {
     setSaving(true)
     try {
-      await updateOpportunity(row.id, { ai_summary: summary })
-      setOpportunities((rows) => rows.map((r) => (r.id === row.id ? { ...r, ai_summary: summary } : r)))
+      await updateOpportunityMutation.mutateAsync({ id: row.id, values: { ai_summary: summary } })
       toast.success('Summary saved')
       onClose()
     } catch {

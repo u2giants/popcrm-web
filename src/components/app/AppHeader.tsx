@@ -1,6 +1,7 @@
 import { AlignJustify, Menu, Moon, RefreshCcw, Search, Sun } from 'lucide-react'
+import { useIsFetching, useQueryClient } from '@tanstack/react-query'
 import { useAuth } from '@/auth/auth'
-import { useCrmData } from '@/features/crm/CrmDataContext'
+import { crmKeys, useFirefliesHealth } from '@/features/crm/queries'
 import { Button } from '@/components/ui/button'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { StatusBadge } from '@/components/app/StatusBadge'
@@ -51,8 +52,13 @@ export function AppHeader({
   onToggleDensity: () => void
 }) {
   const { user, logout } = useAuth()
-  const { refresh, loading, firefliesOk } = useCrmData()
+  const queryClient = useQueryClient()
+  const crmFetches = useIsFetching({ queryKey: crmKeys.all })
+  const fireflies = useFirefliesHealth()
+  const firefliesOk = fireflies.data ?? null
+  const refreshing = crmFetches > 0
   const name = [user?.first_name, user?.last_name].filter(Boolean).join(' ') || user?.email || 'User'
+  const refresh = () => void queryClient.invalidateQueries({ queryKey: crmKeys.all })
 
   return (
     <header className="flex h-[52px] shrink-0 items-center gap-[10px] border-b bg-card px-[18px]">
@@ -143,10 +149,10 @@ export function AppHeader({
               variant="outline"
               size="icon-sm"
               onClick={refresh}
-              disabled={loading}
+              disabled={refreshing}
               title="Refresh data"
             >
-              <RefreshCcw className={loading ? 'size-[17px] animate-spin' : 'size-[17px]'} />
+              <RefreshCcw className={refreshing ? 'size-[17px] animate-spin' : 'size-[17px]'} />
             </Button>
           </TooltipTrigger>
           <TooltipContent>Refresh CRM data</TooltipContent>

@@ -14,10 +14,9 @@ import {
 } from '@/components/ui/select'
 import { ErrorState } from '@/components/app/states'
 import { RelationLabel } from '@/features/crm/components/RelationLabel'
-import { useCrmData } from '@/features/crm/CrmDataContext'
 import { useRecordSelection } from '@/features/crm/useRecordSelection'
 import { TaskDrawer } from '@/features/crm/components/TaskDrawer'
-import { updateTask } from '@/features/crm/api'
+import { listData, useTasksQuery, useUpdateTaskMutation } from '@/features/crm/queries'
 import { TASK_STATUSES, taskTone } from '@/features/crm/constants'
 import { formatDateTime, label, relatedName, textOf } from '@/features/crm/format'
 import { cn } from '@/lib/utils'
@@ -29,7 +28,9 @@ function isOverdue(dueAt: string | null | undefined, status: string | null | und
 }
 
 export function TasksPage() {
-  const { tasks, loading, error, refresh, setTasks } = useCrmData()
+  const tasksQuery = useTasksQuery(100)
+  const updateTaskMutation = useUpdateTaskMutation()
+  const tasks = listData(tasksQuery.data)
   const [query, setQuery] = useState('')
   const [view, setView] = useState<'table' | 'board'>('table')
   const [selected, select] = useRecordSelection<CrmTask>('task', tasks)
@@ -42,12 +43,9 @@ export function TasksPage() {
   }, [tasks, query])
 
   async function quickStatus(task: CrmTask, next: string) {
-    const prev = task.status
-    setTasks((rows) => rows.map((t) => (t.id === task.id ? { ...t, status: next } : t)))
     try {
-      await updateTask(task.id, { status: next })
+      await updateTaskMutation.mutateAsync({ id: task.id, values: { status: next } })
     } catch {
-      setTasks((rows) => rows.map((t) => (t.id === task.id ? { ...t, status: prev ?? null } : t)))
       toast.error('Could not update task')
     }
   }
@@ -158,17 +156,17 @@ export function TasksPage() {
         />
       }
     >
-      {error ? (
-        <ErrorState onRetry={refresh} />
+      {tasksQuery.isError ? (
+        <ErrorState onRetry={() => void tasksQuery.refetch()} />
       ) : view === 'board' ? (
-        <TaskBoard tasks={filtered} loading={loading} onSelect={select} onStatusChange={quickStatus} />
+        <TaskBoard tasks={filtered} loading={tasksQuery.isPending} onSelect={select} onStatusChange={quickStatus} />
       ) : (
         <DataTable
           rows={filtered}
           columns={columns}
           getRowId={(t) => t.id}
           onRowClick={(t) => select(t)}
-          loading={loading}
+          loading={tasksQuery.isPending}
           emptyIcon={<ListTodo className="size-5" />}
           emptyTitle="No tasks match"
           emptyDescription="Adjust your search or column filters."

@@ -4,7 +4,7 @@ import { DetailDrawer, DescriptionItem, DescriptionList, DrawerSection } from '@
 import { NameAvatar } from '@/components/app/NameAvatar'
 import { Button } from '@/components/ui/button'
 import { StageBadge } from '@/features/crm/components/CrmStatusBadge'
-import { useCrmData } from '@/features/crm/CrmDataContext'
+import { listData, useBuyersQuery, useOpportunitiesQuery } from '@/features/crm/queries'
 import { formatDate, idOf, label, relatedName } from '@/features/crm/format'
 import type { CrmDepartment } from '@/lib/types'
 
@@ -18,7 +18,8 @@ function fmtAmount(val: string | number | null | undefined): string {
 }
 
 export function DepartmentDrawer({ row, onClose }: { row: CrmDepartment | null; onClose: () => void }) {
-  const { buyers, opportunities } = useCrmData()
+  const buyers = listData(useBuyersQuery(300).data)
+  const opportunities = listData(useOpportunitiesQuery(100).data)
 
   const related = useMemo(() => {
     if (!row) return { contacts: [], programs: [] }

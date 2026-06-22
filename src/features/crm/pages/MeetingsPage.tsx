@@ -1,17 +1,25 @@
 import { useMemo, useState } from 'react'
 import { toast } from 'sonner'
+import { useQueryClient } from '@tanstack/react-query'
 import { CalendarDays } from 'lucide-react'
 import { AppPage, ListBar } from '@/components/app/AppPage'
 import { DataTable, type Column, type EditOption } from '@/components/app/DataTable'
 import { ErrorState } from '@/components/app/states'
 import { RelationLabel } from '@/features/crm/components/RelationLabel'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { useCrmData } from '@/features/crm/CrmDataContext'
 import { useRecordSelection } from '@/features/crm/useRecordSelection'
 import { MeetingDrawer } from '@/features/crm/components/MeetingDrawer'
 import { formatDate, idOf, label, relatedName, textOf } from '@/features/crm/format'
 import { StatusBadge } from '@/components/app/StatusBadge'
-import { updateMeetingNote } from '@/features/crm/api'
+import {
+  crmKeys,
+  listData,
+  useDepartmentsQuery,
+  useIngestedContactsQuery,
+  useIngestedDomainsQuery,
+  useMeetingsQuery,
+  useUpdateMeetingMutation,
+} from '@/features/crm/queries'
 import type { CrmMeetingNote, Retailer } from '@/lib/types'
 
 type Segment = 'customers' | 'triage' | 'dismissed' | 'all'
@@ -25,17 +33,16 @@ function acctStatusOf(m: CrmMeetingNote): string {
 }
 
 export function MeetingsPage() {
-  // Triage page → work over the full ingested company/contact registries.
-  const {
-    meetings,
-    setMeetings,
-    ingestedDomains: retailers,
-    departments,
-    ingestedContacts: buyers,
-    loading,
-    error,
-    refresh,
-  } = useCrmData()
+  const queryClient = useQueryClient()
+  const meetingsQuery = useMeetingsQuery(50)
+  const retailersQuery = useIngestedDomainsQuery(100)
+  const departmentsQuery = useDepartmentsQuery(300)
+  const buyersQuery = useIngestedContactsQuery(100)
+  const updateMeetingMutation = useUpdateMeetingMutation()
+  const meetings = listData(meetingsQuery.data)
+  const retailers = listData(retailersQuery.data)
+  const departments = listData(departmentsQuery.data)
+  const buyers = listData(buyersQuery.data)
   const [query, setQuery] = useState('')
   const [segment, setSegment] = useState<Segment>('customers')
   const [selected, select] = useRecordSelection<CrmMeetingNote>('meeting', meetings)
@@ -75,11 +82,15 @@ export function MeetingsPage() {
           : key === 'contact'
             ? buyerById.get(value) ?? null
             : nextValue
-    setMeetings((rows) => rows.map((m) => (m.id === row.id ? { ...m, [key]: expanded } : m)))
+    queryClient.setQueryData<CrmMeetingNote[]>(crmKeys.meetings(50), (rows = []) =>
+      rows.map((m) => (m.id === row.id ? { ...m, [key]: expanded } : m)),
+    )
     try {
-      await updateMeetingNote(row.id, { [key]: nextValue } as Partial<CrmMeetingNote>)
+      await updateMeetingMutation.mutateAsync({ id: row.id, values: { [key]: nextValue } as Partial<CrmMeetingNote> })
     } catch {
-      setMeetings((rows) => rows.map((m) => (m.id === row.id ? { ...m, [key]: prev } : m)))
+      queryClient.setQueryData<CrmMeetingNote[]>(crmKeys.meetings(50), (rows = []) =>
+        rows.map((m) => (m.id === row.id ? { ...m, [key]: prev } : m)),
+      )
       toast.error('Could not save change')
     }
   }
@@ -207,8 +218,8 @@ export function MeetingsPage() {
         />
       }
     >
-      {error ? (
-        <ErrorState onRetry={refresh} />
+      {meetingsQuery.isError ? (
+        <ErrorState onRetry={() => void meetingsQuery.refetch()} />
       ) : (
         <DataTable
           rows={filtered}
@@ -216,7 +227,7 @@ export function MeetingsPage() {
           getRowId={(m) => m.id}
           onRowClick={(m) => select(m)}
           onCellEdit={editCell}
-          loading={loading}
+          loading={meetingsQuery.isPending || retailersQuery.isPending || departmentsQuery.isPending || buyersQuery.isPending}
           emptyIcon={<CalendarDays className="size-5" />}
           emptyTitle={segment === 'triage' ? 'Triage queue is clear' : 'No meetings match'}
           emptyDescription={

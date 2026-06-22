@@ -5,7 +5,6 @@ import { DataTable, type Column } from '@/components/app/DataTable'
 import { FilterSelect } from '@/components/app/FilterSelect'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { ErrorState, CardGridSkeleton } from '@/components/app/states'
-import { useCrmData } from '@/features/crm/CrmDataContext'
 import { useRecordSelection } from '@/features/crm/useRecordSelection'
 import { OpportunityModal } from '@/features/crm/components/OpportunityModal'
 import { StageBadge } from '@/features/crm/components/CrmStatusBadge'
@@ -13,6 +12,7 @@ import { OPPORTUNITY_STAGES, stageChipClass } from '@/features/crm/constants'
 import { idOf, label, relatedName, textOf, formatDate } from '@/features/crm/format'
 import { uniqueValues } from '@/features/crm/pages/_shared'
 import { cn } from '@/lib/utils'
+import { listData, useOpportunitiesQuery, useRetailersQuery } from '@/features/crm/queries'
 import type { CrmOpportunity } from '@/lib/types'
 
 function fmtAmount(val: string | number | null | undefined): string | null {
@@ -25,7 +25,10 @@ function fmtAmount(val: string | number | null | undefined): string | null {
 }
 
 export function PipelinePage() {
-  const { opportunities, retailers, loading, error, refresh } = useCrmData()
+  const opportunitiesQuery = useOpportunitiesQuery(100)
+  const retailersQuery = useRetailersQuery(300)
+  const opportunities = listData(opportunitiesQuery.data)
+  const retailers = listData(retailersQuery.data)
   const [query, setQuery] = useState('')
   const [retailer, setRetailer] = useState('')
   const [program, setProgram] = useState('')
@@ -177,11 +180,11 @@ export function PipelinePage() {
         />
       }
     >
-      {error ? (
+      {opportunitiesQuery.isError ? (
         <div className="p-6">
-          <ErrorState onRetry={refresh} />
+          <ErrorState onRetry={() => void opportunitiesQuery.refetch()} />
         </div>
-      ) : loading ? (
+      ) : opportunitiesQuery.isPending || retailersQuery.isPending ? (
         <div className="p-6">
           <CardGridSkeleton count={8} />
         </div>

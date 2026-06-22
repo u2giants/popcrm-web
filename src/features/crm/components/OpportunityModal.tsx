@@ -1,4 +1,4 @@
-import { useMemo, useState, useRef, useEffect } from 'react'
+import { useMemo, useState, useRef, useEffect, useCallback } from 'react'
 import { toast } from 'sonner'
 import {
   ChevronLeft,
@@ -18,8 +18,8 @@ import {
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { ScrollArea } from '@/components/ui/scroll-area'
-import { useCrmData } from '@/features/crm/CrmDataContext'
-import { askOpportunityAi, createNote, setOpportunityStage } from '@/features/crm/api'
+import { askOpportunityAi } from '@/features/crm/api'
+import { listData, useCreateNoteMutation, useNotesQuery, useSetOpportunityStageMutation, useTasksQuery } from '@/features/crm/queries'
 import { OPPORTUNITY_STAGES, stageChipClass } from '@/features/crm/constants'
 import { formatDate, idOf, label, relatedName } from '@/features/crm/format'
 import { cn } from '@/lib/utils'
@@ -71,19 +71,18 @@ export function OpportunityModal({
 }) {
   const ref = useRef<HTMLDivElement>(null)
   const [expanded, setExpanded] = useState(false)
+  const close = useCallback(() => {
+    setExpanded(false)
+    onClose()
+  }, [onClose])
 
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
-      if (e.key === 'Escape') onClose()
+      if (e.key === 'Escape') close()
     }
     if (row) document.addEventListener('keydown', onKey)
     return () => document.removeEventListener('keydown', onKey)
-  }, [row, onClose])
-
-  // Reset expanded state when modal closes
-  useEffect(() => {
-    if (!row) setExpanded(false)
-  }, [row])
+  }, [row, close])
 
   // Prevent body scroll while open
   useEffect(() => {
@@ -98,7 +97,7 @@ export function OpportunityModal({
     <div
       className="fixed inset-0 z-50 flex items-center justify-center p-[2vw]"
       style={{ background: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(2px)' }}
-      onMouseDown={(e) => { if (e.target === e.currentTarget) onClose() }}
+      onMouseDown={(e) => { if (e.target === e.currentTarget) close() }}
     >
       {/* Modal shell */}
       <div
@@ -114,7 +113,7 @@ export function OpportunityModal({
         role="dialog"
         aria-modal="true"
       >
-        <ModalInner row={row} onClose={onClose} expanded={expanded} onToggleExpand={() => setExpanded((e) => !e)} />
+        <ModalInner row={row} onClose={close} expanded={expanded} onToggleExpand={() => setExpanded((e) => !e)} />
       </div>
       <style>{`
         @keyframes modal-pop {
@@ -137,7 +136,10 @@ function ModalInner({
   expanded: boolean
   onToggleExpand: () => void
 }) {
-  const { notes, tasks, setOpportunities, setNotes } = useCrmData()
+  const notes = listData(useNotesQuery(50).data)
+  const tasks = listData(useTasksQuery(100).data)
+  const createNoteMutation = useCreateNoteMutation()
+  const setStageMutation = useSetOpportunityStageMutation()
   const [stage, setStage] = useState(row.stage || OPPORTUNITY_STAGES[0])
   const [composerText, setComposerText] = useState('')
   const [sending, setSending] = useState(false)
@@ -186,14 +188,13 @@ function ModalInner({
     setSending(true)
     setComposerText('')
     try {
-      const note = await createNote({
+      await createNoteMutation.mutateAsync({
         title: 'Comment',
         body,
         opportunity: row.id,
         retailer: typeof row.retailer === 'string' ? row.retailer : row.retailer?.id ?? null,
         source: 'MANUAL',
       })
-      setNotes((prev) => [note, ...prev])
     } catch {
       toast.error('Could not save comment')
       setComposerText(body)
@@ -205,13 +206,11 @@ function ModalInner({
   async function changeStage(next: string) {
     const prev = stage
     setStage(next)
-    setOpportunities((rows) => rows.map((r) => (r.id === row.id ? { ...r, stage: next } : r)))
     try {
-      await setOpportunityStage(row.id, next)
+      await setStageMutation.mutateAsync({ id: row.id, stage: next })
       toast.success(`Stage → ${label(next)}`)
     } catch {
       setStage(prev)
-      setOpportunities((rows) => rows.map((r) => (r.id === row.id ? { ...r, stage: prev } : r)))
       toast.error('Could not update stage')
     }
   }

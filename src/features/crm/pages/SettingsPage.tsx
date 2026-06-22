@@ -12,24 +12,26 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { EmptyState } from '@/components/app/states'
-import { useCrmData } from '@/features/crm/CrmDataContext'
-import { updateAiModelConfig } from '@/features/crm/api'
 import { AI_MODELS, AI_MODEL_FIELDS, WORKER_CADENCE } from '@/features/crm/constants'
 import { label } from '@/features/crm/format'
+import { listData, useAiConfigsQuery, useFirefliesHealth, useIgnoreRulesQuery, useUpdateAiConfigMutation } from '@/features/crm/queries'
 import { SUPABASE_URL } from '@/lib/supabase'
 import type { CrmAiModelConfig } from '@/lib/types'
 
 export function SettingsPage() {
-  const { aiConfigs, ignoreRules, firefliesOk, setAiConfigs } = useCrmData()
+  const aiConfigsQuery = useAiConfigsQuery()
+  const ignoreRulesQuery = useIgnoreRulesQuery()
+  const fireflies = useFirefliesHealth()
+  const updateAiConfigMutation = useUpdateAiConfigMutation()
+  const aiConfigs = listData(aiConfigsQuery.data)
+  const ignoreRules = listData(ignoreRulesQuery.data)
+  const firefliesOk = fireflies.data ?? null
 
   async function saveField(config: CrmAiModelConfig, field: keyof CrmAiModelConfig, value: string) {
-    const prev = config[field]
-    setAiConfigs((rows) => rows.map((r) => (r.id === config.id ? { ...r, [field]: value } : r)))
     try {
-      await updateAiModelConfig(config.id, { [field]: value })
+      await updateAiConfigMutation.mutateAsync({ id: config.id, values: { [field]: value } })
       toast.success('Model updated')
     } catch {
-      setAiConfigs((rows) => rows.map((r) => (r.id === config.id ? { ...r, [field]: prev } : r)))
       toast.error('Could not update model')
     }
   }

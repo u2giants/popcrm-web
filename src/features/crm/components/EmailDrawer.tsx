@@ -13,8 +13,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { useCrmData } from '@/features/crm/CrmDataContext'
-import { createIgnoreRule, updateEmailMessage } from '@/features/crm/api'
+import {
+  listData,
+  useCreateIgnoreRuleMutation,
+  useDepartmentsQuery,
+  useIngestedDomainsQuery,
+  useOpportunitiesQuery,
+  useUpdateEmailMutation,
+} from '@/features/crm/queries'
 import { ROUTING_STATUSES } from '@/features/crm/constants'
 import { formatDateTime, idOf, label, relatedName } from '@/features/crm/format'
 import type { CrmEmailMessage } from '@/lib/types'
@@ -65,7 +71,14 @@ function MethodConfidence({ method }: { method: string }) {
 }
 
 function EmailDrawerForm({ row, onClose }: { row: CrmEmailMessage; onClose: () => void }) {
-  const { retailers, opportunities, departments, setEmails, setIgnoreRules } = useCrmData()
+  const retailersQuery = useIngestedDomainsQuery(100)
+  const opportunitiesQuery = useOpportunitiesQuery(100)
+  const departmentsQuery = useDepartmentsQuery(300)
+  const updateEmailMutation = useUpdateEmailMutation()
+  const createIgnoreRuleMutation = useCreateIgnoreRuleMutation()
+  const retailers = listData(retailersQuery.data)
+  const opportunities = listData(opportunitiesQuery.data)
+  const departments = listData(departmentsQuery.data)
   const [status, setStatus] = useState(row.routing_status || 'UNROUTED')
   const [retailer, setRetailer] = useState(idOf(row.retailer))
   const [department, setDepartment] = useState(idOf(row.department))
@@ -94,19 +107,21 @@ function EmailDrawerForm({ row, onClose }: { row: CrmEmailMessage; onClose: () =
       })),
     [opportunities],
   )
+  const retailerById = useMemo(() => new Map(retailers.map((r) => [r.id, r])), [retailers])
+  const departmentById = useMemo(() => new Map(departments.map((d) => [d.id, d])), [departments])
+  const opportunityById = useMemo(() => new Map(opportunities.map((o) => [o.id, o])), [opportunities])
 
   async function save() {
     setSaving(true)
     const values: Partial<CrmEmailMessage> = {
       routing_status: status,
       routing_method: method || 'MANUAL',
-      retailer: retailer || null,
-      department: department || null,
-      opportunity: opportunity || null,
+      retailer: retailerById.get(retailer) ?? null,
+      department: departmentById.get(department) ?? null,
+      opportunity: opportunityById.get(opportunity) ?? null,
     }
     try {
-      await updateEmailMessage(row.id, values)
-      setEmails((rows) => rows.map((r) => (r.id === row.id ? { ...r, ...values } : r)))
+      await updateEmailMutation.mutateAsync({ id: row.id, values })
       toast.success('Routing saved')
       onClose()
     } catch {
@@ -124,8 +139,7 @@ function EmailDrawerForm({ row, onClose }: { row: CrmEmailMessage; onClose: () =
     }
     setIgnoring(true)
     try {
-      const rule = await createIgnoreRule({ name: pattern, pattern, match_type: 'CONTAINS', emails_skipped: 0 })
-      setIgnoreRules((rows) => [rule, ...rows])
+      await createIgnoreRuleMutation.mutateAsync({ name: pattern, pattern, match_type: 'CONTAINS', emails_skipped: 0 })
       toast.success('Ignore rule created from subject')
     } catch {
       toast.error('Could not create ignore rule')

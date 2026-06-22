@@ -17,13 +17,22 @@ import {
 import { ErrorState } from '@/components/app/states'
 import { CrmStatusBadge } from '@/features/crm/components/CrmStatusBadge'
 import { RelationLabel } from '@/features/crm/components/RelationLabel'
-import { useCrmData } from '@/features/crm/CrmDataContext'
 import { useRecordSelection } from '@/features/crm/useRecordSelection'
 import { EmailDrawer } from '@/features/crm/components/EmailDrawer'
-import { createIgnoreRule, updateEmailMessage } from '@/features/crm/api'
 import { MATCH_TYPES, ROUTING_STATUSES, WORKER_CADENCE, needsRouting } from '@/features/crm/constants'
 import { formatDateTime, idOf, label, relatedName, textOf } from '@/features/crm/format'
 import { useAuth } from '@/auth/auth'
+import {
+  listData,
+  useCreateIgnoreRuleMutation,
+  useDepartmentsQuery,
+  useEmailsQuery,
+  useFirefliesHealth,
+  useIgnoreRulesQuery,
+  useIngestedDomainsQuery,
+  useOpportunitiesQuery,
+  useUpdateEmailMutation,
+} from '@/features/crm/queries'
 import type { CrmEmailMessage } from '@/lib/types'
 
 type Segment = 'company' | 'department' | 'program' | 'triage' | 'all'
@@ -44,18 +53,22 @@ function MethodChip({ method }: { method: string | null | undefined }) {
 }
 
 export function EmailRoutingPage() {
-  const {
-    emails,
-    setEmails,
-    ignoreRules,
-    ingestedDomains: retailers,
-    departments,
-    opportunities,
-    loading,
-    error,
-    refresh,
-    firefliesOk,
-  } = useCrmData()
+  const emailsQuery = useEmailsQuery(50)
+  const ignoreRulesQuery = useIgnoreRulesQuery()
+  const retailersQuery = useIngestedDomainsQuery(100)
+  const departmentsQuery = useDepartmentsQuery(300)
+  const opportunitiesQuery = useOpportunitiesQuery(100)
+  const fireflies = useFirefliesHealth()
+  const updateEmailMutation = useUpdateEmailMutation()
+  const createIgnoreRuleMutation = useCreateIgnoreRuleMutation()
+  const emails = listData(emailsQuery.data)
+  const ignoreRules = listData(ignoreRulesQuery.data)
+  const retailers = listData(retailersQuery.data)
+  const departments = listData(departmentsQuery.data)
+  const opportunities = listData(opportunitiesQuery.data)
+  const firefliesOk = fireflies.data ?? null
+  const loading = emailsQuery.isPending || retailersQuery.isPending || departmentsQuery.isPending || opportunitiesQuery.isPending
+  const error = emailsQuery.isError
   const { user } = useAuth()
   const roleText = `${user?.role?.name ?? ''} ${user?.role?.id ?? ''}`.toLowerCase()
   const canSeeAll = /admin/.test(roleText)
@@ -94,7 +107,6 @@ export function EmailRoutingPage() {
   }
 
   async function editCell(row: CrmEmailMessage, key: string, value: string) {
-    const prev = (row as unknown as Record<string, unknown>)[key]
     const nextValue = value || null
     const expanded =
       key === 'retailer'
@@ -104,11 +116,9 @@ export function EmailRoutingPage() {
           : key === 'opportunity'
             ? opportunityById.get(value) ?? null
             : nextValue
-    setEmails((rows) => rows.map((e) => (e.id === row.id ? { ...e, [key]: expanded } : e)))
     try {
-      await updateEmailMessage(row.id, { [key]: nextValue } as Partial<CrmEmailMessage>)
+      await updateEmailMutation.mutateAsync({ id: row.id, values: { [key]: expanded ?? nextValue } as Partial<CrmEmailMessage> })
     } catch {
-      setEmails((rows) => rows.map((e) => (e.id === row.id ? { ...e, [key]: prev } : e)))
       toast.error('Could not save change')
     }
   }
@@ -253,7 +263,7 @@ export function EmailRoutingPage() {
       }
     >
       {error ? (
-        <ErrorState onRetry={refresh} />
+        <ErrorState onRetry={() => void emailsQuery.refetch()} />
       ) : (
         <div className="grid gap-4 xl:grid-cols-[1fr_340px]">
           <DataTable
@@ -311,7 +321,6 @@ export function EmailRoutingPage() {
   }
 
   function IgnoreRulesPanel() {
-    const { setIgnoreRules } = useCrmData()
     const [pattern, setPattern] = useState('')
     const [matchType, setMatchType] = useState<string>('CONTAINS')
     const [busy, setBusy] = useState(false)
@@ -321,8 +330,7 @@ export function EmailRoutingPage() {
       if (!value) return
       setBusy(true)
       try {
-        const rule = await createIgnoreRule({ name: value, pattern: value, match_type: matchType, emails_skipped: 0 })
-        setIgnoreRules((rows) => [rule, ...rows])
+        await createIgnoreRuleMutation.mutateAsync({ name: value, pattern: value, match_type: matchType, emails_skipped: 0 })
         setPattern('')
         toast.success('Ignore rule added')
       } catch {

@@ -5,14 +5,15 @@ import { DataTable, type Column } from '@/components/app/DataTable'
 import { ErrorState } from '@/components/app/states'
 import { CrmStatusBadge } from '@/features/crm/components/CrmStatusBadge'
 import { RelationLabel } from '@/features/crm/components/RelationLabel'
-import { useCrmData } from '@/features/crm/CrmDataContext'
 import { useRecordSelection } from '@/features/crm/useRecordSelection'
 import { ApprovalDrawer } from '@/features/crm/components/ApprovalDrawer'
 import { formatDate, relatedName, textOf } from '@/features/crm/format'
+import { listData, useApprovalsQuery } from '@/features/crm/queries'
 import type { CrmLicensorApprovalThread } from '@/lib/types'
 
 export function ApprovalsPage() {
-  const { approvals, loading, error, refresh } = useCrmData()
+  const approvalsQuery = useApprovalsQuery(100)
+  const approvals = listData(approvalsQuery.data)
   const [query, setQuery] = useState('')
   const [selected, select] = useRecordSelection<CrmLicensorApprovalThread>('approval', approvals)
 
@@ -97,15 +98,15 @@ export function ApprovalsPage() {
         />
       }
     >
-      {error ? (
-        <ErrorState onRetry={refresh} />
+      {approvalsQuery.isError ? (
+        <ErrorState onRetry={() => void approvalsQuery.refetch()} />
       ) : (
         <DataTable
           rows={filtered}
           columns={columns}
           getRowId={(a) => a.id}
           onRowClick={(a) => select(a)}
-          loading={loading}
+          loading={approvalsQuery.isPending}
           emptyIcon={<ShieldCheck className="size-5" />}
           emptyTitle="No approvals match"
           emptyDescription="Adjust your search or column filters."

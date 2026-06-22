@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react'
 import { toast } from 'sonner'
+import { useQueryClient } from '@tanstack/react-query'
 import { Database, Plus, Save, Trash2, Wand2 } from 'lucide-react'
 import { AppPage, ListBar, SectionHeader } from '@/components/app/AppPage'
 import { Combobox, type ComboOption } from '@/components/app/Combobox'
@@ -10,7 +11,6 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { useCrmData } from '@/features/crm/CrmDataContext'
 import {
   createDepartment,
   deleteDepartment,
@@ -20,7 +20,15 @@ import {
 } from '@/features/crm/api'
 import { idOf, label, relatedName } from '@/features/crm/format'
 import { uniqueValues } from '@/features/crm/pages/_shared'
-import type { Buyer, CrmDepartment } from '@/lib/types'
+import {
+  crmKeys,
+  listData,
+  useDepartmentsQuery,
+  useIngestedContactsQuery,
+  useIngestedDomainsQuery,
+  useOpportunitiesQuery,
+} from '@/features/crm/queries'
+import type { Buyer, CrmDepartment, CrmOpportunity } from '@/lib/types'
 
 type AdminTab = 'departments' | 'contact-values' | 'division-values'
 
@@ -49,19 +57,23 @@ function valueOptions(values: string[]): ComboOption[] {
 }
 
 export function DataAdminPage() {
-  // Raw-data admin → operate on the full ingested company/contact registries.
-  const {
-    ingestedContacts: buyers,
-    setIngestedContacts: setBuyers,
-    departments,
-    setDepartments,
-    opportunities,
-    setOpportunities,
-    ingestedDomains: retailers,
-    loading,
-    error,
-    refresh,
-  } = useCrmData()
+  const queryClient = useQueryClient()
+  const buyersQuery = useIngestedContactsQuery(100)
+  const departmentsQuery = useDepartmentsQuery(300)
+  const opportunitiesQuery = useOpportunitiesQuery(100)
+  const retailersQuery = useIngestedDomainsQuery(100)
+  const buyers = listData(buyersQuery.data)
+  const departments = listData(departmentsQuery.data)
+  const opportunities = listData(opportunitiesQuery.data)
+  const retailers = listData(retailersQuery.data)
+  const loading = buyersQuery.isPending || departmentsQuery.isPending || opportunitiesQuery.isPending || retailersQuery.isPending
+  const error = buyersQuery.isError || departmentsQuery.isError || opportunitiesQuery.isError || retailersQuery.isError
+  const refresh = () => {
+    void buyersQuery.refetch()
+    void departmentsQuery.refetch()
+    void opportunitiesQuery.refetch()
+    void retailersQuery.refetch()
+  }
   const [tab, setTab] = useState<AdminTab>('departments')
   const [departmentDraft, setDepartmentDraft] = useState<DepartmentForm>(() => departmentForm())
   const [selectedDepartmentId, setSelectedDepartmentId] = useState('')
@@ -157,7 +169,7 @@ export function DataAdminPage() {
     try {
       if (departmentDraft.id) {
         await updateDepartment(departmentDraft.id, payload)
-        setDepartments((rows) =>
+        queryClient.setQueryData<CrmDepartment[]>(crmKeys.departments(300), (rows = []) =>
           rows.map((d) =>
             d.id === departmentDraft.id
               ? {
@@ -172,7 +184,7 @@ export function DataAdminPage() {
         toast.success('Department updated')
       } else {
         const created = await createDepartment(payload)
-        setDepartments((rows) => [
+        queryClient.setQueryData<CrmDepartment[]>(crmKeys.departments(300), (rows = []) => [
           ...rows,
           {
             ...created,
@@ -206,7 +218,7 @@ export function DataAdminPage() {
     setBusy(true)
     try {
       await deleteDepartment(departmentDraft.id)
-      setDepartments((rows) => rows.filter((d) => d.id !== departmentDraft.id))
+      queryClient.setQueryData<CrmDepartment[]>(crmKeys.departments(300), (rows = []) => rows.filter((d) => d.id !== departmentDraft.id))
       setDepartmentDraft(departmentForm())
       setSelectedDepartmentId('')
       toast.success('Department deleted')
@@ -226,7 +238,7 @@ export function DataAdminPage() {
         ? { ...b, job_title: b.job_title || b.contact_type, contact_type: null }
         : b,
     )
-    setBuyers(next)
+    queryClient.setQueryData<Buyer[]>(crmKeys.ingestedContacts(100), next)
     try {
       await Promise.all(
         moveCandidates.map((b) =>
@@ -239,7 +251,7 @@ export function DataAdminPage() {
       toast.success(`Updated ${moveCandidates.length.toLocaleString()} contacts`)
       setTypeToMove('')
     } catch {
-      setBuyers(previous)
+      queryClient.setQueryData<Buyer[]>(crmKeys.ingestedContacts(100), previous)
       toast.error('Could not move Type values')
     } finally {
       setBusy(false)
@@ -254,8 +266,12 @@ export function DataAdminPage() {
     setBusy(true)
     const previousDepartments = departments
     const previousOpportunities = opportunities
-    setDepartments((rows) => rows.map((d) => (d.division === divisionFrom ? { ...d, division: nextValue } : d)))
-    setOpportunities((rows) => rows.map((o) => (o.division === divisionFrom ? { ...o, division: nextValue } : o)))
+    queryClient.setQueryData<CrmDepartment[]>(crmKeys.departments(300), (rows = []) =>
+      rows.map((d) => (d.division === divisionFrom ? { ...d, division: nextValue } : d)),
+    )
+    queryClient.setQueryData<CrmOpportunity[]>(crmKeys.opportunities(100), (rows = []) =>
+      rows.map((o) => (o.division === divisionFrom ? { ...o, division: nextValue } : o)),
+    )
     try {
       await Promise.all([
         ...departmentRows.map((d) => updateDepartment(d.id, { division: nextValue })),
@@ -265,8 +281,8 @@ export function DataAdminPage() {
       setDivisionFrom('')
       setDivisionTo('')
     } catch {
-      setDepartments(previousDepartments)
-      setOpportunities(previousOpportunities)
+      queryClient.setQueryData<CrmDepartment[]>(crmKeys.departments(300), previousDepartments)
+      queryClient.setQueryData<CrmOpportunity[]>(crmKeys.opportunities(100), previousOpportunities)
       toast.error('Could not rename division')
     } finally {
       setBusy(false)

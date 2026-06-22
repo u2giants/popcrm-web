@@ -1,10 +1,11 @@
 import { AuthProvider, useAuth } from '@/auth/auth'
 import { LoginPage } from '@/pages/LoginPage'
-import { CrmDataProvider } from '@/features/crm/CrmDataContext'
 import { AppRoutes } from '@/app/routes'
+import { useCrmRealtimeInvalidation } from '@/features/crm/realtime'
 
 function Gate() {
   const { user, loading } = useAuth()
+  useCrmRealtimeInvalidation(!!user)
 
   if (loading) {
     return (
@@ -15,11 +16,7 @@ function Gate() {
   }
   if (!user) return <LoginPage />
 
-  return (
-    <CrmDataProvider>
-      <AppRoutes />
-    </CrmDataProvider>
-  )
+  return <AppRoutes />
 }
 
 export default function App() {

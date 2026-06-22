@@ -18,16 +18,20 @@ import {
 } from '@/components/ui/dialog'
 import { ErrorState } from '@/components/app/states'
 import { RelationLabel } from '@/features/crm/components/RelationLabel'
-import { useCrmData } from '@/features/crm/CrmDataContext'
 import { useRecordSelection } from '@/features/crm/useRecordSelection'
 import { NoteDrawer } from '@/features/crm/components/NoteDrawer'
-import { createNote } from '@/features/crm/api'
 import { label, relatedName, textOf } from '@/features/crm/format'
 import { StatusBadge } from '@/components/app/StatusBadge'
+import { listData, useCreateNoteMutation, useNotesQuery, useOpportunitiesQuery, useRetailersQuery } from '@/features/crm/queries'
 import type { CrmNote } from '@/lib/types'
 
 export function NotesPage() {
-  const { notes, retailers, opportunities, loading, error, refresh, setNotes } = useCrmData()
+  const notesQuery = useNotesQuery(50)
+  const retailersQuery = useRetailersQuery(300)
+  const opportunitiesQuery = useOpportunitiesQuery(100)
+  const notes = listData(notesQuery.data)
+  const retailers = listData(retailersQuery.data)
+  const opportunities = listData(opportunitiesQuery.data)
   const [query, setQuery] = useState('')
   const [creating, setCreating] = useState(false)
   const [selected, select] = useRecordSelection<CrmNote>('note', notes)
@@ -97,15 +101,15 @@ export function NotesPage() {
         />
       }
     >
-      {error ? (
-        <ErrorState onRetry={refresh} />
+      {notesQuery.isError ? (
+        <ErrorState onRetry={() => void notesQuery.refetch()} />
       ) : (
         <DataTable
           rows={filtered}
           columns={columns}
           getRowId={(n) => n.id}
           onRowClick={(n) => select(n)}
-          loading={loading}
+          loading={notesQuery.isPending}
           emptyIcon={<NotebookTabs className="size-5" />}
           emptyTitle="No notes yet"
           emptyDescription="Create a note to capture CRM context."
@@ -118,7 +122,6 @@ export function NotesPage() {
         onClose={() => setCreating(false)}
         retailerOptions={retailers.map((r) => ({ value: r.id, label: r.name }))}
         opportunityOptions={opportunities.map((o) => ({ value: o.id, label: o.name || 'Untitled program', hint: relatedName(o.retailer) }))}
-        onCreated={(note) => setNotes((rows) => [note, ...rows])}
       />
     </AppPage>
   )
@@ -129,14 +132,13 @@ function NewNoteDialog({
   onClose,
   retailerOptions,
   opportunityOptions,
-  onCreated,
 }: {
   open: boolean
   onClose: () => void
   retailerOptions: ComboOption[]
   opportunityOptions: ComboOption[]
-  onCreated: (note: CrmNote) => void
 }) {
+  const createNoteMutation = useCreateNoteMutation()
   const [title, setTitle] = useState('')
   const [body, setBody] = useState('')
   const [retailer, setRetailer] = useState('')
@@ -157,14 +159,13 @@ function NewNoteDialog({
     }
     setBusy(true)
     try {
-      const note = await createNote({
+      await createNoteMutation.mutateAsync({
         title: title.trim() || 'CRM note',
         body,
         source: 'MANUAL',
         retailer: retailer || null,
         opportunity: opportunity || null,
       })
-      onCreated(note)
       toast.success('Note created')
       reset()
       onClose()

@@ -17,11 +17,11 @@ import { StatusBadge } from '@/components/app/StatusBadge'
 import { ChartDonut, type DonutSlice } from '@/components/app/ChartDonut'
 import { ChartHBar, type HBarItem } from '@/components/app/ChartHBar'
 import { ChartAreaVolume, type AreaSeries } from '@/components/app/ChartAreaVolume'
-import { useCrmData } from '@/features/crm/CrmDataContext'
 import { CrmStatusBadge } from '@/features/crm/components/CrmStatusBadge'
 import { RelationLabel } from '@/features/crm/components/RelationLabel'
 import { OPPORTUNITY_STAGES, isApprovalResolved, needsRouting } from '@/features/crm/constants'
 import { formatDate, label } from '@/features/crm/format'
+import { listData, useCrmStatsQuery, useFirefliesHealth } from '@/features/crm/queries'
 
 const ROUTING_COLORS: Record<string, string> = {
   ROUTED: 'var(--chart-3)',
@@ -64,8 +64,33 @@ function buildWeeklyVolume(
 
 export function OverviewPage() {
   const navigate = useNavigate()
-  const { stats, emails, opportunities, meetings, approvals, loading, error, refresh, firefliesOk } =
-    useCrmData()
+  const statsQuery = useCrmStatsQuery()
+  const fireflies = useFirefliesHealth()
+  const emails = listData(statsQuery.data?.emails)
+  const opportunities = listData(statsQuery.data?.opportunities)
+  const meetings = listData(statsQuery.data?.meetings)
+  const approvals = listData(statsQuery.data?.approvals)
+  const tasks = listData(statsQuery.data?.tasks)
+  const retailers = listData(statsQuery.data?.retailers)
+  const buyers = listData(statsQuery.data?.buyers)
+  const firefliesOk = fireflies.data ?? null
+  const stats = useMemo(() => {
+    const by = (status: string) => emails.filter((e) => e.routing_status === status).length
+    return {
+      accounts: retailers.length,
+      contacts: buyers.length,
+      openOpportunities: opportunities.filter((o) => o.stage !== 'CLOSED').length,
+      emails: emails.length,
+      needsRouting: emails.filter((e) => needsRouting(e.routing_status)).length,
+      routed: by('ROUTED'),
+      skipped: by('SKIPPED'),
+      companyOnly: by('COMPANY_ONLY'),
+      companyDept: by('COMPANY_DEPT'),
+      meetings: meetings.length,
+      openTasks: tasks.filter((t) => t.status !== 'DONE' && t.status !== 'CANCELED').length,
+      pendingApprovals: approvals.filter((a) => !isApprovalResolved(a.stage)).length,
+    }
+  }, [retailers, buyers, opportunities, emails, meetings, tasks, approvals])
 
   const routingSlices = useMemo<DonutSlice[]>(() => {
     const counts = new Map<string, number>()
@@ -104,10 +129,10 @@ export function OverviewPage() {
     [approvals],
   )
 
-  if (error) {
+  if (statsQuery.isError) {
     return (
       <AppPage title="Overview" description="Operational snapshot of POP CRM.">
-        <ErrorState onRetry={refresh} />
+        <ErrorState onRetry={() => void statsQuery.refetch()} />
       </AppPage>
     )
   }
@@ -126,7 +151,7 @@ export function OverviewPage() {
         />
       }
     >
-      {loading ? (
+      {statsQuery.isPending ? (
         <div className="space-y-4">
           <CardGridSkeleton count={7} />
           <CardGridSkeleton count={2} />

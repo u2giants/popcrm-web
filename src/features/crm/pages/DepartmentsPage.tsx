@@ -4,15 +4,16 @@ import { AppPage, ListBar } from '@/components/app/AppPage'
 import { DataTable, type Column } from '@/components/app/DataTable'
 import { ErrorState } from '@/components/app/states'
 import { RelationLabel } from '@/features/crm/components/RelationLabel'
-import { useCrmData } from '@/features/crm/CrmDataContext'
 import { useRecordSelection } from '@/features/crm/useRecordSelection'
 import { DepartmentDrawer } from '@/features/crm/components/DepartmentDrawer'
 import { label, relatedName, textOf } from '@/features/crm/format'
 import { StatusBadge } from '@/components/app/StatusBadge'
+import { listData, useDepartmentsQuery } from '@/features/crm/queries'
 import type { CrmDepartment } from '@/lib/types'
 
 export function DepartmentsPage() {
-  const { departments, loading, error, refresh } = useCrmData()
+  const departmentsQuery = useDepartmentsQuery(300)
+  const departments = listData(departmentsQuery.data)
   const [query, setQuery] = useState('')
   const [selected, select] = useRecordSelection<CrmDepartment>('department', departments)
 
@@ -87,15 +88,15 @@ export function DepartmentsPage() {
         />
       }
     >
-      {error ? (
-        <ErrorState onRetry={refresh} />
+      {departmentsQuery.isError ? (
+        <ErrorState onRetry={() => void departmentsQuery.refetch()} />
       ) : (
         <DataTable
           rows={filtered}
           columns={columns}
           getRowId={(d) => d.id}
           onRowClick={(d) => select(d)}
-          loading={loading}
+          loading={departmentsQuery.isPending}
           groupBy={(d) => relatedName(d.retailer)}
           emptyIcon={<Building2 className="size-5" />}
           emptyTitle="No departments match"

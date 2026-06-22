@@ -4,11 +4,11 @@ import { AppPage, ListBar } from '@/components/app/AppPage'
 import { DataTable, type Column } from '@/components/app/DataTable'
 import { ErrorState } from '@/components/app/states'
 import { RelationLabel } from '@/features/crm/components/RelationLabel'
-import { useCrmData } from '@/features/crm/CrmDataContext'
 import { useRecordSelection } from '@/features/crm/useRecordSelection'
 import { OpportunityModal } from '@/features/crm/components/OpportunityModal'
 import { StageBadge } from '@/features/crm/components/CrmStatusBadge'
 import { formatDate, label, relatedName, textOf } from '@/features/crm/format'
+import { listData, useOpportunitiesQuery } from '@/features/crm/queries'
 import type { CrmOpportunity } from '@/lib/types'
 
 function fmtAmount(val: string | number | null | undefined): string | null {
@@ -21,7 +21,8 @@ function fmtAmount(val: string | number | null | undefined): string | null {
 }
 
 export function ProgramsPage() {
-  const { opportunities, loading, error, refresh } = useCrmData()
+  const opportunitiesQuery = useOpportunitiesQuery(100)
+  const opportunities = listData(opportunitiesQuery.data)
   const [query, setQuery] = useState('')
   const [selected, select] = useRecordSelection<CrmOpportunity>('opportunity', opportunities)
 
@@ -117,15 +118,15 @@ export function ProgramsPage() {
         />
       }
     >
-      {error ? (
-        <ErrorState onRetry={refresh} />
+      {opportunitiesQuery.isError ? (
+        <ErrorState onRetry={() => void opportunitiesQuery.refetch()} />
       ) : (
         <DataTable
           rows={filtered}
           columns={columns}
           getRowId={(o) => o.id}
           onRowClick={(o) => select(o)}
-          loading={loading}
+          loading={opportunitiesQuery.isPending}
           emptyIcon={<Route className="size-5" />}
           emptyTitle="No programs match"
           emptyDescription="Adjust your search or column filters."

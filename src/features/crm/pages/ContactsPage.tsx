@@ -1,18 +1,25 @@
 import { useMemo, useState } from 'react'
 import { toast } from 'sonner'
+import { useQueryClient } from '@tanstack/react-query'
 import { Contact } from 'lucide-react'
 import { AppPage, ListBar } from '@/components/app/AppPage'
 import { DataTable, type Column, type EditOption } from '@/components/app/DataTable'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { ErrorState } from '@/components/app/states'
 import { RelationLabel } from '@/features/crm/components/RelationLabel'
-import { useCrmData } from '@/features/crm/CrmDataContext'
 import { useRecordSelection } from '@/features/crm/useRecordSelection'
 import { ContactDrawer } from '@/features/crm/components/ContactDrawer'
 import { idOf, label, relatedName, textOf } from '@/features/crm/format'
 import { StatusBadge } from '@/components/app/StatusBadge'
 import { NameAvatar } from '@/components/app/NameAvatar'
-import { updateBuyer } from '@/features/crm/api'
+import {
+  crmKeys,
+  listData,
+  useDepartmentsQuery,
+  useIngestedContactsQuery,
+  useIngestedDomainsQuery,
+  useUpdateContactMutation,
+} from '@/features/crm/queries'
 import type { Buyer } from '@/lib/types'
 
 type Segment = 'customer' | 'department' | 'triage' | 'all'
@@ -26,16 +33,14 @@ function isTriageAccount(status: string | null | undefined) {
 }
 
 export function ContactsPage() {
-  // Triage page → work over the full ingested company/contact registries.
-  const {
-    ingestedContacts: buyers,
-    setIngestedContacts: setBuyers,
-    ingestedDomains: retailers,
-    departments,
-    loading,
-    error,
-    refresh,
-  } = useCrmData()
+  const queryClient = useQueryClient()
+  const buyersQuery = useIngestedContactsQuery(100)
+  const retailersQuery = useIngestedDomainsQuery(100)
+  const departmentsQuery = useDepartmentsQuery(300)
+  const updateContactMutation = useUpdateContactMutation()
+  const buyers = listData(buyersQuery.data)
+  const retailers = listData(retailersQuery.data)
+  const departments = listData(departmentsQuery.data)
   const [query, setQuery] = useState('')
   const [segment, setSegment] = useState<Segment>('customer')
   const [selected, select] = useRecordSelection<Buyer>('contact', buyers)
@@ -101,7 +106,7 @@ export function ContactsPage() {
     const patch: Partial<Buyer> = clearStaleDepartment
       ? ({ [key]: nextValue, department: null } as Partial<Buyer>)
       : ({ [key]: nextValue } as Partial<Buyer>)
-    setBuyers((rows) =>
+    queryClient.setQueryData<Buyer[]>(crmKeys.ingestedContacts(100), (rows = []) =>
       rows.map((b) =>
         b.id === row.id
           ? { ...b, [key]: expanded, ...(clearStaleDepartment ? { department: null } : {}) }
@@ -109,9 +114,9 @@ export function ContactsPage() {
       ),
     )
     try {
-      await updateBuyer(row.id, patch)
+      await updateContactMutation.mutateAsync({ id: row.id, values: patch })
     } catch {
-      setBuyers((rows) =>
+      queryClient.setQueryData<Buyer[]>(crmKeys.ingestedContacts(100), (rows = []) =>
         rows.map((b) =>
           b.id === row.id
             ? { ...b, [key]: prev, ...(clearStaleDepartment ? { department: row.department } : {}) }
@@ -245,8 +250,8 @@ export function ContactsPage() {
         />
       }
     >
-      {error ? (
-        <ErrorState onRetry={refresh} />
+      {buyersQuery.isError ? (
+        <ErrorState onRetry={() => void buyersQuery.refetch()} />
       ) : (
         <DataTable
           rows={filtered}
@@ -254,7 +259,7 @@ export function ContactsPage() {
           getRowId={(b) => b.id}
           onRowClick={(b) => select(b)}
           onCellEdit={editCell}
-          loading={loading}
+          loading={buyersQuery.isPending || retailersQuery.isPending || departmentsQuery.isPending}
           emptyIcon={<Contact className="size-5" />}
           emptyTitle={segment === 'triage' ? 'Triage queue is clear' : 'No contacts match'}
           emptyDescription={

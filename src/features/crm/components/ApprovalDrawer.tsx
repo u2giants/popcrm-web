@@ -13,8 +13,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { useCrmData } from '@/features/crm/CrmDataContext'
-import { updateApprovalThread } from '@/features/crm/api'
+import { useUpdateApprovalMutation } from '@/features/crm/queries'
 import { approvalTone } from '@/features/crm/constants'
 import { formatDate, relatedName } from '@/features/crm/format'
 import type { CrmLicensorApprovalThread } from '@/lib/types'
@@ -51,7 +50,7 @@ export function ApprovalDrawer({
 }
 
 function ApprovalDrawerForm({ row }: { row: CrmLicensorApprovalThread }) {
-  const { setApprovals } = useCrmData()
+  const updateApprovalMutation = useUpdateApprovalMutation()
   const [stage, setStage] = useState(row.stage || '')
   const [saving, setSaving] = useState(false)
 
@@ -61,12 +60,10 @@ function ApprovalDrawerForm({ row }: { row: CrmLicensorApprovalThread }) {
     if (!dirty) return
     setSaving(true)
     const prev = row.stage
-    setApprovals((rows) => rows.map((a) => (a.id === row.id ? { ...a, stage } : a)))
     try {
-      await updateApprovalThread(row.id, { stage })
+      await updateApprovalMutation.mutateAsync({ id: row.id, values: { stage } })
       toast.success('Approval updated')
     } catch {
-      setApprovals((rows) => rows.map((a) => (a.id === row.id ? { ...a, stage: prev } : a)))
       setStage(prev || '')
       toast.error('Could not update approval')
     } finally {

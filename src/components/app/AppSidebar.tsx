@@ -1,11 +1,19 @@
 import { NavLink } from 'react-router-dom'
 import { Route } from 'lucide-react'
 import { NAV_SECTIONS } from '@/app/navigation'
-import { useCrmData } from '@/features/crm/CrmDataContext'
+import { useCrmStatsQuery, useFirefliesHealth } from '@/features/crm/queries'
+import { isApprovalResolved, needsRouting } from '@/features/crm/constants'
 import { cn } from '@/lib/utils'
 
 function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
-  const { stats, firefliesOk } = useCrmData()
+  const statsQuery = useCrmStatsQuery()
+  const fireflies = useFirefliesHealth()
+  const statsData = statsQuery.data
+  const stats = {
+    needsRouting: statsData?.emails.filter((e) => needsRouting(e.routing_status)).length ?? 0,
+    openTasks: statsData?.tasks.filter((t) => t.status !== 'DONE' && t.status !== 'CANCELED').length ?? 0,
+    pendingApprovals: statsData?.approvals.filter((a) => !isApprovalResolved(a.stage)).length ?? 0,
+  }
 
   const badges: Record<string, number> = {
     '/email': stats.needsRouting,
@@ -13,7 +21,7 @@ function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
     '/approvals': stats.pendingApprovals,
   }
 
-  const healthOk = firefliesOk !== false
+  const healthOk = fireflies.data !== false
 
   return (
     <div className="flex h-full flex-col" style={{ background: 'var(--sidebar)', color: 'var(--sidebar-foreground)' }}>

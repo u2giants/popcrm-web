@@ -3,12 +3,13 @@ import { Mail } from 'lucide-react'
 import { DetailDrawer, DescriptionItem, DescriptionList, DrawerSection } from '@/components/app/DetailDrawer'
 import { StatusBadge } from '@/components/app/StatusBadge'
 import { Button } from '@/components/ui/button'
-import { useCrmData } from '@/features/crm/CrmDataContext'
+import { listData, useEmailsQuery, useMeetingsQuery } from '@/features/crm/queries'
 import { idOf, label, relatedName, formatDate } from '@/features/crm/format'
 import type { Buyer } from '@/lib/types'
 
 export function ContactDrawer({ row, onClose }: { row: Buyer | null; onClose: () => void }) {
-  const { emails, meetings } = useCrmData()
+  const emails = listData(useEmailsQuery(50).data)
+  const meetings = listData(useMeetingsQuery(50).data)
 
   const related = useMemo(() => {
     if (!row) return { emails: [], meetings: [] }

@@ -6,14 +6,13 @@ import { DataTable, type Column, type EditOption } from '@/components/app/DataTa
 import { StatusBadge } from '@/components/app/StatusBadge'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { ErrorState } from '@/components/app/states'
-import { useCrmData } from '@/features/crm/CrmDataContext'
 import { useRecordSelection } from '@/features/crm/useRecordSelection'
 import { AccountDrawer } from '@/features/crm/components/AccountDrawer'
 import { ChainBadge } from '@/features/crm/components/CrmStatusBadge'
-import { updateRetailer } from '@/features/crm/api'
 import { CHAIN_TYPES, CUSTOMER_STATUSES, customerStatusLabel, customerStatusTone } from '@/features/crm/constants'
 import { idOf, label, textOf } from '@/features/crm/format'
 import { AccountLogo } from '@/components/app/AccountLogo'
+import { listData, useBuyersQuery, useIngestedDomainsQuery, useOpportunitiesQuery, useUpdateAccountMutation } from '@/features/crm/queries'
 import type { Retailer } from '@/lib/types'
 
 const STATUS_OPTIONS: EditOption[] = CUSTOMER_STATUSES.map((v) => ({ value: v, label: customerStatusLabel(v) }))
@@ -25,28 +24,22 @@ type Segment = 'active' | 'triage' | 'dismissed' | 'all'
 const statusOf = (r: Retailer) => r.customer_status || 'UNASSIGNED'
 
 export function AccountsPage() {
-  // Triage page → work over the full ingested company/contact registries.
-  const {
-    ingestedDomains: retailers,
-    setIngestedDomains: setRetailers,
-    ingestedContacts: buyers,
-    opportunities,
-    loading,
-    error,
-    refresh,
-  } = useCrmData()
+  const retailersQuery = useIngestedDomainsQuery(100)
+  const buyersQuery = useBuyersQuery(300)
+  const opportunitiesQuery = useOpportunitiesQuery(100)
+  const updateAccountMutation = useUpdateAccountMutation()
+  const retailers = listData(retailersQuery.data)
+  const buyers = listData(buyersQuery.data)
+  const opportunities = listData(opportunitiesQuery.data)
   const [query, setQuery] = useState('')
   const [segment, setSegment] = useState<Segment>('active')
   const [selected, select] = useRecordSelection<Retailer>('retailer', retailers)
 
   // Inline edit / drag-copy for the Status and Chain columns.
   async function editCell(row: Retailer, key: string, value: string) {
-    const prev = (row as unknown as Record<string, unknown>)[key]
-    setRetailers((rows) => rows.map((r) => (r.id === row.id ? { ...r, [key]: value } : r)))
     try {
-      await updateRetailer(row.id, { [key]: value } as Partial<Retailer>)
+      await updateAccountMutation.mutateAsync({ id: row.id, values: { [key]: value } as Partial<Retailer> })
     } catch {
-      setRetailers((rows) => rows.map((r) => (r.id === row.id ? { ...r, [key]: prev } : r)))
       toast.error('Could not save change')
     }
   }
@@ -188,8 +181,8 @@ export function AccountsPage() {
         />
       }
     >
-      {error ? (
-        <ErrorState onRetry={refresh} />
+      {retailersQuery.isError ? (
+        <ErrorState onRetry={() => void retailersQuery.refetch()} />
       ) : (
         <DataTable
           rows={filtered}
@@ -197,7 +190,7 @@ export function AccountsPage() {
           getRowId={(r) => r.id}
           onRowClick={(r) => select(r)}
           onCellEdit={editCell}
-          loading={loading}
+          loading={retailersQuery.isPending}
           emptyIcon={<Building2 className="size-5" />}
           emptyTitle={segment === 'triage' ? 'Triage queue is clear' : 'No accounts match'}
           emptyDescription={
