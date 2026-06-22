@@ -321,15 +321,19 @@ export async function updateRetailer(id: string, values: Partial<Retailer>) {
 // Contacts / buyers
 // ---------------------------------------------------------------------------
 export async function fetchBuyers(limit = 300): Promise<Buyer[]> {
-  let q = supabase.schema('api').from('crm_contact_list').select('*').in('company_customer_status', CUSTOMER_STATUSES).order('name')
-  if (limit >= 0) q = q.limit(limit)
-  const { data, error } = await q
-  if (error) throw error
-  return ((data ?? []) as Row[]).map(toBuyer)
+  // Filtering/ordering this security_invoker view through PostgREST can time out
+  // because company_customer_status/name are derived across joined RLS tables.
+  // Pull the browser-safe rows unfiltered and let the client segment/sort them.
+  const rows = await fetchRows('crm_contact_list', [], limit)
+  return rows
+    .filter((r) => CUSTOMER_STATUSES.includes((r.company_customer_status ?? '') as string))
+    .map(toBuyer)
 }
 
 export async function fetchIngestedContacts(limit = -1): Promise<Buyer[]> {
-  const rows = await fetchRows('crm_contact_list', [{ col: 'name' }], limit)
+  // Keep this unordered for the same reason as fetchBuyers; DataTable applies the
+  // visible sort client-side.
+  const rows = await fetchRows('crm_contact_list', [], limit)
   return rows.map(toBuyer)
 }
 
