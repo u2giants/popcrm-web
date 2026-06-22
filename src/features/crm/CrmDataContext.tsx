@@ -122,7 +122,7 @@ export function CrmDataProvider({ children }: { children: ReactNode }) {
     setError(false)
 
     // Load every collection independently. One collection being forbidden
-    // (e.g. a Directus permission gap) or failing must NOT blank the whole app —
+    // (e.g. a Supabase RLS/view permission gap) or failing must NOT blank the whole app —
     // that section just stays empty. We only surface a hard error if everything
     // fails (auth/network down).
     const sources: Array<{ name: string; run: () => Promise<unknown>; set: (v: never) => void }> = [

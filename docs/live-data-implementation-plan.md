@@ -37,6 +37,11 @@ CRM.
   collections.
 - `AppHeader` exposes a manual refresh button that calls the global loader.
 - Many pages depend on globally preloaded arrays from `useCrmData()`.
+- `CrmDataContext` also exposes raw React setters such as `setTasks`,
+  `setEmails`, and `setOpportunities`. Several consumers already use those
+  setters for hand-rolled optimistic updates, so the migration is not just about
+  reads; existing write/update behavior must be moved deliberately into mutation
+  hooks.
 
 This architecture makes initial navigation heavier than necessary and makes
 freshness depend on a manual action.
@@ -51,7 +56,7 @@ The app should feel like this:
    for newer data.
 4. When the user edits a record, the visible row/drawer updates immediately.
 5. When Supabase reports a relevant table change, the affected page quietly
-   refetches or patches the changed row.
+   refetches the relevant browser-safe view.
 6. Dashboard counts and command search update in the background without blocking
    normal work.
 7. Manual refresh remains available for recovery, but users rarely need it.
@@ -69,15 +74,58 @@ The app should feel like this:
   streaming every table into every browser.
 - API views may be refetched after realtime events because Supabase Realtime
   generally emits changes from base tables, not derived view rows.
+- Realtime event payloads should not be used as the rendered CRM row shape when
+  the UI depends on joined fields from `api.crm_*` views.
 - The implementation should preserve the existing security model: browser-safe
   reads through `api` views, RLS-enforced writes through `crm` tables or guarded
   RPCs.
 
 ## Implementation Phases
 
+### Phase 0: Audit Context Coupling
+
+Before migrating the first page, audit every `useCrmData()` consumer and
+categorize it as read-only or setter-using.
+
+Current inventory from the codebase:
+
+- Read-only or derived global data consumers:
+  - `src/components/app/AppHeader.tsx`
+  - `src/components/app/AppSidebar.tsx`
+  - `src/components/app/CommandSearch.tsx`
+  - `src/features/crm/components/AccountDrawer.tsx`
+  - `src/features/crm/components/ContactDrawer.tsx`
+  - `src/features/crm/components/DepartmentDrawer.tsx`
+  - `src/features/crm/pages/ApprovalsPage.tsx`
+  - `src/features/crm/pages/DepartmentsPage.tsx`
+  - `src/features/crm/pages/OverviewPage.tsx`
+  - `src/features/crm/pages/PipelinePage.tsx`
+  - `src/features/crm/pages/ProgramsPage.tsx`
+- Setter-using consumers that must migrate with their mutation behavior:
+  - `src/features/crm/components/ApprovalDrawer.tsx`
+  - `src/features/crm/components/EmailDrawer.tsx`
+  - `src/features/crm/components/NoteDrawer.tsx`
+  - `src/features/crm/components/OpportunityDrawer.tsx`
+  - `src/features/crm/components/OpportunityModal.tsx`
+  - `src/features/crm/components/TaskDrawer.tsx`
+  - `src/features/crm/pages/AccountsPage.tsx`
+  - `src/features/crm/pages/ContactsPage.tsx`
+  - `src/features/crm/pages/DataAdminPage.tsx`
+  - `src/features/crm/pages/EmailRoutingPage.tsx`
+  - `src/features/crm/pages/MeetingsPage.tsx`
+  - `src/features/crm/pages/NotesPage.tsx`
+  - `src/features/crm/pages/SettingsPage.tsx`
+  - `src/features/crm/pages/TasksPage.tsx`
+
+The compatibility-wrapper strategy only applies cleanly to read-only consumers.
+A query-cache-backed wrapper cannot faithfully re-expose arbitrary
+`setTasks(prev => ...)` / `setEmails(prev => ...)` functional setters without
+creating a second cache system. Setter-using pages/components should be converted
+to query + mutation hooks in the same PR that migrates their data reads.
+
 ### Phase 1: Remove the Global Loading Bottleneck
 
-Replace the all-CRM bootstrap with page-scoped data loading.
+Replace the all-CRM bootstrap with page-scoped, bounded data loading.
 
 - Introduce a small query/cache layer for CRM data.
 - Prefer TanStack Query unless there is a strong reason to keep a custom cache.
@@ -89,28 +137,53 @@ Replace the all-CRM bootstrap with page-scoped data loading.
   - `crm.tasks.list`
   - `crm.meetings.list`
   - `crm.opportunities.list`
+- Add server-side pagination and filtering to list queries during the first
+  migration pass. "Page-scoped" must mean a bounded slice, not "fetch every row
+  for this one collection."
+- Decide default page sizes per surface before migrating each page. Initial
+  starting points:
+  - Email Routing: 50 newest queue rows, with server-side segment/status/search
+    filters.
+  - Tasks: 100 active or filtered rows, with server-side status/search filters.
+  - Meetings: 50 most recent rows, with server-side customer/triage/search
+    filters.
+  - Notes: 50 most recent rows, with server-side search and relation filters.
+  - Accounts and Contacts: 100 rows per segment/search result.
+  - Opportunities/Programs: 100 rows per board/list filter, with stage and
+    account filters sent to Supabase.
+  - Departments, approvals, AI config, and ignore rules: bounded where practical,
+    but allowed to remain simple only while their record counts are known to be
+    small.
 - Keep previous data visible while refreshing.
 - Move global stats to their own lightweight queries instead of deriving all
   counts from globally loaded arrays.
-- Keep `CrmDataContext` temporarily as a compatibility wrapper during migration,
-  then delete it once pages no longer depend on global arrays.
+- Keep `CrmDataContext` temporarily as a read-only compatibility wrapper during
+  migration, then delete it once pages no longer depend on global arrays. Do not
+  add query-cache-backed raw setters to the wrapper.
 
 Expected result:
 
 - The app shell renders immediately.
 - Navigating to one page does not require loading every CRM collection.
+- Opening a page fetches only the bounded server-side slice needed for the
+  current view, page, segment, and filters.
 - "Loading..." becomes local and brief, not a whole-app state.
 
-### Phase 2: Make Writes Feel Instant
+### Phase 2: Move Existing Optimistic Writes Into Mutation Hooks
 
-Update local cached data immediately after successful user actions, and use
-optimistic updates for simple edits.
+The app already has optimistic writes, but they are hand-rolled through raw
+`CrmDataContext` setters. Phase 2 relocates that behavior into explicit mutation
+hooks.
 
-- For inline table edits, update the row in the page cache immediately.
-- For drawer edits, update both the selected record and the list row cache.
-- For create actions, insert the new adapted row into the relevant cache after
-  Supabase returns the created record.
-- For drag/status changes, apply an optimistic patch before awaiting the write.
+- Replace each setter call site with a domain mutation hook.
+- Preserve the existing user-visible behavior where edits already update
+  immediately.
+- For inline table edits, update the matching query cache row immediately.
+- For drawer edits, update both the selected record cache and the list row cache.
+- For create actions, insert the returned adapted row into the relevant cache and
+  invalidate any affected count/search queries.
+- For drag/status changes, keep the existing optimistic patch-before-await
+  behavior.
 - On write failure, revert the optimistic patch and show a clear toast.
 - Invalidate related queries after writes so views and derived fields reconcile
   with Supabase.
@@ -146,6 +219,12 @@ Expected result:
 
 Use Supabase Realtime to trigger targeted refetches or patches.
 
+This phase has a shared-db prerequisite. Enabling Realtime on `crm.*` or shared
+`core.*` tables touches the Supabase publication and the realtime role/RLS
+authorization model, so it must go through the canonical `u2giants/shared-db`
+branch + PR workflow described in `shared-db/AGENTS.md`. Do not plan Phase 4 as
+pure frontend work.
+
 Start with tables that change often or where freshness is operationally
 important:
 
@@ -164,7 +243,12 @@ Implementation approach:
   `src/features/crm/realtime.ts`.
 - Subscribe only while the relevant page or app section is mounted.
 - On insert/update/delete events, invalidate the matching page query.
-- Debounce bursts of events to avoid refetch storms.
+- Debounce bursts of events to avoid refetch storms. Initial windows:
+  - `crm.email_message`: 1,000-1,500 ms, because webhook/worker ingestion can
+    arrive in bursts.
+  - `crm.task`, `crm.note`, `crm.meeting_note`: 500-1,000 ms.
+  - `crm.opportunity`, `crm.department`, account/contact source tables:
+    750-1,500 ms.
 - Prefer refetching the relevant `api.crm_*` view for correctness, because the
   event payload may not contain joined display fields.
 - Keep polling/focus refresh as a fallback even after Realtime is added.
@@ -178,6 +262,10 @@ Expected result:
 
 The dashboard and command search should not require loading every operational
 record.
+
+This phase also has a shared-db prerequisite if it needs new aggregate views,
+search views, or RPCs. Those schema/API additions belong in `u2giants/shared-db`
+and must follow its branch + PR process before the frontend depends on them.
 
 - Add or use lightweight aggregate endpoints/views for dashboard counts.
 - Keep recent activity panels as bounded queries.
@@ -199,6 +287,10 @@ Once page-scoped loading, background refresh, and realtime are working:
 - If retained, make it invalidate active CRM queries rather than rerun a global
   bootstrap.
 - Replace global loading state with per-query pending/background states.
+- Move the Fireflies webhook health check out of `CrmDataContext` before deleting
+  the context. Recommended home: a small `useFirefliesHealth()` hook under
+  `src/features/crm/` consumed by `AppHeader`, `AppSidebar`, `OverviewPage`, and
+  `SettingsPage`.
 
 Expected result:
 
@@ -236,6 +328,18 @@ Recommended defaults:
 
 ## Risks and Constraints
 
+- Setter coupling is the top migration risk. Existing consumers use raw
+  `CrmDataContext` setters for optimistic updates, rollbacks, and created-row
+  insertion. Those call sites cannot be safely hidden behind a read-only
+  compatibility wrapper; they must move to mutation hooks with their migrated
+  page/component.
+- Page-scoped queries must also be bounded. Moving an unbounded `limit: -1`
+  fetch from app startup to page open still leaves users waiting on full-table
+  reads.
+- Phase 4 Realtime enablement requires a shared-db PR for publication and
+  realtime authorization/RLS changes.
+- Phase 5 aggregate/search endpoints require a shared-db PR when new views or
+  RPCs are needed.
 - Supabase Realtime must be enabled for the relevant tables.
 - Realtime authorization and RLS behavior must be verified for each schema/table.
 - Events from base tables may not include joined fields from the `api` views.
@@ -245,12 +349,14 @@ Recommended defaults:
   should be incremental to avoid a large risky rewrite.
 - Documentation still contains Directus-era language and should be updated as a
   separate cleanup so future contributors do not make the wrong architectural
-  assumptions.
+  assumptions. The code comments should be swept at the same time, including old
+  "Directus permission gap" wording in `CrmDataContext`.
 
 ## Acceptance Criteria
 
 - Initial signed-in shell renders without waiting for all CRM collections.
-- Opening a page fetches only that page's required data.
+- Opening a page fetches only the bounded server-side slice required for the
+  current page, segment, filters, and search.
 - Navigating back to a previously visited page shows cached data immediately.
 - Editing a row or drawer updates the visible UI without clicking refresh.
 - New email-routing items and task updates appear through background refresh or
@@ -261,15 +367,22 @@ Recommended defaults:
 
 ## Proposed Rollout Order
 
-1. Add the query/cache foundation and migrate one low-risk page.
-2. Migrate Tasks and Email Routing next because users most clearly benefit from
+1. Audit every `useCrmData()` consumer and confirm whether it is read-only or
+   setter-using.
+2. Add the query/cache foundation and migrate one low-risk read-only page with
+   bounded server-side fetching.
+3. Convert the first setter-using page to query + mutation hooks in one PR.
+4. Migrate Tasks and Email Routing next because users most clearly benefit from
    live behavior there.
-3. Add mutation cache updates for migrated pages.
-4. Add focus/reconnect refetch globally through the query client.
-5. Add realtime invalidation for Tasks and Email Routing.
-6. Migrate remaining pages.
-7. Replace dashboard/search global dependencies with lightweight queries.
-8. Remove the global CRM bootstrap and demote the manual refresh action.
+5. Add mutation cache updates for migrated pages.
+6. Add focus/reconnect refetch globally through the query client.
+7. Prepare and merge the shared-db PR required for Realtime, then add realtime
+   invalidation for Tasks and Email Routing.
+8. Migrate remaining pages.
+9. Prepare and merge any shared-db aggregate/search views or RPCs, then replace
+   dashboard/search global dependencies with lightweight queries.
+10. Remove the global CRM bootstrap, move Fireflies health to its own hook, and
+   demote the manual refresh action.
 
 ## Definition of Done
 
