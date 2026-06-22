@@ -11,7 +11,9 @@ push to main
   ↓
 GitHub Actions (.github/workflows/deploy.yml)
   verify        – npm ci, npm run lint, npm run build (tsc -b && vite build)
-  build-and-push – Docker build (build-args: COMMIT_HASH/DATE, VITE_LOGODEV_TOKEN),
+  build-and-push – Docker build (build-args: COMMIT_HASH/DATE,
+                   VITE_SUPABASE_URL, VITE_SUPABASE_ANON_KEY,
+                   VITE_LOGODEV_TOKEN),
                    push to GHCR (tags: latest, main, sha-<sha>)
   deploy         – POST Coolify deploy API, then wait for crm.designflow.app
   ↓
@@ -51,6 +53,9 @@ are path-ignored and do not trigger a build.
 - `COOLIFY_BASE_URL` — `https://coolify.designflow.app`
 - `COOLIFY_API_TOKEN` — Coolify API token used to trigger the deploy
 - `COOLIFY_SERVER_UUID` — the Coolify **application** uuid (`a1vb55by4benmh25nd4ga8pt`)
+- `VITE_SUPABASE_URL` — Supabase project URL baked into the static bundle
+- `VITE_SUPABASE_ANON_KEY` — Supabase public anon key baked into the static
+  bundle. This is client configuration, not a service-role key.
 - `LOGODEV_TOKEN` — logo.dev **publishable** token, passed as the
   `VITE_LOGODEV_TOKEN` Docker build-arg (`deploy.yml` → Dockerfile) so account
   logos bake into the bundle. **Optional**: if unset the build still succeeds and
@@ -63,10 +68,11 @@ repo, its GHCR package is public, so Coolify pulls it anonymously.
 ### Runtime config note (static SPA)
 
 This is a static site, so its few `VITE_*` values are **build-time**, baked into
-the bundle at `npm run build`. `VITE_DIRECTUS_URL` defaults to
-`https://data.designflow.app`; override it only by rebuilding. This is the one
-documented exception to "runtime config lives in Coolify" (CI/CD rules §19) — a
-static bundle has no server-side runtime env. No secrets are baked in.
+the bundle at `npm run build`. `VITE_SUPABASE_URL` and
+`VITE_SUPABASE_ANON_KEY` are required by `src/lib/supabase.ts`; changing them
+requires rebuilding and redeploying. This is the one documented exception to
+"runtime config lives in Coolify" (CI/CD rules §19) — a static bundle has no
+server-side runtime env. No service-role keys or backend secrets are baked in.
 
 ## Rollback
 
@@ -80,6 +86,29 @@ Do **not** roll back by hand-editing containers or running `docker run` on the h
 curl -fsS https://crm.designflow.app | rg -o '<title>[^<]+'      # <title>POP CRM
 curl -fsS https://crm-fireflies.designflow.app/health            # Fireflies webhook
 # The header in the app shows the deployed commit + NYC time.
+```
+
+## Troubleshoot 502 after deploy
+
+On 2026-06-22, a deploy succeeded and the app container was healthy, but
+`crm.designflow.app` returned 502 because `coolify-proxy`/Traefik lost access to
+the Docker socket and could not discover the new upstream container.
+
+Use this order before rebuilding or rolling back:
+
+```bash
+docker ps --format '{{.Names}}\t{{.Image}}\t{{.Status}}' | rg 'popcrm|a1vb55by4benmh25nd4ga8pt'
+docker logs --tail=100 <app-container-name>
+docker exec <app-container-name> wget -qO- http://127.0.0.1/contacts | head
+docker logs --tail=200 coolify-proxy | rg 'Docker daemon|providerName=docker|error'
+```
+
+If the app responds internally but proxy logs show
+`Cannot connect to the Docker daemon at unix:///var/run/docker.sock`, restart the
+proxy to restore Traefik route discovery:
+
+```bash
+docker restart coolify-proxy
 ```
 
 ## Break-glass only (NOT the normal path)
