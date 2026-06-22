@@ -7,9 +7,9 @@ Browser
   -> https://crm.designflow.app
   -> popcrm-web nginx container
   -> React/Vite SPA
-  -> Directus SDK
-  -> https://data.designflow.app
-  -> Directus/Postgres shared backend
+  -> Supabase JS client
+  -> https://qsllyeztdwjgirsysgai.supabase.co
+  -> shared Supabase/Postgres backend
 ```
 
 Fireflies integration is handled by a separate worker endpoint:
@@ -18,40 +18,67 @@ Fireflies integration is handled by a separate worker endpoint:
 Fireflies
   -> https://crm-fireflies.designflow.app/s/fireflies-webhook
   -> popcrm-fireflies container
-  -> Directus CRM collections
+  -> Supabase CRM tables
 ```
 
 Important operational note: the Fireflies `/health` endpoint only proves the
 webhook server is up. It does not prove Fireflies is delivering webhook events.
-On 2026-06-14, Directus had 27 `crm_meeting_note` rows with latest meeting date
-`2026-04-14`, while the Fireflies API listed newer transcripts through
+On 2026-06-14, the CRM backend had 27 `crm_meeting_note` rows with latest meeting
+date `2026-04-14`, while the Fireflies API listed newer transcripts through
 `2026-06-11` and worker/proxy logs showed no recent webhook deliveries. Verify
-stale ingestion from Directus row dates, worker/proxy logs, and the Fireflies
+stale ingestion from CRM row dates, worker/proxy logs, and the Fireflies
 dashboard webhook configuration.
 
-The frontend has no database and stores no CRM data locally. It uses browser session authentication against Directus.
+The frontend has no database and stores no CRM data locally. It uses Supabase
+Auth in the browser, then loads the user's CRM profile with
+`api.current_user_profile()`.
 
 ## Data loading
 
-`CrmDataContext.tsx` loads all CRM collections once on mount via `Promise.allSettled`.
-Each collection loads independently — a single 403 leaves that section empty without
-blanking the whole app. Pages subscribe to the shared context; no page fetches on its own.
+Data loading is page-scoped through TanStack Query hooks in
+`src/features/crm/queries.ts`. The app no longer bootstraps every CRM collection
+on mount. Each route asks for the bounded slices it needs, keeps previous data
+visible while refreshing, and refetches on window focus/reconnect. High-change
+surfaces such as Email Routing, Tasks, Meetings, and Notes also use conservative
+background refetch intervals.
 
-Write operations (`api.ts`) call Directus directly and optimistically update the relevant
-context setter (`setNotes`, `setIgnoreRules`, etc.) so the UI reflects changes without a
-full refresh.
+Reads in `src/features/crm/api.ts` go through browser-safe `api.crm_*` views.
+Core account/contact writes use guarded RPCs (`api.crm_update_account`,
+`api.crm_update_contact`); CRM-owned rows write to `crm.*` tables or narrower RPCs.
+Write operations use mutation hooks in `queries.ts`, with optimistic query-cache
+updates where the UI already had instant behavior. Related queries are invalidated
+after writes so joined view rows reconcile with Supabase.
+
+Realtime frontend scaffolding lives in `src/features/crm/realtime.ts`. It listens
+for base-table changes, debounces bursty tables, and invalidates the relevant
+query keys so the app refetches browser-safe `api.crm_*` views instead of trying
+to render raw realtime payloads. Supabase publication/RLS enablement is shared-db
+work and must follow `shared-db/AGENTS.md`.
+
+Contacts are intentionally special after the 2026-06-22 incident. The frontend
+fetches `api.crm_contact_list` unfiltered and unordered, then segments/sorts
+client-side. Do not reintroduce PostgREST `order('name')` or server-side
+`company_customer_status` filters for the Contacts bootstrap path: the previous
+`security_invoker` view plus derived-field ordering/filtering timed out on the
+third paged browser request and made Contacts show all zeroes. The durable
+database fix is
+`shared-db/supabase/migrations/20260622033500_crm_contact_view_access_gate.sql`,
+which recreates `api.crm_contact_list` as `security_invoker=false` with an
+explicit `app.has_app_access('crm')` guard.
 
 ## Key modules
 
 | Module | Purpose |
 |---|---|
-| `src/auth/auth.tsx` | Directus session/user state |
-| `src/lib/directus.ts` | Directus SDK client |
-| `src/lib/types.ts` | Frontend schema types (mirrors Directus collections) |
-| `src/features/crm/api.ts` | All Directus reads and writes |
+| `src/auth/auth.tsx` | Supabase Auth session plus CRM profile state |
+| `src/lib/supabase.ts` | Supabase JS client and Microsoft/Azure OAuth helper |
+| `src/lib/database.types.ts` | Generated Supabase schema types |
+| `src/lib/types.ts` | Frontend domain types/adapters used by components |
+| `src/features/crm/api.ts` | All Supabase view/RPC/table reads and writes |
+| `src/features/crm/queries.ts` | TanStack Query keys, bounded read hooks, mutation hooks, Fireflies health query |
+| `src/features/crm/realtime.ts` | Debounced Supabase Realtime invalidation scaffold |
 | `src/features/crm/constants.ts` | Enums, stage lists, tone/status helpers |
 | `src/features/crm/format.ts` | Display formatters: `label()`, `formatDate()`, `relatedName()`, etc. |
-| `src/features/crm/CrmDataContext.tsx` | Bootstrap loader; shared state for all pages |
 | `src/features/crm/useRecordSelection.ts` | URL-param-backed record selection (deep links) |
 | `src/app/AppLayout.tsx` + `src/app/routes.tsx` | App shell and route-per-page |
 
