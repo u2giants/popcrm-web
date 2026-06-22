@@ -15,8 +15,10 @@ import { NameAvatar } from '@/components/app/NameAvatar'
 import {
   crmKeys,
   listData,
+  useAllContactsQuery,
+  useContactSegmentCountsQuery,
+  useContactSegmentQuery,
   useDepartmentsQuery,
-  useIngestedContactsQuery,
   useIngestedDomainsQuery,
   useUpdateContactMutation,
 } from '@/features/crm/queries'
@@ -34,15 +36,19 @@ function isTriageAccount(status: string | null | undefined) {
 
 export function ContactsPage() {
   const queryClient = useQueryClient()
-  const buyersQuery = useIngestedContactsQuery(-1)
+  const [query, setQuery] = useState('')
+  const [segment, setSegment] = useState<Segment>('customer')
+  const activeSegment = segment === 'all' ? 'customer' : segment
+  const segmentQuery = useContactSegmentQuery(activeSegment, -1, segment !== 'all')
+  const allContactsQuery = useAllContactsQuery(-1, segment === 'all')
+  const countsQuery = useContactSegmentCountsQuery()
   const retailersQuery = useIngestedDomainsQuery(-1)
   const departmentsQuery = useDepartmentsQuery(300)
   const updateContactMutation = useUpdateContactMutation()
-  const buyers = listData(buyersQuery.data)
+  const activeContactsQuery = segment === 'all' ? allContactsQuery : segmentQuery
+  const buyers = listData(activeContactsQuery.data)
   const retailers = listData(retailersQuery.data)
   const departments = listData(departmentsQuery.data)
-  const [query, setQuery] = useState('')
-  const [segment, setSegment] = useState<Segment>('customer')
   const [selected, select] = useRecordSelection<Buyer>('contact', buyers)
   const retailerById = useMemo(() => new Map(retailers.map((r) => [r.id, r])), [retailers])
   const departmentById = useMemo(() => new Map(departments.map((d) => [d.id, d])), [departments])
@@ -106,23 +112,27 @@ export function ContactsPage() {
     const patch: Partial<Buyer> = clearStaleDepartment
       ? ({ [key]: nextValue, department: null } as Partial<Buyer>)
       : ({ [key]: nextValue } as Partial<Buyer>)
-    queryClient.setQueryData<Buyer[]>(crmKeys.ingestedContacts(-1), (rows = []) =>
+    const optimistic = (rows: Buyer[] = []) =>
       rows.map((b) =>
         b.id === row.id
           ? { ...b, [key]: expanded, ...(clearStaleDepartment ? { department: null } : {}) }
           : b,
-      ),
-    )
+      )
+    queryClient.setQueriesData<Buyer[]>({ queryKey: [...crmKeys.all, 'contactSegment'] }, optimistic)
+    queryClient.setQueriesData<Buyer[]>({ queryKey: [...crmKeys.all, 'allContacts'] }, optimistic)
+    queryClient.setQueriesData<Buyer[]>({ queryKey: [...crmKeys.all, 'ingestedContacts'] }, optimistic)
     try {
       await updateContactMutation.mutateAsync({ id: row.id, values: patch })
     } catch {
-      queryClient.setQueryData<Buyer[]>(crmKeys.ingestedContacts(-1), (rows = []) =>
+      const rollback = (rows: Buyer[] = []) =>
         rows.map((b) =>
           b.id === row.id
             ? { ...b, [key]: prev, ...(clearStaleDepartment ? { department: row.department } : {}) }
             : b,
-        ),
-      )
+        )
+      queryClient.setQueriesData<Buyer[]>({ queryKey: [...crmKeys.all, 'contactSegment'] }, rollback)
+      queryClient.setQueriesData<Buyer[]>({ queryKey: [...crmKeys.all, 'allContacts'] }, rollback)
+      queryClient.setQueriesData<Buyer[]>({ queryKey: [...crmKeys.all, 'ingestedContacts'] }, rollback)
       toast.error('Could not save change')
     }
   }
@@ -133,32 +143,20 @@ export function ContactsPage() {
     return isCustomerAccount(r.customer_status)
   }
 
-  const segCounts = useMemo(() => {
-    let customer = 0
-    let department = 0
-    let triage = 0
-    for (const b of buyers) {
-      const hasDepartment = Boolean(idOf(b.department))
-      const isCustomer = isCustomerContact(b)
-      if (!isCustomer) triage++
-      else if (hasDepartment) department++
-      else customer++
-    }
-    return { customer, department, triage, all: buyers.length }
-  }, [buyers])
+  const segCounts = countsQuery.data ?? {
+    customer: segment === 'customer' ? buyers.length : 0,
+    department: segment === 'department' ? buyers.length : 0,
+    triage: segment === 'triage' ? buyers.length : 0,
+    all: segment === 'all' ? buyers.length : 0,
+  }
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase()
     return buyers.filter((b) => {
-      const hasDepartment = Boolean(idOf(b.department))
-      const isCustomer = isCustomerContact(b)
-      if (segment === 'customer' && (!isCustomer || hasDepartment)) return false
-      if (segment === 'department' && (!isCustomer || !hasDepartment)) return false
-      if (segment === 'triage' && isCustomer) return false
       if (q && !textOf(b.name, b.email, b.job_title, relatedName(b.retailer), relatedName(b.department)).includes(q)) return false
       return true
     })
-  }, [buyers, query, segment])
+  }, [buyers, query])
 
   const columns: Column<Buyer>[] = [
     {
@@ -250,8 +248,8 @@ export function ContactsPage() {
         />
       }
     >
-      {buyersQuery.isError ? (
-        <ErrorState onRetry={() => void buyersQuery.refetch()} />
+      {activeContactsQuery.isError ? (
+        <ErrorState onRetry={() => void activeContactsQuery.refetch()} />
       ) : (
         <DataTable
           rows={filtered}
@@ -259,7 +257,7 @@ export function ContactsPage() {
           getRowId={(b) => b.id}
           onRowClick={(b) => select(b)}
           onCellEdit={editCell}
-          loading={buyersQuery.isPending || retailersQuery.isPending || departmentsQuery.isPending}
+          loading={activeContactsQuery.isPending || retailersQuery.isPending || departmentsQuery.isPending}
           emptyIcon={<Contact className="size-5" />}
           emptyTitle={segment === 'triage' ? 'Triage queue is clear' : 'No contacts match'}
           emptyDescription={

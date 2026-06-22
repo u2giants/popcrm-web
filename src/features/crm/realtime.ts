@@ -4,6 +4,7 @@ import { supabase } from '@/lib/supabase'
 import { crmKeys } from './queries'
 
 type SubscriptionSpec = {
+  schema?: string
   table: string
   debounceMs: number
   invalidate: readonly (readonly unknown[])[]
@@ -16,6 +17,32 @@ const SUBSCRIPTIONS: SubscriptionSpec[] = [
   { table: 'meeting_note', debounceMs: 750, invalidate: [[...crmKeys.all, 'meetings'], crmKeys.stats()] },
   { table: 'opportunity', debounceMs: 1_000, invalidate: [[...crmKeys.all, 'opportunities'], crmKeys.stats()] },
   { table: 'department', debounceMs: 1_000, invalidate: [[...crmKeys.all, 'departments']] },
+  {
+    schema: 'core',
+    table: 'contact',
+    debounceMs: 1_250,
+    invalidate: [
+      [...crmKeys.all, 'contactSegment'],
+      [...crmKeys.all, 'allContacts'],
+      [...crmKeys.all, 'ingestedContacts'],
+      [...crmKeys.all, 'buyers'],
+      crmKeys.contactSegmentCounts(),
+      crmKeys.stats(),
+    ],
+  },
+  {
+    schema: 'core',
+    table: 'contact_company',
+    debounceMs: 1_250,
+    invalidate: [
+      [...crmKeys.all, 'contactSegment'],
+      [...crmKeys.all, 'allContacts'],
+      [...crmKeys.all, 'ingestedContacts'],
+      [...crmKeys.all, 'buyers'],
+      crmKeys.contactSegmentCounts(),
+      crmKeys.stats(),
+    ],
+  },
 ]
 
 export function useCrmRealtimeInvalidation(enabled: boolean) {
@@ -31,7 +58,7 @@ export function useCrmRealtimeInvalidation(enabled: boolean) {
     for (const spec of SUBSCRIPTIONS) {
       channel.on(
         'postgres_changes',
-        { event: '*', schema: 'crm', table: spec.table },
+        { event: '*', schema: spec.schema ?? 'crm', table: spec.table },
         () => {
           const previous = activeTimers.get(spec.table)
           if (previous) window.clearTimeout(previous)

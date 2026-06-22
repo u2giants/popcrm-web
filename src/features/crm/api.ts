@@ -33,6 +33,8 @@ const CUSTOMER_STATUSES = ['ACTIVE_CUSTOMER', 'POTENTIAL_CUSTOMER']
 
 type Row = Record<string, unknown>
 type Order = { col: string; asc?: boolean }
+export type ContactSegment = 'customer' | 'department' | 'triage' | 'all'
+export type ContactSegmentCounts = Record<ContactSegment, number>
 
 // Dynamic table/view names and generic Row payloads can't satisfy the generated
 // literal-keyed client types, so the data helpers below go through this untyped
@@ -79,6 +81,30 @@ async function fetchRows(view: string, order: Order[] = [], limit?: number): Pro
   const { data, error } = await q
   if (error) throw error
   return (data ?? []) as Row[]
+}
+
+async function fetchRowsEq(view: string, column: string, value: string, order: Order[] = [], limit?: number): Promise<Row[]> {
+  const PAGE = 1000
+  const out: Row[] = []
+  let from = 0
+  for (;;) {
+    const cappedEnd = limit !== undefined && limit >= 0 ? Math.min(from + PAGE - 1, limit - 1) : from + PAGE - 1
+    let q = anyDb.schema("api").from(view).select('*').eq(column, value).range(from, cappedEnd)
+    for (const o of order) q = q.order(o.col, { ascending: o.asc ?? true, nullsFirst: false })
+    const { data, error } = await q
+    if (error) throw error
+    const rows = (data ?? []) as Row[]
+    out.push(...rows)
+    if (rows.length < PAGE || (limit !== undefined && limit >= 0 && out.length >= limit)) break
+    from += PAGE
+  }
+  return limit !== undefined && limit >= 0 ? out.slice(0, limit) : out
+}
+
+function isMissingApiObject(error: unknown): boolean {
+  const e = error as { code?: string; message?: string; details?: string }
+  const text = `${e.message ?? ''} ${e.details ?? ''}`.toLowerCase()
+  return e.code === '42P01' || e.code === 'PGRST205' || text.includes('could not find') || text.includes('does not exist')
 }
 
 // Rename UI keys to columns (handles relation id coercion); drop undefined.
@@ -335,6 +361,52 @@ export async function fetchIngestedContacts(limit = -1): Promise<Buyer[]> {
   // visible sort client-side.
   const rows = await fetchRows('crm_contact_list', [], limit)
   return rows.map(toBuyer)
+}
+
+function rowContactSegment(r: Row): Exclude<ContactSegment, 'all'> {
+  const isCustomer = CUSTOMER_STATUSES.includes((r.company_customer_status ?? '') as string)
+  if (!isCustomer) return 'triage'
+  return r.department_id ? 'department' : 'customer'
+}
+
+export async function fetchContactSegment(segment: Exclude<ContactSegment, 'all'>, limit = -1): Promise<Buyer[]> {
+  try {
+    const rows = await fetchRowsEq('crm_contact_segment_list', 'crm_segment', segment, [], limit)
+    return rows.map(toBuyer)
+  } catch (error) {
+    if (!isMissingApiObject(error)) throw error
+    const rows = await fetchRows('crm_contact_list', [], -1)
+    const filtered = rows.filter((r) => rowContactSegment(r) === segment)
+    return (limit >= 0 ? filtered.slice(0, limit) : filtered).map(toBuyer)
+  }
+}
+
+export async function fetchAllContacts(limit = -1): Promise<Buyer[]> {
+  try {
+    const rows = await fetchRows('crm_contact_segment_list', [], limit)
+    return rows.map(toBuyer)
+  } catch (error) {
+    if (!isMissingApiObject(error)) throw error
+    return fetchIngestedContacts(limit)
+  }
+}
+
+export async function fetchContactSegmentCounts(): Promise<ContactSegmentCounts> {
+  try {
+    const rows = await fetchRows('crm_contact_segment_counts', [], -1)
+    const counts: ContactSegmentCounts = { customer: 0, department: 0, triage: 0, all: 0 }
+    for (const row of rows) {
+      const segment = row.crm_segment as ContactSegment
+      if (segment in counts) counts[segment] = Number(row.contact_count ?? 0)
+    }
+    return counts
+  } catch (error) {
+    if (!isMissingApiObject(error)) throw error
+    const rows = await fetchRows('crm_contact_list', [], -1)
+    const counts: ContactSegmentCounts = { customer: 0, department: 0, triage: 0, all: rows.length }
+    for (const row of rows) counts[rowContactSegment(row)] += 1
+    return counts
+  }
 }
 
 export async function updateBuyer(id: string, values: Partial<Buyer>) {

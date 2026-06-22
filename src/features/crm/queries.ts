@@ -3,8 +3,11 @@ import {
   createIgnoreRule,
   createNote,
   fetchAiModelConfigs,
+  fetchAllContacts,
   fetchApprovalThreads,
   fetchBuyers,
+  fetchContactSegment,
+  fetchContactSegmentCounts,
   fetchDepartments,
   fetchEmailMessages,
   fetchIgnoreRules,
@@ -26,6 +29,8 @@ import {
   updateOpportunity,
   updateRetailer,
   updateTask,
+  type ContactSegment,
+  type ContactSegmentCounts,
 } from './api'
 import { FIREFLIES_HEALTH_URL } from './constants'
 import type {
@@ -51,6 +56,9 @@ export const crmKeys = {
   buyers: (limit = 300) => [...crmKeys.all, 'buyers', { limit }] as const,
   ingestedDomains: (limit = 100) => [...crmKeys.all, 'ingestedDomains', { limit }] as const,
   ingestedContacts: (limit = 100) => [...crmKeys.all, 'ingestedContacts', { limit }] as const,
+  contactSegment: (segment: Exclude<ContactSegment, 'all'>, limit = -1) => [...crmKeys.all, 'contactSegment', segment, { limit }] as const,
+  allContacts: (limit = -1) => [...crmKeys.all, 'allContacts', { limit }] as const,
+  contactSegmentCounts: () => [...crmKeys.all, 'contactSegmentCounts'] as const,
   departments: (limit = 300) => [...crmKeys.all, 'departments', { limit }] as const,
   emails: (limit = 50) => [...crmKeys.all, 'emails', { limit }] as const,
   meetings: (limit = 50) => [...crmKeys.all, 'meetings', { limit }] as const,
@@ -125,6 +133,33 @@ export function useIngestedDomainsQuery(limit = 100) {
 
 export function useIngestedContactsQuery(limit = 100) {
   return useQuery({ queryKey: crmKeys.ingestedContacts(limit), queryFn: () => fetchIngestedContacts(limit), ...crmQueryDefaults })
+}
+
+export function useContactSegmentQuery(segment: Exclude<ContactSegment, 'all'>, limit = -1, enabled = true) {
+  return useQuery({
+    queryKey: crmKeys.contactSegment(segment, limit),
+    queryFn: () => fetchContactSegment(segment, limit),
+    ...crmQueryDefaults,
+    enabled,
+  })
+}
+
+export function useAllContactsQuery(limit = -1, enabled = true) {
+  return useQuery({
+    queryKey: crmKeys.allContacts(limit),
+    queryFn: () => fetchAllContacts(limit),
+    ...crmQueryDefaults,
+    enabled,
+  })
+}
+
+export function useContactSegmentCountsQuery() {
+  return useQuery<ContactSegmentCounts>({
+    queryKey: crmKeys.contactSegmentCounts(),
+    queryFn: fetchContactSegmentCounts,
+    ...crmQueryDefaults,
+    staleTime: 15_000,
+  })
 }
 
 export function useDepartmentsQuery(limit = 300) {
@@ -261,6 +296,9 @@ export function useUpdateContactMutation() {
     onSettled: () => {
       void queryClient.invalidateQueries({ queryKey: [...crmKeys.all, 'ingestedContacts'] })
       void queryClient.invalidateQueries({ queryKey: [...crmKeys.all, 'buyers'] })
+      void queryClient.invalidateQueries({ queryKey: [...crmKeys.all, 'contactSegment'] })
+      void queryClient.invalidateQueries({ queryKey: [...crmKeys.all, 'allContacts'] })
+      void queryClient.invalidateQueries({ queryKey: crmKeys.contactSegmentCounts() })
       void queryClient.invalidateQueries({ queryKey: crmKeys.stats() })
     },
   })
