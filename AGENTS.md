@@ -12,13 +12,13 @@ pipeline, Outlook-ingested email routing, Fireflies meeting notes, notes, tasks,
 licensor approvals, and AI-model settings.
 
 It **stores no data of its own** — every read/write goes through the shared
-Directus API at `https://data.designflow.app`. The CRM backend is custom (a
-Twenty→Directus migration), **not** the Directus Simple CRM template. The outcome
-that matters: a fast, dense operations console over that Directus data.
+Supabase project (`https://qsllyeztdwjgirsysgai.supabase.co`). The CRM backend is
+a Supabase/Postgres port of the earlier Twenty→Directus CRM data model. The
+outcome that matters: a fast, dense operations console over that shared data.
 
 - Production: `https://crm.designflow.app`
 - Preview alias: `https://crm-dev.designflow.app`
-- Backend (Directus API): `https://data.designflow.app`
+- Backend (Supabase): `https://qsllyeztdwjgirsysgai.supabase.co`
 - Fireflies webhook/health: `https://crm-fireflies.designflow.app`
 - Sibling frontends (separate repos): `poppim-web` (PIM), `popdam-web` (DAM)
 
@@ -69,13 +69,13 @@ Project-owned application code:
   `CommandSearch`, `FilterSelect`, `StatusBadge`, `states.tsx`
 - `src/features/crm/` — CRM domain:
   - `CrmDataContext.tsx` — loads all collections once; exposes state, refresh, stats
-  - `api.ts` — Directus SDK reads/writes · `constants.ts` · `format.ts` · `useRecordSelection.ts`
+  - `api.ts` — Supabase view/RPC/table reads and writes · `constants.ts` · `format.ts` · `useRecordSelection.ts`
   - `pages/` — one module per route (Overview, Pipeline, Accounts, Contacts,
     EmailRouting, Meetings, Notes, Tasks, Approvals, Settings) + `_shared.ts`
   - `components/` — domain drawers (Email/Opportunity/Account/Contact/Task/Note/
     Meeting/Approval) + `CrmStatusBadge`, `RelationLabel`
-- `src/auth/auth.tsx` — Directus session auth · `src/pages/LoginPage.tsx`
-- `src/lib/` — `directus.ts` (client), `types.ts` (Directus schema slice), `utils.ts`
+- `src/auth/auth.tsx` — Supabase auth/profile state · `src/pages/LoginPage.tsx`
+- `src/lib/` — `supabase.ts` (client), `database.types.ts` (generated schema), `types.ts` (frontend domain types), `utils.ts`
 - `src/App.tsx`, `src/main.tsx`, `src/index.css` (shared OKLCH design tokens)
 
 Generated-style primitives (shadcn): `src/components/ui/*` — see Core modification inventory.
@@ -89,8 +89,8 @@ Docs: `README.md`, `AGENTS.md`, `CLAUDE.md`, `docs/*`, `frontend_imp.md`
 
 Build artifacts / ignored: `dist/`, `node_modules/` (see What to ignore).
 
-There are no migrations or DB files in this repo — schema lives in the backend repo
-`u2giants/directus` (`/worksp/directus/pm-system/crm-schema.mjs`).
+Shared Supabase migrations live under `shared-db/supabase/migrations/`; legacy
+Directus code under `/worksp/directus` is rollback/reference context only.
 
 ## Prime Directive: custom-code boundary
 
@@ -125,31 +125,33 @@ the only "generated-style" area, and it is hand-maintained in this repo.
 |---|---|---|
 | Change a CRM page/table/filter | `src/features/crm/pages/<Page>.tsx` | `src/components/ui/*` |
 | Change a record drawer | `src/features/crm/components/<X>Drawer.tsx` | unrelated pages |
-| Add/adjust a Directus query or field | `src/features/crm/api.ts`, `src/lib/types.ts` | applied backend schema (in `u2giants/directus`) |
+| Add/adjust a Supabase query, field, view, or RPC | `src/features/crm/api.ts`, `src/lib/types.ts`, `src/lib/database.types.ts`, `shared-db/supabase/migrations/` | legacy Directus schema unless explicitly doing rollback/reference work |
 | Add a route / nav item | `src/app/routes.tsx`, `src/app/navigation.ts` | shell internals unless needed |
 | Change status colors / stage tones | `src/features/crm/constants.ts`, `src/index.css` (tokens) | per-component ad-hoc colors |
 | Add a shared UI building block | `src/components/app/` | `src/components/ui/*` (primitives only) |
 | Change a base primitive | `src/components/ui/<name>.tsx` | — (note in Core modification inventory) |
 | Change build/deploy | `.github/workflows/deploy.yml`, `Dockerfile`, `nginx.conf` | the production server directly |
-| Add an env/config value | `src/lib/directus.ts`, `docs/configuration.md`; Coolify for runtime | a real `.env` in the repo |
+| Add an env/config value | `src/lib/supabase.ts`, `docs/configuration.md`; CI build args for `VITE_*` | a real `.env` in the repo |
 
 ## Data model and external identifiers
 
-Directus collections this app reads/writes (entities). All live in the backend, at
-`https://data.designflow.app`; typed in `src/lib/types.ts`:
+Supabase CRM entities this app reads/writes. Browser reads generally go through
+`api.crm_*` views; guarded core writes use `api.crm_update_*` RPCs; CRM-owned row
+writes use `crm.*` tables. Frontend domain types are in `src/lib/types.ts`;
+generated database types are in `src/lib/database.types.ts`:
 
 | Entity/System | Identifier | Where defined | Notes |
 |---|---|---|---|
-| Account | `retailer` | Directus | companies/accounts (migrated from Twenty `company`). `customer_status` enum: `ACTIVE_CUSTOMER`, `POTENTIAL_CUSTOMER`, `OTHER` (= "Not a Customer": reviewed, no CRM action), `UNASSIGNED` (= "New Company": untriaged — the worker stamps new auto-created retailers with this; null normalized to it). No DB default. No logo field — see Quirks |
-| Contact | `buyer` | Directus | contacts (migrated from Twenty `person`) |
-| Department | `crm_department` | Directus | retailer departments |
-| Opportunity | `crm_opportunity` | Directus | pipeline; `stage` enum in `constants.ts:OPPORTUNITY_STAGES` |
-| Email | `crm_email_message` | Directus | Outlook-ingested; `routing_status` drives routing UI |
-| Meeting note | `crm_meeting_note` | Directus | Fireflies/imported |
-| Note / Task | `crm_note` / `crm_task` | Directus | manual CRM records |
-| Ignore rule | `crm_ignore_rule` | Directus | email routing skip rules |
-| AI model config | `crm_ai_model_config` | Directus | model choices for routing/summaries |
-| Licensor approval | `crm_licensor_approval_thread` | Directus | fields: `name, property_name, stage, submitted_date, response_date, due_date, licensor_comments, opportunity`. `stage` is **free-form** (no enum) — see Quirks |
+| Account | `core.company` / `api.crm_account_list` | Supabase | companies/accounts (migrated from Twenty `company`). `customer_status` enum: `ACTIVE_CUSTOMER`, `POTENTIAL_CUSTOMER`, `OTHER` (= "Not a Customer": reviewed, no CRM action), `UNASSIGNED` (= "New Company": untriaged). No logo field — see Quirks |
+| Contact | `core.contact` + `core.contact_company` / `api.crm_contact_list` | Supabase | contacts and account/department relation rows (migrated from Twenty `person`/Directus `buyer`) |
+| Department | `crm.department` / `api.crm_department_list` | Supabase | retailer departments |
+| Opportunity | `crm.opportunity` / `api.crm_opportunity_list` | Supabase | pipeline; `stage` enum in `constants.ts:OPPORTUNITY_STAGES` |
+| Email | `crm.email_message` / `api.crm_email_routing_queue` | Supabase | Outlook-ingested; `routing_status` drives routing UI |
+| Meeting note | `crm.meeting_note` / `api.crm_meeting_list` | Supabase | Fireflies/imported |
+| Note / Task | `crm.note` / `crm.task` | Supabase | manual CRM records |
+| Ignore rule | `crm.ignore_rule` / `api.crm_ignore_rule_list` | Supabase | email routing skip rules |
+| AI model config | `crm.ai_model_config` / `api.crm_ai_model_config_list` | Supabase | model choices for routing/summaries |
+| Licensor approval | `crm.licensor_approval_thread` / `api.crm_approval_queue` | Supabase | fields include `name, property_name, stage, submitted_date, response_date, due_date, licensor_comments, opportunity_id`. `stage` is **free-form** (no enum) — see Quirks |
 
 Deployment / external identifiers (not secrets):
 
@@ -172,7 +174,8 @@ this same host, owned by other repos/systems — listed for context):
 | Container/service | Purpose | Managed by | App/project ID | Image/source |
 |---|---|---|---|---|
 | `popcrm-web` (this app) | Frontend SPA via nginx | Coolify | app `a1vb55by4benmh25nd4ga8pt` | `ghcr.io/u2giants/popcrm-web` |
-| Directus | Backend API (`data.designflow.app`) | Coolify (repo `u2giants/directus`) | — | `directus/directus:11` |
+| Supabase | Backend API/Postgres (`qsllyeztdwjgirsysgai.supabase.co`) | Supabase | project `qsllyeztdwjgirsysgai` | shared database |
+| Directus | Legacy backend API (`data.designflow.app`) | Coolify (repo `u2giants/directus`) | — | rollback/reference only |
 | popcrm-fireflies | Fireflies webhook/health worker | external | — | from `u2giants/directus` pm-system |
 | coolify-proxy | Traefik reverse proxy / TLS | Coolify | — | `traefik:v3.6` |
 
@@ -201,7 +204,8 @@ Looks like:
 `CrmDataContext.load()` uses `Promise.allSettled` and per-collection setters instead of one `Promise.all`.
 
 Actually:
-Each Directus collection loads independently; a failing one leaves its section empty and a hard error shows only if everything fails.
+Each Supabase view/table/RPC load runs independently; a failing one leaves its
+section empty and a hard error shows only if everything fails.
 
 Why:
 A single 403 (e.g. a Directus permission/schema gap on one collection) previously blanked the entire app. See Critical incidents 2026-06-12.
@@ -284,6 +288,27 @@ longer belongs to the new account (handled in `editCell`). Previously the
 Department column used a single static list of every department regardless of the
 chosen account.
 
+### Contacts load is Supabase view-gated; avoid server-side contact filters/order
+
+What changed:
+After the Supabase cutover, Contacts read from `api.crm_contact_list`. On
+2026-06-22 the view was changed in
+`shared-db/supabase/migrations/20260622033500_crm_contact_view_access_gate.sql`
+to `security_invoker=false` with an explicit `app.has_app_access('crm')` guard.
+
+Why:
+The original `security_invoker` view plus PostgREST ordering/filtering on derived
+fields (`name`, `company_customer_status`) timed out during the paged browser
+load (page `2000-2999`), so `CrmDataContext` set contacts empty and the UI showed
+all contact counts as 0 even though 8,654 contacts existed.
+
+Future sessions should:
+Do not re-add server-side `order('name')` or
+`.in('company_customer_status', ...)` to `fetchBuyers`/`fetchIngestedContacts`;
+fetch the browser-safe view unfiltered/unordered and segment/sort client-side.
+If Contacts are zero, test the exact authenticated REST pages and check
+`app.profile.auth_user_id` / `app.app_access` before assuming data is missing.
+
 ### Fireflies health does not prove meeting ingestion
 
 What changed:
@@ -325,23 +350,22 @@ Don't go looking for a logo file/field to migrate — there isn't one. Restoring
 logos = keep the domain-derived approach (or add a Directus file field + uploads, a
 backend change in `u2giants/directus`).
 
-### Directus has no cache — direct Postgres writes are immediately visible
+### Supabase profile links control whether signed-in users see CRM rows
 
-Looks like:
-Data fixes must go through the Directus API.
-
-Actually:
-The Directus app sets no `CACHE_*` env (default `CACHE_ENABLED=false`), so the SPA
-reads straight from Postgres. A one-time bulk data fix can be applied directly:
-`docker exec -i directus-db-<id> psql -U directus -d directus -c "UPDATE ..."`.
-This session normalized 24 null `customer_status` rows → `UNASSIGNED` that way.
+What changed:
+During the 2026-06-22 contacts incident, the imported data was present but a
+signed-in user with no linked `app.profile.auth_user_id` saw empty CRM lists.
+Linking the existing `app.profile` row to the Supabase Auth user and confirming
+`app.app_access` for `crm` restored access.
 
 Why:
-For an admin-only bulk normalization, direct SQL is simpler and takes effect at once.
+RLS and API views are app-access gated. Supabase Auth can authenticate a browser
+session while the CRM profile/app-access mapping is still missing or stale.
 
-Do not change because:
-If `CACHE_ENABLED` is ever turned on, direct writes will read stale until TTL/flush —
-re-check before relying on this. Prefer the API for anything that must run hooks/flows.
+Future sessions should:
+If one user sees zero records while service-role counts are nonzero, verify
+`auth.users.id -> app.profile.auth_user_id` and the user's `app.app_access` row
+for `crm` before debugging frontend filters or rerunning imports.
 
 ### `src/components/ui` is hand-maintained, imports from `radix-ui`
 
@@ -367,7 +391,8 @@ No secret values appear here or in the repo.
 
 | Variable | Purpose | Stored where | Required in dev | Required in prod |
 |---|---|---|---|---|
-| `VITE_DIRECTUS_URL` | Directus API base URL (build-time) | optional `.env` (dev); defaults to `https://data.designflow.app` | no (defaults) | no (defaults) |
+| `VITE_SUPABASE_URL` | Supabase project URL (build-time) | `.env` (dev); CI build arg/secret in prod | yes | yes |
+| `VITE_SUPABASE_ANON_KEY` | Supabase public anon key (build-time) | `.env` (dev); CI build arg/secret in prod | yes | yes |
 | `VITE_LOGODEV_TOKEN` | logo.dev **publishable** token (client-safe) for domain-derived account logos | optional `.env` (dev); GitHub Actions secret `LOGODEV_TOKEN` → Docker build-arg (prod) | no (falls back to initials) | no (falls back to initials) |
 | `COOLIFY_BASE_URL` | Coolify deploy API base for CI | GitHub Actions secret | n/a | n/a (CI only) |
 | `COOLIFY_API_TOKEN` | Token to trigger Coolify deploy | GitHub Actions secret | n/a | n/a (CI only) |
@@ -375,8 +400,9 @@ No secret values appear here or in the repo.
 | `LOGODEV_TOKEN` | logo.dev publishable token → `VITE_LOGODEV_TOKEN` build-arg | GitHub Actions secret (optional) | n/a | n/a (CI only) |
 | `GITHUB_TOKEN` | GHCR push (built-in) | GitHub Actions (auto) | n/a | n/a (CI only) |
 
-Runtime auth is a Directus httpOnly session cookie scoped to `.designflow.app`
-(set by the backend), so the SPA holds no app secrets. Never commit a real `.env`.
+Runtime auth is Supabase Auth (Azure OAuth/password). The SPA holds only the
+public Supabase URL/anon key and the optional publishable logo.dev key; never put
+service-role keys or real `.env` files in this repo.
 
 ## Deployment
 
@@ -400,6 +426,58 @@ and triggers Coolify. CI never SSHes into or mutates the server. Full detail in
   `**/*.md`, `.claudeignore`, `.cursorignore`, `.copilotignore`) skip the build.
 
 ## Critical incidents
+
+### 2026-06-22 Contacts zero after Supabase cutover — contact view timeout/access gate
+
+What happened:
+`/contacts` showed 0 for every segment after the Directus-to-Supabase import,
+even though the Supabase tables contained 8,654 contacts and 3,744 canonical
+companies.
+
+Impact:
+The Contacts page looked empty for authenticated users and invited rerunning the
+data import unnecessarily.
+
+Root cause:
+Two issues overlapped: users without a linked `app.profile.auth_user_id` could
+authenticate but see no CRM rows, and the original `security_invoker`
+`api.crm_contact_list` view timed out on the browser's third 1,000-row page when
+PostgREST applied derived-field ordering/filtering.
+
+Recovery:
+The import was reconciled, affected profiles were linked to Supabase Auth users,
+the frontend stopped server-side contact ordering/filtering, and migration
+`20260622033500_crm_contact_view_access_gate.sql` recreated
+`api.crm_contact_list` as an access-gated `security_invoker=false` view.
+
+Rule added to prevent recurrence:
+Verify authenticated REST page loads (`0-999`, `1000-1999`, `2000-2999`, etc.)
+and profile/app-access mapping before changing contact segmentation or rerunning
+the Directus import.
+
+### 2026-06-22 Bad Gateway after deploy — Coolify proxy lost Docker socket
+
+What happened:
+After a successful deploy, `crm.designflow.app` returned 502 while the app
+container was healthy and nginx inside the container returned 200.
+
+Impact:
+The live CRM was unreachable even though the new static bundle was running.
+
+Root cause:
+`coolify-proxy`/Traefik logged `Cannot connect to the Docker daemon at
+unix:///var/run/docker.sock`, so Traefik could not discover the newly deployed
+Coolify container and had no valid upstream.
+
+Recovery:
+Restarting `coolify-proxy` restored Docker provider discovery and the site
+returned HTTP 200.
+
+Rule added to prevent recurrence:
+When live returns 502 after deploy, first check `docker ps`, app container logs,
+and `docker exec <container> wget http://127.0.0.1/contacts`. If the app is
+healthy but proxy logs show Docker provider errors, `docker restart coolify-proxy`
+restores route discovery.
 
 ### 2026-06-12 Every page blank — approvals schema mismatch + all-or-nothing loader
 
@@ -462,8 +540,10 @@ now break-glass only (see `docs/deployment.md`).
 | done | DataTable ag-Grid-style tools | Persistent per-column filter icon → checkbox value popover; per-column header quick-search + autocomplete; visible resize separator; inline-edit dropdowns (`editOptions`/`onCellEdit`); spreadsheet drag-to-copy fill handle |
 | done | Accounts status/chain UX | Real-schema colored chips; inline-editable; Twenty logos via logo.dev; segmented tabs (Accounts/Triage/Not a customer/All) default-hiding non-customers |
 | done | Account status data normalized | 24 null `customer_status` rows → `UNASSIGNED` (direct Directus PG write); now one "New Company" bucket |
+| done | Directus-to-Supabase CRM data import/reconciliation | Completed 2026-06-22; verified 8,654 contacts, 3,744 canonical companies, 38 departments, 11,267 emails, 27 meetings, and matching zero-count tables |
+| done | Contacts zero after Supabase cutover | Fixed 2026-06-22 via frontend client-side contact segmentation plus `api.crm_contact_list` access-gated view migration |
 | blocked | Account logos go live | Code deployed but inert until `LOGODEV_TOKEN` GitHub secret is set (publishable logo.dev key) — see HANDOFF.md. Falls back to initials until then |
-| open | Server-side pagination / Directus aggregates | Currently client-side; revisit if record volumes grow |
+| open | Server-side pagination / Supabase aggregates | Currently client-side for CRM screens; revisit if record volumes grow |
 | open | Bump CI actions off Node 20 | GitHub deprecates Node-20 actions (~2026-06-16); update `actions/*` and `docker/*` versions in `deploy.yml` |
 | known | Pre-existing lint warnings in `src/auth/auth.tsx` | 3 warnings (`any`, setState-in-effect, unused disable) accepted; do not add new warnings elsewhere |
 | unknown | `crm_licensor_approval_thread.stage` values | Free-form, 0 rows today; verify real values via backend when approval data exists |
