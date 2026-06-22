@@ -43,7 +43,7 @@ export function ContactsPage() {
   const allContactsQuery = useAllContactsQuery(-1, segment === 'all')
   const countsQuery = useContactSegmentCountsQuery()
   const retailersQuery = useIngestedDomainsQuery(-1)
-  const departmentsQuery = useDepartmentsQuery(300)
+  const departmentsQuery = useDepartmentsQuery(-1)
   const updateContactMutation = useUpdateContactMutation()
   const activeContactsQuery = segment === 'all' ? allContactsQuery : segmentQuery
   const buyers = listData(activeContactsQuery.data)

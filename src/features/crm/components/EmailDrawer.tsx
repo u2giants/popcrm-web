@@ -71,9 +71,9 @@ function MethodConfidence({ method }: { method: string }) {
 }
 
 function EmailDrawerForm({ row, onClose }: { row: CrmEmailMessage; onClose: () => void }) {
-  const retailersQuery = useIngestedDomainsQuery(100)
-  const opportunitiesQuery = useOpportunitiesQuery(100)
-  const departmentsQuery = useDepartmentsQuery(300)
+  const retailersQuery = useIngestedDomainsQuery(-1)
+  const opportunitiesQuery = useOpportunitiesQuery(-1)
+  const departmentsQuery = useDepartmentsQuery(-1)
   const updateEmailMutation = useUpdateEmailMutation()
   const createIgnoreRuleMutation = useCreateIgnoreRuleMutation()
   const retailers = listData(retailersQuery.data)

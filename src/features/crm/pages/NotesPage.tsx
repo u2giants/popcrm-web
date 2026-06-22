@@ -26,9 +26,9 @@ import { listData, useCreateNoteMutation, useNotesQuery, useOpportunitiesQuery, 
 import type { CrmNote } from '@/lib/types'
 
 export function NotesPage() {
-  const notesQuery = useNotesQuery(50)
-  const retailersQuery = useRetailersQuery(300)
-  const opportunitiesQuery = useOpportunitiesQuery(100)
+  const notesQuery = useNotesQuery(-1)
+  const retailersQuery = useRetailersQuery(-1)
+  const opportunitiesQuery = useOpportunitiesQuery(-1)
   const notes = listData(notesQuery.data)
   const retailers = listData(retailersQuery.data)
   const opportunities = listData(opportunitiesQuery.data)

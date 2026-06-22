@@ -34,9 +34,9 @@ function acctStatusOf(m: CrmMeetingNote): string {
 
 export function MeetingsPage() {
   const queryClient = useQueryClient()
-  const meetingsQuery = useMeetingsQuery(50)
-  const retailersQuery = useIngestedDomainsQuery(100)
-  const departmentsQuery = useDepartmentsQuery(300)
+  const meetingsQuery = useMeetingsQuery(-1)
+  const retailersQuery = useIngestedDomainsQuery(-1)
+  const departmentsQuery = useDepartmentsQuery(-1)
   const buyersQuery = useIngestedContactsQuery(-1)
   const updateMeetingMutation = useUpdateMeetingMutation()
   const meetings = listData(meetingsQuery.data)
@@ -82,13 +82,13 @@ export function MeetingsPage() {
           : key === 'contact'
             ? buyerById.get(value) ?? null
             : nextValue
-    queryClient.setQueryData<CrmMeetingNote[]>(crmKeys.meetings(50), (rows = []) =>
+    queryClient.setQueryData<CrmMeetingNote[]>(crmKeys.meetings(-1), (rows = []) =>
       rows.map((m) => (m.id === row.id ? { ...m, [key]: expanded } : m)),
     )
     try {
       await updateMeetingMutation.mutateAsync({ id: row.id, values: { [key]: nextValue } as Partial<CrmMeetingNote> })
     } catch {
-      queryClient.setQueryData<CrmMeetingNote[]>(crmKeys.meetings(50), (rows = []) =>
+      queryClient.setQueryData<CrmMeetingNote[]>(crmKeys.meetings(-1), (rows = []) =>
         rows.map((m) => (m.id === row.id ? { ...m, [key]: prev } : m)),
       )
       toast.error('Could not save change')

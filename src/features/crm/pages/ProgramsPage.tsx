@@ -21,7 +21,7 @@ function fmtAmount(val: string | number | null | undefined): string | null {
 }
 
 export function ProgramsPage() {
-  const opportunitiesQuery = useOpportunitiesQuery(100)
+  const opportunitiesQuery = useOpportunitiesQuery(-1)
   const opportunities = listData(opportunitiesQuery.data)
   const [query, setQuery] = useState('')
   const [selected, select] = useRecordSelection<CrmOpportunity>('opportunity', opportunities)

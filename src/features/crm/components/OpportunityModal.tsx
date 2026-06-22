@@ -136,8 +136,8 @@ function ModalInner({
   expanded: boolean
   onToggleExpand: () => void
 }) {
-  const notes = listData(useNotesQuery(50).data)
-  const tasks = listData(useTasksQuery(100).data)
+  const notes = listData(useNotesQuery(-1).data)
+  const tasks = listData(useTasksQuery(-1).data)
   const createNoteMutation = useCreateNoteMutation()
   const setStageMutation = useSetOpportunityStageMutation()
   const [stage, setStage] = useState(row.stage || OPPORTUNITY_STAGES[0])

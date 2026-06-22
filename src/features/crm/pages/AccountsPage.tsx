@@ -24,9 +24,9 @@ type Segment = 'active' | 'triage' | 'dismissed' | 'all'
 const statusOf = (r: Retailer) => r.customer_status || 'UNASSIGNED'
 
 export function AccountsPage() {
-  const retailersQuery = useIngestedDomainsQuery(100)
+  const retailersQuery = useIngestedDomainsQuery(-1)
   const buyersQuery = useIngestedContactsQuery(-1)
-  const opportunitiesQuery = useOpportunitiesQuery(100)
+  const opportunitiesQuery = useOpportunitiesQuery(-1)
   const updateAccountMutation = useUpdateAccountMutation()
   const retailers = listData(retailersQuery.data)
   const buyers = listData(buyersQuery.data)

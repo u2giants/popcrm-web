@@ -28,7 +28,7 @@ function isOverdue(dueAt: string | null | undefined, status: string | null | und
 }
 
 export function TasksPage() {
-  const tasksQuery = useTasksQuery(100)
+  const tasksQuery = useTasksQuery(-1)
   const updateTaskMutation = useUpdateTaskMutation()
   const tasks = listData(tasksQuery.data)
   const [query, setQuery] = useState('')

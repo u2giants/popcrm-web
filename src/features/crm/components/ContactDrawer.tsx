@@ -8,8 +8,8 @@ import { idOf, label, relatedName, formatDate } from '@/features/crm/format'
 import type { Buyer } from '@/lib/types'
 
 export function ContactDrawer({ row, onClose }: { row: Buyer | null; onClose: () => void }) {
-  const emails = listData(useEmailsQuery(50).data)
-  const meetings = listData(useMeetingsQuery(50).data)
+  const emails = listData(useEmailsQuery(-1).data)
+  const meetings = listData(useMeetingsQuery(-1).data)
 
   const related = useMemo(() => {
     if (!row) return { emails: [], meetings: [] }

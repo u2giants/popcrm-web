@@ -53,11 +53,11 @@ function MethodChip({ method }: { method: string | null | undefined }) {
 }
 
 export function EmailRoutingPage() {
-  const emailsQuery = useEmailsQuery(50)
+  const emailsQuery = useEmailsQuery(-1)
   const ignoreRulesQuery = useIgnoreRulesQuery()
-  const retailersQuery = useIngestedDomainsQuery(100)
-  const departmentsQuery = useDepartmentsQuery(300)
-  const opportunitiesQuery = useOpportunitiesQuery(100)
+  const retailersQuery = useIngestedDomainsQuery(-1)
+  const departmentsQuery = useDepartmentsQuery(-1)
+  const opportunitiesQuery = useOpportunitiesQuery(-1)
   const fireflies = useFirefliesHealth()
   const updateEmailMutation = useUpdateEmailMutation()
   const createIgnoreRuleMutation = useCreateIgnoreRuleMutation()

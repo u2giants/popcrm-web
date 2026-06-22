@@ -51,22 +51,22 @@ export const crmKeys = {
   all: ['crm'] as const,
   stats: () => [...crmKeys.all, 'stats'] as const,
   fireflies: () => [...crmKeys.all, 'fireflies'] as const,
-  opportunities: (limit = 100) => [...crmKeys.all, 'opportunities', { limit }] as const,
-  retailers: (limit = 300) => [...crmKeys.all, 'retailers', { limit }] as const,
-  buyers: (limit = 300) => [...crmKeys.all, 'buyers', { limit }] as const,
-  ingestedDomains: (limit = 100) => [...crmKeys.all, 'ingestedDomains', { limit }] as const,
-  ingestedContacts: (limit = 100) => [...crmKeys.all, 'ingestedContacts', { limit }] as const,
+  opportunities: (limit = -1) => [...crmKeys.all, 'opportunities', { limit }] as const,
+  retailers: (limit = -1) => [...crmKeys.all, 'retailers', { limit }] as const,
+  buyers: (limit = -1) => [...crmKeys.all, 'buyers', { limit }] as const,
+  ingestedDomains: (limit = -1) => [...crmKeys.all, 'ingestedDomains', { limit }] as const,
+  ingestedContacts: (limit = -1) => [...crmKeys.all, 'ingestedContacts', { limit }] as const,
   contactSegment: (segment: Exclude<ContactSegment, 'all'>, limit = -1) => [...crmKeys.all, 'contactSegment', segment, { limit }] as const,
   allContacts: (limit = -1) => [...crmKeys.all, 'allContacts', { limit }] as const,
   contactSegmentCounts: () => [...crmKeys.all, 'contactSegmentCounts'] as const,
-  departments: (limit = 300) => [...crmKeys.all, 'departments', { limit }] as const,
-  emails: (limit = 50) => [...crmKeys.all, 'emails', { limit }] as const,
-  meetings: (limit = 50) => [...crmKeys.all, 'meetings', { limit }] as const,
+  departments: (limit = -1) => [...crmKeys.all, 'departments', { limit }] as const,
+  emails: (limit = -1) => [...crmKeys.all, 'emails', { limit }] as const,
+  meetings: (limit = -1) => [...crmKeys.all, 'meetings', { limit }] as const,
   ignoreRules: () => [...crmKeys.all, 'ignoreRules'] as const,
   aiConfigs: () => [...crmKeys.all, 'aiConfigs'] as const,
-  notes: (limit = 50) => [...crmKeys.all, 'notes', { limit }] as const,
-  tasks: (limit = 100) => [...crmKeys.all, 'tasks', { limit }] as const,
-  approvals: (limit = 100) => [...crmKeys.all, 'approvals', { limit }] as const,
+  notes: (limit = -1) => [...crmKeys.all, 'notes', { limit }] as const,
+  tasks: (limit = -1) => [...crmKeys.all, 'tasks', { limit }] as const,
+  approvals: (limit = -1) => [...crmKeys.all, 'approvals', { limit }] as const,
 }
 
 export const crmQueryDefaults = {
@@ -115,23 +115,23 @@ export function useFirefliesHealth() {
   })
 }
 
-export function useOpportunitiesQuery(limit = 100) {
+export function useOpportunitiesQuery(limit = -1) {
   return useQuery({ queryKey: crmKeys.opportunities(limit), queryFn: () => fetchOpportunities(limit), ...crmQueryDefaults })
 }
 
-export function useRetailersQuery(limit = 300) {
+export function useRetailersQuery(limit = -1) {
   return useQuery({ queryKey: crmKeys.retailers(limit), queryFn: () => fetchRetailers(limit), ...crmQueryDefaults, staleTime: 2 * 60_000 })
 }
 
-export function useBuyersQuery(limit = 300) {
+export function useBuyersQuery(limit = -1) {
   return useQuery({ queryKey: crmKeys.buyers(limit), queryFn: () => fetchBuyers(limit), ...crmQueryDefaults, staleTime: 2 * 60_000 })
 }
 
-export function useIngestedDomainsQuery(limit = 100) {
+export function useIngestedDomainsQuery(limit = -1) {
   return useQuery({ queryKey: crmKeys.ingestedDomains(limit), queryFn: () => fetchIngestedDomains(limit), ...crmQueryDefaults })
 }
 
-export function useIngestedContactsQuery(limit = 100) {
+export function useIngestedContactsQuery(limit = -1) {
   return useQuery({ queryKey: crmKeys.ingestedContacts(limit), queryFn: () => fetchIngestedContacts(limit), ...crmQueryDefaults })
 }
 
@@ -162,11 +162,11 @@ export function useContactSegmentCountsQuery() {
   })
 }
 
-export function useDepartmentsQuery(limit = 300) {
+export function useDepartmentsQuery(limit = -1) {
   return useQuery({ queryKey: crmKeys.departments(limit), queryFn: () => fetchDepartments(limit), ...crmQueryDefaults, staleTime: 2 * 60_000 })
 }
 
-export function useEmailsQuery(limit = 50) {
+export function useEmailsQuery(limit = -1) {
   return useQuery({
     queryKey: crmKeys.emails(limit),
     queryFn: () => fetchEmailMessages(limit),
@@ -176,7 +176,7 @@ export function useEmailsQuery(limit = 50) {
   })
 }
 
-export function useMeetingsQuery(limit = 50) {
+export function useMeetingsQuery(limit = -1) {
   return useQuery({ queryKey: crmKeys.meetings(limit), queryFn: () => fetchMeetingNotes(limit), ...crmQueryDefaults, refetchInterval: 90_000 })
 }
 
@@ -188,11 +188,11 @@ export function useAiConfigsQuery() {
   return useQuery({ queryKey: crmKeys.aiConfigs(), queryFn: fetchAiModelConfigs, ...crmQueryDefaults, staleTime: 2 * 60_000 })
 }
 
-export function useNotesQuery(limit = 50) {
+export function useNotesQuery(limit = -1) {
   return useQuery({ queryKey: crmKeys.notes(limit), queryFn: () => fetchNotes(limit), ...crmQueryDefaults, refetchInterval: 90_000 })
 }
 
-export function useTasksQuery(limit = 100) {
+export function useTasksQuery(limit = -1) {
   return useQuery({
     queryKey: crmKeys.tasks(limit),
     queryFn: () => fetchTasks(limit),
@@ -202,7 +202,7 @@ export function useTasksQuery(limit = 100) {
   })
 }
 
-export function useApprovalsQuery(limit = 100) {
+export function useApprovalsQuery(limit = -1) {
   return useQuery({ queryKey: crmKeys.approvals(limit), queryFn: () => fetchApprovalThreads(limit), ...crmQueryDefaults })
 }
 
@@ -211,13 +211,13 @@ export function useCrmStatsQuery() {
     queryKey: crmKeys.stats(),
     queryFn: async () => {
       const [retailers, buyers, opportunities, emails, meetings, tasks, approvals] = await Promise.all([
-        fetchRetailers(1_000),
+        fetchRetailers(-1),
         fetchBuyers(-1),
-        fetchOpportunities(1_000),
-        fetchEmailMessages(1_000),
-        fetchMeetingNotes(500),
-        fetchTasks(500),
-        fetchApprovalThreads(500),
+        fetchOpportunities(-1),
+        fetchEmailMessages(-1),
+        fetchMeetingNotes(-1),
+        fetchTasks(-1),
+        fetchApprovalThreads(-1),
       ])
       return { retailers, buyers, opportunities, emails, meetings, tasks, approvals }
     },

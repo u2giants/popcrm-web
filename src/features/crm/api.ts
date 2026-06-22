@@ -288,7 +288,7 @@ const toIgnoreRule = (r: Row): CrmIgnoreRule => ({
 const OPP_MAP = { amount: 'estimated_value', retailer: 'company_id', contact: 'contact_id', department: 'department_id', factory: 'factory_id', project: 'project_id', owner: 'owner_profile_id' }
 const OPP_RELS = ['retailer', 'contact', 'department', 'factory', 'project', 'owner']
 
-export async function fetchOpportunities(limit = 100): Promise<CrmOpportunity[]> {
+export async function fetchOpportunities(limit = -1): Promise<CrmOpportunity[]> {
   const rows = await fetchRows('crm_opportunity_list', [{ col: 'stage' }, { col: 'name' }], limit)
   return rows.map(toOpportunity)
 }
@@ -317,7 +317,7 @@ export async function askOpportunityAi(id: string, question: string): Promise<st
 // ---------------------------------------------------------------------------
 // Accounts / companies (curated customers vs full ingested registry)
 // ---------------------------------------------------------------------------
-export async function fetchRetailers(limit = 300): Promise<Retailer[]> {
+export async function fetchRetailers(limit = -1): Promise<Retailer[]> {
   let q = supabase.schema('api').from('crm_account_list').select('*').in('customer_status', CUSTOMER_STATUSES).order('name')
   if (limit >= 0) q = q.limit(limit)
   const { data, error } = await q
@@ -346,7 +346,7 @@ export async function updateRetailer(id: string, values: Partial<Retailer>) {
 // ---------------------------------------------------------------------------
 // Contacts / buyers
 // ---------------------------------------------------------------------------
-export async function fetchBuyers(limit = 300): Promise<Buyer[]> {
+export async function fetchBuyers(limit = -1): Promise<Buyer[]> {
   // Filtering/ordering this security_invoker view through PostgREST can time out
   // because company_customer_status/name are derived across joined RLS tables.
   // Pull the browser-safe rows unfiltered and let the client segment/sort them.
@@ -457,7 +457,7 @@ export async function deleteDepartment(id: string) {
 const EMAIL_MAP = { retailer: 'company_id', department: 'department_id', opportunity: 'opportunity_id' }
 const EMAIL_RELS = ['retailer', 'department', 'opportunity']
 
-export async function fetchEmailMessages(limit = 300): Promise<CrmEmailMessage[]> {
+export async function fetchEmailMessages(limit = -1): Promise<CrmEmailMessage[]> {
   const rows = await fetchRows('crm_email_routing_queue', [{ col: 'received_at', asc: false }], limit)
   return rows.map(toEmail)
 }
@@ -472,7 +472,7 @@ export async function updateEmailMessage(id: string, values: Partial<CrmEmailMes
 const MEETING_MAP = { name: 'title', date: 'meeting_at', summary: 'body', retailer: 'company_id', department: 'department_id', contact: 'contact_id' }
 const MEETING_RELS = ['retailer', 'department', 'contact']
 
-export async function fetchMeetingNotes(limit = 100): Promise<CrmMeetingNote[]> {
+export async function fetchMeetingNotes(limit = -1): Promise<CrmMeetingNote[]> {
   const rows = await fetchRows('crm_meeting_list', [{ col: 'date', asc: false }], limit)
   return rows.map(toMeeting)
 }
@@ -511,7 +511,7 @@ export async function updateAiModelConfig(id: string, values: Partial<CrmAiModel
 const NOTE_MAP = { retailer: 'company_id', contact: 'contact_id', opportunity: 'opportunity_id', department: 'department_id' }
 const NOTE_RELS = ['retailer', 'contact', 'opportunity', 'department']
 
-export async function fetchNotes(limit = 200): Promise<CrmNote[]> {
+export async function fetchNotes(limit = -1): Promise<CrmNote[]> {
   const rows = await fetchRows('crm_note_list', [{ col: 'created_at', asc: false }], limit)
   return rows.map(toNote)
 }
@@ -530,7 +530,7 @@ export async function updateNote(id: string, values: Partial<CrmNote>) {
 const TASK_MAP = { retailer: 'company_id', contact: 'contact_id', opportunity: 'opportunity_id', department: 'department_id', assignee: 'assignee_profile_id' }
 const TASK_RELS = ['retailer', 'contact', 'opportunity', 'department', 'assignee']
 
-export async function fetchTasks(limit = 200): Promise<CrmTask[]> {
+export async function fetchTasks(limit = -1): Promise<CrmTask[]> {
   const rows = await fetchRows('crm_task_list', [{ col: 'status' }, { col: 'due_at' }], limit)
   return rows.map(toTask)
 }
@@ -549,7 +549,7 @@ export async function updateTask(id: string, values: Partial<CrmTask>) {
 const APPROVAL_MAP = { opportunity: 'opportunity_id' }
 const APPROVAL_RELS = ['opportunity']
 
-export async function fetchApprovalThreads(limit = 200): Promise<CrmLicensorApprovalThread[]> {
+export async function fetchApprovalThreads(limit = -1): Promise<CrmLicensorApprovalThread[]> {
   const rows = await fetchRows('crm_approval_queue', [{ col: 'stage' }, { col: 'submitted_date', asc: false }], limit)
   return rows.map(toApproval)
 }

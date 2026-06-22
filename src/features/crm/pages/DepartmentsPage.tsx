@@ -12,7 +12,7 @@ import { listData, useDepartmentsQuery } from '@/features/crm/queries'
 import type { CrmDepartment } from '@/lib/types'
 
 export function DepartmentsPage() {
-  const departmentsQuery = useDepartmentsQuery(300)
+  const departmentsQuery = useDepartmentsQuery(-1)
   const departments = listData(departmentsQuery.data)
   const [query, setQuery] = useState('')
   const [selected, select] = useRecordSelection<CrmDepartment>('department', departments)

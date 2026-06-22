@@ -22,9 +22,9 @@ function fmtAmount(val: string | number | null | undefined): string {
 
 export function AccountDrawer({ row, onClose }: { row: Retailer | null; onClose: () => void }) {
   const buyers = listData(useIngestedContactsQuery(-1).data)
-  const departments = listData(useDepartmentsQuery(300).data)
-  const opportunities = listData(useOpportunitiesQuery(100).data)
-  const emails = listData(useEmailsQuery(50).data)
+  const departments = listData(useDepartmentsQuery(-1).data)
+  const opportunities = listData(useOpportunitiesQuery(-1).data)
+  const emails = listData(useEmailsQuery(-1).data)
 
   const related = useMemo(() => {
     if (!row) return { contacts: [], depts: [], opps: [], recentEmails: [] }

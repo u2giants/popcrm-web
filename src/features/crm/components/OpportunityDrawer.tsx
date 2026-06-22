@@ -47,10 +47,10 @@ export function OpportunityDrawer({
 }
 
 function OpportunityDrawerForm({ row, onClose }: { row: CrmOpportunity; onClose: () => void }) {
-  const emails = listData(useEmailsQuery(50).data)
-  const meetings = listData(useMeetingsQuery(50).data)
-  const notes = listData(useNotesQuery(50).data)
-  const tasks = listData(useTasksQuery(100).data)
+  const emails = listData(useEmailsQuery(-1).data)
+  const meetings = listData(useMeetingsQuery(-1).data)
+  const notes = listData(useNotesQuery(-1).data)
+  const tasks = listData(useTasksQuery(-1).data)
   const setStageMutation = useSetOpportunityStageMutation()
   const updateOpportunityMutation = useUpdateOpportunityMutation()
   const [stage, setStage] = useState(row.stage || OPPORTUNITY_STAGES[0])

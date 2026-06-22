@@ -59,9 +59,9 @@ function valueOptions(values: string[]): ComboOption[] {
 export function DataAdminPage() {
   const queryClient = useQueryClient()
   const buyersQuery = useIngestedContactsQuery(-1)
-  const departmentsQuery = useDepartmentsQuery(300)
-  const opportunitiesQuery = useOpportunitiesQuery(100)
-  const retailersQuery = useIngestedDomainsQuery(100)
+  const departmentsQuery = useDepartmentsQuery(-1)
+  const opportunitiesQuery = useOpportunitiesQuery(-1)
+  const retailersQuery = useIngestedDomainsQuery(-1)
   const buyers = listData(buyersQuery.data)
   const departments = listData(departmentsQuery.data)
   const opportunities = listData(opportunitiesQuery.data)
@@ -169,7 +169,7 @@ export function DataAdminPage() {
     try {
       if (departmentDraft.id) {
         await updateDepartment(departmentDraft.id, payload)
-        queryClient.setQueryData<CrmDepartment[]>(crmKeys.departments(300), (rows = []) =>
+        queryClient.setQueryData<CrmDepartment[]>(crmKeys.departments(-1), (rows = []) =>
           rows.map((d) =>
             d.id === departmentDraft.id
               ? {
@@ -184,7 +184,7 @@ export function DataAdminPage() {
         toast.success('Department updated')
       } else {
         const created = await createDepartment(payload)
-        queryClient.setQueryData<CrmDepartment[]>(crmKeys.departments(300), (rows = []) => [
+        queryClient.setQueryData<CrmDepartment[]>(crmKeys.departments(-1), (rows = []) => [
           ...rows,
           {
             ...created,
@@ -218,7 +218,7 @@ export function DataAdminPage() {
     setBusy(true)
     try {
       await deleteDepartment(departmentDraft.id)
-      queryClient.setQueryData<CrmDepartment[]>(crmKeys.departments(300), (rows = []) => rows.filter((d) => d.id !== departmentDraft.id))
+      queryClient.setQueryData<CrmDepartment[]>(crmKeys.departments(-1), (rows = []) => rows.filter((d) => d.id !== departmentDraft.id))
       setDepartmentDraft(departmentForm())
       setSelectedDepartmentId('')
       toast.success('Department deleted')
@@ -266,10 +266,10 @@ export function DataAdminPage() {
     setBusy(true)
     const previousDepartments = departments
     const previousOpportunities = opportunities
-    queryClient.setQueryData<CrmDepartment[]>(crmKeys.departments(300), (rows = []) =>
+    queryClient.setQueryData<CrmDepartment[]>(crmKeys.departments(-1), (rows = []) =>
       rows.map((d) => (d.division === divisionFrom ? { ...d, division: nextValue } : d)),
     )
-    queryClient.setQueryData<CrmOpportunity[]>(crmKeys.opportunities(100), (rows = []) =>
+    queryClient.setQueryData<CrmOpportunity[]>(crmKeys.opportunities(-1), (rows = []) =>
       rows.map((o) => (o.division === divisionFrom ? { ...o, division: nextValue } : o)),
     )
     try {
@@ -281,8 +281,8 @@ export function DataAdminPage() {
       setDivisionFrom('')
       setDivisionTo('')
     } catch {
-      queryClient.setQueryData<CrmDepartment[]>(crmKeys.departments(300), previousDepartments)
-      queryClient.setQueryData<CrmOpportunity[]>(crmKeys.opportunities(100), previousOpportunities)
+      queryClient.setQueryData<CrmDepartment[]>(crmKeys.departments(-1), previousDepartments)
+      queryClient.setQueryData<CrmOpportunity[]>(crmKeys.opportunities(-1), previousOpportunities)
       toast.error('Could not rename division')
     } finally {
       setBusy(false)

@@ -19,7 +19,7 @@ function fmtAmount(val: string | number | null | undefined): string {
 
 export function DepartmentDrawer({ row, onClose }: { row: CrmDepartment | null; onClose: () => void }) {
   const buyers = listData(useIngestedContactsQuery(-1).data)
-  const opportunities = listData(useOpportunitiesQuery(100).data)
+  const opportunities = listData(useOpportunitiesQuery(-1).data)
 
   const related = useMemo(() => {
     if (!row) return { contacts: [], programs: [] }

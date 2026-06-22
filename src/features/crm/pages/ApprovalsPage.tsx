@@ -12,7 +12,7 @@ import { listData, useApprovalsQuery } from '@/features/crm/queries'
 import type { CrmLicensorApprovalThread } from '@/lib/types'
 
 export function ApprovalsPage() {
-  const approvalsQuery = useApprovalsQuery(100)
+  const approvalsQuery = useApprovalsQuery(-1)
   const approvals = listData(approvalsQuery.data)
   const [query, setQuery] = useState('')
   const [selected, select] = useRecordSelection<CrmLicensorApprovalThread>('approval', approvals)

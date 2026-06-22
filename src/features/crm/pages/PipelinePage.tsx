@@ -25,8 +25,8 @@ function fmtAmount(val: string | number | null | undefined): string | null {
 }
 
 export function PipelinePage() {
-  const opportunitiesQuery = useOpportunitiesQuery(100)
-  const retailersQuery = useRetailersQuery(300)
+  const opportunitiesQuery = useOpportunitiesQuery(-1)
+  const retailersQuery = useRetailersQuery(-1)
   const opportunities = listData(opportunitiesQuery.data)
   const retailers = listData(retailersQuery.data)
   const [query, setQuery] = useState('')
