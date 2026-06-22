@@ -185,8 +185,6 @@ export function ContactsPage() {
       hideBelow: 'md',
       sortValue: (b) => b.job_title ?? '',
       filterValue: (b) => b.job_title,
-      editOptions: typeOptions,
-      editValue: (b) => b.job_title,
       cell: (b) => <span className="text-muted-foreground">{b.job_title || '—'}</span>,
     },
     {
@@ -214,6 +212,8 @@ export function ContactsPage() {
       hideBelow: 'lg',
       sortValue: (b) => b.contact_type ?? '',
       filterValue: (b) => label(b.contact_type),
+      editOptions: typeOptions,
+      editValue: (b) => b.contact_type,
       cell: (b) => b.contact_type ? <StatusBadge tone="info" dot={false}>{label(b.contact_type)}</StatusBadge> : '—',
     },
   ]
