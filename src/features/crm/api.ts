@@ -37,6 +37,12 @@ export type AccountSegment = 'active' | 'triage' | 'dismissed' | 'all'
 export type AccountSegmentCounts = Record<AccountSegment, number>
 export type ContactSegment = 'customer' | 'department' | 'triage' | 'all'
 export type ContactSegmentCounts = Record<ContactSegment, number>
+export interface CrmSearchResults {
+  accounts: Retailer[]
+  contacts: Buyer[]
+  opportunities: CrmOpportunity[]
+  emails: CrmEmailMessage[]
+}
 
 // Dynamic table/view names and generic Row payloads can't satisfy the generated
 // literal-keyed client types, so the data helpers below go through this untyped
@@ -107,6 +113,15 @@ function isMissingApiObject(error: unknown): boolean {
   const e = error as { code?: string; message?: string; details?: string }
   const text = `${e.message ?? ''} ${e.details ?? ''}`.toLowerCase()
   return e.code === '42P01' || e.code === 'PGRST205' || text.includes('could not find') || text.includes('does not exist')
+}
+
+function searchPattern(raw: string): string | null {
+  const term = raw.trim().replace(/[,%()]/g, ' ').replace(/\s+/g, ' ')
+  return term ? `%${term}%` : null
+}
+
+function ilikeAny(columns: string[], pattern: string): string {
+  return columns.map((column) => `${column}.ilike.${pattern}`).join(',')
 }
 
 function applyAccountSegment(q: ReturnType<typeof anyDb.schema>, segment: AccountSegment) {
@@ -611,4 +626,54 @@ export async function fetchApprovalThreads(limit = -1): Promise<CrmLicensorAppro
 
 export async function updateApprovalThread(id: string, values: Partial<CrmLicensorApprovalThread>) {
   await updateRow('licensor_approval_thread', id, mapValues(values as Row, APPROVAL_MAP, APPROVAL_RELS))
+}
+
+// ---------------------------------------------------------------------------
+// Global CRM search
+// ---------------------------------------------------------------------------
+export async function searchCrm(query: string, limitPerGroup = 8): Promise<CrmSearchResults> {
+  const pattern = searchPattern(query)
+  if (!pattern) return { accounts: [], contacts: [], opportunities: [], emails: [] }
+
+  const [accounts, contacts, opportunities, emails] = await Promise.all([
+    anyDb
+      .schema("api")
+      .from('crm_account_list')
+      .select('*')
+      .or(ilikeAny(['name', 'domain', 'routing_aliases'], pattern))
+      .order('name')
+      .limit(limitPerGroup),
+    anyDb
+      .schema("api")
+      .from('crm_contact_list')
+      .select('*')
+      .or(ilikeAny(['name', 'email', 'job_title', 'company_name'], pattern))
+      .limit(limitPerGroup),
+    anyDb
+      .schema("api")
+      .from('crm_opportunity_list')
+      .select('*')
+      .or(ilikeAny(['name', 'company_name', 'department_name', 'production_po_number', 'sales_order_number'], pattern))
+      .order('stage', { nullsFirst: false })
+      .order('name')
+      .limit(limitPerGroup),
+    anyDb
+      .schema("api")
+      .from('crm_email_routing_queue')
+      .select('*')
+      .or(ilikeAny(['subject', 'sender', 'recipients', 'company_name', 'department_name', 'opportunity_name'], pattern))
+      .order('received_at', { ascending: false, nullsFirst: false })
+      .limit(limitPerGroup),
+  ])
+
+  for (const result of [accounts, contacts, opportunities, emails]) {
+    if (result.error) throw result.error
+  }
+
+  return {
+    accounts: ((accounts.data ?? []) as Row[]).map(toRetailer),
+    contacts: ((contacts.data ?? []) as Row[]).map(toBuyer),
+    opportunities: ((opportunities.data ?? []) as Row[]).map(toOpportunity),
+    emails: ((emails.data ?? []) as Row[]).map(toEmail),
+  }
 }

@@ -11,9 +11,9 @@ import {
 } from 'lucide-react'
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
-import { fetchEmailMessages, fetchIngestedContacts, fetchIngestedDomains, fetchOpportunities } from '@/features/crm/api'
-import { crmKeys, crmQueryDefaults, listData } from '@/features/crm/queries'
-import { relatedName, textOf } from '@/features/crm/format'
+import { searchCrm } from '@/features/crm/api'
+import { crmQueryDefaults } from '@/features/crm/queries'
+import { relatedName } from '@/features/crm/format'
 import { cn } from '@/lib/utils'
 
 interface Result {
@@ -30,45 +30,33 @@ interface Result {
 export function CommandSearch({ open, onClose }: { open: boolean; onClose: () => void }) {
   const navigate = useNavigate()
   const [query, setQuery] = useState('')
-  const retailersQ = useQuery({ queryKey: crmKeys.ingestedDomains(-1), queryFn: () => fetchIngestedDomains(-1), enabled: open, ...crmQueryDefaults })
-  const buyersQ = useQuery({ queryKey: crmKeys.ingestedContacts(-1), queryFn: () => fetchIngestedContacts(-1), enabled: open, ...crmQueryDefaults })
-  const opportunitiesQ = useQuery({ queryKey: crmKeys.opportunities(-1), queryFn: () => fetchOpportunities(-1), enabled: open, ...crmQueryDefaults })
-  const emailsQ = useQuery({ queryKey: crmKeys.emails(-1), queryFn: () => fetchEmailMessages(-1), enabled: open, ...crmQueryDefaults })
-  const retailers = listData(retailersQ.data)
-  const buyers = listData(buyersQ.data)
-  const opportunities = listData(opportunitiesQ.data)
-  const emails = listData(emailsQ.data)
+  const searchTerm = query.trim()
+  const searchQ = useQuery({
+    queryKey: ['crm', 'commandSearch', searchTerm],
+    queryFn: () => searchCrm(searchTerm, 10),
+    enabled: open && searchTerm.length > 0,
+    ...crmQueryDefaults,
+    staleTime: 15_000,
+  })
 
   const results = useMemo<Result[]>(() => {
-    const q = query.trim().toLowerCase()
-    if (!q) return []
+    const data = searchQ.data
+    if (!data) return []
     const out: Result[] = []
-    for (const r of retailers) {
-      if (textOf(r.name, r.domain).includes(q)) {
-        out.push({ id: `r-${r.id}`, group: 'Accounts', label: r.name, hint: r.domain ?? undefined, icon: Building2, to: `/accounts?retailer=${r.id}` })
-      }
-      if (out.length > 30) break
+    for (const r of data.accounts) {
+      out.push({ id: `r-${r.id}`, group: 'Accounts', label: r.name, hint: r.domain ?? undefined, icon: Building2, to: `/accounts?retailer=${r.id}` })
     }
-    for (const b of buyers) {
-      if (textOf(b.name, b.email, relatedName(b.retailer)).includes(q)) {
-        out.push({ id: `b-${b.id}`, group: 'Contacts', label: b.name, hint: b.email ?? undefined, icon: Contact, to: `/contacts?contact=${b.id}` })
-      }
-      if (out.length > 60) break
+    for (const b of data.contacts) {
+      out.push({ id: `b-${b.id}`, group: 'Contacts', label: b.name, hint: b.email ?? relatedName(b.retailer), icon: Contact, to: `/contacts?contact=${b.id}` })
     }
-    for (const o of opportunities) {
-      if (textOf(o.name, relatedName(o.retailer), o.production_po_number, o.sales_order_number).includes(q)) {
-        out.push({ id: `o-${o.id}`, group: 'Pipeline', label: o.name || 'Untitled program', hint: relatedName(o.retailer), icon: Route, to: `/pipeline?opportunity=${o.id}` })
-      }
-      if (out.length > 90) break
+    for (const o of data.opportunities) {
+      out.push({ id: `o-${o.id}`, group: 'Pipeline', label: o.name || 'Untitled program', hint: relatedName(o.retailer), icon: Route, to: `/pipeline?opportunity=${o.id}` })
     }
-    for (const e of emails) {
-      if (textOf(e.subject, e.sender, relatedName(e.retailer)).includes(q)) {
-        out.push({ id: `e-${e.id}`, group: 'Email', label: e.subject || '(no subject)', hint: e.sender ?? undefined, icon: MailWarning, to: `/email?message=${e.id}` })
-      }
-      if (out.length > 120) break
+    for (const e of data.emails) {
+      out.push({ id: `e-${e.id}`, group: 'Email', label: e.subject || '(no subject)', hint: e.sender ?? relatedName(e.retailer), icon: MailWarning, to: `/email?message=${e.id}` })
     }
     return out.slice(0, 40)
-  }, [query, retailers, buyers, opportunities, emails])
+  }, [searchQ.data])
 
   const grouped = useMemo(() => {
     const map = new Map<string, Result[]>()
@@ -102,12 +90,16 @@ export function CommandSearch({ open, onClose }: { open: boolean; onClose: () =>
           />
         </div>
         <div className="max-h-80 overflow-y-auto p-2">
-          {!query.trim() ? (
+          {!searchTerm ? (
             <p className="px-3 py-8 text-center text-sm text-muted-foreground">
               Start typing to search across the CRM.
             </p>
+          ) : searchQ.isPending || searchQ.isFetching ? (
+            <p className="px-3 py-8 text-center text-sm text-muted-foreground">Searching…</p>
+          ) : searchQ.isError ? (
+            <p className="px-3 py-8 text-center text-sm text-muted-foreground">Search failed. Try again.</p>
           ) : !results.length ? (
-            <p className="px-3 py-8 text-center text-sm text-muted-foreground">No matches for “{query}”.</p>
+            <p className="px-3 py-8 text-center text-sm text-muted-foreground">No matches for “{searchTerm}”.</p>
           ) : (
             grouped.map(([group, items]) => (
               <div key={group} className="mb-1">
