@@ -131,7 +131,7 @@ function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
           <b style={{ color: 'var(--sidebar-foreground)', fontWeight: 600, display: 'block', fontSize: 11.5 }}>
             {healthOk ? 'All systems normal' : 'Check Fireflies'}
           </b>
-          Directus · data.designflow.app
+          Supabase · qsllyeztdwjgirsysgai.supabase.co
         </div>
       </div>
     </div>

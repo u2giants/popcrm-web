@@ -74,8 +74,8 @@ export function AccountsPage() {
     for (const r of retailers) {
       const s = statusOf(r)
       if (s === 'OTHER') dismissed++
+      else if (s === 'UNASSIGNED') triage++
       else active++
-      if (s === 'UNASSIGNED') triage++
     }
     return { active, triage, dismissed, all: retailers.length }
   }, [retailers])
@@ -84,7 +84,7 @@ export function AccountsPage() {
     const q = query.trim().toLowerCase()
     return retailers.filter((r) => {
       const s = statusOf(r)
-      if (segment === 'active' && s === 'OTHER') return false
+      if (segment === 'active' && (s === 'OTHER' || s === 'UNASSIGNED')) return false
       if (segment === 'triage' && s !== 'UNASSIGNED') return false
       if (segment === 'dismissed' && s !== 'OTHER') return false
       if (q && !textOf(r.name, r.domain, r.routing_aliases, r.customer_status, r.chain_type).includes(q)) return false
