@@ -12,7 +12,7 @@ import { ChainBadge } from '@/features/crm/components/CrmStatusBadge'
 import { CHAIN_TYPES, CUSTOMER_STATUSES, customerStatusLabel, customerStatusTone } from '@/features/crm/constants'
 import { idOf, label, textOf } from '@/features/crm/format'
 import { AccountLogo } from '@/components/app/AccountLogo'
-import { listData, useBuyersQuery, useIngestedDomainsQuery, useOpportunitiesQuery, useUpdateAccountMutation } from '@/features/crm/queries'
+import { listData, useIngestedContactsQuery, useIngestedDomainsQuery, useOpportunitiesQuery, useUpdateAccountMutation } from '@/features/crm/queries'
 import type { Retailer } from '@/lib/types'
 
 const STATUS_OPTIONS: EditOption[] = CUSTOMER_STATUSES.map((v) => ({ value: v, label: customerStatusLabel(v) }))
@@ -25,7 +25,7 @@ const statusOf = (r: Retailer) => r.customer_status || 'UNASSIGNED'
 
 export function AccountsPage() {
   const retailersQuery = useIngestedDomainsQuery(100)
-  const buyersQuery = useBuyersQuery(300)
+  const buyersQuery = useIngestedContactsQuery(-1)
   const opportunitiesQuery = useOpportunitiesQuery(100)
   const updateAccountMutation = useUpdateAccountMutation()
   const retailers = listData(retailersQuery.data)

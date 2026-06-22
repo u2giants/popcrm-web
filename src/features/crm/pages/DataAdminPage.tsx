@@ -58,7 +58,7 @@ function valueOptions(values: string[]): ComboOption[] {
 
 export function DataAdminPage() {
   const queryClient = useQueryClient()
-  const buyersQuery = useIngestedContactsQuery(100)
+  const buyersQuery = useIngestedContactsQuery(-1)
   const departmentsQuery = useDepartmentsQuery(300)
   const opportunitiesQuery = useOpportunitiesQuery(100)
   const retailersQuery = useIngestedDomainsQuery(100)
@@ -238,7 +238,7 @@ export function DataAdminPage() {
         ? { ...b, job_title: b.job_title || b.contact_type, contact_type: null }
         : b,
     )
-    queryClient.setQueryData<Buyer[]>(crmKeys.ingestedContacts(100), next)
+    queryClient.setQueryData<Buyer[]>(crmKeys.ingestedContacts(-1), next)
     try {
       await Promise.all(
         moveCandidates.map((b) =>
@@ -251,7 +251,7 @@ export function DataAdminPage() {
       toast.success(`Updated ${moveCandidates.length.toLocaleString()} contacts`)
       setTypeToMove('')
     } catch {
-      queryClient.setQueryData<Buyer[]>(crmKeys.ingestedContacts(100), previous)
+      queryClient.setQueryData<Buyer[]>(crmKeys.ingestedContacts(-1), previous)
       toast.error('Could not move Type values')
     } finally {
       setBusy(false)

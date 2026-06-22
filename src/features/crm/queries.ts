@@ -177,7 +177,7 @@ export function useCrmStatsQuery() {
     queryFn: async () => {
       const [retailers, buyers, opportunities, emails, meetings, tasks, approvals] = await Promise.all([
         fetchRetailers(1_000),
-        fetchBuyers(1_000),
+        fetchBuyers(-1),
         fetchOpportunities(1_000),
         fetchEmailMessages(1_000),
         fetchMeetingNotes(500),

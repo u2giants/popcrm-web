@@ -37,7 +37,7 @@ export function MeetingsPage() {
   const meetingsQuery = useMeetingsQuery(50)
   const retailersQuery = useIngestedDomainsQuery(100)
   const departmentsQuery = useDepartmentsQuery(300)
-  const buyersQuery = useIngestedContactsQuery(100)
+  const buyersQuery = useIngestedContactsQuery(-1)
   const updateMeetingMutation = useUpdateMeetingMutation()
   const meetings = listData(meetingsQuery.data)
   const retailers = listData(retailersQuery.data)
