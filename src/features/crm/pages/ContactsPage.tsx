@@ -34,8 +34,8 @@ function isTriageAccount(status: string | null | undefined) {
 
 export function ContactsPage() {
   const queryClient = useQueryClient()
-  const buyersQuery = useIngestedContactsQuery(100)
-  const retailersQuery = useIngestedDomainsQuery(100)
+  const buyersQuery = useIngestedContactsQuery(-1)
+  const retailersQuery = useIngestedDomainsQuery(-1)
   const departmentsQuery = useDepartmentsQuery(300)
   const updateContactMutation = useUpdateContactMutation()
   const buyers = listData(buyersQuery.data)
@@ -106,7 +106,7 @@ export function ContactsPage() {
     const patch: Partial<Buyer> = clearStaleDepartment
       ? ({ [key]: nextValue, department: null } as Partial<Buyer>)
       : ({ [key]: nextValue } as Partial<Buyer>)
-    queryClient.setQueryData<Buyer[]>(crmKeys.ingestedContacts(100), (rows = []) =>
+    queryClient.setQueryData<Buyer[]>(crmKeys.ingestedContacts(-1), (rows = []) =>
       rows.map((b) =>
         b.id === row.id
           ? { ...b, [key]: expanded, ...(clearStaleDepartment ? { department: null } : {}) }
@@ -116,7 +116,7 @@ export function ContactsPage() {
     try {
       await updateContactMutation.mutateAsync({ id: row.id, values: patch })
     } catch {
-      queryClient.setQueryData<Buyer[]>(crmKeys.ingestedContacts(100), (rows = []) =>
+      queryClient.setQueryData<Buyer[]>(crmKeys.ingestedContacts(-1), (rows = []) =>
         rows.map((b) =>
           b.id === row.id
             ? { ...b, [key]: prev, ...(clearStaleDepartment ? { department: row.department } : {}) }
