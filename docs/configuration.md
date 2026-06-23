@@ -1,5 +1,10 @@
 # Configuration — popcrm-web
 
+Infrastructure/server ownership notes are mirrored in
+[`u2giants/albert-standards/infrastructure`](https://github.com/u2giants/albert-standards/tree/main/infrastructure).
+If a config change affects deployment, runtime ownership, domains, or server
+operations, update that shared reference too.
+
 ## Frontend Environment
 
 Optional:

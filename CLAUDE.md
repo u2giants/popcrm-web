@@ -10,6 +10,10 @@ router; this file only adds Claude Code-specific notes.
 - **Deployment:** push to `main` → GitHub Actions → GHCR → Coolify (see
   `AGENTS.md` → Deployment). **SSH is not the normal deploy path** — manual
   `docker run` on the host is break-glass only.
+- **Shared server standards:** infrastructure/server context also lives in
+  [`u2giants/albert-standards/infrastructure`](https://github.com/u2giants/albert-standards/tree/main/infrastructure).
+  Keep it in sync when this app's deployment, domains, runtime ownership, server
+  dependencies, or incident runbooks change.
 - **Branching:** single-branch model — commit directly to `main`; do not create
   feature branches for this repo.
 - **Shared database / cross-app:** before any shared Supabase database, schema,

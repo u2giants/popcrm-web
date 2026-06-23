@@ -4,6 +4,12 @@ POP CRM is deployed through the compliant CI/CD path: **GitHub Actions builds
 and publishes the image; Coolify pulls and runs it.** GitHub Actions never SSHes
 into or mutates the production server.
 
+Shared server/infrastructure standards for the designflow.app VPS live in
+[`u2giants/albert-standards/infrastructure`](https://github.com/u2giants/albert-standards/tree/main/infrastructure).
+When deployment topology, domains, Coolify ownership, server dependencies,
+break-glass actions, or infrastructure incident runbooks change here, update that
+repository as part of the same documentation pass.
+
 ## Normal release path
 
 ```text

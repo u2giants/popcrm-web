@@ -58,6 +58,10 @@ Notes:
 - `frontend_imp.md` is a large background design plan — now fully implemented. It is in
   `.claudeignore`/`.cursorignore` to keep it out of routine AI context.
 - `design_handoff_popcrm_elevation/` is a historical design-spec directory — also ignored.
+- Shared non-code infrastructure/server standards live in
+  [`u2giants/albert-standards/infrastructure`](https://github.com/u2giants/albert-standards/tree/main/infrastructure).
+  When deployment, domains, runtime ownership, server dependencies, break-glass
+  runbooks, or infrastructure decisions change for this app, update that repo too.
 
 ## Repository structure
 
@@ -289,25 +293,32 @@ longer belongs to the new account (handled in `editCell`). Previously the
 Department column used a single static list of every department regardless of the
 chosen account.
 
-### Contacts load is Supabase view-gated; avoid server-side contact filters/order
+### Contacts load by Supabase server segment; avoid derived-field filters/order
 
 What changed:
-After the Supabase cutover, Contacts read from `api.crm_contact_list`. On
-2026-06-22 the view was changed in
-`shared-db/supabase/migrations/20260622033500_crm_contact_view_access_gate.sql`
-to `security_invoker=false` with an explicit `app.has_app_access('crm')` guard.
+After the Supabase cutover, Contacts read through browser-safe API views. On
+2026-06-22, `shared-db` migration
+`20260622043000_crm_contact_segments.sql` preserved `api.crm_contact_list`, added
+the explicit `app.has_app_access('crm')` guard, and introduced
+`api.crm_contact_segment_list` / `api.crm_contact_segment_counts`. The Contacts
+page now fetches Cust Contacts, Dept. Contacts, and Triage as server-computed
+segments; All is lazy-loaded only when opened.
 
 Why:
 The original `security_invoker` view plus PostgREST ordering/filtering on derived
 fields (`name`, `company_customer_status`) timed out during the paged browser
 load (page `2000-2999`), so `CrmDataContext` set contacts empty and the UI showed
-all contact counts as 0 even though 8,654 contacts existed.
+all contact counts as 0 even though 8,654 contacts existed. Later, trying to cap
+contact lists client-side hid most records. Server segments give each visible tab
+complete data without forcing the All list to load immediately.
 
 Future sessions should:
 Do not re-add server-side `order('name')` or
-`.in('company_customer_status', ...)` to `fetchBuyers`/`fetchIngestedContacts`;
-fetch the browser-safe view unfiltered/unordered and segment/sort client-side.
-If Contacts are zero, test the exact authenticated REST pages and check
+`.in('company_customer_status', ...)` to contact fetches. Use
+`crm_contact_segment_list.crm_segment = customer|department|triage` plus
+`crm_contact_segment_counts`; keep table search/sort client-side inside the
+loaded segment. `api.crm_contact_list` remains the generic/fallback contract. If
+Contacts are zero, test the exact authenticated REST pages and check
 `app.profile.auth_user_id` / `app.app_access` before assuming data is missing.
 
 ### Fireflies health does not prove meeting ingestion
@@ -478,8 +489,9 @@ PostgREST applied derived-field ordering/filtering.
 Recovery:
 The import was reconciled, affected profiles were linked to Supabase Auth users,
 the frontend stopped server-side contact ordering/filtering, and migration
-`20260622033500_crm_contact_view_access_gate.sql` recreated
-`api.crm_contact_list` as an access-gated `security_invoker=false` view.
+`20260622043000_crm_contact_segments.sql` preserved `api.crm_contact_list` as an
+access-gated `security_invoker=false` view and added server-computed contact
+segments/counts.
 
 Rule added to prevent recurrence:
 Verify authenticated REST page loads (`0-999`, `1000-1999`, `2000-2999`, etc.)

@@ -58,16 +58,18 @@ query keys so the app refetches browser-safe `api.crm_*` views instead of trying
 to render raw realtime payloads. Supabase publication/RLS enablement is shared-db
 work and must follow `shared-db/AGENTS.md`.
 
-Contacts are intentionally special after the 2026-06-22 incident. The frontend
-fetches `api.crm_contact_list` unfiltered and unordered, then segments/sorts
-client-side. Do not reintroduce PostgREST `order('name')` or server-side
-`company_customer_status` filters for the Contacts bootstrap path: the previous
+Contacts are intentionally special after the 2026-06-22 incidents. The frontend
+uses `api.crm_contact_segment_list` for the Cust Contacts, Dept. Contacts, and
+Triage tabs, and `api.crm_contact_segment_counts` for tab counts. The All tab
+uses the same segmented view without a segment filter, but it is lazy-loaded only
+after the user opens All. Do not reintroduce PostgREST `order('name')` or
+server-side `company_customer_status` filters for contact reads: the previous
 `security_invoker` view plus derived-field ordering/filtering timed out on the
 third paged browser request and made Contacts show all zeroes. The durable
 database fix is
-`shared-db/supabase/migrations/20260622033500_crm_contact_view_access_gate.sql`,
-which recreates `api.crm_contact_list` as `security_invoker=false` with an
-explicit `app.has_app_access('crm')` guard.
+`shared-db/supabase/migrations/20260622043000_crm_contact_segments.sql`, which
+preserves `api.crm_contact_list`, adds the explicit `app.has_app_access('crm')`
+guard, and exposes the server-computed segment/count contracts.
 
 ## Key modules
 
