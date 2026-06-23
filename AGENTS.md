@@ -51,6 +51,7 @@ Then load additional docs only when relevant:
 | Understand the redesign rationale (charts, tokens, layout) | `frontend_imp.md` (historical plan — fully implemented) | Everything else |
 | Claude Code session | `CLAUDE.md`, then `AGENTS.md` | Other docs unless the task requires them |
 | Documentation-only cleanup | `AGENTS.md`, `README.md`, affected `docs/`, ignore files | Source files except to verify accuracy |
+| Pull secrets from 1Password (MCP server or `op` CLI) | `AGENTS.md`, `docs/1password.md` | Unrelated architecture/deploy docs |
 
 Notes:
 - `HANDOFF.md` is **absent** when there is no unfinished work. If it exists, it is
