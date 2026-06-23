@@ -27,6 +27,10 @@ fetched from `img.logo.dev` keyed on each retailer's `domain`, with a graceful
 fallback to the initials avatar when there is no domain, no token, or the image
 fails to load. In production it is supplied via the GitHub Actions secret
 `LOGODEV_TOKEN`, passed as a Docker build-arg in `.github/workflows/deploy.yml`.
+The 1Password source of truth is
+`op://vibe_coding/logo.dev publishable token - popcrm-web/password`; the item
+notes include rotation, verification, and future-AI guidance. Do not put the
+token value itself in repo docs.
 
 Because this is a static Vite app, `VITE_*` values are baked into the build. Rebuild and redeploy after changing them.
 

@@ -658,6 +658,10 @@ export type Database = {
       }
       crm_update_contact: {
         Args: {
+          p_clear_company?: boolean
+          p_clear_contact_type?: boolean
+          p_clear_crm_department?: boolean
+          p_clear_scope?: boolean
           p_company_id?: string
           p_contact_id: string
           p_contact_type?: string

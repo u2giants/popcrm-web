@@ -349,7 +349,11 @@ export async function fetchOpportunities(limit = -1): Promise<CrmOpportunity[]> 
 }
 
 export async function setOpportunityStage(id: string, stage: string) {
-  await updateRow('opportunity', id, { stage })
+  const { error } = await supabase.schema('api').rpc('crm_set_opportunity_stage', {
+    p_opportunity_id: id,
+    p_stage: stage,
+  })
+  if (error) throw error
 }
 
 export async function updateOpportunity(id: string, values: Partial<CrmOpportunity>) {
@@ -481,7 +485,7 @@ export async function fetchContactSegmentCounts(): Promise<ContactSegmentCounts>
 
 export async function updateBuyer(id: string, values: Partial<Buyer>) {
   const v = values as Row
-  const { error } = await supabase.schema('api').rpc('crm_update_contact', {
+  const args = {
     p_contact_id: id,
     p_first_name: arg(v.first_name),
     p_last_name: arg(v.last_name),
@@ -493,7 +497,29 @@ export async function updateBuyer(id: string, values: Partial<Buyer>) {
     p_crm_department_id: arg(relId(v.department)),
     p_contact_type: arg(v.contact_type),
     p_scope: arg(v.scope),
-  })
+    p_clear_company: 'retailer' in v && !relId(v.retailer),
+    p_clear_crm_department: 'department' in v && !relId(v.department),
+    p_clear_contact_type: 'contact_type' in v && !v.contact_type,
+    p_clear_scope: 'scope' in v && !v.scope,
+  }
+  const { error } = await supabase.schema('api').rpc('crm_update_contact', args)
+  if (error && isMissingApiObject(error)) {
+    const { error: fallbackError } = await supabase.schema('api').rpc('crm_update_contact', {
+      p_contact_id: args.p_contact_id,
+      p_first_name: args.p_first_name,
+      p_last_name: args.p_last_name,
+      p_full_name: args.p_full_name,
+      p_email: args.p_email,
+      p_phone: args.p_phone,
+      p_job_title: args.p_job_title,
+      p_company_id: args.p_company_id,
+      p_crm_department_id: args.p_crm_department_id,
+      p_contact_type: args.p_contact_type,
+      p_scope: args.p_scope,
+    })
+    if (fallbackError) throw fallbackError
+    return
+  }
   if (error) throw error
 }
 

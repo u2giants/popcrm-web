@@ -294,6 +294,30 @@ longer belongs to the new account (handled in `editCell`). Previously the
 Department column used a single static list of every department regardless of the
 chosen account.
 
+### Contact relationship edits require account context and explicit clear flags
+
+What changed:
+On 2026-06-23, the Contacts page and Data Admin contact cleanup were updated to
+send the current account (`retailer`) whenever editing relationship-owned fields
+such as `department`, `contact_type`, or `scope`. Migration
+`20260623024500_crm_update_contact_clear_relationship_fields.sql` updates
+`api.crm_update_contact` with explicit `p_clear_*` flags so the UI can clear
+account, department, type, and scope values intentionally.
+
+Why:
+`core.contact_company.company_id` is required, so department/type/scope edits
+must target a specific contact-company relationship row. The previous RPC used
+`coalesce`, which made `null` mean "leave unchanged"; Data Admin's "Move and
+Clear Type" and inline unassign actions could appear to work optimistically while
+the database preserved the old value.
+
+Future sessions should:
+Do not remove the frontend fallback to the old RPC shape until the shared-db
+migration is confirmed applied in production. When editing relationship-owned
+contact fields, include the contact's current account (or infer it from the
+selected department) and use explicit clear flags rather than assuming `null`
+will clear a backend value.
+
 ### Contacts load by Supabase server segment; avoid derived-field filters/order
 
 What changed:
@@ -352,6 +376,9 @@ logos live from each company's domain via its `twenty-favicon` service. There wa
 nothing to migrate. `src/components/app/AccountLogo.tsx` replicates this: it fetches
 from `img.logo.dev` keyed on `retailer.domain` (token `VITE_LOGODEV_TOKEN`), falling
 back to the name-initials `NameAvatar` when there's no domain/token or the image fails.
+The publishable logo.dev token is stored in 1Password at
+`op://vibe_coding/logo.dev publishable token - popcrm-web/password` and mirrored
+to the GitHub Actions secret `LOGODEV_TOKEN`.
 
 Why:
 The user's "uploaded" Twenty logos never existed as stored files; domain-derivation

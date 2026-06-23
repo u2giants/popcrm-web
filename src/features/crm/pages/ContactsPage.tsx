@@ -104,18 +104,31 @@ export function ContactsPage() {
         : key === 'department'
           ? departmentById.get(value) ?? null
           : nextValue
+    const inferredRetailer =
+      key === 'department' && value && !idOf(row.retailer)
+        ? departmentById.get(value)?.retailer ?? row.retailer
+        : row.retailer
     // When the account changes, drop any department that no longer belongs to it.
     const clearStaleDepartment =
       key === 'retailer' &&
       idOf(row.department) !== '' &&
       idOf(departmentById.get(idOf(row.department))?.retailer) !== value
+    const relationshipField = key === 'department' || key === 'contact_type'
     const patch: Partial<Buyer> = clearStaleDepartment
       ? ({ [key]: nextValue, department: null } as Partial<Buyer>)
       : ({ [key]: nextValue } as Partial<Buyer>)
+    if (relationshipField) {
+      patch.retailer = inferredRetailer
+    }
     const optimistic = (rows: Buyer[] = []) =>
       rows.map((b) =>
         b.id === row.id
-          ? { ...b, [key]: expanded, ...(clearStaleDepartment ? { department: null } : {}) }
+          ? {
+              ...b,
+              [key]: expanded,
+              ...(relationshipField && inferredRetailer !== row.retailer ? { retailer: inferredRetailer } : {}),
+              ...(clearStaleDepartment ? { department: null } : {}),
+            }
           : b,
       )
     queryClient.setQueriesData<Buyer[]>({ queryKey: [...crmKeys.all, 'contactSegment'] }, optimistic)

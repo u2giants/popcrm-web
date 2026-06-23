@@ -3,36 +3,42 @@
 Continuation context for unfinished/partially-deployed work. Delete this file
 once the item below is truly complete. See `AGENTS.md` for the full operating guide.
 
-## Account logos (logo.dev) — activation pending
+## Contact relationship clear RPC
 
 Status:
-partial — code shipped and live, feature inert until a token is set.
+partial — frontend is backward-compatible and safe to deploy, but the new clear
+behavior depends on a shared-db migration that still needs to be applied through
+the shared database workflow.
 
 Done:
-- `src/components/app/AccountLogo.tsx` fetches brand logos from `img.logo.dev`
-  keyed on `retailer.domain`, falling back to `NameAvatar` initials when there's
-  no domain, no token, or the image fails. Wired into the Accounts table name
-  cell and the `AccountDrawer` header (via `DetailDrawer`'s `avatar` slot).
-- Build plumbing: `VITE_LOGODEV_TOKEN` Dockerfile build-arg ← `deploy.yml`
-  build-arg ← GitHub secret `LOGODEV_TOKEN`. Documented in `docs/configuration.md`
-  and `docs/deployment.md`.
+- Added app-repo copy of
+  `shared-db/supabase/migrations/20260623024500_crm_update_contact_clear_relationship_fields.sql`.
+- Added canonical `/worksp/shared-db/supabase/migrations/20260623024500_crm_update_contact_clear_relationship_fields.sql`.
+- Updated `src/features/crm/api.ts` so `updateBuyer` sends explicit `p_clear_*`
+  flags and retries the old RPC argument shape if production has not applied the
+  new function signature yet.
+- Updated Contacts/Data Admin so relationship-owned contact edits send account
+  context, and department selection can infer the account when the row was
+  previously unassigned.
+- `npm run lint`, `npm run build`, and `/worksp/shared-db/scripts/check-sql.sh`
+  static checks passed.
 
 Next action:
-1. Get a logo.dev **publishable** token (`pk_…`) from logo.dev.
-2. Add it as the GitHub repo secret **`LOGODEV_TOKEN`**
-   (Settings → Secrets and variables → Actions).
-3. Re-run the latest deploy (or push any commit). The token bakes into the
-   bundle and logos replace initials on the next build.
+1. In canonical `u2giants/shared-db`, review and land migration
+   `20260623024500_crm_update_contact_clear_relationship_fields.sql` using the
+   shared-db branch/PR workflow.
+2. Apply/promote it to production only after the shared-db preview/verification
+   checklist passes.
+3. After production has the new `api.crm_update_contact` signature, verify:
+   clearing Contact Type in Data Admin persists after refetch, clearing a
+   Department persists, and changing a contact's Account updates the segmented
+   Contacts counts correctly.
+4. Once verified, this `HANDOFF.md` can be deleted.
 
 Risks / watchouts:
-- It's a **publishable** key (client-safe, ships in the JS bundle) — do NOT use a
-  logo.dev secret/private key here.
-- `VITE_*` is build-time only; changing the token requires a rebuild+redeploy.
-- Until the secret exists, every account simply shows initials — nothing breaks.
-
-## Suggested follow-up (not started, optional)
-
-`OTHER` / "Not a Customer" is ~3,630 of ~3,766 accounts (reviewed, no CRM action).
-The Accounts default tab already hides them; consider whether the pipeline/overview
-should also exclude them, and whether the legacy Twenty `OTHER` rows want a one-time
-re-triage. Backend data change → confirm the rule with the user first.
+- Do not remove the old-RPC fallback in `updateBuyer` until production definitely
+  has the new function signature.
+- `core.contact_company.company_id` is required; relationship-owned contact
+  fields must be updated against a specific account relationship row.
+- Passing `null` alone is not a reliable clear operation for this RPC contract;
+  use the explicit `p_clear_*` flags.

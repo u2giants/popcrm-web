@@ -245,6 +245,7 @@ export function DataAdminPage() {
           updateBuyer(b.id, {
             job_title: b.job_title || b.contact_type,
             contact_type: null,
+            retailer: b.retailer,
           } as Partial<Buyer>),
         ),
       )

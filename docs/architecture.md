@@ -52,6 +52,17 @@ Write operations use mutation hooks in `queries.ts`, with optimistic query-cache
 updates where the UI already had instant behavior. Related queries are invalidated
 after writes so joined view rows reconcile with Supabase.
 
+Contact writes have one extra wrinkle: CRM relationship attributes
+(`department`, `contact_type`, `scope`) live on `core.contact_company`, not
+`core.contact`. The frontend must send the current account when editing those
+fields so `api.crm_update_contact` can target the correct relationship row. The
+2026-06-23 migration
+`shared-db/supabase/migrations/20260623024500_crm_update_contact_clear_relationship_fields.sql`
+adds explicit `p_clear_*` flags because `null` alone is ambiguous in RPC calls
+and the old `coalesce` semantics could not clear values. Until that migration is
+confirmed applied everywhere, `updateBuyer` keeps a fallback call using the old
+RPC argument shape.
+
 Realtime frontend scaffolding lives in `src/features/crm/realtime.ts`. It listens
 for base-table changes, debounces bursty tables, and invalidates the relevant
 query keys so the app refetches browser-safe `api.crm_*` views instead of trying
