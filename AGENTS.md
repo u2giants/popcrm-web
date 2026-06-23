@@ -656,3 +656,15 @@ now break-glass only (see `docs/deployment.md`).
 | open | Bump CI actions off Node 20 | GitHub deprecates Node-20 actions (~2026-06-16); update `actions/*` and `docker/*` versions in `deploy.yml` |
 | known | Pre-existing lint warnings in `src/auth/auth.tsx` | 3 warnings (`any`, setState-in-effect, unused disable) accepted; do not add new warnings elsewhere |
 | unknown | `crm_licensor_approval_thread.stage` values | Free-form, 0 rows today; verify real values via backend when approval data exists |
+<!-- ansible-host-policy: managed rollout from u2giants/ansible -->
+## Host / server changes — do NOT make them here
+
+The `hetz` server's host/OS layer is managed by **Ansible** in **[`u2giants/ansible`](https://github.com/u2giants/ansible)**.
+To change the server (packages, users, firewall, DNS, Docker *engine* config, system cron,
+systemd units, Cloudflare Tunnel 1, the backup watchdog), **open a PR there** and let CI apply
+it — **never** SSH into the box and hand-edit it. Manual changes are drift and get reverted by
+the next apply. See [`u2giants/ansible/AGENTS.md`](https://github.com/u2giants/ansible/blob/main/AGENTS.md).
+
+This repo is **not** the host layer. Its own changes belong here and deploy through their normal
+pipeline (e.g. Coolify). Don't put host-level changes here, and don't manage this service's
+container with Ansible. Scope boundary: **Ansible owns the host; Coolify owns the apps.**
