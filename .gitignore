@@ -24,3 +24,12 @@ dist-ssr
 *.sw?
 
 .env
+
+# Supabase CLI local state (this repo has no Supabase config/migrations of its
+# own — they live in u2giants/shared-db; only `gen types` is run here, which
+# leaves a transient supabase/.temp/).
+supabase/
+
+# Playwright MCP / screenshot session artifacts
+.playwright-mcp/
+screenshot-*.png

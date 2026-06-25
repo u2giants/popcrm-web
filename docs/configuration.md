@@ -44,11 +44,25 @@ Supabase Auth must allow the CRM frontend origins:
 Supabase must expose the `api`, `crm`, `pim`, and `core` schemas through
 PostgREST for the CRM views/RPCs used by the app.
 
-Supabase Auth must have the Azure provider configured for staff sign-in. A
-signed-in browser session is not enough by itself: the user's `auth.users.id`
-must be linked from `app.profile.auth_user_id`, and the profile must have
-`app.app_access` for `crm`. If one user sees empty CRM lists while service-role
-or admin checks show rows, verify that profile/app-access mapping first.
+Supabase Auth has the Azure (Microsoft) provider configured for staff sign-in.
+The production app registration is **"POP CRM — Supabase Auth"** (callback
+`https://qsllyeztdwjgirsysgai.supabase.co/auth/v1/callback`); its identifiers and
+setup are recorded in `shared-db/docs/app-migration-notes/popcrm-web-production-cutover-20260621.md`.
+The client secret lives only in the Supabase Auth config and Azure — never in
+this repo.
+
+Profile provisioning is automatic. A shared-db trigger
+(`app.handle_new_auth_user` on `auth.users` insert, migration
+`20260621162220_crm_auth_provision.sql`) creates `app.profile` and grants
+`app.app_access('crm')` on a user's **first** SSO login; the owner email also
+receives the `administrator` role. So a brand-new staff member can sign in and
+immediately see CRM data without manual seeding.
+
+The mapping still matters when debugging: the user's `auth.users.id` is linked
+from `app.profile.auth_user_id`, and the profile must have `app.app_access` for
+`crm`. If one user sees empty CRM lists while service-role or admin checks show
+rows, verify that profile/app-access mapping first — and confirm the
+auto-provision trigger is still present on `auth.users`.
 
 Backend secrets, service-role keys, and OAuth configuration live outside this
 frontend repo. The frontend must never receive or bake a Supabase service-role
