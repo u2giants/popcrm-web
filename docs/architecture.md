@@ -104,7 +104,7 @@ guard, and exposes the server-computed segment/count contracts.
 |---|---|---|
 | `OverviewPage` | `/` | KPI strip, email volume chart, routing donut, pipeline bar, activity panels |
 | `PipelinePage` | `/pipeline` | Board (kanban by stage) + List (DataTable) toggle |
-| `AccountsPage` | `/accounts` | DataTable + AccountDrawer. Segmented tabs: **Accounts** (default — hides "Not a Customer"), **Triage** (New Companies awaiting review), **Not a customer**, **All**. Status & Chain cells are inline-editable colored chips |
+| `AccountsPage` | `/accounts` | DataTable + AccountDrawer. Segmented tabs: **Customers** (default — only curated customers; hides both "Not a Customer" `OTHER` **and** untriaged New Companies `UNASSIGNED`), **Triage** (New Companies awaiting review), **Not a customer**, **All**. The tab was renamed from "Accounts" to "Customers" (2026-06-21) to disambiguate it from the page title, and New Companies were moved out of it into Triage only. Status & Chain cells are inline-editable colored chips |
 | `DepartmentsPage` | `/departments` | DataTable grouped/sorted by Account. Department-name clicks open `DepartmentDrawer` with assigned contacts and programs |
 | `ProgramsPage` | `/programs` | DataTable over CRM opportunities/programs + OpportunityModal |
 | `ContactsPage` | `/contacts` | DataTable + ContactDrawer. Segmented tabs: **Cust Contacts** (linked to Active/Potential account, no department), **Dept. Contacts** (linked to Active/Potential account and department), **Triage** (not linked to a customer account), **All**. Account inline-edit choices are row-aware |
