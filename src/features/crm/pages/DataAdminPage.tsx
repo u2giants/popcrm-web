@@ -25,7 +25,7 @@ import {
   listData,
   useDepartmentsQuery,
   useIngestedContactsQuery,
-  useIngestedDomainsQuery,
+  useAccountSegmentQuery,
   useOpportunitiesQuery,
 } from '@/features/crm/queries'
 import type { Buyer, CrmDepartment, CrmOpportunity } from '@/lib/types'
@@ -61,7 +61,7 @@ export function DataAdminPage() {
   const buyersQuery = useIngestedContactsQuery(-1)
   const departmentsQuery = useDepartmentsQuery(-1)
   const opportunitiesQuery = useOpportunitiesQuery(-1)
-  const retailersQuery = useIngestedDomainsQuery(-1)
+  const retailersQuery = useAccountSegmentQuery('all', -1)
   const buyers = listData(buyersQuery.data)
   const departments = listData(departmentsQuery.data)
   const opportunities = listData(opportunitiesQuery.data)

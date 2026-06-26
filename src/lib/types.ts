@@ -20,6 +20,22 @@ export interface Retailer {
   customer_status: string | null
   chain_type: string | null
   routing_aliases: string | null
+  is_potential?: boolean | null
+}
+
+export interface CrmIngestedDomain {
+  id: string
+  domain: string
+  display_name: string | null
+  status: string | null
+  email_count: number | null
+  first_seen_at: string | null
+  last_seen_at: string | null
+  last_sender: string | null
+  sample_subject: string | null
+  promoted_customer_id: string | null
+  promoted_company_name: string | null
+  updated_at: string | null
 }
 
 export interface Buyer {
@@ -162,4 +178,3 @@ export interface CrmLicensorApprovalThread {
   licensor_comments: string | null
   opportunity: string | CrmOpportunity | null
 }
-

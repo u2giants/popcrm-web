@@ -5,6 +5,7 @@ import type {
   CrmDepartment,
   CrmEmailMessage,
   CrmIgnoreRule,
+  CrmIngestedDomain,
   CrmLicensorApprovalThread,
   CrmMeetingNote,
   CrmNote,
@@ -25,16 +26,17 @@ import type {
 //
 // View rows are flat (company_id + company_name, ...); adapters below rebuild the
 // nested {id, name} shapes the existing UI/types expect, so pages stay unchanged.
-// "Curated customers" (operational pickers) vs "ingested registry" (triage) is one
-// core.company table split by customer_status — see fetchRetailers/fetchIngestedDomains.
+// Curated customers/accounts come from api.crm_account_list. Email-domain triage
+// comes from api.crm_ingested_domain_list and is promoted into customers only
+// after human review — see fetchRetailers/fetchIngestedDomains.
 // ---------------------------------------------------------------------------
 
 const CUSTOMER_STATUSES = ['ACTIVE_CUSTOMER', 'POTENTIAL_CUSTOMER']
 
 type Row = Record<string, unknown>
 type Order = { col: string; asc?: boolean }
-export type AccountSegment = 'active' | 'triage' | 'dismissed' | 'all'
-export type AccountSegmentCounts = Record<AccountSegment, number>
+export type AccountSegment = 'active' | 'dismissed' | 'all'
+export type AccountSegmentCounts = Record<AccountSegment, number> & { triage: number }
 export type ContactSegment = 'customer' | 'department' | 'triage' | 'all'
 export type ContactSegmentCounts = Record<ContactSegment, number>
 export interface CrmSearchResults {
@@ -126,7 +128,6 @@ function ilikeAny(columns: string[], pattern: string): string {
 
 function applyAccountSegment(q: ReturnType<typeof anyDb.schema>, segment: AccountSegment) {
   if (segment === 'active') return q.in('customer_status', CUSTOMER_STATUSES)
-  if (segment === 'triage') return q.or('customer_status.eq.UNASSIGNED,customer_status.is.null')
   if (segment === 'dismissed') return q.eq('customer_status', 'OTHER')
   return q
 }
@@ -226,6 +227,22 @@ const toRetailer = (r: Row): Retailer => ({
   customer_status: (r.customer_status ?? null) as string | null,
   chain_type: (r.chain_type ?? null) as string | null,
   routing_aliases: (r.routing_aliases ?? null) as string | null,
+  is_potential: (r.is_potential ?? null) as boolean | null,
+})
+
+const toIngestedDomain = (r: Row): CrmIngestedDomain => ({
+  id: r.id as string,
+  domain: (r.domain ?? '') as string,
+  display_name: (r.display_name ?? null) as string | null,
+  status: (r.status ?? null) as string | null,
+  email_count: (r.email_count ?? null) as number | null,
+  first_seen_at: (r.first_seen_at ?? null) as string | null,
+  last_seen_at: (r.last_seen_at ?? null) as string | null,
+  last_sender: (r.last_sender ?? null) as string | null,
+  sample_subject: (r.sample_subject ?? null) as string | null,
+  promoted_customer_id: (r.promoted_customer_id ?? null) as string | null,
+  promoted_company_name: (r.promoted_company_name ?? null) as string | null,
+  updated_at: (r.updated_at ?? null) as string | null,
 })
 
 const toBuyer = (r: Row): Buyer => ({
@@ -384,9 +401,46 @@ export async function fetchRetailers(limit = -1): Promise<Retailer[]> {
   return ((data ?? []) as Row[]).map(toRetailer)
 }
 
-export async function fetchIngestedDomains(limit = -1): Promise<Retailer[]> {
-  const rows = await fetchRows('crm_account_list', [{ col: 'name' }], limit)
-  return rows.map(toRetailer)
+export async function fetchIngestedDomains(limit = -1): Promise<CrmIngestedDomain[]> {
+  const PAGE = 1000
+  const out: Row[] = []
+  let from = 0
+  for (;;) {
+    const cappedEnd = limit >= 0 ? Math.min(from + PAGE - 1, limit - 1) : from + PAGE - 1
+    const { data, error } = await anyDb
+      .schema('api')
+      .from('crm_ingested_domain_list')
+      .select('*')
+      .is('promoted_customer_id', null)
+      .order('last_seen_at', { ascending: false, nullsFirst: false })
+      .range(from, cappedEnd)
+    if (error) throw error
+    const rows = (data ?? []) as Row[]
+    out.push(...rows)
+    if (rows.length < PAGE || (limit >= 0 && out.length >= limit)) break
+    from += PAGE
+  }
+  const rows = limit >= 0 ? out.slice(0, limit) : out
+  return rows.map(toIngestedDomain)
+}
+
+export async function fetchIngestedDomainCount(): Promise<number> {
+  const { count, error } = await anyDb
+    .schema('api')
+    .from('crm_ingested_domain_list')
+    .select('*', { count: 'exact', head: true })
+    .is('promoted_customer_id', null)
+  if (error) throw error
+  return count ?? 0
+}
+
+export async function promoteIngestedDomain(domain: string, name: string): Promise<string> {
+  const { data, error } = await anyDb.schema('crm').rpc('promote_ingested_domain', {
+    p_domain: domain,
+    p_name: name,
+  })
+  if (error) throw error
+  return data as string
 }
 
 export async function fetchAccountSegment(segment: AccountSegment, limit = -1): Promise<Retailer[]> {
@@ -397,7 +451,7 @@ export async function fetchAccountSegment(segment: AccountSegment, limit = -1): 
 export async function fetchAccountSegmentCounts(): Promise<AccountSegmentCounts> {
   const [active, triage, dismissed, all] = await Promise.all([
     countAccountSegment('active'),
-    countAccountSegment('triage'),
+    fetchIngestedDomainCount(),
     countAccountSegment('dismissed'),
     countAccountSegment('all'),
   ])

@@ -18,6 +18,11 @@ const SUBSCRIPTIONS: SubscriptionSpec[] = [
   { table: 'opportunity', debounceMs: 1_000, invalidate: [[...crmKeys.all, 'opportunities'], crmKeys.stats()] },
   { table: 'department', debounceMs: 1_000, invalidate: [[...crmKeys.all, 'departments']] },
   {
+    table: 'ingested_domain',
+    debounceMs: 1_250,
+    invalidate: [[...crmKeys.all, 'ingestedDomains'], crmKeys.ingestedDomainCount(), crmKeys.accountSegmentCounts()],
+  },
+  {
     schema: 'core',
     table: 'contact',
     debounceMs: 1_250,
