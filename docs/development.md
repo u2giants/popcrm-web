@@ -26,7 +26,7 @@ Create `.env` with the frontend Supabase config:
 ```bash
 VITE_SUPABASE_URL=https://qsllyeztdwjgirsysgai.supabase.co
 VITE_SUPABASE_ANON_KEY=<public anon key>
-# Optional: publishable logo.dev key for account logos.
+# Optional: publishable logo.dev key for customer logos.
 VITE_LOGODEV_TOKEN=pk_xxxxxxxxxxxxxxxx
 ```
 

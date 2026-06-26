@@ -368,7 +368,7 @@ async function summarizeOpportunity(opportunityId) {
     body: JSON.stringify({
       model,
       messages: [
-        { role: 'system', content: ['Summarize this CRM opportunity for an account manager.', 'Return strict JSON with: summary, nextStep, risk, status, people, actionItems, blockers, decisions, timeline, updatedAt.', 'Preserve active facts from the email history. Keep summary human-readable and concise.'].join(' ') },
+        { role: 'system', content: ['Summarize this CRM opportunity for a customer manager.', 'Return strict JSON with: summary, nextStep, risk, status, people, actionItems, blockers, decisions, timeline, updatedAt.', 'Preserve active facts from the email history. Keep summary human-readable and concise.'].join(' ') },
         { role: 'user', content: JSON.stringify({ opportunity, emails }) },
       ],
       temperature: 0.2,

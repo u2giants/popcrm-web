@@ -7,7 +7,7 @@ first; load other docs only when the task needs them (see the Documentation map)
 
 `popcrm-web` is the **POP CRM frontend** — a Vite/React/TypeScript single-page app
 served by nginx, used by internal POP Creations staff to run customer, sales,
-licensing and product-development workflows: accounts, contacts, the program
+licensing and product-development workflows: customers, contacts, the program
 pipeline, Outlook-ingested email routing, Fireflies meeting notes, notes, tasks,
 licensor approvals, and AI-model settings.
 
@@ -112,9 +112,9 @@ Project-owned application code:
 - `src/features/crm/` — CRM domain:
   - `CrmDataContext.tsx` — loads all collections once; exposes state, refresh, stats
   - `api.ts` — Supabase view/RPC/table reads and writes · `constants.ts` · `format.ts` · `useRecordSelection.ts`
-  - `pages/` — one module per route (Overview, Pipeline, Accounts, Contacts,
+  - `pages/` — one module per route (Overview, Pipeline, Customers, Contacts,
     EmailRouting, Meetings, Notes, Tasks, Approvals, Settings) + `_shared.ts`
-  - `components/` — domain drawers (Email/Opportunity/Account/Contact/Task/Note/
+  - `components/` — domain drawers (Email/Opportunity/Customer/Contact/Task/Note/
     Meeting/Approval) + `CrmStatusBadge`, `RelationLabel`
 - `src/auth/auth.tsx` — Supabase auth/profile state · `src/pages/LoginPage.tsx`
 - `src/lib/` — `supabase.ts` (client), `database.types.ts` (generated schema), `types.ts` (frontend domain types), `utils.ts`
@@ -184,9 +184,9 @@ generated database types are in `src/lib/database.types.ts`:
 
 | Entity/System | Identifier | Where defined | Notes |
 |---|---|---|---|
-| Account/customer | `core.customer` / `api.crm_account_list` | Supabase | shared customer hub. `is_potential = false` means PLM/ERP-confirmed active customer; `true` means tracked potential customer. `customer_status` remains the CRM workflow/status axis. No logo field — see Quirks |
+| Customer | `core.customer` / `api.crm_account_list` | Supabase | shared customer hub. `is_potential = false` means PLM/ERP-confirmed active customer; `true` means tracked potential customer. `customer_status` remains the CRM workflow/status axis. No logo field — see Quirks |
 | Ingested domain | `crm.ingested_domain` / `api.crm_ingested_domain_list` | Supabase | CRM-only email-domain triage inbox. These rows are **not** customers and are not shared with PM/DAM/PLM. Promote with `crm.promote_ingested_domain(...)` to create a potential `core.customer` row |
-| Contact | `core.contact` + `core.contact_company` / `api.crm_contact_list` | Supabase | contacts and account/department relation rows (migrated from Twenty `person`/Directus `buyer`) |
+| Contact | `core.contact` + `core.contact_company` / `api.crm_contact_list` | Supabase | contacts and customer/department relation rows (migrated from Twenty `person`/Directus `buyer`) |
 | Department | `crm.department` / `api.crm_department_list` | Supabase | retailer departments |
 | Opportunity | `crm.opportunity` / `api.crm_opportunity_list` | Supabase | pipeline; `stage` enum in `constants.ts:OPPORTUNITY_STAGES` |
 | Email | `crm.email_message` / `api.crm_email_routing_queue` | Supabase | Outlook-ingested; `routing_status` drives routing UI |
@@ -293,9 +293,9 @@ You could add `OTHER: 'Not a Customer'` to `format.ts` `LABEL_OVERRIDES` to rela
 
 Actually:
 `OTHER` is a shared enum value — it also means "Other" for `chain_type`, `contact_type`,
-and routing. The account-status relabel/recolor lives in
+and routing. The customer-status relabel/recolor lives in
 `constants.ts:customerStatusLabel` / `customerStatusTone` (and `CUSTOMER_STATUS_LABEL`),
-used only by the Accounts table/drawer — never in the global `label()`.
+used only by the Customers table/drawer — never in the global `label()`.
 
 Why:
 A global `OTHER` override would wrongly rename every other column's "Other".
@@ -305,17 +305,17 @@ Putting `OTHER` (or `UNASSIGNED`) into the global `label()` overrides silently
 corrupts chain/contact/routing labels. Status colors: green active, yellow
 potential, blue New Company (untriaged), gray Not-a-Customer — no red.
 
-### Accounts Triage is ingested domains, not customer rows
+### Customers Triage is ingested domains, not customer rows
 
 Looks like:
-You could load Accounts → Triage from `api.crm_account_list` rows where
+You could load Customers → Triage from `api.crm_account_list` rows where
 `customer_status` is `UNASSIGNED`.
 
 Actually:
 Email-domain noise lives in `crm.ingested_domain` and is exposed through
-`api.crm_ingested_domain_list`. Those rows are not accounts/customers and should
+`api.crm_ingested_domain_list`. Those rows are not customers and should
 use the `CrmIngestedDomain` frontend type, not `Retailer`. The Triage table shows
-domain evidence and a promote action; it must not render account-only inline
+domain evidence and a promote action; it must not render customer-only inline
 status/chain edits or `AccountDrawer`.
 
 Why:
@@ -325,49 +325,49 @@ domains must not become shared customer rows until a human promotes them with
 (`is_potential = true`).
 
 Future sessions should:
-Keep account lists and account pickers on `api.crm_account_list`; keep Accounts
+Keep customer lists and customer pickers on `api.crm_account_list`; keep Customers
 Triage on `api.crm_ingested_domain_list`. If a frontend change requires a new
 view/RPC/policy/trigger, make that change in canonical `/worksp/shared-db` and
 document it in the appropriate `u2giants/shared-db` `.md` file, not this repo's
 vendored `shared-db/` mirror.
 
-### Contacts page customer segmentation and account edit choices
+### Contacts page customer segmentation and customer edit choices
 
 What changed:
-Contacts are customer-facing only when their linked account has
+Contacts are customer-facing only when their linked customer has
 `customer_status` `ACTIVE_CUSTOMER` or `POTENTIAL_CUSTOMER`. `Cust Contacts`
-requires that customer account and no department; `Dept. Contacts` requires that
-customer account and a department; all contacts not linked to a customer account
+requires that customer and no department; `Dept. Contacts` requires that
+customer and a department; all contacts not linked to a customer
 belong in `Triage`.
 
 Why:
-Contacts linked to reviewed non-customers (`OTHER`) or untriaged accounts were
+Contacts linked to reviewed non-customers (`OTHER`) or untriaged customers were
 previously appearing in customer/dept sections, which overstated the customer
 contact list.
 
 Future sessions should:
-Keep `ContactsPage` account dropdowns row-aware. Customer/dept rows should offer
-only Active/Potential customer accounts; triage rows may offer Active/Potential
-plus `OTHER` ("Not a Customer") accounts so users can classify contacts without
-showing every account in the system.
+Keep `ContactsPage` customer dropdowns row-aware. Customer/dept rows should offer
+only Active/Potential customers; triage rows may offer Active/Potential
+plus `OTHER` ("Not a Customer") customers so users can classify contacts without
+showing every customer in the system.
 
 Likewise the Department dropdown is row-aware (`departmentOptionsFor`): it filters
-`crm_department` by the row's selected account (`idOf(d.retailer) === accountId`),
-matching the pattern in `EmailDrawer`. With no account selected it falls back to
-all departments. Changing a row's account also clears any department that no
-longer belongs to the new account (handled in `editCell`). Previously the
+`crm_department` by the row's selected customer (`idOf(d.retailer) === accountId`),
+matching the pattern in `EmailDrawer`. With no customer selected it falls back to
+all departments. Changing a row's customer also clears any department that no
+longer belongs to the new customer (handled in `editCell`). Previously the
 Department column used a single static list of every department regardless of the
-chosen account.
+chosen customer.
 
-### Contact relationship edits require account context and explicit clear flags
+### Contact relationship edits require customer context and explicit clear flags
 
 What changed:
 On 2026-06-23, the Contacts page and Data Admin contact cleanup were updated to
-send the current account (`retailer`) whenever editing relationship-owned fields
+send the current customer (`retailer`) whenever editing relationship-owned fields
 such as `department`, `contact_type`, or `scope`. Migration
 `20260623024500_crm_update_contact_clear_relationship_fields.sql` updates
 `api.crm_update_contact` with explicit `p_clear_*` flags so the UI can clear
-account, department, type, and scope values intentionally.
+customer, department, type, and scope values intentionally.
 
 Why:
 `core.contact_company.company_id` is required, so department/type/scope edits
@@ -379,7 +379,7 @@ the database preserved the old value.
 Future sessions should:
 Do not remove the frontend fallback to the old RPC shape until the shared-db
 migration is confirmed applied in production. When editing relationship-owned
-contact fields, include the contact's current account (or infer it from the
+contact fields, include the contact's current customer (or infer it from the
 selected department) and use explicit clear flags rather than assuming `null`
 will clear a backend value.
 
@@ -452,7 +452,7 @@ After changing worker code, run `node --check workers/crm-worker-supabase.mjs`
 and relevant one-shot systemd smoke tests. Unknown domains must continue to go
 through `crm.record_ingested_domain(...)`, not direct `core.customer` inserts.
 
-### Account logos are domain-derived (logo.dev), not stored
+### Customer logos are domain-derived (logo.dev), not stored
 
 Looks like:
 Logos might have been migrated from Twenty as uploaded files.
@@ -519,7 +519,7 @@ No secret values appear here or in the repo.
 |---|---|---|---|---|
 | `VITE_SUPABASE_URL` | Supabase project URL (build-time) | `.env` (dev); CI build arg/secret in prod | yes | yes |
 | `VITE_SUPABASE_ANON_KEY` | Supabase public anon key (build-time) | `.env` (dev); CI build arg/secret in prod | yes | yes |
-| `VITE_LOGODEV_TOKEN` | logo.dev **publishable** token (client-safe) for domain-derived account logos | optional `.env` (dev); GitHub Actions secret `LOGODEV_TOKEN` → Docker build-arg (prod) | no (falls back to initials) | no (falls back to initials) |
+| `VITE_LOGODEV_TOKEN` | logo.dev **publishable** token (client-safe) for domain-derived customer logos | optional `.env` (dev); GitHub Actions secret `LOGODEV_TOKEN` → Docker build-arg (prod) | no (falls back to initials) | no (falls back to initials) |
 | `COOLIFY_BASE_URL` | Coolify deploy API base for CI | GitHub Actions secret | n/a | n/a (CI only) |
 | `COOLIFY_API_TOKEN` | Token to trigger Coolify deploy | GitHub Actions secret | n/a | n/a (CI only) |
 | `COOLIFY_SERVER_UUID` | Coolify **application** uuid to deploy | GitHub Actions secret | n/a | n/a (CI only) |
@@ -557,7 +557,7 @@ and triggers Coolify. CI never SSHes into or mutates the server. Full detail in
 
 What happened:
 After the TanStack Query refactor (`494b588`), primary CRM screens appeared to
-lose most records. Accounts loaded only the first 100 companies, Email Routing
+lose most records. Customers loaded only the first 100 companies, Email Routing
 only 50 messages, Pipeline/Programs only 100 opportunities, Notes only 50, Tasks
 only 100, and related drawers/pickers/global search used the same partial slices.
 
@@ -575,7 +575,7 @@ lies in this CRM.
 Recovery:
 `698885b` restored full paged reads (`limit = -1`) for main CRM record surfaces,
 drawers, command search, and overview stats. Follow-up work made Contacts load by
-server segment, Accounts load Customers eagerly, Accounts Triage load from
+server segment, Customers load eagerly, Customers Triage load from
 `api.crm_ingested_domain_list`, and Not-a-Customer/All load only on demand.
 
 Rule added to prevent recurrence:
@@ -696,12 +696,12 @@ now break-glass only (see `docs/deployment.md`).
 | done | Approvals columns | Name · Licensor · Status · Submitted · Program · Latest comment per spec |
 | done | All record drawers polished | Meeting/Task/Email/Note/Approval drawers match spec |
 | done | DataTable ag-Grid-style tools | Persistent per-column filter icon → checkbox value popover; per-column header quick-search + autocomplete; visible resize separator; inline-edit dropdowns (`editOptions`/`onCellEdit`); spreadsheet drag-to-copy fill handle |
-| done | Accounts status/chain UX | Real-schema colored chips; inline-editable; Twenty logos via logo.dev; segmented tabs (Customers/Triage/Not a customer/All), with Triage backed by `api.crm_ingested_domain_list` |
-| done | Account status data normalized | 24 null `customer_status` rows → `UNASSIGNED` (direct Directus PG write); now one "New Company" bucket |
-| done | Directus-to-Supabase CRM data import/reconciliation | Completed 2026-06-22; verified 8,654 contacts, 3,744 canonical customer/account rows, 38 departments, 11,267 emails, 27 meetings, and matching zero-count tables |
+| done | Customers status/chain UX | Real-schema colored chips; inline-editable; Twenty logos via logo.dev; segmented tabs (Customers/Triage/Not a customer/All), with Triage backed by `api.crm_ingested_domain_list` |
+| done | Customer status data normalized | 24 null `customer_status` rows → `UNASSIGNED` (direct Directus PG write); now one "New Company" bucket |
+| done | Directus-to-Supabase CRM data import/reconciliation | Completed 2026-06-22; verified 8,654 contacts, 3,744 canonical customer rows, 38 departments, 11,267 emails, 27 meetings, and matching zero-count tables |
 | done | Contacts zero after Supabase cutover | Fixed 2026-06-22 via frontend client-side contact segmentation plus `api.crm_contact_list` access-gated view migration |
 | done | Live-query refactor cap regression | Fixed 2026-06-22; restored full reads/true counts for CRM screens and documented the "no arbitrary limits without server contracts" rule |
-| blocked | Account logos go live | Code deployed but inert until `LOGODEV_TOKEN` GitHub secret is set (publishable logo.dev key) — see HANDOFF.md. Falls back to initials until then |
+| blocked | Customer logos go live | Code deployed but inert until `LOGODEV_TOKEN` GitHub secret is set (publishable logo.dev key) — see HANDOFF.md. Falls back to initials until then |
 | open | Server-side pagination / Supabase aggregates | Currently client-side for CRM screens; revisit if record volumes grow |
 | open | Bump CI actions off Node 20 | GitHub deprecates Node-20 actions (~2026-06-16); update `actions/*` and `docker/*` versions in `deploy.yml` |
 | known | Pre-existing lint warnings in `src/auth/auth.tsx` | 3 warnings (`any`, setState-in-effect, unused disable) accepted; do not add new warnings elsewhere |

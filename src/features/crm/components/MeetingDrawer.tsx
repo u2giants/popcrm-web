@@ -39,7 +39,7 @@ export function MeetingDrawer({ row, onClose }: { row: CrmMeetingNote | null; on
           {/* Core metadata */}
           <DrawerSection>
             <DescriptionList>
-              <DescriptionItem term="Account">{relatedName(row.retailer)}</DescriptionItem>
+              <DescriptionItem term="Customer">{relatedName(row.retailer)}</DescriptionItem>
               <DescriptionItem term="Department">{relatedName(row.department)}</DescriptionItem>
               <DescriptionItem term="Contact">{relatedName(row.contact)}</DescriptionItem>
             </DescriptionList>

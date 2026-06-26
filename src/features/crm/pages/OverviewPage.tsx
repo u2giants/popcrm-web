@@ -161,11 +161,11 @@ export function OverviewPage() {
           {/* KPI strip */}
           <div className="grid grid-cols-2 gap-3 md:grid-cols-4 2xl:grid-cols-7">
             <MetricCard
-              label="Accounts"
+              label="Customers"
               value={stats.accounts.toLocaleString()}
               icon={<Building2 className="size-4" />}
               iconColor="oklch(0.60 0.15 200)"
-              onClick={() => navigate('/accounts')}
+              onClick={() => navigate('/customers')}
             />
             <MetricCard
               label="Contacts"

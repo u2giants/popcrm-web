@@ -10,7 +10,7 @@ const LABEL_OVERRIDES: Record<string, string> = {
   CUSTOMER_EMAIL_NO_COMPANY: 'Unmatched sender',
   IN_PROGRESS: 'In progress',
   TODO: 'To do',
-  // Account status / chain — match the real Directus schema choice labels.
+  // Customer status / chain — match the real Directus schema choice labels.
   UNASSIGNED: 'New Company',
   OFF_PRICE: 'Off-Price',
   ECOM: 'eCom',

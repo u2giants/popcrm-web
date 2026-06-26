@@ -30,8 +30,8 @@ export function DepartmentsPage() {
           textOf(d.name, d.category, d.division, relatedName(d.retailer), relatedName(d.primary_buyer)).includes(q),
       )
       .sort((a, b) => {
-        const account = relatedName(a.retailer).localeCompare(relatedName(b.retailer))
-        if (account) return account
+        const customer = relatedName(a.retailer).localeCompare(relatedName(b.retailer))
+        if (customer) return customer
         return (a.name || '').localeCompare(b.name || '')
       })
   }, [departments, query])
@@ -39,7 +39,7 @@ export function DepartmentsPage() {
   const columns: Column<CrmDepartment>[] = [
     {
       key: 'retailer',
-      header: 'Account',
+      header: 'Customer',
       sortValue: (d) => relatedName(d.retailer),
       filterValue: (d) => relatedName(d.retailer),
       cell: (d) => <AccountRelationLogo value={d.retailer} accountById={retailerById} />,
@@ -84,11 +84,11 @@ export function DepartmentsPage() {
       listBar={
         <ListBar
           title="Departments"
-          subtitle="Account departments"
+          subtitle="Customer departments"
           count={filtered.length}
           search={query}
           onSearch={setQuery}
-          searchPlaceholder="Search department, account, contact…"
+          searchPlaceholder="Search department, customer, contact…"
         />
       }
     >

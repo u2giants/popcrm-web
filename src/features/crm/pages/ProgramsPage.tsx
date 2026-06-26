@@ -66,7 +66,7 @@ export function ProgramsPage() {
     },
     {
       key: 'retailer',
-      header: 'Account',
+      header: 'Customer',
       sortValue: (o) => relatedName(o.retailer),
       filterValue: (o) => relatedName(o.retailer),
       cell: (o) => <AccountRelationLogo value={o.retailer} accountById={retailerById} />,
@@ -118,7 +118,7 @@ export function ProgramsPage() {
           count={filtered.length}
           search={query}
           onSearch={setQuery}
-          searchPlaceholder="Search name, account, PO, SO…"
+          searchPlaceholder="Search name, customer, PO, SO…"
         />
       }
     >

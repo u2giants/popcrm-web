@@ -37,7 +37,8 @@ export function AppRoutes() {
           }
         />
         <Route path="pipeline" element={<Suspense fallback={<PageFallback />}><PipelinePage /></Suspense>} />
-        <Route path="accounts" element={<Suspense fallback={<PageFallback />}><AccountsPage /></Suspense>} />
+        <Route path="customers" element={<Suspense fallback={<PageFallback />}><AccountsPage /></Suspense>} />
+        <Route path="accounts" element={<Navigate to="/customers" replace />} />
         <Route path="departments" element={<Suspense fallback={<PageFallback />}><DepartmentsPage /></Suspense>} />
         <Route path="programs" element={<Suspense fallback={<PageFallback />}><ProgramsPage /></Suspense>} />
         <Route path="contacts" element={<Suspense fallback={<PageFallback />}><ContactsPage /></Suspense>} />

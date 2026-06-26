@@ -25,7 +25,7 @@ interface Result {
   to: string
 }
 
-// Global command palette. Searches accounts, contacts, opportunities and emails,
+// Global command palette. Searches customers, contacts, opportunities and emails,
 // and deep-links to the relevant page with the record preselected via query param.
 export function CommandSearch({ open, onClose }: { open: boolean; onClose: () => void }) {
   const navigate = useNavigate()
@@ -44,7 +44,7 @@ export function CommandSearch({ open, onClose }: { open: boolean; onClose: () =>
     if (!data) return []
     const out: Result[] = []
     for (const r of data.accounts) {
-      out.push({ id: `r-${r.id}`, group: 'Accounts', label: r.name, hint: r.domain ?? undefined, icon: Building2, to: `/accounts?retailer=${r.id}` })
+      out.push({ id: `r-${r.id}`, group: 'Customers', label: r.name, hint: r.domain ?? undefined, icon: Building2, to: `/customers?retailer=${r.id}` })
     }
     for (const b of data.contacts) {
       out.push({ id: `b-${b.id}`, group: 'Contacts', label: b.name, hint: b.email ?? relatedName(b.retailer), icon: Contact, to: `/contacts?contact=${b.id}` })
@@ -78,14 +78,14 @@ export function CommandSearch({ open, onClose }: { open: boolean; onClose: () =>
     <Dialog open={open} onOpenChange={(o) => { if (!o) { setQuery(''); onClose() } }}>
       <DialogContent showCloseButton={false} className="top-24 max-w-xl translate-y-0 gap-0 overflow-hidden p-0 sm:max-w-xl">
         <DialogTitle className="sr-only">Search the CRM</DialogTitle>
-        <DialogDescription className="sr-only">Search accounts, contacts, programs and email</DialogDescription>
+        <DialogDescription className="sr-only">Search customers, contacts, programs and email</DialogDescription>
         <div className="flex items-center gap-2 border-b px-4">
           <Search className="size-4 shrink-0 text-muted-foreground" />
           <Input
             autoFocus
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder="Search accounts, contacts, programs, email…"
+            placeholder="Search customers, contacts, programs, email…"
             className="h-12 border-0 bg-transparent px-0 text-sm shadow-none focus-visible:ring-0 dark:bg-transparent"
           />
         </div>

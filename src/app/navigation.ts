@@ -39,7 +39,7 @@ export const NAV_SECTIONS: NavSection[] = [
   {
     label: 'Records',
     items: [
-      { to: '/accounts', label: 'Accounts', icon: Building2, iconColor: 'oklch(0.60 0.15 200)' },
+      { to: '/customers', label: 'Customers', icon: Building2, iconColor: 'oklch(0.60 0.15 200)' },
       { to: '/departments', label: 'Departments', icon: Building2, iconColor: 'oklch(0.60 0.15 230)' },
       { to: '/programs', label: 'Programs', icon: Route, iconColor: 'oklch(0.62 0.17 300)' },
       { to: '/contacts', label: 'Contacts', icon: Contact, iconColor: 'oklch(0.62 0.15 165)' },

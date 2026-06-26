@@ -175,13 +175,13 @@ canonical schemas.
 
 | Current Directus collection | Shared Supabase target | Notes |
 |---|---|---|
-| `retailer` | `core.company` | Curated customers/accounts. One canonical company table shared by CRM, PM, DAM, and PLM. |
+| `retailer` | `core.company` | Curated customers. One canonical company table shared by CRM, PM, DAM, and PLM. |
 | `ingested_domains` | `core.company_source_ref` and/or `ingest.raw_record` | Raw ingested company/domain registry. Do not expose directly to broad browser contracts. |
-| `buyer` | `core.contact`, `core.contact_company` | Curated contacts/buyers. Contact-company relation carries account relationship. |
+| `buyer` | `core.contact`, `core.contact_company` | Curated contacts/buyers. Contact-company relation carries customer relationship. |
 | `ingested_contact` | `core.contact_source_ref` and/or `ingest.raw_record` | Raw ingested contact registry. Do not expose directly to broad browser contracts. |
 | `factory` | `core.factory` | Canonical factory/vendor identity shared with PM and PLM. |
 | `project` | `pim.project` | PM/PIM project. CRM opportunity may link to it. |
-| `crm_department` | `crm.department` | CRM-owned account department segmentation, linked to `core.company`. |
+| `crm_department` | `crm.department` | CRM-owned customer department segmentation, linked to `core.company`. |
 | `crm_opportunity` | `crm.opportunity` | CRM-owned sales/program pipeline, linked to `core.company`, `core.contact`, `crm.department`, `pim.project`, and possibly PLM production orders. |
 | `crm_email_message` | `crm.email_message` | CRM-owned communication/routing record. Raw/sensitive bodies must not be broadly exposed. |
 | `crm_meeting_note` | `crm.meeting_note` | CRM-owned meeting notes and Fireflies-derived summaries. |
@@ -363,7 +363,7 @@ Known likely gaps:
 
 | Current CRM need | Baseline status | Action |
 |---|---|---|
-| Account status values like `ACTIVE_CUSTOMER`, `POTENTIAL_CUSTOMER`, `OTHER`, `UNASSIGNED` | `core.company.status` is generic `app.entity_status`; app-specific status may need metadata or a dedicated field. | Decide whether to add `core.company.customer_status` or store Directus CRM status in `metadata`. Prefer explicit field if it drives UI and filters. |
+| Customer status values like `ACTIVE_CUSTOMER`, `POTENTIAL_CUSTOMER`, `OTHER`, `UNASSIGNED` | `core.company.status` is generic `app.entity_status`; app-specific status may need metadata or a dedicated field. | Decide whether to add `core.company.customer_status` or store Directus CRM status in `metadata`. Prefer explicit field if it drives UI and filters. |
 | Retailer domain/routing aliases | `core.company.domain` exists; routing aliases likely not first-class. | Add explicit field or metadata contract if email routing needs it. |
 | Buyer/contact type and scope | `core.contact.title` and `core.contact_company.relationship_type` exist; CRM-specific `contact_type`/`scope` may be missing. | Add fields to `core.contact_company` or `crm` bridge table; do not duplicate contact. |
 | CRM department category/division/active | `crm.department` baseline has `status` and metadata only. | Add explicit fields if UI filters/edits them. |
@@ -397,7 +397,7 @@ Add new CRM contracts as needed:
 | CRM screen | Recommended contract |
 |---|---|
 | Overview | `api.crm_account_overview`, plus `api.crm_activity_summary` or specific rollup RPCs. |
-| Accounts | `api.crm_account_list` |
+| Customers | `api.crm_account_list` |
 | Contacts | `api.crm_contact_list` |
 | Departments | `api.crm_department_contacts` |
 | Pipeline | `api.crm_opportunity_board`, `api.crm_opportunity_list` |
@@ -659,8 +659,8 @@ Run reconciliation after each rehearsal:
 
 - row count by table
 - orphan FK checks
-- account count by customer status
-- contact count by account/customer status
+- customer count by customer status
+- contact count by customer status
 - department count by company
 - opportunity count by stage
 - email count by routing status
@@ -940,7 +940,7 @@ Sensitive worker data:
 ## Phase 10: Department/Company Integrity
 
 Current Directus/Postgres SQL enforces that selected departments belong to the
-selected account/company.
+selected customer/company.
 
 Equivalent constraints must exist in shared-db.
 
@@ -1004,7 +1004,7 @@ requires it.
 
 Do not migrate object storage as part of the CRM backend cutover.
 
-CRM account logos currently use logo.dev through `src/components/app/AccountLogo.tsx`.
+CRM customer logos currently use logo.dev through `src/components/app/AccountLogo.tsx`.
 There is no Directus logo file field to migrate.
 
 Keep:
@@ -1067,7 +1067,7 @@ Test every CRM route:
 Login
 Overview
 Pipeline
-Accounts
+Customers
 Contacts
 Departments
 Programs
@@ -1096,9 +1096,9 @@ For each page:
 Compare Directus source and Supabase preview:
 
 ```text
-companies/accounts by status
+customers by status
 contacts by segmentation bucket
-departments by account
+departments by customer
 opportunities by stage
 emails by routing status
 latest email received_at

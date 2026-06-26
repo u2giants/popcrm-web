@@ -108,7 +108,7 @@ export function AccountsPage() {
     return { contacts, opps }
   }, [buyers, opportunities])
 
-  // Segment counts. Account counts come from crm_account_list; Triage counts
+  // Segment counts. Customer counts come from crm_account_list; Triage counts
   // CRM-private ingested domains awaiting promotion/review.
   const segCounts = countsQuery.data ?? {
     active: activeAccounts.length,
@@ -148,11 +148,11 @@ export function AccountsPage() {
   const accountColumns: Column<Retailer>[] = [
     {
       key: 'name',
-      header: 'Account',
+      header: 'Customer',
       opensDetail: true,
       sortValue: (r) => r.name?.toLowerCase(),
       filterValue: (r) => r.name,
-      cell: (r) => <AccountRelationLogo value={r} size={24} />,
+      cell: (r) => <AccountRelationLogo value={r} size={24} variant="token-name" />,
     },
     {
       key: 'customer_status',
@@ -294,8 +294,8 @@ export function AccountsPage() {
     <AppPage
       listBar={
         <ListBar
-          title="Accounts"
-          subtitle="Retailer accounts"
+          title="Customers"
+          subtitle="Retailer customers"
           count={count}
           search={query}
           onSearch={setQuery}
@@ -344,7 +344,7 @@ export function AccountsPage() {
           onCellEdit={editCell}
           loading={visibleFetch.isPending}
           emptyIcon={<Building2 className="size-5" />}
-          emptyTitle="No accounts match"
+          emptyTitle="No customers match"
           emptyDescription="Adjust your search or column filters."
           initialSort={{ key: 'name', dir: 'asc' }}
         />

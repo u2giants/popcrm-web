@@ -55,7 +55,7 @@ export function ContactDrawer({ row, onClose }: { row: Buyer | null; onClose: ()
               <DescriptionItem term="Title">{row.job_title || '—'}</DescriptionItem>
               <DescriptionItem term="Type">{label(row.contact_type)}</DescriptionItem>
               <DescriptionItem term="Scope">{label(row.scope)}</DescriptionItem>
-              <DescriptionItem term="Account">{relatedName(row.retailer)}</DescriptionItem>
+              <DescriptionItem term="Customer">{relatedName(row.retailer)}</DescriptionItem>
               <DescriptionItem term="Department">{relatedName(row.department)}</DescriptionItem>
             </DescriptionList>
           </DrawerSection>

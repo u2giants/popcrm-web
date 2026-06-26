@@ -78,7 +78,7 @@ function NoteDrawerForm({ row, onClose }: { row: CrmNote; onClose: () => void })
 
       <DrawerSection>
         <DescriptionList>
-          <DescriptionItem term="Account">{relatedName(row.retailer)}</DescriptionItem>
+          <DescriptionItem term="Customer">{relatedName(row.retailer)}</DescriptionItem>
           <DescriptionItem term="Contact">{relatedName(row.contact)}</DescriptionItem>
           <DescriptionItem term="Opportunity">{relatedName(row.opportunity)}</DescriptionItem>
           <DescriptionItem term="Source">{label(row.source)}</DescriptionItem>

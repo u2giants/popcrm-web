@@ -1,13 +1,13 @@
 import { useState } from 'react'
 import { NameAvatar } from '@/components/app/NameAvatar'
 
-// Brand logo for an account, fetched from logo.dev keyed on the account's
+// Brand logo for a customer, fetched from logo.dev keyed on the customer's
 // domain (the same domain-derived approach Twenty used). Falls back to the
 // name-initials avatar when there is no domain, no API token, or the image
 // fails to load.
 //
 // The token is a logo.dev *publishable* key (client-safe by design), supplied
-// at build time via VITE_LOGODEV_TOKEN. When unset, every account simply shows
+// at build time via VITE_LOGODEV_TOKEN. When unset, every customer simply shows
 // the initials avatar — nothing breaks.
 const LOGODEV_TOKEN = import.meta.env.VITE_LOGODEV_TOKEN as string | undefined
 
@@ -26,11 +26,17 @@ export function AccountLogo({
   name,
   domain,
   size = 24,
+  variant = 'token',
+  width = 92,
+  height = 24,
   className,
 }: {
   name: string | null | undefined
   domain: string | null | undefined
   size?: number
+  variant?: 'token' | 'full'
+  width?: number
+  height?: number
   className?: string
 }) {
   const [failed, setFailed] = useState(false)
@@ -40,7 +46,32 @@ export function AccountLogo({
     return <NameAvatar name={name} size={size} className={className} />
   }
 
-  const src = `https://img.logo.dev/${host}?token=${LOGODEV_TOKEN}&size=${size * 2}&format=png&retries=0`
+  const src =
+    variant === 'full'
+      ? `https://img.logo.dev/${host}?token=${LOGODEV_TOKEN}&width=${width}&height=${height}&format=png&theme=light&retina=true&fallback=404`
+      : `https://img.logo.dev/${host}?token=${LOGODEV_TOKEN}&size=${size * 2}&format=png&retries=0`
+
+  if (variant === 'full') {
+    return (
+      <img
+        src={src}
+        alt=""
+        aria-hidden
+        width={width}
+        height={height}
+        onError={() => setFailed(true)}
+        className={className}
+        style={{
+          width,
+          height,
+          maxWidth: '100%',
+          objectFit: 'contain',
+          objectPosition: 'left center',
+          flexShrink: 0,
+        }}
+      />
+    )
+  }
 
   return (
     <img

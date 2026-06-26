@@ -46,7 +46,7 @@ High-change surfaces such as Email Routing, Tasks, Meetings, and Notes also use
 conservative background refetch intervals.
 
 Reads in `src/features/crm/api.ts` go through browser-safe `api.crm_*` views.
-Core account/contact writes use guarded RPCs (`api.crm_update_account`,
+Core customer/contact writes use guarded RPCs (`api.crm_update_account`,
 `api.crm_update_contact`); CRM-owned rows write to `crm.*` tables or narrower RPCs.
 Write operations use mutation hooks in `queries.ts`, with optimistic query-cache
 updates where the UI already had instant behavior. Related queries are invalidated
@@ -54,7 +54,7 @@ after writes so joined view rows reconcile with Supabase.
 
 Contact writes have one extra wrinkle: CRM relationship attributes
 (`department`, `contact_type`, `scope`) live on `core.contact_company`, not
-`core.contact`. The frontend must send the current account when editing those
+`core.contact`. The frontend must send the current customer when editing those
 fields so `api.crm_update_contact` can target the correct relationship row. The
 2026-06-23 migration
 `shared-db/supabase/migrations/20260623024500_crm_update_contact_clear_relationship_fields.sql`
@@ -95,8 +95,8 @@ bucket: factories and licensors are companies too, and those live in
 | Potential customer | A company POP is tracking but has not yet done business with. | `core.customer`, `is_potential = true` | Yes. |
 | Active customer | A company POP has done business with. The authoritative source is PLM/ERP. | `core.customer`, `is_potential = false` plus a `designflow_plm`/`coldlion` source ref | Yes. |
 
-The Accounts page follows this split. **Customers**, **Not a customer**, and
-**All** read curated account rows from `api.crm_account_list`. **Triage** reads
+The Customers page follows this split. **Customers**, **Not a customer**, and
+**All** read curated customer rows from `api.crm_account_list`. **Triage** reads
 `api.crm_ingested_domain_list` and shows domain evidence plus a promotion action.
 A domain becomes a shared `core.customer` row only when someone promotes it with
 `crm.promote_ingested_domain(...)`; that promoted row is potential until PLM/ERP
@@ -137,10 +137,10 @@ target.
 |---|---|---|
 | `OverviewPage` | `/` | KPI strip, email volume chart, routing donut, pipeline bar, activity panels |
 | `PipelinePage` | `/pipeline` | Board (kanban by stage) + List (DataTable) toggle |
-| `AccountsPage` | `/accounts` | Account tabs over `api.crm_account_list`: **Customers** (default), **Not a customer**, **All**. **Triage** is a separate ingested-domain review table over `api.crm_ingested_domain_list`, with a promotion action that creates a potential customer. Account tabs keep inline status/chain edits and `AccountDrawer`; Triage does not render account-only edits or drawers |
-| `DepartmentsPage` | `/departments` | DataTable grouped/sorted by Account. Department-name clicks open `DepartmentDrawer` with assigned contacts and programs |
+| `AccountsPage` | `/customers` | Customer tabs over `api.crm_account_list`: **Customers** (default), **Not a customer**, **All**. **Triage** is a separate ingested-domain review table over `api.crm_ingested_domain_list`, with a promotion action that creates a potential customer. Customer tabs keep inline status/chain edits and `AccountDrawer`; Triage does not render customer-only edits or drawers |
+| `DepartmentsPage` | `/departments` | DataTable grouped/sorted by customer. Department-name clicks open `DepartmentDrawer` with assigned contacts and programs |
 | `ProgramsPage` | `/programs` | DataTable over CRM opportunities/programs + OpportunityModal |
-| `ContactsPage` | `/contacts` | DataTable + ContactDrawer. Segmented tabs: **Cust Contacts** (linked to Active/Potential account, no department), **Dept. Contacts** (linked to Active/Potential account and department), **Triage** (not linked to a customer account), **All**. Account inline-edit choices are row-aware |
+| `ContactsPage` | `/contacts` | DataTable + ContactDrawer. Segmented tabs: **Cust Contacts** (linked to Active/Potential customer, no department), **Dept. Contacts** (linked to Active/Potential customer and department), **Triage** (not linked to a customer), **All**. Customer inline-edit choices are row-aware |
 | `EmailRoutingPage` | `/email` | Segmented tabs (company/dept/program/triage/admin-only all); ignore-rules sidebar |
 | `MeetingsPage` | `/meetings` | DataTable + MeetingDrawer |
 | `NotesPage` | `/notes` | DataTable + NoteDrawer |
@@ -174,7 +174,7 @@ Each drawer is a `DetailDrawer` with domain-specific sections. All support deep-
 |---|---|
 | `OpportunityModal` | Full-screen-capable dialog; board card click; Ask AI scroll, Share clipboard, Expand toggle; composer calls `createNote` |
 | `AccountDrawer` | Logo avatar (`AccountLogo`) in header, colored status/chain chips, contact list, opportunity list, close button footer |
-| `ContactDrawer` | Related account, opportunity list |
+| `ContactDrawer` | Related customer, opportunity list |
 | `DepartmentDrawer` | Department detail panel with core fields, all contacts assigned to that department, and all programs assigned to that department |
 | `EmailDrawer` | Mail-header preview band; `MethodConfidence` bar; Apply routing / Create ignore rule actions |
 | `MeetingDrawer` | Participant chips (`NameAvatar`), Fireflies transcript tile, action items checklist |

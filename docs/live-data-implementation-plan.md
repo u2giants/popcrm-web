@@ -149,9 +149,9 @@ Replace the all-CRM bootstrap with page-scoped, bounded data loading.
   - Meetings: 50 most recent rows, with server-side customer/triage/search
     filters.
   - Notes: 50 most recent rows, with server-side search and relation filters.
-  - Accounts and Contacts: 100 rows per segment/search result.
+  - Customers and Contacts: 100 rows per segment/search result.
   - Opportunities/Programs: 100 rows per board/list filter, with stage and
-    account filters sent to Supabase.
+    customer filters sent to Supabase.
   - Departments, approvals, AI config, and ignore rules: bounded where practical,
     but allowed to remain simple only while their record counts are known to be
     small.
@@ -193,7 +193,7 @@ Expected result:
 
 - A user action appears to complete immediately.
 - Manual refresh is not needed after editing a task, routing an email, or
-  changing an account/contact field.
+  changing a customer/contact field.
 
 ### Phase 3: Add Background Freshness
 
@@ -205,7 +205,7 @@ Make the app quietly refresh at natural moments.
   - Email Routing: frequent enough to catch new queue items quickly.
   - Tasks: moderate interval.
   - Meetings and notes: moderate interval.
-  - Accounts/contacts/opportunities: slower interval or focus-only.
+  - Customers/contacts/opportunities: slower interval or focus-only.
 - Avoid replacing visible data with loading placeholders during background
   refetches.
 - Add a small non-blocking "updated" or "syncing" affordance only if users need
@@ -235,7 +235,7 @@ important:
 - `crm.note`
 - `crm.opportunity`
 - `crm.department`
-- account/contact source tables in the shared core schema, if exposed to
+- customer/contact source tables in the shared core schema, if exposed to
   Realtime and allowed by policy
 
 Implementation approach:
@@ -248,7 +248,7 @@ Implementation approach:
   - `crm.email_message`: 1,000-1,500 ms, because webhook/worker ingestion can
     arrive in bursts.
   - `crm.task`, `crm.note`, `crm.meeting_note`: 500-1,000 ms.
-  - `crm.opportunity`, `crm.department`, account/contact source tables:
+  - `crm.opportunity`, `crm.department`, customer/contact source tables:
     750-1,500 ms.
 - Prefer refetching the relevant `api.crm_*` view for correctness, because the
   event payload may not contain joined display fields.
@@ -349,7 +349,7 @@ Recommended defaults:
 
 The original plan below proposed 50/100-row page slices before the CRM had
 server-side pagination/search/filtering and true aggregate count contracts. That
-caused the 2026-06-22 live-query refactor regression: Accounts, Email Routing,
+caused the 2026-06-22 live-query refactor regression: Customers, Email Routing,
 Pipeline/Programs, Notes, Tasks, drawers, overview stats, and command search
 showed partial datasets as if they were complete.
 
@@ -357,7 +357,7 @@ Future work should treat the old row-count suggestions as historical only. A CRM
 screen may use bounded queries only when the backend/API contract also returns
 the correct total/segment counts and performs the search/filtering server-side.
 Otherwise use full paged reads (`limit = -1`) or explicit full segment reads, as
-Contacts and Accounts now do for their primary tabs.
+Contacts and Customers now do for their primary tabs.
 
 ## Risks and Constraints
 

@@ -25,8 +25,8 @@ import type { CrmMeetingNote, Retailer } from '@/lib/types'
 
 type Segment = 'customers' | 'triage' | 'dismissed' | 'all'
 
-// Derive the linked account's customer_status for segment filtering.
-// No linked account → treat as triage (system unsure).
+// Derive the linked customer's customer_status for segment filtering.
+// No linked customer → treat as triage (system unsure).
 function acctStatusOf(m: CrmMeetingNote): string {
   const r = m.retailer
   if (!r || typeof r === 'string') return 'UNASSIGNED'
@@ -50,7 +50,7 @@ export function MeetingsPage() {
   const retailerById = useMemo(() => new Map(retailers.map((r) => [r.id, r])), [retailers])
   const departmentById = useMemo(() => new Map(departments.map((d) => [d.id, d])), [departments])
   const buyerById = useMemo(() => new Map(buyers.map((b) => [b.id, b])), [buyers])
-  const accountOptions = useMemo<EditOption[]>(
+  const customerOptions = useMemo<EditOption[]>(
     () => [{ value: '', label: 'Unassigned' }, ...retailers.map((r) => ({ value: r.id, label: r.name }))],
     [retailers],
   )
@@ -147,11 +147,11 @@ export function MeetingsPage() {
     },
     {
       key: 'retailer',
-      header: 'Account',
+      header: 'Customer',
       hideBelow: 'md',
       sortValue: (m) => relatedName(m.retailer),
       filterValue: (m) => relatedName(m.retailer),
-      editOptions: accountOptions,
+      editOptions: customerOptions,
       editValue: (m) => idOf(m.retailer),
       cell: (m) => <AccountRelationLogo value={m.retailer} accountById={retailerById} />,
     },
@@ -233,7 +233,7 @@ export function MeetingsPage() {
           emptyTitle={segment === 'triage' ? 'Triage queue is clear' : 'No meetings match'}
           emptyDescription={
             segment === 'triage'
-              ? 'No meetings linked to unclassified accounts.'
+              ? 'No meetings linked to unclassified customers.'
               : 'Adjust your search or column filters.'
           }
           initialSort={{ key: 'date', dir: 'desc' }}

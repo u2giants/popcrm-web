@@ -103,7 +103,7 @@ function TaskDrawerForm({ row }: { row: CrmTask }) {
             </span>
           </DescriptionItem>
           <DescriptionItem term="Assignee">{relatedName(row.assignee)}</DescriptionItem>
-          <DescriptionItem term="Account">{relatedName(row.retailer)}</DescriptionItem>
+          <DescriptionItem term="Customer">{relatedName(row.retailer)}</DescriptionItem>
           <DescriptionItem term="Opportunity">{relatedName(row.opportunity)}</DescriptionItem>
         </DescriptionList>
       </DrawerSection>
