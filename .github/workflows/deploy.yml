@@ -107,11 +107,39 @@ jobs:
             -H "Authorization: Bearer ${COOLIFY_API_TOKEN}" \
             -H "Content-Type: application/json"
 
-      - name: Wait for production to be healthy
+      - name: Wait for production to serve this commit
         run: |
-          for i in $(seq 1 60); do
-            if curl -fsS -o /dev/null https://crm.designflow.app/; then
-              echo "production is healthy"
+          expected_sha="${GITHUB_SHA::7}"
+
+          for i in $(seq 1 90); do
+            html="$(curl -fsSL -H 'Cache-Control: no-cache' "https://crm.designflow.app/?deploy-check=${expected_sha}" || true)"
+            asset_path="$(printf '%s' "$html" | sed -nE 's/.*src="([^"]*\/assets\/index-[^"]+\.js)".*/\1/p' | head -1)"
+
+            if [ -n "$asset_path" ]; then
+              case "$asset_path" in
+                http*) asset_url="$asset_path" ;;
+                *) asset_url="https://crm.designflow.app${asset_path}" ;;
+              esac
+
+              if curl -fsSL -H 'Cache-Control: no-cache' "$asset_url" | grep -q "$expected_sha"; then
+                echo "production is serving commit ${expected_sha}"
+                exit 0
+              fi
+            fi
+
+            if [ -n "$asset_path" ]; then
+              echo "waiting for production to serve ${expected_sha}; current bundle is ${asset_path} ($i/90)"
+            else
+              echo "waiting for production bundle discovery ($i/90)"
+            fi
+            sleep 5
+          done
+
+          echo "production did not serve commit ${expected_sha} within 7.5 minutes" >&2
+          if html="$(curl -fsSL -H 'Cache-Control: no-cache' https://crm.designflow.app/ || true)"; then
+            printf '%s\n' "$html" | sed -nE 's/.*src="([^"]*\/assets\/index-[^"]+\.js)".*/last seen bundle: \1/p' >&2
+          fi
+          exit 1
               exit 0
             fi
             echo "waiting for production... ($i/60)"

@@ -22,6 +22,7 @@ GitHub Actions (.github/workflows/deploy.yml)
                    VITE_LOGODEV_TOKEN),
                    push to GHCR (tags: latest, main, sha-<sha>)
   deploy         – POST Coolify deploy API, then wait for crm.designflow.app
+                   to serve the exact commit that was just built
   ↓
 Coolify (https://coolify.designflow.app)
   pulls ghcr.io/u2giants/popcrm-web:latest and updates the container
@@ -107,9 +108,15 @@ Do **not** roll back by hand-editing containers or running `docker run` on the h
 
 ```bash
 curl -fsS https://crm.designflow.app | rg -o '<title>[^<]+'      # <title>POP CRM
+curl -fsS https://crm.designflow.app/assets/<current-index>.js | rg '<short-sha>'
 curl -fsS https://crm-fireflies.designflow.app/health            # Fireflies webhook
 # The header in the app shows the deployed commit + NYC time.
 ```
+
+The GitHub Actions deploy job performs the same commit-aware check automatically:
+it discovers the currently served `/assets/index-*.js` bundle and fails unless
+that bundle contains the workflow's `GITHUB_SHA::7`. A plain HTTP 200 from the
+old container is not enough for the deploy job to pass.
 
 ## Troubleshoot 502 after deploy
 
