@@ -16,6 +16,7 @@ import {
 } from '@/components/ui/select'
 import { ErrorState } from '@/components/app/states'
 import { CrmStatusBadge } from '@/features/crm/components/CrmStatusBadge'
+import { AccountRelationLogo } from '@/features/crm/components/AccountRelationLogo'
 import { RelationLabel } from '@/features/crm/components/RelationLabel'
 import { useRecordSelection } from '@/features/crm/useRecordSelection'
 import { EmailDrawer } from '@/features/crm/components/EmailDrawer'
@@ -180,7 +181,7 @@ export function EmailRoutingPage() {
       filterValue: (e) => relatedName(e.retailer),
       editOptions: accountOptions,
       editValue: (e) => idOf(e.retailer),
-      cell: (e) => <RelationLabel value={e.retailer} />,
+      cell: (e) => <AccountRelationLogo value={e.retailer} accountById={retailerById} />,
     },
     {
       key: 'department',

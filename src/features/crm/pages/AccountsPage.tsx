@@ -9,10 +9,10 @@ import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { ErrorState } from '@/components/app/states'
 import { useRecordSelection } from '@/features/crm/useRecordSelection'
 import { AccountDrawer } from '@/features/crm/components/AccountDrawer'
+import { AccountRelationLogo } from '@/features/crm/components/AccountRelationLogo'
 import { ChainBadge } from '@/features/crm/components/CrmStatusBadge'
 import { CHAIN_TYPES, CUSTOMER_STATUSES, customerStatusLabel, customerStatusTone } from '@/features/crm/constants'
 import { formatDateTime, idOf, label, textOf } from '@/features/crm/format'
-import { AccountLogo } from '@/components/app/AccountLogo'
 import {
   listData,
   useAccountSegmentCountsQuery,
@@ -152,17 +152,7 @@ export function AccountsPage() {
       opensDetail: true,
       sortValue: (r) => r.name?.toLowerCase(),
       filterValue: (r) => r.name,
-      cell: (r) => (
-        <div className="flex items-center gap-[9px]">
-          <AccountLogo name={r.name} domain={r.domain} size={20} />
-          <div className="min-w-0">
-            <div className="truncate font-[500] text-foreground">{r.name}</div>
-            {r.domain ? (
-              <div className="truncate text-[11px] text-muted-foreground">{r.domain}</div>
-            ) : null}
-          </div>
-        </div>
-      ),
+      cell: (r) => <AccountRelationLogo value={r} size={24} />,
     },
     {
       key: 'customer_status',

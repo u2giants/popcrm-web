@@ -17,6 +17,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 import { ErrorState } from '@/components/app/states'
+import { AccountRelationLogo } from '@/features/crm/components/AccountRelationLogo'
 import { RelationLabel } from '@/features/crm/components/RelationLabel'
 import { useRecordSelection } from '@/features/crm/useRecordSelection'
 import { NoteDrawer } from '@/features/crm/components/NoteDrawer'
@@ -35,6 +36,7 @@ export function NotesPage() {
   const [query, setQuery] = useState('')
   const [creating, setCreating] = useState(false)
   const [selected, select] = useRecordSelection<CrmNote>('note', notes)
+  const retailerById = useMemo(() => new Map(retailers.map((r) => [r.id, r])), [retailers])
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase()
@@ -63,7 +65,7 @@ export function NotesPage() {
       hideBelow: 'md',
       sortValue: (n) => relatedName(n.retailer),
       filterValue: (n) => relatedName(n.retailer),
-      cell: (n) => <RelationLabel value={n.retailer} />,
+      cell: (n) => <AccountRelationLogo value={n.retailer} accountById={retailerById} />,
     },
     {
       key: 'opportunity',

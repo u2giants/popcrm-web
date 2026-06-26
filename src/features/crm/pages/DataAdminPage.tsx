@@ -11,6 +11,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { AccountRelationLogo } from '@/features/crm/components/AccountRelationLogo'
 import {
   createDepartment,
   deleteDepartment,
@@ -86,6 +87,7 @@ export function DataAdminPage() {
     () => retailers.map((r) => ({ value: r.id, label: r.name, hint: r.customer_status ? label(r.customer_status) : undefined })),
     [retailers],
   )
+  const retailerById = useMemo(() => new Map(retailers.map((r) => [r.id, r])), [retailers])
   const contactOptions = useMemo<ComboOption[]>(
     () => buyers.map((b) => ({ value: b.id, label: b.name, hint: relatedName(b.retailer) })),
     [buyers],
@@ -126,7 +128,7 @@ export function DataAdminPage() {
       header: 'Account',
       sortValue: (d) => relatedName(d.retailer),
       filterValue: (d) => relatedName(d.retailer),
-      cell: (d) => <span className="text-muted-foreground">{relatedName(d.retailer)}</span>,
+      cell: (d) => <AccountRelationLogo value={d.retailer} accountById={retailerById} />,
     },
     {
       key: 'primary_buyer',

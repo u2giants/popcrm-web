@@ -6,6 +6,7 @@ import { FilterSelect } from '@/components/app/FilterSelect'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { ErrorState, CardGridSkeleton } from '@/components/app/states'
 import { useRecordSelection } from '@/features/crm/useRecordSelection'
+import { AccountRelationLogo } from '@/features/crm/components/AccountRelationLogo'
 import { OpportunityModal } from '@/features/crm/components/OpportunityModal'
 import { StageBadge } from '@/features/crm/components/CrmStatusBadge'
 import { OPPORTUNITY_STAGES, stageChipClass } from '@/features/crm/constants'
@@ -35,6 +36,7 @@ export function PipelinePage() {
   const [division, setDivision] = useState('')
   const [view, setView] = useState<'board' | 'list'>('board')
   const [selected, select] = useRecordSelection<CrmOpportunity>('opportunity', opportunities)
+  const retailerById = useMemo(() => new Map(retailers.map((r) => [r.id, r])), [retailers])
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase()
@@ -81,7 +83,7 @@ export function PipelinePage() {
       hideBelow: 'md',
       sortValue: (o) => relatedName(o.retailer),
       filterValue: (o) => relatedName(o.retailer),
-      cell: (o) => <span className="text-muted-foreground">{relatedName(o.retailer)}</span>,
+      cell: (o) => <AccountRelationLogo value={o.retailer} accountById={retailerById} />,
     },
     {
       key: 'stage',
