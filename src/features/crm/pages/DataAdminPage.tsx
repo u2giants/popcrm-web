@@ -11,6 +11,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { AccountLogo } from '@/components/app/AccountLogo'
 import { AccountRelationLogo } from '@/features/crm/components/AccountRelationLogo'
 import {
   createDepartment,
@@ -29,9 +30,9 @@ import {
   useAccountSegmentQuery,
   useOpportunitiesQuery,
 } from '@/features/crm/queries'
-import type { Buyer, CrmDepartment, CrmOpportunity } from '@/lib/types'
+import type { Buyer, CrmDepartment, CrmOpportunity, Retailer } from '@/lib/types'
 
-type AdminTab = 'departments' | 'contact-values' | 'division-values'
+type AdminTab = 'departments' | 'logos' | 'contact-values' | 'division-values'
 
 interface DepartmentForm {
   id: string
@@ -145,6 +146,52 @@ export function DataAdminPage() {
       sortValue: (d) => d.division ?? '',
       filterValue: (d) => label(d.division),
       cell: (d) => d.division ? <Badge variant="outline">{label(d.division)}</Badge> : '—',
+    },
+  ]
+
+  const logoColumns: Column<Retailer>[] = [
+    {
+      key: 'name',
+      header: 'Customer',
+      sortValue: (r) => r.name?.toLowerCase(),
+      filterValue: (r) => r.name,
+      cell: (r) => <AccountRelationLogo value={r} size={24} variant="token-name" />,
+    },
+    {
+      key: 'domain',
+      header: 'Domain',
+      sortValue: (r) => r.domain ?? '',
+      filterValue: (r) => r.domain ?? '',
+      cell: (r) => r.domain ? <span className="font-mono text-[11.5px]">{r.domain}</span> : <span className="text-muted-foreground">—</span>,
+    },
+    {
+      key: 'token',
+      header: 'Token',
+      filterValue: (r) => (r.domain ? 'Has domain' : 'No domain'),
+      cell: (r) => <AccountLogo name={r.name} domain={r.domain} size={28} />,
+    },
+    {
+      key: 'full-logo',
+      header: 'Full logo',
+      minWidth: 150,
+      filterValue: (r) => (r.domain ? 'Has domain' : 'No domain'),
+      cell: (r) => (
+        <span className="flex h-9 w-[136px] items-center">
+          <AccountLogo name={r.name} domain={r.domain} variant="full" width={128} height={32} />
+        </span>
+      ),
+    },
+    {
+      key: 'source',
+      header: 'Source',
+      hideBelow: 'lg',
+      sortValue: (r) => (r.domain ? 'Domain-derived' : 'Initials fallback'),
+      filterValue: (r) => (r.domain ? 'Domain-derived' : 'Initials fallback'),
+      cell: (r) => (
+        <Badge variant={r.domain ? 'secondary' : 'outline'}>
+          {r.domain ? 'Domain-derived' : 'Initials fallback'}
+        </Badge>
+      ),
     },
   ]
 
@@ -302,6 +349,7 @@ export function DataAdminPage() {
             <Tabs value={tab} onValueChange={(v) => setTab(v as AdminTab)}>
               <TabsList>
                 <TabsTrigger value="departments">Departments</TabsTrigger>
+                <TabsTrigger value="logos">Logos</TabsTrigger>
                 <TabsTrigger value="contact-values">Contact Values</TabsTrigger>
                 <TabsTrigger value="division-values">Divisions</TabsTrigger>
               </TabsList>
@@ -402,6 +450,28 @@ export function DataAdminPage() {
                 </div>
               </section>
             </div>
+          ) : null}
+
+          {tab === 'logos' ? (
+            <section className="min-w-0 rounded-[8px] border bg-card shadow-[var(--shadow-xs)]">
+              <div className="border-b p-4">
+                <SectionHeader
+                  title="Customer Logos"
+                  description={`${retailers.length.toLocaleString()} domain-derived customer logo previews`}
+                />
+              </div>
+              <DataTable
+                rows={retailers}
+                columns={logoColumns}
+                getRowId={(r) => r.id}
+                loading={loading}
+                pageSize={50}
+                emptyIcon={<Database className="size-5" />}
+                emptyTitle="No customers found"
+                emptyDescription="Customer logos are derived from the customer domain when available."
+                initialSort={{ key: 'name', dir: 'asc' }}
+              />
+            </section>
           ) : null}
 
           {tab === 'contact-values' ? (
