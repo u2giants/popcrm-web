@@ -1,5 +1,11 @@
 # CRM Backend Migration Plan: Directus To Shared Supabase
 
+> **Status: historical migration plan — completed.** The current CRM backend is
+> the shared Supabase project and the active worker runtime lives in
+> `workers/crm-worker-supabase.mjs` in this repo. `/worksp/directus` references
+> below are legacy source-material references from the migration period, not
+> current runtime or setup instructions.
+
 This document is the execution plan for migrating `u2giants/popcrm-web` from the
 current Directus backend to the shared enterprise-wide Supabase backend.
 
@@ -142,10 +148,11 @@ Expected current direct dependencies include:
 - `src/features/crm/api.ts`
 - occasional constant/docs references
 
-## Current Directus Backend/Worker Sources
+## Historical Directus Backend/Worker Sources
 
-The CRM backend schema and worker currently live in the sibling Directus repo.
-Use these as source references while designing migrations and worker behavior.
+The CRM backend schema and worker used to live in the sibling Directus repo.
+These paths are source references for understanding the historical migration
+only. Do not use them for current runtime, worker ownership, or new backend work.
 
 Relevant files:
 
@@ -157,8 +164,9 @@ Relevant files:
 | `/worksp/directus/pm-system/sql/enforce-crm-department-scope.sql` | SQL trigger logic enforcing department belongs to selected customer. |
 | `/worksp/directus/pm-system/migration/split-customers-from-ingested.sql` | Current split between curated customer tables and raw ingested registries. |
 
-If `/worksp/directus` is unavailable in a fresh environment, clone or inspect the
-`u2giants/directus` repo before writing backend migrations.
+If a future historical audit needs these files and `/worksp/directus` has been
+deleted, inspect the `u2giants/directus` repository as legacy reference material.
+Current backend migrations belong in canonical `/worksp/shared-db`.
 
 ## Current CRM Collections And Shared Supabase Targets
 
@@ -1361,4 +1369,3 @@ The CRM backend migration is done only when:
 - All CRM pages pass preview and production smoke tests.
 - Role-specific RLS tests pass.
 - Directus remains only as read-only rollback/reference during the agreed stabilization period.
-
