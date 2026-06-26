@@ -12,8 +12,8 @@ Optional:
 ```bash
 VITE_SUPABASE_URL=https://qsllyeztdwjgirsysgai.supabase.co
 VITE_SUPABASE_ANON_KEY=<public anon key>
-# logo.dev publishable token for domain-derived account logos (client-safe).
-# When unset, accounts show name-initials avatars instead.
+# logo.dev publishable token for domain-derived customer logos (client-safe).
+# When unset, customers show name-initials avatars instead.
 VITE_LOGODEV_TOKEN=pk_xxxxxxxxxxxxxxxx
 ```
 
@@ -22,7 +22,7 @@ VITE_LOGODEV_TOKEN=pk_xxxxxxxxxxxxxxxx
 anon key is public client configuration, not a service-role key.
 
 `VITE_LOGODEV_TOKEN` is read by `src/components/app/AccountLogo.tsx`. It is a
-**publishable** logo.dev key (safe to ship in client JS). Account logos are
+**publishable** logo.dev key (safe to ship in client JS). Customer logos are
 fetched from `img.logo.dev` keyed on each retailer's `domain`, with a graceful
 fallback to the initials avatar when there is no domain, no token, or the image
 fails to load. In production it is supplied via the GitHub Actions secret

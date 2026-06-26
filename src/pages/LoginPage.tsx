@@ -131,10 +131,10 @@ export function LoginPage() {
         {/* Center content */}
         <div>
           <p className="text-[28px] font-[700] leading-snug tracking-[-0.025em] text-white">
-            Accounts, pipeline &amp; licensing — one place.
+            Customers, pipeline &amp; licensing — one place.
           </p>
           <p className="mt-[14px] text-[13.5px] leading-relaxed" style={{ color: 'oklch(0.75 0.04 256)' }}>
-            Email routing, AI summaries, approval threads and meeting notes all connected to your retailer accounts.
+            Email routing, AI summaries, approval threads and meeting notes all connected to your customers.
           </p>
 
           {/* Mini stat chips */}

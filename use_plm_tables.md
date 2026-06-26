@@ -24,7 +24,7 @@ The PLM API key is read-only and belongs only in server/admin tooling. Never put
 
 Use these tables as the shared identity layer:
 
-- `core.company`: canonical customer/company/account identity. PLM customers live here alongside CRM companies.
+- `core.company`: canonical customer/company identity. PLM customers live here alongside CRM companies.
 - `core.company_source_ref`: PLM customer lineage. For PLM customers, use `source_system = 'designflow_plm'` and `source_table = 'customers'`.
 - `core.licensor`: canonical licensor identity.
 - `core.property`: canonical property identity, linked to `core.licensor` by `licensor_id`.
@@ -36,11 +36,11 @@ Production was populated on 2026-06-25 with 55 PLM customers, 37 licensors, 468 
 
 ## How CRM Should Use The Data
 
-CRM account/customer UI should continue to treat `core.company` as the account identity. CRM-specific fields such as account status, segmentation, owner assignment, sales notes, opportunity state, departments, or routing rules belong in CRM-owned tables/views keyed to `core.company.id`.
+CRM customer UI should continue to treat `core.company` as the customer identity. CRM-specific fields such as customer status, segmentation, owner assignment, sales notes, opportunity state, departments, or routing rules belong in CRM-owned tables/views keyed to `core.company.id`.
 
-Contacts remain contact data, not PLM customer data. Use the existing CRM contact/account relationship contracts (`core.contact`, `core.contact_company`, and CRM/API views). The PLM import does not import buyers, contacts, or CRM relationship history.
+Contacts remain contact data, not PLM customer data. Use the existing CRM contact/customer relationship contracts (`core.contact`, `core.contact_company`, and CRM/API views). The PLM import does not import buyers, contacts, or CRM relationship history.
 
-When CRM needs to know whether an account came from PLM, join to `core.company_source_ref`:
+When CRM needs to know whether a customer came from PLM, join to `core.company_source_ref`:
 
 ```sql
 select
@@ -54,11 +54,11 @@ where csr.source_system = 'designflow_plm'
   and csr.source_table = 'customers';
 ```
 
-If opportunities, approvals, or account screens need licensor/property pickers, use `core.licensor` and `core.property` with PLM source refs. If the browser needs a stable CRM-shaped contract, add an `api.crm_*` view/RPC in `u2giants/shared-db` rather than querying internal import tables directly.
+If opportunities, approvals, or customer screens need licensor/property pickers, use `core.licensor` and `core.property` with PLM source refs. If the browser needs a stable CRM-shaped contract, add an `api.crm_*` view/RPC in `u2giants/shared-db` rather than querying internal import tables directly.
 
 ## What Not To Do
 
-- Do not create a CRM-owned duplicate customer table as the canonical account source.
+- Do not create a CRM-owned duplicate customer table as the canonical customer source.
 - Do not store CRM workflow state in `plm.customer_import` or the source-ref tables.
 - Do not write to `plm.*_import`, `core.*_source_ref`, or `ingest.*` from CRM UI code.
 - Do not change PLM source refs, `source_system`, or `source_table` values. The future PLM database cutover depends on those stable keys.
@@ -70,7 +70,7 @@ If opportunities, approvals, or account screens need licensor/property pickers, 
 
 ## If CRM Needs More Fields
 
-If CRM needs app-specific data, add CRM-owned extension tables or columns that FK to the canonical rows. Examples: account segmentation keyed to `core.company.id`, opportunity/account licensor references keyed to `core.licensor.id`, or product/property interest keyed to `core.property.id`.
+If CRM needs app-specific data, add CRM-owned extension tables or columns that FK to the canonical rows. Examples: customer segmentation keyed to `core.company.id`, opportunity/customer licensor references keyed to `core.licensor.id`, or product/property interest keyed to `core.property.id`.
 
 If CRM needs a new shared browser contract, make a timestamped migration in `u2giants/shared-db`, apply it to preview first, verify the CRM screen against preview, then promote to production through the shared-db workflow.
 
@@ -81,4 +81,4 @@ When changing how CRM uses these PLM tables, document both sides:
 - In this repo: update the relevant CRM docs, API notes, or this file.
 - In `u2giants/shared-db`: update schema/API docs if the change affects shared tables, RLS, views, RPCs, imports, or cross-app data contracts.
 
-Future sessions should start by checking this file, `AGENTS.md`, and the canonical `shared-db` docs before changing account/customer/licensor/property behavior.
+Future sessions should start by checking this file, `AGENTS.md`, and the canonical `shared-db` docs before changing customer/licensor/property behavior.

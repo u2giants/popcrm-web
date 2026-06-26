@@ -147,7 +147,7 @@ export function TasksPage() {
       listBar={
         <ListBar
           title="Tasks"
-          subtitle="Open work across accounts and opportunities"
+          subtitle="Open work across customers and opportunities"
           count={filtered.length}
           search={query}
           onSearch={setQuery}

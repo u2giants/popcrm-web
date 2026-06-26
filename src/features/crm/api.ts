@@ -21,12 +21,12 @@ import type {
 //     RLS-enforced, no raw email bodies / transcripts / ingest payloads).
 //   • crm.* operational writes go directly to the `crm` schema tables (baseline
 //     crm_write RLS lets sales/licensing/admin write them).
-//   • Canonical company/contact (account/contact) writes go through the guarded
+//   • Canonical company/contact (customer/contact) writes go through the guarded
 //     api.crm_update_account / api.crm_update_contact RPCs.
 //
 // View rows are flat (company_id + company_name, ...); adapters below rebuild the
 // nested {id, name} shapes the existing UI/types expect, so pages stay unchanged.
-// Curated customers/accounts come from api.crm_account_list. Email-domain triage
+// Curated customers come from api.crm_account_list. Email-domain triage
 // comes from api.crm_ingested_domain_list and is promoted into customers only
 // after human review — see fetchRetailers/fetchIngestedDomains.
 // ---------------------------------------------------------------------------
@@ -391,7 +391,7 @@ export async function askOpportunityAi(id: string, question: string): Promise<st
 }
 
 // ---------------------------------------------------------------------------
-// Accounts / companies (curated customers vs full ingested registry)
+// Customers / companies (curated customers vs full ingested registry)
 // ---------------------------------------------------------------------------
 export async function fetchRetailers(limit = -1): Promise<Retailer[]> {
   let q = supabase.schema('api').from('crm_account_list').select('*').in('customer_status', CUSTOMER_STATUSES).order('name')

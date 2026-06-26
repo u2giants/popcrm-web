@@ -28,11 +28,17 @@ export function AccountRelationLogo({
   value,
   accountById,
   size = 24,
+  variant = 'full',
+  width = 92,
+  height = 24,
   className,
 }: {
   value: RelationValue
   accountById?: Map<string, Retailer>
   size?: number
+  variant?: 'full' | 'token' | 'token-name'
+  width?: number
+  height?: number
   className?: string
 }) {
   const account = accountById?.get(relationId(value))
@@ -45,12 +51,23 @@ export function AccountRelationLogo({
 
   return (
     <span
-      className={cn('inline-flex items-center align-middle', className)}
+      className={cn('inline-flex min-w-0 items-center align-middle', variant === 'token-name' && 'gap-2', className)}
       title={name}
       aria-label={name}
     >
-      <AccountLogo name={name} domain={domain} size={size} />
-      <span className="sr-only">{name}</span>
+      <AccountLogo
+        name={name}
+        domain={domain}
+        size={size}
+        variant={variant === 'full' ? 'full' : 'token'}
+        width={width}
+        height={height}
+      />
+      {variant === 'token-name' ? (
+        <span className="min-w-0 truncate font-[500] text-foreground">{name}</span>
+      ) : (
+        <span className="sr-only">{name}</span>
+      )}
     </span>
   )
 }

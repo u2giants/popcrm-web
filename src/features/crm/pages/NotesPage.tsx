@@ -61,7 +61,7 @@ export function NotesPage() {
     },
     {
       key: 'retailer',
-      header: 'Account',
+      header: 'Customer',
       hideBelow: 'md',
       sortValue: (n) => relatedName(n.retailer),
       filterValue: (n) => relatedName(n.retailer),
@@ -196,8 +196,8 @@ function NewNoteDialog({
           </div>
           <div className="grid gap-3 sm:grid-cols-2">
             <div className="grid gap-1.5">
-              <Label>Account</Label>
-              <Combobox options={retailerOptions} value={retailer} onChange={setRetailer} placeholder="Optional account" />
+              <Label>Customer</Label>
+              <Combobox options={retailerOptions} value={retailer} onChange={setRetailer} placeholder="Optional customer" />
             </div>
             <div className="grid gap-1.5">
               <Label>Opportunity</Label>

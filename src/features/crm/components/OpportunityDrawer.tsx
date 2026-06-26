@@ -96,7 +96,7 @@ function OpportunityDrawerForm({ row, onClose }: { row: CrmOpportunity; onClose:
     <>
       <DrawerSection>
         <DescriptionList>
-          <DescriptionItem term="Account">{relatedName(row.retailer)}</DescriptionItem>
+          <DescriptionItem term="Customer">{relatedName(row.retailer)}</DescriptionItem>
           <DescriptionItem term="Department">{relatedName(row.department)}</DescriptionItem>
           <DescriptionItem term="Program type">{label(row.program_type)}</DescriptionItem>
           <DescriptionItem term="Season / year">{row.season_year || '—'}</DescriptionItem>

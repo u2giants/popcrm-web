@@ -62,7 +62,7 @@ export function DepartmentDrawer({ row, onClose }: { row: CrmDepartment | null; 
 
           <DrawerSection>
             <DescriptionList>
-              <DescriptionItem term="Account">{relatedName(row.retailer)}</DescriptionItem>
+              <DescriptionItem term="Customer">{relatedName(row.retailer)}</DescriptionItem>
               <DescriptionItem term="Primary contact">{relatedName(row.primary_buyer)}</DescriptionItem>
               <DescriptionItem term="Category">{label(row.category)}</DescriptionItem>
               <DescriptionItem term="Division">{label(row.division)}</DescriptionItem>

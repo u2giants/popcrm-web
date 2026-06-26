@@ -79,7 +79,7 @@ export function EmailRoutingPage() {
   const retailerById = useMemo(() => new Map(retailers.map((r) => [r.id, r])), [retailers])
   const departmentById = useMemo(() => new Map(departments.map((d) => [d.id, d])), [departments])
   const opportunityById = useMemo(() => new Map(opportunities.map((o) => [o.id, o])), [opportunities])
-  const accountOptions = useMemo<EditOption[]>(
+  const customerOptions = useMemo<EditOption[]>(
     () => [{ value: '', label: 'Unassigned' }, ...retailers.map((r) => ({ value: r.id, label: r.name }))],
     [retailers],
   )
@@ -175,11 +175,11 @@ export function EmailRoutingPage() {
     },
     {
       key: 'retailer',
-      header: 'Account',
+      header: 'Customer',
       hideBelow: 'lg',
       sortValue: (e) => relatedName(e.retailer),
       filterValue: (e) => relatedName(e.retailer),
-      editOptions: accountOptions,
+      editOptions: customerOptions,
       editValue: (e) => idOf(e.retailer),
       cell: (e) => <AccountRelationLogo value={e.retailer} accountById={retailerById} />,
     },

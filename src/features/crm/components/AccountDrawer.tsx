@@ -45,7 +45,7 @@ export function AccountDrawer({ row, onClose }: { row: Retailer | null; onClose:
     <DetailDrawer
       open={!!row}
       onClose={onClose}
-      title={row?.name || 'Account'}
+      title={row?.name || 'Customer'}
       subtitle={row?.domain ?? undefined}
       avatar={row ? <AccountLogo name={row.name} domain={row.domain} size={36} /> : undefined}
       status={

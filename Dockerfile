@@ -10,8 +10,8 @@ ARG COMMIT_HASH=""
 ARG COMMIT_DATE=""
 ENV COMMIT_HASH=$COMMIT_HASH
 ENV COMMIT_DATE=$COMMIT_DATE
-# logo.dev publishable token (client-safe) for domain-derived account logos.
-# Empty is fine — accounts fall back to initials avatars when unset.
+# logo.dev publishable token (client-safe) for domain-derived customer logos.
+# Empty is fine — customers fall back to initials avatars when unset.
 ARG VITE_LOGODEV_TOKEN=""
 ENV VITE_LOGODEV_TOKEN=$VITE_LOGODEV_TOKEN
 ARG VITE_SUPABASE_URL=""

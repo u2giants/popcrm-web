@@ -213,12 +213,12 @@ function EmailDrawerForm({ row, onClose }: { row: CrmEmailMessage; onClose: () =
             </Select>
           </div>
           <div className="grid gap-1.5">
-            <Label>Account</Label>
+            <Label>Customer</Label>
             <Combobox
               options={retailerOptions}
               value={retailer}
               onChange={(v) => { setRetailer(v); setDepartment('') }}
-              placeholder="Select account"
+              placeholder="Select customer"
             />
           </div>
           <div className="grid gap-1.5">

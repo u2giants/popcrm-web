@@ -125,7 +125,7 @@ export function DataAdminPage() {
     },
     {
       key: 'retailer',
-      header: 'Account',
+      header: 'Customer',
       sortValue: (d) => relatedName(d.retailer),
       filterValue: (d) => relatedName(d.retailer),
       cell: (d) => <AccountRelationLogo value={d.retailer} accountById={retailerById} />,
@@ -318,7 +318,7 @@ export function DataAdminPage() {
             <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_360px]">
               <section className="min-w-0 rounded-[8px] border bg-card shadow-[var(--shadow-xs)]">
                 <div className="border-b p-4">
-                  <SectionHeader title="Department Directory" description={`${departments.length.toLocaleString()} account-linked departments`} />
+                  <SectionHeader title="Department Directory" description={`${departments.length.toLocaleString()} customer-linked departments`} />
                 </div>
                 <DataTable
                   rows={departments}
@@ -329,7 +329,7 @@ export function DataAdminPage() {
                   pageSize={25}
                   emptyIcon={<Database className="size-5" />}
                   emptyTitle="No departments yet"
-                  emptyDescription="Add departments here and they will appear in account-dependent dropdowns."
+                  emptyDescription="Add departments here and they will appear in customer-dependent dropdowns."
                   initialSort={{ key: 'retailer', dir: 'asc' }}
                 />
               </section>
@@ -337,7 +337,7 @@ export function DataAdminPage() {
               <section className="rounded-[8px] border bg-card p-4 shadow-[var(--shadow-xs)]">
                 <SectionHeader
                   title={departmentDraft.id ? 'Edit Department' : 'Add Department'}
-                  description="Departments feed account-dependent dropdowns."
+                  description="Departments feed customer-dependent dropdowns."
                 />
                 <div className="mt-4 grid gap-3">
                   <div className="grid gap-1.5">
@@ -349,12 +349,12 @@ export function DataAdminPage() {
                     />
                   </div>
                   <div className="grid gap-1.5">
-                    <Label>Account</Label>
+                    <Label>Customer</Label>
                     <Combobox
                       options={retailerOptions}
                       value={departmentDraft.retailer}
                       onChange={(v) => setDepartmentDraft((d) => ({ ...d, retailer: v }))}
-                      placeholder="Select account"
+                      placeholder="Select customer"
                     />
                   </div>
                   <div className="grid gap-1.5">

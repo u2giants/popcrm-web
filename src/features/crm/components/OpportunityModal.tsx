@@ -325,7 +325,7 @@ function ModalInner({
               <div className="grid gap-x-[24px] gap-y-[2px] sm:grid-cols-2">
                 {[
                   ['Stage', <span className={cn('rounded-full px-[7px] py-[2px] text-[11px] font-[600]', stageChipClass(stage))}>{label(stage)}</span>],
-                  ['Account', relatedName(row.retailer)],
+                  ['Customer', relatedName(row.retailer)],
                   ['Department', relatedName(row.department)],
                   ['Poppim project', relatedName(row.project)],
                   ['Program type', label(row.program_type)],
@@ -362,7 +362,7 @@ function ModalInner({
               <h3 className="mb-[6px] text-[11.5px] font-[650] uppercase tracking-[0.05em] text-muted-foreground">
                 Fields
               </h3>
-              <FieldRow icon={<Building2 className="size-[13px]" />} iconColor="oklch(0.60 0.15 200)" fieldLabel="Account" value={relatedName(row.retailer)} />
+              <FieldRow icon={<Building2 className="size-[13px]" />} iconColor="oklch(0.60 0.15 200)" fieldLabel="Customer" value={relatedName(row.retailer)} />
               <FieldRow icon={<Link2 className="size-[13px]" />} iconColor="oklch(0.61 0.16 245)" fieldLabel="Poppim project" value={relatedName(row.project)} />
               <FieldRow icon={<DollarSign className="size-[13px]" />} iconColor="oklch(0.60 0.17 155)" fieldLabel="Est. value" value={fmtAmount(row.amount)} />
               <FieldRow icon={<Package className="size-[13px]" />} iconColor="oklch(0.62 0.15 165)" fieldLabel="Factory" value={relatedName(row.factory)} />

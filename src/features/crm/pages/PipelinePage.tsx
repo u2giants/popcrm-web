@@ -79,7 +79,7 @@ export function PipelinePage() {
     },
     {
       key: 'retailer',
-      header: 'Account',
+      header: 'Customer',
       hideBelow: 'md',
       sortValue: (o) => relatedName(o.retailer),
       filterValue: (o) => relatedName(o.retailer),
@@ -158,8 +158,8 @@ export function PipelinePage() {
               <FilterSelect
                 value={retailer}
                 onChange={setRetailer}
-                allLabel="All accounts"
-                placeholder="Account"
+                allLabel="All customers"
+                placeholder="Customer"
                 options={retailers.map((r) => ({ value: r.id, label: r.name }))}
               />
               <FilterSelect

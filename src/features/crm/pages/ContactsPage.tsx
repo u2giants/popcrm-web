@@ -108,7 +108,7 @@ export function ContactsPage() {
       key === 'department' && value && !idOf(row.retailer)
         ? departmentById.get(value)?.retailer ?? row.retailer
         : row.retailer
-    // When the account changes, drop any department that no longer belongs to it.
+    // When the customer changes, drop any department that no longer belongs to it.
     const clearStaleDepartment =
       key === 'retailer' &&
       idOf(row.department) !== '' &&
@@ -200,7 +200,7 @@ export function ContactsPage() {
     },
     {
       key: 'retailer',
-      header: 'Account',
+      header: 'Customer',
       sortValue: (b) => relatedName(b.retailer),
       filterValue: (b) => relatedName(b.retailer),
       editOptions: (b) => (isCustomerContact(b) ? customerAccountOptions : triageAccountOptions),
@@ -234,7 +234,7 @@ export function ContactsPage() {
       listBar={
         <ListBar
           title="Contacts"
-          subtitle="Buyers across all accounts"
+          subtitle="Buyers across all customers"
           count={filtered.length}
           search={query}
           onSearch={setQuery}
@@ -275,7 +275,7 @@ export function ContactsPage() {
           emptyTitle={segment === 'triage' ? 'Triage queue is clear' : 'No contacts match'}
           emptyDescription={
             segment === 'triage'
-              ? 'No contacts are missing account and department links.'
+              ? 'No contacts are missing customer and department links.'
               : 'Adjust your search or column filters.'
           }
           initialSort={{ key: 'name', dir: 'asc' }}

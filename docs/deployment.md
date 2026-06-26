@@ -81,9 +81,9 @@ The active workers must not reference `/worksp/directus`.
 - `VITE_SUPABASE_ANON_KEY` — Supabase public anon key baked into the static
   bundle. This is client configuration, not a service-role key.
 - `LOGODEV_TOKEN` — logo.dev **publishable** token, passed as the
-  `VITE_LOGODEV_TOKEN` Docker build-arg (`deploy.yml` → Dockerfile) so account
+  `VITE_LOGODEV_TOKEN` Docker build-arg (`deploy.yml` → Dockerfile) so customer
   logos bake into the bundle. **Optional**: if unset the build still succeeds and
-  accounts render initials avatars. Client-safe (publishable), not a real secret.
+  customers render initials avatars. Client-safe (publishable), not a real secret.
 
 The image is pushed to GHCR with the workflow's built-in `GITHUB_TOKEN`
 (`packages: write`); no registry PAT is stored. Because `popcrm-web` is a public

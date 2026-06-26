@@ -47,7 +47,7 @@ export const CHAIN_TYPES = [
   'OTHER',
 ] as const
 
-// Account-status display labels. Context-specific (NOT global label() overrides):
+// Customer-status display labels. Context-specific (NOT global label() overrides):
 // `OTHER` means "Other" for chain_type/contact_type, but "Not a Customer" here.
 // `UNASSIGNED`, empty and null all collapse to the single "New Company" bucket.
 export const CUSTOMER_STATUS_LABEL: Record<string, string> = {
@@ -62,7 +62,7 @@ export function customerStatusLabel(status: string | null | undefined): string {
   return CUSTOMER_STATUS_LABEL[status] ?? label(status)
 }
 
-// Account status → badge tone. Green = active customer, yellow = potential,
+// Customer status → badge tone. Green = active customer, yellow = potential,
 // blue = New Company (untriaged, needs review), gray = Not a Customer
 // (reviewed, no CRM action needed). No red — none of these is an alert.
 export function customerStatusTone(status: string | null | undefined): StatusTone {

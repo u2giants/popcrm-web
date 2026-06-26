@@ -18,4 +18,4 @@ npm run dev
 npm run build
 ```
 
-Set `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY` in `.env`. Optional `VITE_LOGODEV_TOKEN` enables domain-derived account logos.
+Set `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY` in `.env`. Optional `VITE_LOGODEV_TOKEN` enables domain-derived customer logos.

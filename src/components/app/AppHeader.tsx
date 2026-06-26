@@ -79,7 +79,7 @@ export function AppHeader({
         className="flex h-[34px] w-full max-w-[420px] items-center gap-[9px] rounded-[9px] border bg-background px-[11px] text-[13px] text-muted-foreground transition-colors duration-[120ms] hover:border-border-strong"
       >
         <Search className="size-[15px] shrink-0" />
-        <span className="flex-1 text-left">Search accounts, contacts, programs…</span>
+        <span className="flex-1 text-left">Search customers, contacts, programs…</span>
         <kbd className="hidden rounded border bg-muted px-[5px] text-[10.5px] font-[600] sm:inline">⌘K</kbd>
       </button>
 
