@@ -41,6 +41,15 @@ Supabase Auth must allow the CRM frontend origins:
 - `https://crm.designflow.app`
 - `https://crm-dev.designflow.app`
 
+The shared Supabase Auth project also serves PM, DAM, SG, and master-data apps. Its `site_url` is `https://crm.designflow.app`, which is expected, but every sibling frontend must pass an explicit `redirectTo` and be present in the project's `uri_allow_list`; otherwise OAuth may fall back to CRM after the provider callback. Keep at least these production/preview app origins in the allowlist:
+
+- `https://crm.designflow.app`, `https://crm-dev.designflow.app`
+- `https://pm.designflow.app`, `https://pm-dev.designflow.app`, `https://pm-ci.designflow.app`
+- `https://dam.designflow.app`, `https://sg.designflow.app`
+- `https://master.designflow.app`
+
+For each app origin include the bare origin, trailing-slash origin, and `/**` wildcard form.
+
 Supabase must expose the `api`, `crm`, `pim`, and `core` schemas through
 PostgREST for the CRM views/RPCs used by the app.
 
