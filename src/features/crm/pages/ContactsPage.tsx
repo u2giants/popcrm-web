@@ -19,7 +19,7 @@ import {
   useContactSegmentCountsQuery,
   useContactSegmentQuery,
   useDepartmentsQuery,
-  useIngestedDomainsQuery,
+  useAccountSegmentQuery,
   useUpdateContactMutation,
 } from '@/features/crm/queries'
 import type { Buyer } from '@/lib/types'
@@ -42,7 +42,7 @@ export function ContactsPage() {
   const segmentQuery = useContactSegmentQuery(activeSegment, -1, segment !== 'all')
   const allContactsQuery = useAllContactsQuery(-1, segment === 'all')
   const countsQuery = useContactSegmentCountsQuery()
-  const retailersQuery = useIngestedDomainsQuery(-1)
+  const retailersQuery = useAccountSegmentQuery('all', -1)
   const departmentsQuery = useDepartmentsQuery(-1)
   const updateContactMutation = useUpdateContactMutation()
   const activeContactsQuery = segment === 'all' ? allContactsQuery : segmentQuery

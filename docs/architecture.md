@@ -82,6 +82,39 @@ database fix is
 preserves `api.crm_contact_list`, adds the explicit `app.has_app_access('crm')`
 guard, and exposes the server-computed segment/count contracts.
 
+## Data model: customer vs. company vs. ingested domain
+
+The CRM works with three different things that are easy to conflate. They are
+not the same and they do not live in the same place. "Company" is not a useful
+bucket: factories and licensors are companies too, and those live in
+`core.factory` / `core.licensor`.
+
+| Concept | What it is | Storage | Visible to other apps? |
+|---|---|---|---|
+| Ingested domain | A domain that appeared in ingested email. This is the CRM triage inbox, not a relationship. | `crm.ingested_domain` | No. CRM-private. |
+| Potential customer | A company POP is tracking but has not yet done business with. | `core.customer`, `is_potential = true` | Yes. |
+| Active customer | A company POP has done business with. The authoritative source is PLM/ERP. | `core.customer`, `is_potential = false` plus a `designflow_plm`/`coldlion` source ref | Yes. |
+
+The Accounts page follows this split. **Customers**, **Not a customer**, and
+**All** read curated account rows from `api.crm_account_list`. **Triage** reads
+`api.crm_ingested_domain_list` and shows domain evidence plus a promotion action.
+A domain becomes a shared `core.customer` row only when someone promotes it with
+`crm.promote_ingested_domain(...)`; that promoted row is potential until PLM/ERP
+confirms it. Use `is_potential` for the factual "have we done business with
+them" signal, and keep `customer_status` as the CRM workflow/status axis.
+
+Lifecycle:
+
+```txt
+crm.ingested_domain -> core.customer (potential) -> core.customer (active, same row)
+```
+
+The shared hub was hard-renamed from `core.company` to `core.customer` without a
+compatibility view. The CRM frontend reads through unchanged `api.*` views/RPCs,
+so runtime behavior is shielded from the table rename, but generated
+`src/lib/database.types.ts` must be regenerated after the migrated schema is the
+target.
+
 ## Key modules
 
 | Module | Purpose |
@@ -104,7 +137,7 @@ guard, and exposes the server-computed segment/count contracts.
 |---|---|---|
 | `OverviewPage` | `/` | KPI strip, email volume chart, routing donut, pipeline bar, activity panels |
 | `PipelinePage` | `/pipeline` | Board (kanban by stage) + List (DataTable) toggle |
-| `AccountsPage` | `/accounts` | DataTable + AccountDrawer. Segmented tabs: **Customers** (default — only curated customers; hides both "Not a Customer" `OTHER` **and** untriaged New Companies `UNASSIGNED`), **Triage** (New Companies awaiting review), **Not a customer**, **All**. The tab was renamed from "Accounts" to "Customers" (2026-06-21) to disambiguate it from the page title, and New Companies were moved out of it into Triage only. Status & Chain cells are inline-editable colored chips |
+| `AccountsPage` | `/accounts` | Account tabs over `api.crm_account_list`: **Customers** (default), **Not a customer**, **All**. **Triage** is a separate ingested-domain review table over `api.crm_ingested_domain_list`, with a promotion action that creates a potential customer. Account tabs keep inline status/chain edits and `AccountDrawer`; Triage does not render account-only edits or drawers |
 | `DepartmentsPage` | `/departments` | DataTable grouped/sorted by Account. Department-name clicks open `DepartmentDrawer` with assigned contacts and programs |
 | `ProgramsPage` | `/programs` | DataTable over CRM opportunities/programs + OpportunityModal |
 | `ContactsPage` | `/contacts` | DataTable + ContactDrawer. Segmented tabs: **Cust Contacts** (linked to Active/Potential account, no department), **Dept. Contacts** (linked to Active/Potential account and department), **Triage** (not linked to a customer account), **All**. Account inline-edit choices are row-aware |

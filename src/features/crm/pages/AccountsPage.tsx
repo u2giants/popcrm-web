@@ -1,26 +1,29 @@
 import { useMemo, useState } from 'react'
 import { toast } from 'sonner'
-import { Building2 } from 'lucide-react'
+import { Building2, Upload } from 'lucide-react'
 import { AppPage, ListBar } from '@/components/app/AppPage'
 import { DataTable, type Column, type EditOption } from '@/components/app/DataTable'
 import { StatusBadge } from '@/components/app/StatusBadge'
+import { Button } from '@/components/ui/button'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { ErrorState } from '@/components/app/states'
 import { useRecordSelection } from '@/features/crm/useRecordSelection'
 import { AccountDrawer } from '@/features/crm/components/AccountDrawer'
 import { ChainBadge } from '@/features/crm/components/CrmStatusBadge'
 import { CHAIN_TYPES, CUSTOMER_STATUSES, customerStatusLabel, customerStatusTone } from '@/features/crm/constants'
-import { idOf, label, textOf } from '@/features/crm/format'
+import { formatDateTime, idOf, label, textOf } from '@/features/crm/format'
 import { AccountLogo } from '@/components/app/AccountLogo'
 import {
   listData,
   useAccountSegmentCountsQuery,
   useAccountSegmentQuery,
+  useIngestedDomainsQuery,
   useIngestedContactsQuery,
   useOpportunitiesQuery,
+  usePromoteIngestedDomainMutation,
   useUpdateAccountMutation,
 } from '@/features/crm/queries'
-import type { Retailer } from '@/lib/types'
+import type { CrmIngestedDomain, Retailer } from '@/lib/types'
 
 const STATUS_OPTIONS: EditOption[] = CUSTOMER_STATUSES.map((v) => ({ value: v, label: customerStatusLabel(v) }))
 const CHAIN_OPTIONS: EditOption[] = CHAIN_TYPES.map((v) => ({ value: v, label: label(v) }))
@@ -29,42 +32,45 @@ type Segment = 'active' | 'triage' | 'dismissed' | 'all'
 
 // Normalize to the canonical bucket (empty/null == New Company / UNASSIGNED).
 const statusOf = (r: Retailer) => r.customer_status || 'UNASSIGNED'
+const ingestedDomainName = (r: CrmIngestedDomain) => r.display_name || r.promoted_company_name || r.domain
+const potentialLabel = (value: boolean | null | undefined) =>
+  value === true ? 'Potential' : value === false ? 'ERP confirmed' : 'Unknown'
+const potentialTone = (value: boolean | null | undefined) =>
+  value === true ? 'warning' : value === false ? 'success' : 'neutral'
 
 export function AccountsPage() {
   const [query, setQuery] = useState('')
   const [segment, setSegment] = useState<Segment>('active')
   const activeAccountsQuery = useAccountSegmentQuery('active')
-  const triageAccountsQuery = useAccountSegmentQuery('triage')
+  const triageDomainsQuery = useIngestedDomainsQuery(-1)
   const dismissedAccountsQuery = useAccountSegmentQuery('dismissed', -1, segment === 'dismissed')
   const allAccountsQuery = useAccountSegmentQuery('all', -1, segment === 'all')
   const countsQuery = useAccountSegmentCountsQuery()
   const buyersQuery = useIngestedContactsQuery(-1)
   const opportunitiesQuery = useOpportunitiesQuery(-1)
   const updateAccountMutation = useUpdateAccountMutation()
+  const promoteDomainMutation = usePromoteIngestedDomainMutation()
   const buyers = listData(buyersQuery.data)
   const opportunities = listData(opportunitiesQuery.data)
   const activeAccounts = listData(activeAccountsQuery.data)
-  const triageAccounts = listData(triageAccountsQuery.data)
+  const triageDomains = listData(triageDomainsQuery.data)
   const dismissedAccounts = listData(dismissedAccountsQuery.data)
   const allAccounts = listData(allAccountsQuery.data)
-  const activeAccountsForSegment =
+  const accountRows =
     segment === 'all'
       ? allAccounts
       : segment === 'dismissed'
         ? dismissedAccounts
-        : segment === 'triage'
-          ? triageAccounts
-          : activeAccounts
-  const activeAccountsFetch =
+        : activeAccounts
+  const visibleFetch =
     segment === 'all'
       ? allAccountsQuery
       : segment === 'dismissed'
         ? dismissedAccountsQuery
         : segment === 'triage'
-          ? triageAccountsQuery
+          ? triageDomainsQuery
           : activeAccountsQuery
-  const retailers = activeAccountsForSegment
-  const [selected, select] = useRecordSelection<Retailer>('retailer', retailers)
+  const [selected, select] = useRecordSelection<Retailer>('retailer', accountRows)
 
   // Inline edit / drag-copy for the Status and Chain columns.
   async function editCell(row: Retailer, key: string, value: string) {
@@ -72,6 +78,19 @@ export function AccountsPage() {
       await updateAccountMutation.mutateAsync({ id: row.id, values: { [key]: value } as Partial<Retailer> })
     } catch {
       toast.error('Could not save change')
+    }
+  }
+
+  async function promoteDomain(row: CrmIngestedDomain) {
+    const defaultName = ingestedDomainName(row)
+    const name = window.prompt('Customer name', defaultName)?.trim()
+    if (!name) return
+
+    try {
+      await promoteDomainMutation.mutateAsync({ domain: row.domain, name })
+      toast.success('Domain promoted to potential customer')
+    } catch {
+      toast.error('Could not promote domain')
     }
   }
 
@@ -89,28 +108,44 @@ export function AccountsPage() {
     return { contacts, opps }
   }, [buyers, opportunities])
 
-  // Segment counts. "active" hides Not-a-Customer (OTHER); "triage" = New
-  // Companies (UNASSIGNED) awaiting review.
+  // Segment counts. Account counts come from crm_account_list; Triage counts
+  // CRM-private ingested domains awaiting promotion/review.
   const segCounts = countsQuery.data ?? {
     active: activeAccounts.length,
-    triage: triageAccounts.length,
+    triage: triageDomains.length,
     dismissed: dismissedAccounts.length,
     all: allAccounts.length,
   }
 
-  const filtered = useMemo(() => {
+  const filteredAccounts = useMemo(() => {
     const q = query.trim().toLowerCase()
-    return retailers.filter((r) => {
+    return accountRows.filter((r) => {
       const s = statusOf(r)
       if (segment === 'active' && (s === 'OTHER' || s === 'UNASSIGNED')) return false
-      if (segment === 'triage' && s !== 'UNASSIGNED') return false
       if (segment === 'dismissed' && s !== 'OTHER') return false
-      if (q && !textOf(r.name, r.domain, r.routing_aliases, r.customer_status, r.chain_type).includes(q)) return false
+      if (q && !textOf(r.name, r.domain, r.routing_aliases, r.customer_status, r.chain_type, r.is_potential).includes(q)) return false
       return true
     })
-  }, [retailers, query, segment])
+  }, [accountRows, query, segment])
 
-  const columns: Column<Retailer>[] = [
+  const filteredDomains = useMemo(() => {
+    const q = query.trim().toLowerCase()
+    return triageDomains.filter((r) => {
+      if (!q) return true
+      return textOf(
+        r.domain,
+        r.display_name,
+        r.status,
+        r.last_sender,
+        r.sample_subject,
+        r.promoted_company_name,
+      ).includes(q)
+    })
+  }, [triageDomains, query])
+
+  const count = segment === 'triage' ? filteredDomains.length : filteredAccounts.length
+
+  const accountColumns: Column<Retailer>[] = [
     {
       key: 'name',
       header: 'Account',
@@ -139,6 +174,18 @@ export function AccountsPage() {
       cell: (r) => (
         <StatusBadge tone={customerStatusTone(r.customer_status)} dot>
           {customerStatusLabel(r.customer_status)}
+        </StatusBadge>
+      ),
+    },
+    {
+      key: 'potential',
+      header: 'Source',
+      hideBelow: 'lg',
+      sortValue: (r) => potentialLabel(r.is_potential),
+      filterValue: (r) => potentialLabel(r.is_potential),
+      cell: (r) => (
+        <StatusBadge tone={potentialTone(r.is_potential)} dot>
+          {potentialLabel(r.is_potential)}
         </StatusBadge>
       ),
     },
@@ -174,16 +221,95 @@ export function AccountsPage() {
     },
   ]
 
+  const domainColumns: Column<CrmIngestedDomain>[] = [
+    {
+      key: 'domain',
+      header: 'Domain',
+      sortValue: (r) => r.domain,
+      filterValue: (r) => r.domain,
+      cell: (r) => (
+        <div className="min-w-0">
+          <div className="truncate font-[500] text-foreground">{r.domain}</div>
+          {r.display_name ? (
+            <div className="truncate text-[11px] text-muted-foreground">{r.display_name}</div>
+          ) : null}
+        </div>
+      ),
+    },
+    {
+      key: 'email_count',
+      header: 'Emails',
+      numeric: true,
+      sortValue: (r) => r.email_count ?? 0,
+      className: 'text-right tabular-nums',
+      headClassName: 'text-right',
+      cell: (r) => r.email_count ?? 0,
+    },
+    {
+      key: 'last_seen_at',
+      header: 'Last seen',
+      hideBelow: 'md',
+      sortValue: (r) => r.last_seen_at,
+      filterValue: (r) => formatDateTime(r.last_seen_at),
+      cell: (r) => formatDateTime(r.last_seen_at),
+    },
+    {
+      key: 'last_sender',
+      header: 'Sender',
+      hideBelow: 'lg',
+      sortValue: (r) => r.last_sender ?? '',
+      filterValue: (r) => r.last_sender ?? '',
+      cell: (r) => <span className="truncate text-muted-foreground">{r.last_sender || '—'}</span>,
+    },
+    {
+      key: 'sample_subject',
+      header: 'Sample subject',
+      hideBelow: 'xl',
+      sortValue: (r) => r.sample_subject ?? '',
+      filterValue: (r) => r.sample_subject ?? '',
+      cell: (r) => <span className="truncate text-muted-foreground">{r.sample_subject || '—'}</span>,
+    },
+    {
+      key: 'status',
+      header: 'Status',
+      hideBelow: 'lg',
+      sortValue: (r) => label(r.status),
+      filterValue: (r) => label(r.status),
+      cell: (r) => (
+        <StatusBadge tone={r.promoted_customer_id ? 'success' : 'info'} dot>
+          {r.promoted_customer_id ? 'Promoted' : label(r.status)}
+        </StatusBadge>
+      ),
+    },
+    {
+      key: 'promote',
+      header: '',
+      className: 'text-right',
+      headClassName: 'text-right',
+      cell: (r) => (
+        <Button
+          size="xs"
+          variant="outline"
+          onClick={() => void promoteDomain(r)}
+          disabled={promoteDomainMutation.isPending || !!r.promoted_customer_id}
+        >
+          <Upload className="size-3" />
+          Promote
+        </Button>
+      ),
+    },
+  ]
+
   return (
     <AppPage
       listBar={
         <ListBar
           title="Accounts"
           subtitle="Retailer accounts"
-          count={filtered.length}
+          count={count}
           search={query}
           onSearch={setQuery}
-          searchPlaceholder="Search name, domain, aliases…"
+          searchPlaceholder={segment === 'triage' ? 'Search domain, sender, subject…' : 'Search name, domain, aliases…'}
           segments={
             <Tabs value={segment} onValueChange={(v) => setSegment(v as Segment)}>
               <TabsList>
@@ -206,23 +332,30 @@ export function AccountsPage() {
         />
       }
     >
-      {activeAccountsFetch.isError ? (
-        <ErrorState onRetry={() => void activeAccountsFetch.refetch()} />
+      {visibleFetch.isError ? (
+        <ErrorState onRetry={() => void visibleFetch.refetch()} />
+      ) : segment === 'triage' ? (
+        <DataTable
+          rows={filteredDomains}
+          columns={domainColumns}
+          getRowId={(r) => r.id}
+          loading={visibleFetch.isPending}
+          emptyIcon={<Building2 className="size-5" />}
+          emptyTitle="Triage queue is clear"
+          emptyDescription="No ingested domains awaiting review."
+          initialSort={{ key: 'last_seen_at', dir: 'desc' }}
+        />
       ) : (
         <DataTable
-          rows={filtered}
-          columns={columns}
+          rows={filteredAccounts}
+          columns={accountColumns}
           getRowId={(r) => r.id}
           onRowClick={(r) => select(r)}
           onCellEdit={editCell}
-          loading={activeAccountsFetch.isPending}
+          loading={visibleFetch.isPending}
           emptyIcon={<Building2 className="size-5" />}
-          emptyTitle={segment === 'triage' ? 'Triage queue is clear' : 'No accounts match'}
-          emptyDescription={
-            segment === 'triage'
-              ? 'No new companies awaiting review.'
-              : 'Adjust your search or column filters.'
-          }
+          emptyTitle="No accounts match"
+          emptyDescription="Adjust your search or column filters."
           initialSort={{ key: 'name', dir: 'asc' }}
         />
       )}

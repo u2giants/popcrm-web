@@ -184,7 +184,8 @@ generated database types are in `src/lib/database.types.ts`:
 
 | Entity/System | Identifier | Where defined | Notes |
 |---|---|---|---|
-| Account | `core.company` / `api.crm_account_list` | Supabase | companies/accounts (migrated from Twenty `company`). `customer_status` enum: `ACTIVE_CUSTOMER`, `POTENTIAL_CUSTOMER`, `OTHER` (= "Not a Customer": reviewed, no CRM action), `UNASSIGNED` (= "New Company": untriaged). No logo field — see Quirks |
+| Account/customer | `core.customer` / `api.crm_account_list` | Supabase | shared customer hub. `is_potential = false` means PLM/ERP-confirmed active customer; `true` means tracked potential customer. `customer_status` remains the CRM workflow/status axis. No logo field — see Quirks |
+| Ingested domain | `crm.ingested_domain` / `api.crm_ingested_domain_list` | Supabase | CRM-only email-domain triage inbox. These rows are **not** customers and are not shared with PM/DAM/PLM. Promote with `crm.promote_ingested_domain(...)` to create a potential `core.customer` row |
 | Contact | `core.contact` + `core.contact_company` / `api.crm_contact_list` | Supabase | contacts and account/department relation rows (migrated from Twenty `person`/Directus `buyer`) |
 | Department | `crm.department` / `api.crm_department_list` | Supabase | retailer departments |
 | Opportunity | `crm.opportunity` / `api.crm_opportunity_list` | Supabase | pipeline; `stage` enum in `constants.ts:OPPORTUNITY_STAGES` |
@@ -302,6 +303,32 @@ Do not change because:
 Putting `OTHER` (or `UNASSIGNED`) into the global `label()` overrides silently
 corrupts chain/contact/routing labels. Status colors: green active, yellow
 potential, blue New Company (untriaged), gray Not-a-Customer — no red.
+
+### Accounts Triage is ingested domains, not customer rows
+
+Looks like:
+You could load Accounts → Triage from `api.crm_account_list` rows where
+`customer_status` is `UNASSIGNED`.
+
+Actually:
+Email-domain noise lives in `crm.ingested_domain` and is exposed through
+`api.crm_ingested_domain_list`. Those rows are not accounts/customers and should
+use the `CrmIngestedDomain` frontend type, not `Retailer`. The Triage table shows
+domain evidence and a promote action; it must not render account-only inline
+status/chain edits or `AccountDrawer`.
+
+Why:
+`core.customer` is the shared hub used by CRM, PM, DAM, and PLM. Random email
+domains must not become shared customer rows until a human promotes them with
+`crm.promote_ingested_domain(...)`, which creates a potential customer
+(`is_potential = true`).
+
+Future sessions should:
+Keep account lists and account pickers on `api.crm_account_list`; keep Accounts
+Triage on `api.crm_ingested_domain_list`. If a frontend change requires a new
+view/RPC/policy/trigger, make that change in canonical `/worksp/shared-db` and
+document it in the appropriate `u2giants/shared-db` `.md` file, not this repo's
+vendored `shared-db/` mirror.
 
 ### Contacts page customer segmentation and account edit choices
 
@@ -525,8 +552,8 @@ lies in this CRM.
 Recovery:
 `698885b` restored full paged reads (`limit = -1`) for main CRM record surfaces,
 drawers, command search, and overview stats. Follow-up work made Contacts load by
-server segment and Accounts load Customers/Triage eagerly while loading
-Not-a-Customer/All only on demand.
+server segment, Accounts load Customers eagerly, Accounts Triage load from
+`api.crm_ingested_domain_list`, and Not-a-Customer/All load only on demand.
 
 Rule added to prevent recurrence:
 Do not add arbitrary positive limits to CRM list hooks unless the page also has
@@ -646,9 +673,9 @@ now break-glass only (see `docs/deployment.md`).
 | done | Approvals columns | Name · Licensor · Status · Submitted · Program · Latest comment per spec |
 | done | All record drawers polished | Meeting/Task/Email/Note/Approval drawers match spec |
 | done | DataTable ag-Grid-style tools | Persistent per-column filter icon → checkbox value popover; per-column header quick-search + autocomplete; visible resize separator; inline-edit dropdowns (`editOptions`/`onCellEdit`); spreadsheet drag-to-copy fill handle |
-| done | Accounts status/chain UX | Real-schema colored chips; inline-editable; Twenty logos via logo.dev; segmented tabs (Accounts/Triage/Not a customer/All) default-hiding non-customers |
+| done | Accounts status/chain UX | Real-schema colored chips; inline-editable; Twenty logos via logo.dev; segmented tabs (Customers/Triage/Not a customer/All), with Triage backed by `api.crm_ingested_domain_list` |
 | done | Account status data normalized | 24 null `customer_status` rows → `UNASSIGNED` (direct Directus PG write); now one "New Company" bucket |
-| done | Directus-to-Supabase CRM data import/reconciliation | Completed 2026-06-22; verified 8,654 contacts, 3,744 canonical companies, 38 departments, 11,267 emails, 27 meetings, and matching zero-count tables |
+| done | Directus-to-Supabase CRM data import/reconciliation | Completed 2026-06-22; verified 8,654 contacts, 3,744 canonical customer/account rows, 38 departments, 11,267 emails, 27 meetings, and matching zero-count tables |
 | done | Contacts zero after Supabase cutover | Fixed 2026-06-22 via frontend client-side contact segmentation plus `api.crm_contact_list` access-gated view migration |
 | done | Live-query refactor cap regression | Fixed 2026-06-22; restored full reads/true counts for CRM screens and documented the "no arbitrary limits without server contracts" rule |
 | blocked | Account logos go live | Code deployed but inert until `LOGODEV_TOKEN` GitHub secret is set (publishable logo.dev key) — see HANDOFF.md. Falls back to initials until then |

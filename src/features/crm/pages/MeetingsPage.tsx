@@ -16,7 +16,7 @@ import {
   listData,
   useDepartmentsQuery,
   useIngestedContactsQuery,
-  useIngestedDomainsQuery,
+  useAccountSegmentQuery,
   useMeetingsQuery,
   useUpdateMeetingMutation,
 } from '@/features/crm/queries'
@@ -35,7 +35,7 @@ function acctStatusOf(m: CrmMeetingNote): string {
 export function MeetingsPage() {
   const queryClient = useQueryClient()
   const meetingsQuery = useMeetingsQuery(-1)
-  const retailersQuery = useIngestedDomainsQuery(-1)
+  const retailersQuery = useAccountSegmentQuery('all', -1)
   const departmentsQuery = useDepartmentsQuery(-1)
   const buyersQuery = useIngestedContactsQuery(-1)
   const updateMeetingMutation = useUpdateMeetingMutation()

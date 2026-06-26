@@ -42,3 +42,44 @@ Risks / watchouts:
   fields must be updated against a specific account relationship row.
 - Passing `null` alone is not a reliable clear operation for this RPC contract;
   use the explicit `p_clear_*` flags.
+
+## CRM ingested-domain schema follow-up
+
+Status:
+app implementation complete; two external/manual follow-ups remain.
+
+Done in `popcrm-web`:
+- Regenerated `src/lib/database.types.ts` from preview project
+  `xjcyeuvzkhtzsheknaiu`.
+- Split Accounts Triage from account rows: Triage now reads
+  `api.crm_ingested_domain_list` as `CrmIngestedDomain[]`.
+- Added ingested-domain count, realtime invalidation, and
+  `usePromoteIngestedDomainMutation()` for `crm.promote_ingested_domain`.
+- Updated Accounts Triage to render domain-specific columns/actions instead of
+  account-only inline edits/drawer.
+- Added a separate `is_potential` source chip for accounts.
+- Updated `AGENTS.md` and `docs/architecture.md`.
+- `npm run build`, `npm run lint`, and `git diff --check` passed.
+
+Next action:
+1. Flag whoever owns the external email/Fireflies ingestion worker
+   (`crm-fireflies.designflow.app`, deployed from `u2giants/directus`) that it
+   must call `crm.record_ingested_domain(p_domain, p_sender, p_subject,
+   p_display_name)` instead of inserting email-domain noise into
+   `core.customer`.
+2. Verify on preview with `.env` pointed at Supabase preview project
+   `xjcyeuvzkhtzsheknaiu`:
+   - Accounts -> Customers loads from `api.crm_account_list`.
+   - Accounts -> Triage loads rows from `api.crm_ingested_domain_list`.
+   - Promoting a triaged domain creates a potential customer and removes the
+     domain from Triage after refetch.
+   - Editing an account status/chain still persists through
+     `api.crm_update_account`.
+
+Risks / watchouts:
+- This app did not require any shared-db object changes. If a future issue shows
+  that the browser cannot call `crm.promote_ingested_domain` directly, add a
+  wrapper such as `api.crm_promote_ingested_domain` in canonical
+  `u2giants/shared-db` and document that DB change in the correct shared-db
+  `.md` file.
+- Do not edit this repo's vendored `shared-db/` mirror.

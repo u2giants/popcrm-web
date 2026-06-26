@@ -29,7 +29,7 @@ import {
   useEmailsQuery,
   useFirefliesHealth,
   useIgnoreRulesQuery,
-  useIngestedDomainsQuery,
+  useAccountSegmentQuery,
   useOpportunitiesQuery,
   useUpdateEmailMutation,
 } from '@/features/crm/queries'
@@ -55,7 +55,7 @@ function MethodChip({ method }: { method: string | null | undefined }) {
 export function EmailRoutingPage() {
   const emailsQuery = useEmailsQuery(-1)
   const ignoreRulesQuery = useIgnoreRulesQuery()
-  const retailersQuery = useIngestedDomainsQuery(-1)
+  const retailersQuery = useAccountSegmentQuery('all', -1)
   const departmentsQuery = useDepartmentsQuery(-1)
   const opportunitiesQuery = useOpportunitiesQuery(-1)
   const fireflies = useFirefliesHealth()

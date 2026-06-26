@@ -17,7 +17,7 @@ import {
   listData,
   useCreateIgnoreRuleMutation,
   useDepartmentsQuery,
-  useIngestedDomainsQuery,
+  useAccountSegmentQuery,
   useOpportunitiesQuery,
   useUpdateEmailMutation,
 } from '@/features/crm/queries'
@@ -71,7 +71,7 @@ function MethodConfidence({ method }: { method: string }) {
 }
 
 function EmailDrawerForm({ row, onClose }: { row: CrmEmailMessage; onClose: () => void }) {
-  const retailersQuery = useIngestedDomainsQuery(-1)
+  const retailersQuery = useAccountSegmentQuery('all', -1)
   const opportunitiesQuery = useOpportunitiesQuery(-1)
   const departmentsQuery = useDepartmentsQuery(-1)
   const updateEmailMutation = useUpdateEmailMutation()
