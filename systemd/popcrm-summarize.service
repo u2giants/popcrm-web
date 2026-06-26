@@ -1,0 +1,11 @@
+[Unit]
+Description=POP CRM opportunity summary refresh
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Type=oneshot
+User=ai
+WorkingDirectory=/worksp/popcrm-web
+EnvironmentFile=/home/ai/.crm-worker.env
+ExecStart=/usr/bin/node /worksp/popcrm-web/workers/crm-worker-supabase.mjs summarize

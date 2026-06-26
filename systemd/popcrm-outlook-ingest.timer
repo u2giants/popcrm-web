@@ -1,0 +1,10 @@
+[Unit]
+Description=Run POP CRM Outlook ingest every 15 minutes
+
+[Timer]
+OnCalendar=*-*-* *:00,15,30,45:00
+Persistent=true
+Unit=popcrm-outlook-ingest.service
+
+[Install]
+WantedBy=timers.target

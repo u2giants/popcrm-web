@@ -1,0 +1,10 @@
+[Unit]
+Description=Run POP CRM email reroute every 6 hours
+
+[Timer]
+OnCalendar=*-*-* 00,06,12,18:05:00
+Persistent=true
+Unit=popcrm-reroute.service
+
+[Install]
+WantedBy=timers.target

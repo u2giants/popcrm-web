@@ -217,9 +217,10 @@ this same host, owned by other repos/systems — listed for context):
 | Container/service | Purpose | Managed by | App/project ID | Image/source |
 |---|---|---|---|---|
 | `popcrm-web` (this app) | Frontend SPA via nginx | Coolify | app `a1vb55by4benmh25nd4ga8pt` | `ghcr.io/u2giants/popcrm-web` |
+| POP CRM host workers | Outlook ingest, reroute, contact sync, summaries, ignore rules | host systemd | `systemd/popcrm-*` | `workers/crm-worker-supabase.mjs` |
 | Supabase | Backend API/Postgres (`qsllyeztdwjgirsysgai.supabase.co`) | Supabase | project `qsllyeztdwjgirsysgai` | shared database |
 | Directus | Legacy backend API (`data.designflow.app`) | Coolify (repo `u2giants/directus`) | — | rollback/reference only |
-| popcrm-fireflies | Fireflies webhook/health worker | external | — | from `u2giants/directus` pm-system |
+| popcrm-fireflies | Fireflies webhook/health worker | host Docker on `coolify` network | — | `workers/crm-worker-supabase.mjs` |
 | coolify-proxy | Traefik reverse proxy / TLS | Coolify | — | `traefik:v3.6` |
 
 The running container name is Coolify-generated as `<app-uuid>-<deploy-id>` and
@@ -428,6 +429,28 @@ Future sessions should:
 When meeting ingestion is stale, check CRM row dates, `popcrm-fireflies` logs,
 proxy logs, and the Fireflies dashboard webhook configuration before debugging
 the frontend. Do not assume a green Fireflies badge means notes are ingesting.
+
+### CRM host workers live in this repo, not Directus
+
+What changed:
+On 2026-06-26, the active CRM host worker runtime moved out of
+`/worksp/directus` and into `workers/crm-worker-supabase.mjs` in this repo.
+Installed systemd units use the templates in `systemd/`, and the
+`popcrm-fireflies` container bind-mounts `/worksp/popcrm-web` read-only and runs
+the same Supabase worker with `fireflies-server`.
+
+Why:
+The CRM backend source of truth is Supabase.com and canonical schema/docs live in
+`/worksp/shared-db`. Deleting `/worksp/directus` must not affect Outlook ingest,
+reroute, contact sync, summaries, ignore-rule sweeps, opportunity chat, or
+Fireflies ingestion.
+
+Future sessions should:
+Keep `/home/ai/.crm-worker.env` out of git. It must include `SUPABASE_URL` and
+`SUPABASE_SERVICE_ROLE_KEY`; do not put service-role keys in Vite/browser config.
+After changing worker code, run `node --check workers/crm-worker-supabase.mjs`
+and relevant one-shot systemd smoke tests. Unknown domains must continue to go
+through `crm.record_ingested_domain(...)`, not direct `core.customer` inserts.
 
 ### Account logos are domain-derived (logo.dev), not stored
 

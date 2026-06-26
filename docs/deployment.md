@@ -54,6 +54,23 @@ are path-ignored and do not trigger a build.
 | Build-time config | `VITE_*` (baked into the static bundle — see note) |
 | Rollback | redeploy a previous `sha-<sha>` image via Coolify |
 
+## Host workers
+
+POP CRM also owns host-side maintenance workers for the shared Supabase backend:
+
+| Runtime | Owner/path | Schedule |
+|---|---|---|
+| Outlook ingest | `systemd/popcrm-outlook-ingest.*` -> `workers/crm-worker-supabase.mjs outlook-ingest` | every 15 minutes |
+| Email reroute | `systemd/popcrm-reroute.*` -> `workers/crm-worker-supabase.mjs reroute` | every 6 hours |
+| Contact sync | `systemd/popcrm-contact-sync.*` -> `workers/crm-worker-supabase.mjs contact-sync` | daily |
+| Opportunity summaries | `systemd/popcrm-summarize.*` -> `workers/crm-worker-supabase.mjs summarize` | every 6 hours |
+| Ignore-rule sweep | `systemd/popcrm-apply-ignore-rules.*` -> `workers/crm-worker-supabase.mjs apply-ignore-rules` | every 6 hours |
+| Fireflies webhook/chat | Docker container `popcrm-fireflies` -> `workers/crm-worker-supabase.mjs fireflies-server` | always on |
+
+Secrets stay outside git in mode-600 `/home/ai/.crm-worker.env` and in
+1Password item `POP CRM Supabase Worker Env - hetz /home/ai/.crm-worker.env`.
+The active workers must not reference `/worksp/directus`.
+
 ### GitHub Actions secrets (CI/CD only)
 
 - `COOLIFY_BASE_URL` — `https://coolify.designflow.app`
