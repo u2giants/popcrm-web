@@ -5,6 +5,7 @@ import { CalendarDays } from 'lucide-react'
 import { AppPage, ListBar } from '@/components/app/AppPage'
 import { DataTable, type Column, type EditOption } from '@/components/app/DataTable'
 import { ErrorState } from '@/components/app/states'
+import { AccountRelationLogo } from '@/features/crm/components/AccountRelationLogo'
 import { RelationLabel } from '@/features/crm/components/RelationLabel'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { useRecordSelection } from '@/features/crm/useRecordSelection'
@@ -152,7 +153,7 @@ export function MeetingsPage() {
       filterValue: (m) => relatedName(m.retailer),
       editOptions: accountOptions,
       editValue: (m) => idOf(m.retailer),
-      cell: (m) => <RelationLabel value={m.retailer} />,
+      cell: (m) => <AccountRelationLogo value={m.retailer} accountById={retailerById} />,
     },
     {
       key: 'contact',

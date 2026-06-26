@@ -6,7 +6,7 @@ import { AppPage, ListBar } from '@/components/app/AppPage'
 import { DataTable, type Column, type EditOption } from '@/components/app/DataTable'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { ErrorState } from '@/components/app/states'
-import { RelationLabel } from '@/features/crm/components/RelationLabel'
+import { AccountRelationLogo } from '@/features/crm/components/AccountRelationLogo'
 import { useRecordSelection } from '@/features/crm/useRecordSelection'
 import { ContactDrawer } from '@/features/crm/components/ContactDrawer'
 import { idOf, label, relatedName, textOf } from '@/features/crm/format'
@@ -205,7 +205,7 @@ export function ContactsPage() {
       filterValue: (b) => relatedName(b.retailer),
       editOptions: (b) => (isCustomerContact(b) ? customerAccountOptions : triageAccountOptions),
       editValue: (b) => idOf(b.retailer),
-      cell: (b) => <RelationLabel value={b.retailer} />,
+      cell: (b) => <AccountRelationLogo value={b.retailer} accountById={retailerById} />,
     },
     {
       key: 'department',
