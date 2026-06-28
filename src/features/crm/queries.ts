@@ -12,6 +12,7 @@ import {
   fetchContactSegmentCounts,
   fetchDepartments,
   fetchEmailMessages,
+  fetchEmailSegmentCounts,
   fetchIgnoreRules,
   fetchIngestedDomainCount,
   fetchIngestedContacts,
@@ -37,6 +38,7 @@ import {
   type AccountSegmentCounts,
   type ContactSegment,
   type ContactSegmentCounts,
+  type EmailSegmentCounts,
 } from './api'
 import { FIREFLIES_HEALTH_URL } from './constants'
 import type {
@@ -71,6 +73,7 @@ export const crmKeys = {
   contactSegmentCounts: () => [...crmKeys.all, 'contactSegmentCounts'] as const,
   departments: (limit = -1) => [...crmKeys.all, 'departments', { limit }] as const,
   emails: (limit = -1) => [...crmKeys.all, 'emails', { limit }] as const,
+  emailSegmentCounts: () => [...crmKeys.all, 'emailSegmentCounts'] as const,
   meetings: (limit = -1) => [...crmKeys.all, 'meetings', { limit }] as const,
   ignoreRules: () => [...crmKeys.all, 'ignoreRules'] as const,
   aiConfigs: () => [...crmKeys.all, 'aiConfigs'] as const,
@@ -208,6 +211,16 @@ export function useEmailsQuery(limit = -1) {
   return useQuery({
     queryKey: crmKeys.emails(limit),
     queryFn: () => fetchEmailMessages(limit),
+    ...crmQueryDefaults,
+    staleTime: 10_000,
+    refetchInterval: 45_000,
+  })
+}
+
+export function useEmailSegmentCountsQuery() {
+  return useQuery<EmailSegmentCounts>({
+    queryKey: crmKeys.emailSegmentCounts(),
+    queryFn: fetchEmailSegmentCounts,
     ...crmQueryDefaults,
     staleTime: 10_000,
     refetchInterval: 45_000,

@@ -28,6 +28,7 @@ import {
   useCreateIgnoreRuleMutation,
   useDepartmentsQuery,
   useEmailsQuery,
+  useEmailSegmentCountsQuery,
   useFirefliesHealth,
   useIgnoreRulesQuery,
   useAccountSegmentQuery,
@@ -37,6 +38,7 @@ import {
 import type { CrmEmailMessage } from '@/lib/types'
 
 type Segment = 'company' | 'department' | 'program' | 'triage' | 'all'
+const EMAIL_ROUTE_LIMIT = 1000
 
 const METHOD_LABEL: Record<string, string> = {
   DETERMINISTIC: 'Rule match',
@@ -54,7 +56,8 @@ function MethodChip({ method }: { method: string | null | undefined }) {
 }
 
 export function EmailRoutingPage() {
-  const emailsQuery = useEmailsQuery(-1)
+  const emailsQuery = useEmailsQuery(EMAIL_ROUTE_LIMIT)
+  const countsQuery = useEmailSegmentCountsQuery()
   const ignoreRulesQuery = useIgnoreRulesQuery()
   const retailersQuery = useAccountSegmentQuery('all', -1)
   const departmentsQuery = useDepartmentsQuery(-1)
@@ -124,11 +127,12 @@ export function EmailRoutingPage() {
     }
   }
 
-  const segCounts = useMemo(() => {
+  const localSegCounts = useMemo(() => {
     const counts = { company: 0, department: 0, program: 0, triage: 0, all: emails.length }
     for (const e of emails) counts[emailBucket(e)]++
     return counts
   }, [emails])
+  const segCounts = countsQuery.data ?? localSegCounts
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase()
@@ -281,6 +285,7 @@ export function EmailRoutingPage() {
                 ? 'Every message has a CRM routing decision.'
                 : 'Adjust your search or segment.'
             }
+            initialSort={{ key: 'received_at', dir: 'desc' }}
           />
           <RoutingSidebar />
         </div>
