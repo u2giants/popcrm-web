@@ -17,7 +17,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 import { ErrorState } from '@/components/app/states'
-import { AccountRelationLogo } from '@/features/crm/components/AccountRelationLogo'
+import { CustomerRelationLogo } from '@/features/crm/components/CustomerRelationLogo'
 import { RelationLabel } from '@/features/crm/components/RelationLabel'
 import { useRecordSelection } from '@/features/crm/useRecordSelection'
 import { NoteDrawer } from '@/features/crm/components/NoteDrawer'
@@ -65,7 +65,7 @@ export function NotesPage() {
       hideBelow: 'md',
       sortValue: (n) => relatedName(n.retailer),
       filterValue: (n) => relatedName(n.retailer),
-      cell: (n) => <AccountRelationLogo value={n.retailer} accountById={retailerById} />,
+      cell: (n) => <CustomerRelationLogo value={n.retailer} customerById={retailerById} />,
     },
     {
       key: 'opportunity',

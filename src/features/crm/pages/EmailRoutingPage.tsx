@@ -16,7 +16,7 @@ import {
 } from '@/components/ui/select'
 import { ErrorState } from '@/components/app/states'
 import { CrmStatusBadge } from '@/features/crm/components/CrmStatusBadge'
-import { AccountRelationLogo } from '@/features/crm/components/AccountRelationLogo'
+import { CustomerRelationLogo } from '@/features/crm/components/CustomerRelationLogo'
 import { RelationLabel } from '@/features/crm/components/RelationLabel'
 import { useRecordSelection } from '@/features/crm/useRecordSelection'
 import { EmailDrawer } from '@/features/crm/components/EmailDrawer'
@@ -31,7 +31,7 @@ import {
   useEmailSegmentCountsQuery,
   useFirefliesHealth,
   useIgnoreRulesQuery,
-  useAccountSegmentQuery,
+  useCustomerSegmentQuery,
   useOpportunitiesQuery,
   useUpdateEmailMutation,
 } from '@/features/crm/queries'
@@ -59,7 +59,7 @@ export function EmailRoutingPage() {
   const emailsQuery = useEmailsQuery(EMAIL_ROUTE_LIMIT)
   const countsQuery = useEmailSegmentCountsQuery()
   const ignoreRulesQuery = useIgnoreRulesQuery()
-  const retailersQuery = useAccountSegmentQuery('active', -1)
+  const retailersQuery = useCustomerSegmentQuery('active', -1)
   const departmentsQuery = useDepartmentsQuery(-1)
   const opportunitiesQuery = useOpportunitiesQuery(-1)
   const fireflies = useFirefliesHealth()
@@ -185,7 +185,7 @@ export function EmailRoutingPage() {
       filterValue: (e) => relatedName(e.retailer),
       editOptions: customerOptions,
       editValue: (e) => idOf(e.retailer),
-      cell: (e) => <AccountRelationLogo value={e.retailer} accountById={retailerById} />,
+      cell: (e) => <CustomerRelationLogo value={e.retailer} customerById={retailerById} />,
     },
     {
       key: 'department',

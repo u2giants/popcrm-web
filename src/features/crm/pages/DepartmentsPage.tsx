@@ -4,17 +4,17 @@ import { AppPage, ListBar } from '@/components/app/AppPage'
 import { DataTable, type Column } from '@/components/app/DataTable'
 import { ErrorState } from '@/components/app/states'
 import { RelationLabel } from '@/features/crm/components/RelationLabel'
-import { AccountRelationLogo } from '@/features/crm/components/AccountRelationLogo'
+import { CustomerRelationLogo } from '@/features/crm/components/CustomerRelationLogo'
 import { useRecordSelection } from '@/features/crm/useRecordSelection'
 import { DepartmentDrawer } from '@/features/crm/components/DepartmentDrawer'
 import { label, relatedName, textOf } from '@/features/crm/format'
 import { StatusBadge } from '@/components/app/StatusBadge'
-import { listData, useAccountSegmentQuery, useDepartmentsQuery } from '@/features/crm/queries'
+import { listData, useCustomerSegmentQuery, useDepartmentsQuery } from '@/features/crm/queries'
 import type { CrmDepartment } from '@/lib/types'
 
 export function DepartmentsPage() {
   const departmentsQuery = useDepartmentsQuery(-1)
-  const retailersQuery = useAccountSegmentQuery('all', -1)
+  const retailersQuery = useCustomerSegmentQuery('all', -1)
   const departments = listData(departmentsQuery.data)
   const retailers = listData(retailersQuery.data)
   const [query, setQuery] = useState('')
@@ -42,7 +42,7 @@ export function DepartmentsPage() {
       header: 'Customer',
       sortValue: (d) => relatedName(d.retailer),
       filterValue: (d) => relatedName(d.retailer),
-      cell: (d) => <AccountRelationLogo value={d.retailer} accountById={retailerById} />,
+      cell: (d) => <CustomerRelationLogo value={d.retailer} customerById={retailerById} />,
     },
     {
       key: 'name',

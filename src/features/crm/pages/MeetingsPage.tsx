@@ -5,7 +5,7 @@ import { CalendarDays } from 'lucide-react'
 import { AppPage, ListBar } from '@/components/app/AppPage'
 import { DataTable, type Column, type EditOption } from '@/components/app/DataTable'
 import { ErrorState } from '@/components/app/states'
-import { AccountRelationLogo } from '@/features/crm/components/AccountRelationLogo'
+import { CustomerRelationLogo } from '@/features/crm/components/CustomerRelationLogo'
 import { RelationLabel } from '@/features/crm/components/RelationLabel'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { useRecordSelection } from '@/features/crm/useRecordSelection'
@@ -17,7 +17,7 @@ import {
   listData,
   useDepartmentsQuery,
   useIngestedContactsQuery,
-  useAccountSegmentQuery,
+  useCustomerSegmentQuery,
   useMeetingsQuery,
   useUpdateMeetingMutation,
 } from '@/features/crm/queries'
@@ -36,7 +36,7 @@ function acctStatusOf(m: CrmMeetingNote): string {
 export function MeetingsPage() {
   const queryClient = useQueryClient()
   const meetingsQuery = useMeetingsQuery(-1)
-  const retailersQuery = useAccountSegmentQuery('all', -1)
+  const retailersQuery = useCustomerSegmentQuery('all', -1)
   const departmentsQuery = useDepartmentsQuery(-1)
   const buyersQuery = useIngestedContactsQuery(-1)
   const updateMeetingMutation = useUpdateMeetingMutation()
@@ -153,7 +153,7 @@ export function MeetingsPage() {
       filterValue: (m) => relatedName(m.retailer),
       editOptions: customerOptions,
       editValue: (m) => idOf(m.retailer),
-      cell: (m) => <AccountRelationLogo value={m.retailer} accountById={retailerById} />,
+      cell: (m) => <CustomerRelationLogo value={m.retailer} customerById={retailerById} />,
     },
     {
       key: 'contact',

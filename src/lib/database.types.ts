@@ -171,6 +171,20 @@ export type Database = {
             foreignKeyName: "contact_company_company_id_fkey"
             columns: ["company_id"]
             isOneToOne: false
+            referencedRelation: "crm_customer_list"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contact_company_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "crm_customer_overview"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "contact_company_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
             referencedRelation: "customer_list"
             referencedColumns: ["id"]
           },
@@ -228,6 +242,20 @@ export type Database = {
             foreignKeyName: "contact_company_company_id_fkey"
             columns: ["company_id"]
             isOneToOne: false
+            referencedRelation: "crm_customer_list"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contact_company_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "crm_customer_overview"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "contact_company_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
             referencedRelation: "customer_list"
             referencedColumns: ["id"]
           },
@@ -239,6 +267,39 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      crm_customer_list: {
+        Row: {
+          account_owner_profile_id: string | null
+          chain_type: string | null
+          company_type: string | null
+          customer_status: string | null
+          domain: string | null
+          id: string | null
+          is_potential: boolean | null
+          logo_url: string | null
+          name: string | null
+          primary_salesperson_profile_id: string | null
+          routing_aliases: string | null
+          so_patterns: string | null
+          status: Database["app"]["Enums"]["entity_status"] | null
+          updated_at: string | null
+        }
+        Relationships: []
+      }
+      crm_customer_overview: {
+        Row: {
+          company_id: string | null
+          company_name: string | null
+          company_status: Database["app"]["Enums"]["entity_status"] | null
+          contact_count: number | null
+          department_count: number | null
+          latest_opportunity_at: string | null
+          opportunity_count: number | null
+          production_order_count: number | null
+          project_count: number | null
+        }
+        Relationships: []
       }
       crm_department_list: {
         Row: {
@@ -268,6 +329,20 @@ export type Database = {
             columns: ["company_id"]
             isOneToOne: false
             referencedRelation: "crm_account_overview"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "department_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "crm_customer_list"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "department_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "crm_customer_overview"
             referencedColumns: ["company_id"]
           },
           {
@@ -327,6 +402,20 @@ export type Database = {
             columns: ["company_id"]
             isOneToOne: false
             referencedRelation: "crm_account_overview"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "email_message_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "crm_customer_list"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "email_message_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "crm_customer_overview"
             referencedColumns: ["company_id"]
           },
           {
@@ -413,6 +502,20 @@ export type Database = {
             foreignKeyName: "ingested_domain_promoted_customer_id_fkey"
             columns: ["promoted_customer_id"]
             isOneToOne: false
+            referencedRelation: "crm_customer_list"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ingested_domain_promoted_customer_id_fkey"
+            columns: ["promoted_customer_id"]
+            isOneToOne: false
+            referencedRelation: "crm_customer_overview"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "ingested_domain_promoted_customer_id_fkey"
+            columns: ["promoted_customer_id"]
+            isOneToOne: false
             referencedRelation: "customer_list"
             referencedColumns: ["id"]
           },
@@ -451,6 +554,20 @@ export type Database = {
             columns: ["company_id"]
             isOneToOne: false
             referencedRelation: "crm_account_overview"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "meeting_note_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "crm_customer_list"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "meeting_note_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "crm_customer_overview"
             referencedColumns: ["company_id"]
           },
           {
@@ -517,6 +634,20 @@ export type Database = {
             columns: ["company_id"]
             isOneToOne: false
             referencedRelation: "crm_account_overview"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "note_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "crm_customer_list"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "note_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "crm_customer_overview"
             referencedColumns: ["company_id"]
           },
           {
@@ -605,6 +736,20 @@ export type Database = {
             foreignKeyName: "opportunity_company_id_fkey"
             columns: ["company_id"]
             isOneToOne: false
+            referencedRelation: "crm_customer_list"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "opportunity_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "crm_customer_overview"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "opportunity_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
             referencedRelation: "customer_list"
             referencedColumns: ["id"]
           },
@@ -673,6 +818,20 @@ export type Database = {
             foreignKeyName: "task_company_id_fkey"
             columns: ["company_id"]
             isOneToOne: false
+            referencedRelation: "crm_customer_list"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "task_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "crm_customer_overview"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "task_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
             referencedRelation: "customer_list"
             referencedColumns: ["id"]
           },
@@ -712,7 +871,6 @@ export type Database = {
           domain: string | null
           id: string | null
           is_potential: boolean | null
-          metadata: Json | null
           name: string | null
           status: Database["app"]["Enums"]["entity_status"] | null
           updated_at: string | null
@@ -722,7 +880,6 @@ export type Database = {
           domain?: string | null
           id?: string | null
           is_potential?: boolean | null
-          metadata?: Json | null
           name?: string | null
           status?: Database["app"]["Enums"]["entity_status"] | null
           updated_at?: string | null
@@ -732,7 +889,6 @@ export type Database = {
           domain?: string | null
           id?: string | null
           is_potential?: boolean | null
-          metadata?: Json | null
           name?: string | null
           status?: Database["app"]["Enums"]["entity_status"] | null
           updated_at?: string | null
@@ -840,7 +996,64 @@ export type Database = {
           status: string | null
           updated_at: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "product_buyer_contact_id_fkey"
+            columns: ["buyer_contact_id"]
+            isOneToOne: false
+            referencedRelation: "crm_contact_list"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "product_buyer_contact_id_fkey"
+            columns: ["buyer_contact_id"]
+            isOneToOne: false
+            referencedRelation: "crm_contact_segment_list"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "product_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "crm_account_list"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "product_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "crm_account_overview"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "product_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "crm_customer_list"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "product_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "crm_customer_overview"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "product_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "customer_list"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "product_plm_item_id_fkey"
+            columns: ["plm_item_id"]
+            isOneToOne: false
+            referencedRelation: "plm_item_status"
+            referencedColumns: ["item_id"]
+          },
+        ]
       }
     }
     Functions: {
@@ -874,6 +1087,10 @@ export type Database = {
       }
       crm_update_contact: {
         Args: {
+          p_clear_company?: boolean
+          p_clear_contact_type?: boolean
+          p_clear_crm_department?: boolean
+          p_clear_scope?: boolean
           p_company_id?: string
           p_contact_id: string
           p_contact_type?: string
@@ -890,6 +1107,24 @@ export type Database = {
         SetofOptions: {
           from: "*"
           to: "contact"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      crm_update_customer: {
+        Args: {
+          p_chain_type?: string
+          p_customer_id: string
+          p_customer_status?: string
+          p_domain?: string
+          p_name?: string
+          p_routing_aliases?: string
+          p_so_patterns?: string
+        }
+        Returns: Database["core"]["Tables"]["customer"]["Row"]
+        SetofOptions: {
+          from: "*"
+          to: "customer"
           isOneToOne: true
           isSetofReturn: false
         }
@@ -2869,6 +3104,2755 @@ export type Database = {
       [_ in never]: never
     }
   }
+  dam: {
+    Tables: {
+      agent_registration: {
+        Row: {
+          agent_name: string
+          capabilities: Json
+          created_at: string
+          device_name: string | null
+          id: string
+          last_seen_at: string | null
+          metadata: Json
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          agent_name: string
+          capabilities?: Json
+          created_at?: string
+          device_name?: string | null
+          id?: string
+          last_seen_at?: string | null
+          metadata?: Json
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          agent_name?: string
+          capabilities?: Json
+          created_at?: string
+          device_name?: string | null
+          id?: string
+          last_seen_at?: string | null
+          metadata?: Json
+          status?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      asset: {
+        Row: {
+          asset_type: string | null
+          company_id: string | null
+          created_at: string
+          file_object_id: string | null
+          file_type: string | null
+          filename: string | null
+          id: string
+          licensor_id: string | null
+          metadata: Json
+          product_subtype_id: string | null
+          property_id: string | null
+          relative_path: string | null
+          sku: string | null
+          source_id: string | null
+          source_system: string | null
+          style_group_id: string | null
+          thumbnail_url: string | null
+          title: string | null
+          updated_at: string
+          workflow_status: string | null
+        }
+        Insert: {
+          asset_type?: string | null
+          company_id?: string | null
+          created_at?: string
+          file_object_id?: string | null
+          file_type?: string | null
+          filename?: string | null
+          id?: string
+          licensor_id?: string | null
+          metadata?: Json
+          product_subtype_id?: string | null
+          property_id?: string | null
+          relative_path?: string | null
+          sku?: string | null
+          source_id?: string | null
+          source_system?: string | null
+          style_group_id?: string | null
+          thumbnail_url?: string | null
+          title?: string | null
+          updated_at?: string
+          workflow_status?: string | null
+        }
+        Update: {
+          asset_type?: string | null
+          company_id?: string | null
+          created_at?: string
+          file_object_id?: string | null
+          file_type?: string | null
+          filename?: string | null
+          id?: string
+          licensor_id?: string | null
+          metadata?: Json
+          product_subtype_id?: string | null
+          property_id?: string | null
+          relative_path?: string | null
+          sku?: string | null
+          source_id?: string | null
+          source_system?: string | null
+          style_group_id?: string | null
+          thumbnail_url?: string | null
+          title?: string | null
+          updated_at?: string
+          workflow_status?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "asset_style_group_id_fkey"
+            columns: ["style_group_id"]
+            isOneToOne: false
+            referencedRelation: "style_group"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      asset_character: {
+        Row: {
+          asset_id: string
+          character_id: string
+          id: string
+        }
+        Insert: {
+          asset_id: string
+          character_id: string
+          id?: string
+        }
+        Update: {
+          asset_id?: string
+          character_id?: string
+          id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "asset_character_asset_id_fkey"
+            columns: ["asset_id"]
+            isOneToOne: false
+            referencedRelation: "asset"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      asset_checkout: {
+        Row: {
+          asset_id: string
+          checked_in_at: string | null
+          checked_out_at: string
+          checked_out_by_profile_id: string | null
+          helper_device_id: string | null
+          id: string
+          metadata: Json
+          status: string
+        }
+        Insert: {
+          asset_id: string
+          checked_in_at?: string | null
+          checked_out_at?: string
+          checked_out_by_profile_id?: string | null
+          helper_device_id?: string | null
+          id?: string
+          metadata?: Json
+          status?: string
+        }
+        Update: {
+          asset_id?: string
+          checked_in_at?: string | null
+          checked_out_at?: string
+          checked_out_by_profile_id?: string | null
+          helper_device_id?: string | null
+          id?: string
+          metadata?: Json
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "asset_checkout_asset_id_fkey"
+            columns: ["asset_id"]
+            isOneToOne: false
+            referencedRelation: "asset"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dam_asset_checkout_helper_device_fk"
+            columns: ["helper_device_id"]
+            isOneToOne: false
+            referencedRelation: "helper_device"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      asset_path_history: {
+        Row: {
+          asset_id: string
+          changed_at: string
+          id: string
+          metadata: Json
+          new_path: string
+          old_path: string | null
+          source_system: string | null
+        }
+        Insert: {
+          asset_id: string
+          changed_at?: string
+          id?: string
+          metadata?: Json
+          new_path: string
+          old_path?: string | null
+          source_system?: string | null
+        }
+        Update: {
+          asset_id?: string
+          changed_at?: string
+          id?: string
+          metadata?: Json
+          new_path?: string
+          old_path?: string | null
+          source_system?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "asset_path_history_asset_id_fkey"
+            columns: ["asset_id"]
+            isOneToOne: false
+            referencedRelation: "asset"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      asset_tag: {
+        Row: {
+          asset_id: string
+          created_at: string
+          id: string
+          source_system: string | null
+          tag: string
+        }
+        Insert: {
+          asset_id: string
+          created_at?: string
+          id?: string
+          source_system?: string | null
+          tag: string
+        }
+        Update: {
+          asset_id?: string
+          created_at?: string
+          id?: string
+          source_system?: string | null
+          tag?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "asset_tag_asset_id_fkey"
+            columns: ["asset_id"]
+            isOneToOne: false
+            referencedRelation: "asset"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      erp_item_snapshot: {
+        Row: {
+          id: string
+          imported_at: string
+          item_id: string | null
+          payload: Json
+          source_id: string | null
+          source_system: string
+          style_number: string | null
+          sync_run_id: string | null
+        }
+        Insert: {
+          id?: string
+          imported_at?: string
+          item_id?: string | null
+          payload: Json
+          source_id?: string | null
+          source_system?: string
+          style_number?: string | null
+          sync_run_id?: string | null
+        }
+        Update: {
+          id?: string
+          imported_at?: string
+          item_id?: string | null
+          payload?: Json
+          source_id?: string | null
+          source_system?: string
+          style_number?: string | null
+          sync_run_id?: string | null
+        }
+        Relationships: []
+      }
+      helper_device: {
+        Row: {
+          created_at: string
+          id: string
+          last_seen_at: string | null
+          metadata: Json
+          name: string
+          paired_profile_id: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          last_seen_at?: string | null
+          metadata?: Json
+          name: string
+          paired_profile_id?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          last_seen_at?: string | null
+          metadata?: Json
+          name?: string
+          paired_profile_id?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      processing_queue: {
+        Row: {
+          asset_id: string | null
+          claimed_at: string | null
+          claimed_by: string | null
+          completed_at: string | null
+          created_at: string
+          error: string | null
+          id: string
+          payload: Json
+          priority: number
+          queue_name: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          asset_id?: string | null
+          claimed_at?: string | null
+          claimed_by?: string | null
+          completed_at?: string | null
+          created_at?: string
+          error?: string | null
+          id?: string
+          payload?: Json
+          priority?: number
+          queue_name: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          asset_id?: string | null
+          claimed_at?: string | null
+          claimed_by?: string | null
+          completed_at?: string | null
+          created_at?: string
+          error?: string | null
+          id?: string
+          payload?: Json
+          priority?: number
+          queue_name?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "processing_queue_asset_id_fkey"
+            columns: ["asset_id"]
+            isOneToOne: false
+            referencedRelation: "asset"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      production_order_snapshot: {
+        Row: {
+          id: string
+          imported_at: string
+          payload: Json
+          production_order_line_id: string | null
+          production_order_number: string | null
+          source_id: string | null
+          source_system: string
+          style_number: string | null
+          sync_run_id: string | null
+        }
+        Insert: {
+          id?: string
+          imported_at?: string
+          payload: Json
+          production_order_line_id?: string | null
+          production_order_number?: string | null
+          source_id?: string | null
+          source_system?: string
+          style_number?: string | null
+          sync_run_id?: string | null
+        }
+        Update: {
+          id?: string
+          imported_at?: string
+          payload?: Json
+          production_order_line_id?: string | null
+          production_order_number?: string | null
+          source_id?: string | null
+          source_system?: string
+          style_number?: string | null
+          sync_run_id?: string | null
+        }
+        Relationships: []
+      }
+      sku_style_guide_source: {
+        Row: {
+          confidence: Database["app"]["Enums"]["source_confidence"]
+          created_at: string
+          evidence: string | null
+          id: string
+          sku_ref_id: string | null
+          style_guide_file_id: string
+        }
+        Insert: {
+          confidence?: Database["app"]["Enums"]["source_confidence"]
+          created_at?: string
+          evidence?: string | null
+          id?: string
+          sku_ref_id?: string | null
+          style_guide_file_id: string
+        }
+        Update: {
+          confidence?: Database["app"]["Enums"]["source_confidence"]
+          created_at?: string
+          evidence?: string | null
+          id?: string
+          sku_ref_id?: string | null
+          style_guide_file_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sku_style_guide_source_style_guide_file_id_fkey"
+            columns: ["style_guide_file_id"]
+            isOneToOne: false
+            referencedRelation: "style_guide_file"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      style_group: {
+        Row: {
+          asset_count: number
+          company_id: string | null
+          cover_asset_id: string | null
+          created_at: string
+          id: string
+          licensor_id: string | null
+          metadata: Json
+          product_id: string | null
+          product_type_id: string | null
+          property_id: string | null
+          sku: string | null
+          source_id: string | null
+          source_system: string | null
+          status: string | null
+          title: string | null
+          updated_at: string
+        }
+        Insert: {
+          asset_count?: number
+          company_id?: string | null
+          cover_asset_id?: string | null
+          created_at?: string
+          id?: string
+          licensor_id?: string | null
+          metadata?: Json
+          product_id?: string | null
+          product_type_id?: string | null
+          property_id?: string | null
+          sku?: string | null
+          source_id?: string | null
+          source_system?: string | null
+          status?: string | null
+          title?: string | null
+          updated_at?: string
+        }
+        Update: {
+          asset_count?: number
+          company_id?: string | null
+          cover_asset_id?: string | null
+          created_at?: string
+          id?: string
+          licensor_id?: string | null
+          metadata?: Json
+          product_id?: string | null
+          product_type_id?: string | null
+          property_id?: string | null
+          sku?: string | null
+          source_id?: string | null
+          source_system?: string | null
+          status?: string | null
+          title?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "dam_style_group_cover_asset_fk"
+            columns: ["cover_asset_id"]
+            isOneToOne: false
+            referencedRelation: "asset"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      style_guide_file: {
+        Row: {
+          company_id: string | null
+          created_at: string
+          file_object_id: string | null
+          folder: string | null
+          id: string
+          licensor_id: string | null
+          metadata: Json
+          property_id: string | null
+          relative_path: string | null
+          source_id: string | null
+          source_system: string | null
+          status: string | null
+          title: string | null
+          updated_at: string
+        }
+        Insert: {
+          company_id?: string | null
+          created_at?: string
+          file_object_id?: string | null
+          folder?: string | null
+          id?: string
+          licensor_id?: string | null
+          metadata?: Json
+          property_id?: string | null
+          relative_path?: string | null
+          source_id?: string | null
+          source_system?: string | null
+          status?: string | null
+          title?: string | null
+          updated_at?: string
+        }
+        Update: {
+          company_id?: string | null
+          created_at?: string
+          file_object_id?: string | null
+          folder?: string | null
+          id?: string
+          licensor_id?: string | null
+          metadata?: Json
+          property_id?: string | null
+          relative_path?: string | null
+          source_id?: string | null
+          source_system?: string | null
+          status?: string | null
+          title?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+    }
+    Views: {
+      [_ in never]: never
+    }
+    Functions: {
+      [_ in never]: never
+    }
+    Enums: {
+      [_ in never]: never
+    }
+    CompositeTypes: {
+      [_ in never]: never
+    }
+  }
+  ingest: {
+    Tables: {
+      dedupe_candidate: {
+        Row: {
+          confidence: Database["app"]["Enums"]["source_confidence"]
+          created_at: string
+          entity_schema: string
+          entity_table: string
+          id: string
+          left_entity_id: string | null
+          raw: Json
+          reason: string | null
+          resolved_at: string | null
+          resolved_by_profile_id: string | null
+          right_entity_id: string | null
+          source_system: string | null
+        }
+        Insert: {
+          confidence?: Database["app"]["Enums"]["source_confidence"]
+          created_at?: string
+          entity_schema: string
+          entity_table: string
+          id?: string
+          left_entity_id?: string | null
+          raw?: Json
+          reason?: string | null
+          resolved_at?: string | null
+          resolved_by_profile_id?: string | null
+          right_entity_id?: string | null
+          source_system?: string | null
+        }
+        Update: {
+          confidence?: Database["app"]["Enums"]["source_confidence"]
+          created_at?: string
+          entity_schema?: string
+          entity_table?: string
+          id?: string
+          left_entity_id?: string | null
+          raw?: Json
+          reason?: string | null
+          resolved_at?: string | null
+          resolved_by_profile_id?: string | null
+          right_entity_id?: string | null
+          source_system?: string | null
+        }
+        Relationships: []
+      }
+      raw_record: {
+        Row: {
+          id: string
+          imported_at: string
+          payload: Json
+          record_hash: string | null
+          source_id: string
+          source_system: string
+          source_table: string
+          sync_run_id: string | null
+        }
+        Insert: {
+          id?: string
+          imported_at?: string
+          payload: Json
+          record_hash?: string | null
+          source_id: string
+          source_system: string
+          source_table: string
+          sync_run_id?: string | null
+        }
+        Update: {
+          id?: string
+          imported_at?: string
+          payload?: Json
+          record_hash?: string | null
+          source_id?: string
+          source_system?: string
+          source_table?: string
+          sync_run_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "raw_record_sync_run_id_fkey"
+            columns: ["sync_run_id"]
+            isOneToOne: false
+            referencedRelation: "sync_run"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      sync_run: {
+        Row: {
+          created_at: string
+          error: string | null
+          finished_at: string | null
+          id: string
+          metadata: Json
+          rows_failed: number
+          rows_inserted: number
+          rows_seen: number
+          rows_updated: number
+          source_name: string | null
+          source_system: string
+          started_at: string | null
+          status: Database["ingest"]["Enums"]["sync_status"]
+        }
+        Insert: {
+          created_at?: string
+          error?: string | null
+          finished_at?: string | null
+          id?: string
+          metadata?: Json
+          rows_failed?: number
+          rows_inserted?: number
+          rows_seen?: number
+          rows_updated?: number
+          source_name?: string | null
+          source_system: string
+          started_at?: string | null
+          status?: Database["ingest"]["Enums"]["sync_status"]
+        }
+        Update: {
+          created_at?: string
+          error?: string | null
+          finished_at?: string | null
+          id?: string
+          metadata?: Json
+          rows_failed?: number
+          rows_inserted?: number
+          rows_seen?: number
+          rows_updated?: number
+          source_name?: string | null
+          source_system?: string
+          started_at?: string | null
+          status?: Database["ingest"]["Enums"]["sync_status"]
+        }
+        Relationships: []
+      }
+    }
+    Views: {
+      [_ in never]: never
+    }
+    Functions: {
+      [_ in never]: never
+    }
+    Enums: {
+      sync_status: "pending" | "running" | "succeeded" | "failed" | "cancelled"
+    }
+    CompositeTypes: {
+      [_ in never]: never
+    }
+  }
+  pim: {
+    Tables: {
+      checklist_item: {
+        Row: {
+          created_at: string
+          external_id: string | null
+          external_source: string | null
+          id: string
+          metadata: Json
+          product_id: string | null
+          project_id: string | null
+          sort_order: number
+          status: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          external_id?: string | null
+          external_source?: string | null
+          id?: string
+          metadata?: Json
+          product_id?: string | null
+          project_id?: string | null
+          sort_order?: number
+          status?: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          external_id?: string | null
+          external_source?: string | null
+          id?: string
+          metadata?: Json
+          product_id?: string | null
+          project_id?: string | null
+          sort_order?: number
+          status?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "checklist_item_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "product"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "checklist_item_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "project"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      customer_order: {
+        Row: {
+          company_id: string | null
+          created_at: string
+          due_date: string | null
+          external_id: string | null
+          external_source: string | null
+          id: string
+          metadata: Json
+          notes: string | null
+          order_date: string | null
+          order_number: string | null
+          product_id: string | null
+          production_order_id: string | null
+          project_id: string | null
+          status: string | null
+          updated_at: string
+        }
+        Insert: {
+          company_id?: string | null
+          created_at?: string
+          due_date?: string | null
+          external_id?: string | null
+          external_source?: string | null
+          id?: string
+          metadata?: Json
+          notes?: string | null
+          order_date?: string | null
+          order_number?: string | null
+          product_id?: string | null
+          production_order_id?: string | null
+          project_id?: string | null
+          status?: string | null
+          updated_at?: string
+        }
+        Update: {
+          company_id?: string | null
+          created_at?: string
+          due_date?: string | null
+          external_id?: string | null
+          external_source?: string | null
+          id?: string
+          metadata?: Json
+          notes?: string | null
+          order_date?: string | null
+          order_number?: string | null
+          product_id?: string | null
+          production_order_id?: string | null
+          project_id?: string | null
+          status?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "customer_order_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "product"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "customer_order_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "project"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      design: {
+        Row: {
+          created_at: string
+          design_collection_id: string | null
+          external_id: string | null
+          external_source: string | null
+          id: string
+          metadata: Json
+          nas_path: string | null
+          primary_asset_id: string | null
+          status: string | null
+          thumbnail_url: string | null
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          design_collection_id?: string | null
+          external_id?: string | null
+          external_source?: string | null
+          id?: string
+          metadata?: Json
+          nas_path?: string | null
+          primary_asset_id?: string | null
+          status?: string | null
+          thumbnail_url?: string | null
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          design_collection_id?: string | null
+          external_id?: string | null
+          external_source?: string | null
+          id?: string
+          metadata?: Json
+          nas_path?: string | null
+          primary_asset_id?: string | null
+          status?: string | null
+          thumbnail_url?: string | null
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "design_design_collection_id_fkey"
+            columns: ["design_collection_id"]
+            isOneToOne: false
+            referencedRelation: "design_collection"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      design_asset: {
+        Row: {
+          asset_id: string
+          confidence: Database["app"]["Enums"]["source_confidence"]
+          created_at: string
+          design_id: string
+          id: string
+          is_primary: boolean
+          link_type: string
+        }
+        Insert: {
+          asset_id: string
+          confidence?: Database["app"]["Enums"]["source_confidence"]
+          created_at?: string
+          design_id: string
+          id?: string
+          is_primary?: boolean
+          link_type?: string
+        }
+        Update: {
+          asset_id?: string
+          confidence?: Database["app"]["Enums"]["source_confidence"]
+          created_at?: string
+          design_id?: string
+          id?: string
+          is_primary?: boolean
+          link_type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "design_asset_design_id_fkey"
+            columns: ["design_id"]
+            isOneToOne: false
+            referencedRelation: "design"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      design_collection: {
+        Row: {
+          company_id: string | null
+          created_at: string
+          external_id: string | null
+          external_source: string | null
+          id: string
+          metadata: Json
+          name: string
+          season: string | null
+          status: string | null
+          updated_at: string
+        }
+        Insert: {
+          company_id?: string | null
+          created_at?: string
+          external_id?: string | null
+          external_source?: string | null
+          id?: string
+          metadata?: Json
+          name: string
+          season?: string | null
+          status?: string | null
+          updated_at?: string
+        }
+        Update: {
+          company_id?: string | null
+          created_at?: string
+          external_id?: string | null
+          external_source?: string | null
+          id?: string
+          metadata?: Json
+          name?: string
+          season?: string | null
+          status?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      product: {
+        Row: {
+          buyer_contact_id: string | null
+          clickup_parent_id: string | null
+          clickup_status: string | null
+          clickup_task_id: string | null
+          code: string | null
+          company_id: string | null
+          cover_url: string | null
+          created_at: string
+          design_id: string | null
+          external_id: string | null
+          external_source: string | null
+          factory_id: string | null
+          id: string
+          licensor_id: string | null
+          lifecycle_status: string | null
+          metadata: Json
+          name: string
+          plm_item_id: string | null
+          product_type_id: string | null
+          project_id: string | null
+          property_id: string | null
+          stage: string | null
+          status: string | null
+          updated_at: string
+        }
+        Insert: {
+          buyer_contact_id?: string | null
+          clickup_parent_id?: string | null
+          clickup_status?: string | null
+          clickup_task_id?: string | null
+          code?: string | null
+          company_id?: string | null
+          cover_url?: string | null
+          created_at?: string
+          design_id?: string | null
+          external_id?: string | null
+          external_source?: string | null
+          factory_id?: string | null
+          id?: string
+          licensor_id?: string | null
+          lifecycle_status?: string | null
+          metadata?: Json
+          name: string
+          plm_item_id?: string | null
+          product_type_id?: string | null
+          project_id?: string | null
+          property_id?: string | null
+          stage?: string | null
+          status?: string | null
+          updated_at?: string
+        }
+        Update: {
+          buyer_contact_id?: string | null
+          clickup_parent_id?: string | null
+          clickup_status?: string | null
+          clickup_task_id?: string | null
+          code?: string | null
+          company_id?: string | null
+          cover_url?: string | null
+          created_at?: string
+          design_id?: string | null
+          external_id?: string | null
+          external_source?: string | null
+          factory_id?: string | null
+          id?: string
+          licensor_id?: string | null
+          lifecycle_status?: string | null
+          metadata?: Json
+          name?: string
+          plm_item_id?: string | null
+          product_type_id?: string | null
+          project_id?: string | null
+          property_id?: string | null
+          stage?: string | null
+          status?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "product_design_id_fkey"
+            columns: ["design_id"]
+            isOneToOne: false
+            referencedRelation: "design"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "product_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "project"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      product_assignee: {
+        Row: {
+          assignment_type: string
+          created_at: string
+          id: string
+          product_id: string
+          profile_id: string
+        }
+        Insert: {
+          assignment_type?: string
+          created_at?: string
+          id?: string
+          product_id: string
+          profile_id: string
+        }
+        Update: {
+          assignment_type?: string
+          created_at?: string
+          id?: string
+          product_id?: string
+          profile_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "product_assignee_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "product"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      product_field: {
+        Row: {
+          created_at: string
+          external_id: string | null
+          external_source: string | null
+          field_name: string
+          id: string
+          product_id: string
+          updated_at: string
+          value_json: Json | null
+        }
+        Insert: {
+          created_at?: string
+          external_id?: string | null
+          external_source?: string | null
+          field_name: string
+          id?: string
+          product_id: string
+          updated_at?: string
+          value_json?: Json | null
+        }
+        Update: {
+          created_at?: string
+          external_id?: string | null
+          external_source?: string | null
+          field_name?: string
+          id?: string
+          product_id?: string
+          updated_at?: string
+          value_json?: Json | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "product_field_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "product"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      product_file: {
+        Row: {
+          created_at: string
+          dam_asset_id: string | null
+          external_id: string | null
+          external_source: string | null
+          file_object_id: string | null
+          id: string
+          metadata: Json
+          product_id: string
+          source_url: string | null
+          stored_url: string | null
+          thumbnail_url: string | null
+          title: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          dam_asset_id?: string | null
+          external_id?: string | null
+          external_source?: string | null
+          file_object_id?: string | null
+          id?: string
+          metadata?: Json
+          product_id: string
+          source_url?: string | null
+          stored_url?: string | null
+          thumbnail_url?: string | null
+          title?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          dam_asset_id?: string | null
+          external_id?: string | null
+          external_source?: string | null
+          file_object_id?: string | null
+          id?: string
+          metadata?: Json
+          product_id?: string
+          source_url?: string | null
+          stored_url?: string | null
+          thumbnail_url?: string | null
+          title?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "product_file_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "product"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      product_link: {
+        Row: {
+          created_at: string
+          from_product_id: string
+          id: string
+          link_type: string
+          metadata: Json
+          to_product_id: string
+        }
+        Insert: {
+          created_at?: string
+          from_product_id: string
+          id?: string
+          link_type: string
+          metadata?: Json
+          to_product_id: string
+        }
+        Update: {
+          created_at?: string
+          from_product_id?: string
+          id?: string
+          link_type?: string
+          metadata?: Json
+          to_product_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "product_link_from_product_id_fkey"
+            columns: ["from_product_id"]
+            isOneToOne: false
+            referencedRelation: "product"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "product_link_to_product_id_fkey"
+            columns: ["to_product_id"]
+            isOneToOne: false
+            referencedRelation: "product"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      product_sample: {
+        Row: {
+          created_at: string
+          external_id: string | null
+          external_source: string | null
+          factory_id: string | null
+          id: string
+          metadata: Json
+          product_id: string
+          received_at: string | null
+          requested_at: string | null
+          sample_type: string | null
+          status: string
+          tracking_number: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          external_id?: string | null
+          external_source?: string | null
+          factory_id?: string | null
+          id?: string
+          metadata?: Json
+          product_id: string
+          received_at?: string | null
+          requested_at?: string | null
+          sample_type?: string | null
+          status?: string
+          tracking_number?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          external_id?: string | null
+          external_source?: string | null
+          factory_id?: string | null
+          id?: string
+          metadata?: Json
+          product_id?: string
+          received_at?: string | null
+          requested_at?: string | null
+          sample_type?: string | null
+          status?: string
+          tracking_number?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "product_sample_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "product"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      product_style_group: {
+        Row: {
+          confidence: Database["app"]["Enums"]["source_confidence"]
+          created_at: string
+          id: string
+          product_id: string
+          style_group_id: string
+        }
+        Insert: {
+          confidence?: Database["app"]["Enums"]["source_confidence"]
+          created_at?: string
+          id?: string
+          product_id: string
+          style_group_id: string
+        }
+        Update: {
+          confidence?: Database["app"]["Enums"]["source_confidence"]
+          created_at?: string
+          id?: string
+          product_id?: string
+          style_group_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "product_style_group_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "product"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      product_submission: {
+        Row: {
+          approved_at: string | null
+          created_at: string
+          external_id: string | null
+          external_source: string | null
+          id: string
+          licensor_id: string | null
+          metadata: Json
+          product_id: string
+          property_id: string | null
+          rejected_at: string | null
+          status: string
+          submitted_at: string | null
+          updated_at: string
+        }
+        Insert: {
+          approved_at?: string | null
+          created_at?: string
+          external_id?: string | null
+          external_source?: string | null
+          id?: string
+          licensor_id?: string | null
+          metadata?: Json
+          product_id: string
+          property_id?: string | null
+          rejected_at?: string | null
+          status?: string
+          submitted_at?: string | null
+          updated_at?: string
+        }
+        Update: {
+          approved_at?: string | null
+          created_at?: string
+          external_id?: string | null
+          external_source?: string | null
+          id?: string
+          licensor_id?: string | null
+          metadata?: Json
+          product_id?: string
+          property_id?: string | null
+          rejected_at?: string | null
+          status?: string
+          submitted_at?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "product_submission_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "product"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      product_tag: {
+        Row: {
+          created_at: string
+          id: string
+          product_id: string
+          source_system: string | null
+          tag: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          product_id: string
+          source_system?: string | null
+          tag: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          product_id?: string
+          source_system?: string | null
+          tag?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "product_tag_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "product"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      product_time_entry: {
+        Row: {
+          created_at: string
+          external_id: string | null
+          external_source: string | null
+          id: string
+          metadata: Json
+          product_id: string
+          profile_id: string | null
+          seconds_spent: number
+          started_at: string | null
+        }
+        Insert: {
+          created_at?: string
+          external_id?: string | null
+          external_source?: string | null
+          id?: string
+          metadata?: Json
+          product_id: string
+          profile_id?: string | null
+          seconds_spent: number
+          started_at?: string | null
+        }
+        Update: {
+          created_at?: string
+          external_id?: string | null
+          external_source?: string | null
+          id?: string
+          metadata?: Json
+          product_id?: string
+          profile_id?: string | null
+          seconds_spent?: number
+          started_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "product_time_entry_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "product"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      product_update: {
+        Row: {
+          body: string | null
+          created_at: string
+          external_id: string | null
+          external_source: string | null
+          id: string
+          metadata: Json
+          product_id: string
+          profile_id: string | null
+        }
+        Insert: {
+          body?: string | null
+          created_at?: string
+          external_id?: string | null
+          external_source?: string | null
+          id?: string
+          metadata?: Json
+          product_id: string
+          profile_id?: string | null
+        }
+        Update: {
+          body?: string | null
+          created_at?: string
+          external_id?: string | null
+          external_source?: string | null
+          id?: string
+          metadata?: Json
+          product_id?: string
+          profile_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "product_update_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "product"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      project: {
+        Row: {
+          company_id: string | null
+          created_at: string
+          design_collection_id: string | null
+          external_id: string | null
+          external_source: string | null
+          id: string
+          licensor_id: string | null
+          metadata: Json
+          primary_contact_id: string | null
+          property_id: string | null
+          stage: string | null
+          status: string | null
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          company_id?: string | null
+          created_at?: string
+          design_collection_id?: string | null
+          external_id?: string | null
+          external_source?: string | null
+          id?: string
+          licensor_id?: string | null
+          metadata?: Json
+          primary_contact_id?: string | null
+          property_id?: string | null
+          stage?: string | null
+          status?: string | null
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          company_id?: string | null
+          created_at?: string
+          design_collection_id?: string | null
+          external_id?: string | null
+          external_source?: string | null
+          id?: string
+          licensor_id?: string | null
+          metadata?: Json
+          primary_contact_id?: string | null
+          property_id?: string | null
+          stage?: string | null
+          status?: string | null
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "project_design_collection_id_fkey"
+            columns: ["design_collection_id"]
+            isOneToOne: false
+            referencedRelation: "design_collection"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      revision_request: {
+        Row: {
+          body: string | null
+          external_id: string | null
+          external_source: string | null
+          id: string
+          metadata: Json
+          product_id: string
+          requested_at: string
+          requested_by_profile_id: string | null
+          resolved_at: string | null
+          status: string
+          submission_id: string | null
+        }
+        Insert: {
+          body?: string | null
+          external_id?: string | null
+          external_source?: string | null
+          id?: string
+          metadata?: Json
+          product_id: string
+          requested_at?: string
+          requested_by_profile_id?: string | null
+          resolved_at?: string | null
+          status?: string
+          submission_id?: string | null
+        }
+        Update: {
+          body?: string | null
+          external_id?: string | null
+          external_source?: string | null
+          id?: string
+          metadata?: Json
+          product_id?: string
+          requested_at?: string
+          requested_by_profile_id?: string | null
+          resolved_at?: string | null
+          status?: string
+          submission_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "revision_request_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "product"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "revision_request_submission_id_fkey"
+            columns: ["submission_id"]
+            isOneToOne: false
+            referencedRelation: "product_submission"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      saved_view: {
+        Row: {
+          config: Json
+          created_at: string
+          id: string
+          is_default: boolean
+          name: string
+          owner_profile_id: string | null
+          role_id: string | null
+          scope: string
+          updated_at: string
+        }
+        Insert: {
+          config?: Json
+          created_at?: string
+          id?: string
+          is_default?: boolean
+          name: string
+          owner_profile_id?: string | null
+          role_id?: string | null
+          scope: string
+          updated_at?: string
+        }
+        Update: {
+          config?: Json
+          created_at?: string
+          id?: string
+          is_default?: boolean
+          name?: string
+          owner_profile_id?: string | null
+          role_id?: string | null
+          scope?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      stage: {
+        Row: {
+          code: string | null
+          id: string
+          metadata: Json
+          name: string
+          pipeline: string
+          sort_order: number
+        }
+        Insert: {
+          code?: string | null
+          id?: string
+          metadata?: Json
+          name: string
+          pipeline?: string
+          sort_order?: number
+        }
+        Update: {
+          code?: string | null
+          id?: string
+          metadata?: Json
+          name?: string
+          pipeline?: string
+          sort_order?: number
+        }
+        Relationships: []
+      }
+      stage_history: {
+        Row: {
+          changed_at: string
+          changed_by_profile_id: string | null
+          from_stage_id: string | null
+          id: string
+          metadata: Json
+          notes: string | null
+          product_id: string | null
+          project_id: string | null
+          to_stage_id: string | null
+        }
+        Insert: {
+          changed_at?: string
+          changed_by_profile_id?: string | null
+          from_stage_id?: string | null
+          id?: string
+          metadata?: Json
+          notes?: string | null
+          product_id?: string | null
+          project_id?: string | null
+          to_stage_id?: string | null
+        }
+        Update: {
+          changed_at?: string
+          changed_by_profile_id?: string | null
+          from_stage_id?: string | null
+          id?: string
+          metadata?: Json
+          notes?: string | null
+          product_id?: string | null
+          project_id?: string | null
+          to_stage_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "stage_history_from_stage_id_fkey"
+            columns: ["from_stage_id"]
+            isOneToOne: false
+            referencedRelation: "stage"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "stage_history_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "product"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "stage_history_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "project"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "stage_history_to_stage_id_fkey"
+            columns: ["to_stage_id"]
+            isOneToOne: false
+            referencedRelation: "stage"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      view_pref: {
+        Row: {
+          config: Json
+          id: string
+          profile_id: string
+          scope: string
+          updated_at: string
+        }
+        Insert: {
+          config?: Json
+          id?: string
+          profile_id: string
+          scope: string
+          updated_at?: string
+        }
+        Update: {
+          config?: Json
+          id?: string
+          profile_id?: string
+          scope?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+    }
+    Views: {
+      [_ in never]: never
+    }
+    Functions: {
+      [_ in never]: never
+    }
+    Enums: {
+      [_ in never]: never
+    }
+    CompositeTypes: {
+      [_ in never]: never
+    }
+  }
+  plm: {
+    Tables: {
+      art_piece: {
+        Row: {
+          art_type: string | null
+          artist: string | null
+          created_at: string
+          id: string
+          item_id: string | null
+          name: string | null
+          raw: Json
+          source_id: string | null
+          source_system: string | null
+          status: string | null
+          updated_at: string
+        }
+        Insert: {
+          art_type?: string | null
+          artist?: string | null
+          created_at?: string
+          id?: string
+          item_id?: string | null
+          name?: string | null
+          raw?: Json
+          source_id?: string | null
+          source_system?: string | null
+          status?: string | null
+          updated_at?: string
+        }
+        Update: {
+          art_type?: string | null
+          artist?: string | null
+          created_at?: string
+          id?: string
+          item_id?: string | null
+          name?: string | null
+          raw?: Json
+          source_id?: string | null
+          source_system?: string | null
+          status?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "art_piece_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: false
+            referencedRelation: "item"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      customer_import: {
+        Row: {
+          airbyte_customers_hashid: string | null
+          airbyte_emitted_at: string | null
+          company_id: string
+          customer_code: string | null
+          customer_name: string
+          dilution: number | null
+          email: string | null
+          imported_at: string
+          logistic_load: number | null
+          logo_url: string | null
+          phone: string | null
+          plm_customer_id: string
+          raw: Json
+          status: string | null
+          updated_at: string
+        }
+        Insert: {
+          airbyte_customers_hashid?: string | null
+          airbyte_emitted_at?: string | null
+          company_id: string
+          customer_code?: string | null
+          customer_name: string
+          dilution?: number | null
+          email?: string | null
+          imported_at?: string
+          logistic_load?: number | null
+          logo_url?: string | null
+          phone?: string | null
+          plm_customer_id: string
+          raw?: Json
+          status?: string | null
+          updated_at?: string
+        }
+        Update: {
+          airbyte_customers_hashid?: string | null
+          airbyte_emitted_at?: string | null
+          company_id?: string
+          customer_code?: string | null
+          customer_name?: string
+          dilution?: number | null
+          email?: string | null
+          imported_at?: string
+          logistic_load?: number | null
+          logo_url?: string | null
+          phone?: string | null
+          plm_customer_id?: string
+          raw?: Json
+          status?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      item: {
+        Row: {
+          company_id: string | null
+          created_at: string
+          description: string | null
+          id: string
+          item_number: string | null
+          licensor_id: string | null
+          merch_group_id: string | null
+          name: string | null
+          product_type_id: string | null
+          property_id: string | null
+          raw: Json
+          source_id: string | null
+          source_system: string | null
+          status: string | null
+          style_number: string | null
+          updated_at: string
+        }
+        Insert: {
+          company_id?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          item_number?: string | null
+          licensor_id?: string | null
+          merch_group_id?: string | null
+          name?: string | null
+          product_type_id?: string | null
+          property_id?: string | null
+          raw?: Json
+          source_id?: string | null
+          source_system?: string | null
+          status?: string | null
+          style_number?: string | null
+          updated_at?: string
+        }
+        Update: {
+          company_id?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          item_number?: string | null
+          licensor_id?: string | null
+          merch_group_id?: string | null
+          name?: string | null
+          product_type_id?: string | null
+          property_id?: string | null
+          raw?: Json
+          source_id?: string | null
+          source_system?: string | null
+          status?: string | null
+          style_number?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      item_attachment: {
+        Row: {
+          attachment_type: string | null
+          created_at: string
+          file_object_id: string | null
+          id: string
+          item_id: string
+          metadata: Json
+          source_id: string | null
+          source_system: string | null
+          url: string | null
+        }
+        Insert: {
+          attachment_type?: string | null
+          created_at?: string
+          file_object_id?: string | null
+          id?: string
+          item_id: string
+          metadata?: Json
+          source_id?: string | null
+          source_system?: string | null
+          url?: string | null
+        }
+        Update: {
+          attachment_type?: string | null
+          created_at?: string
+          file_object_id?: string | null
+          id?: string
+          item_id?: string
+          metadata?: Json
+          source_id?: string | null
+          source_system?: string | null
+          url?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "item_attachment_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: false
+            referencedRelation: "item"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      item_detail: {
+        Row: {
+          created_at: string
+          detail_type: string
+          id: string
+          item_id: string
+          source_id: string | null
+          source_system: string | null
+          value_json: Json
+          value_number: number | null
+          value_text: string | null
+        }
+        Insert: {
+          created_at?: string
+          detail_type: string
+          id?: string
+          item_id: string
+          source_id?: string | null
+          source_system?: string | null
+          value_json?: Json
+          value_number?: number | null
+          value_text?: string | null
+        }
+        Update: {
+          created_at?: string
+          detail_type?: string
+          id?: string
+          item_id?: string
+          source_id?: string | null
+          source_system?: string | null
+          value_json?: Json
+          value_number?: number | null
+          value_text?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "item_detail_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: false
+            referencedRelation: "item"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      licensing_feedback: {
+        Row: {
+          author_name: string | null
+          body: string | null
+          created_at: string
+          id: string
+          licensing_status_id: string | null
+          reply_to_id: string | null
+          source_id: string | null
+          source_system: string | null
+        }
+        Insert: {
+          author_name?: string | null
+          body?: string | null
+          created_at?: string
+          id?: string
+          licensing_status_id?: string | null
+          reply_to_id?: string | null
+          source_id?: string | null
+          source_system?: string | null
+        }
+        Update: {
+          author_name?: string | null
+          body?: string | null
+          created_at?: string
+          id?: string
+          licensing_status_id?: string | null
+          reply_to_id?: string | null
+          source_id?: string | null
+          source_system?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "licensing_feedback_licensing_status_id_fkey"
+            columns: ["licensing_status_id"]
+            isOneToOne: false
+            referencedRelation: "licensing_status"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "licensing_feedback_reply_to_id_fkey"
+            columns: ["reply_to_id"]
+            isOneToOne: false
+            referencedRelation: "licensing_feedback"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      licensing_status: {
+        Row: {
+          completed_at: string | null
+          created_at: string
+          due_date: string | null
+          id: string
+          item_id: string | null
+          licensor_id: string | null
+          metadata: Json
+          milestone: string | null
+          property_id: string | null
+          source_id: string | null
+          source_system: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          completed_at?: string | null
+          created_at?: string
+          due_date?: string | null
+          id?: string
+          item_id?: string | null
+          licensor_id?: string | null
+          metadata?: Json
+          milestone?: string | null
+          property_id?: string | null
+          source_id?: string | null
+          source_system?: string | null
+          status: string
+          updated_at?: string
+        }
+        Update: {
+          completed_at?: string | null
+          created_at?: string
+          due_date?: string | null
+          id?: string
+          item_id?: string | null
+          licensor_id?: string | null
+          metadata?: Json
+          milestone?: string | null
+          property_id?: string | null
+          source_id?: string | null
+          source_system?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "licensing_status_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: false
+            referencedRelation: "item"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      licensor_import: {
+        Row: {
+          division_code: string | null
+          imported_at: string
+          licensor_id: string
+          mg_category: string | null
+          mg_code: string | null
+          mg_code2: string | null
+          parent_id: string | null
+          plm_licensor_id: string
+          raw: Json
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          division_code?: string | null
+          imported_at?: string
+          licensor_id: string
+          mg_category?: string | null
+          mg_code?: string | null
+          mg_code2?: string | null
+          parent_id?: string | null
+          plm_licensor_id: string
+          raw?: Json
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          division_code?: string | null
+          imported_at?: string
+          licensor_id?: string
+          mg_category?: string | null
+          mg_code?: string | null
+          mg_code2?: string | null
+          parent_id?: string | null
+          plm_licensor_id?: string
+          raw?: Json
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      production_order: {
+        Row: {
+          actual_ship_date: string | null
+          company_id: string | null
+          created_at: string
+          factory_id: string | null
+          id: string
+          metadata: Json
+          order_date: string | null
+          production_order_number: string
+          requested_ship_date: string | null
+          source_id: string | null
+          source_system: string | null
+          status: string | null
+          updated_at: string
+        }
+        Insert: {
+          actual_ship_date?: string | null
+          company_id?: string | null
+          created_at?: string
+          factory_id?: string | null
+          id?: string
+          metadata?: Json
+          order_date?: string | null
+          production_order_number: string
+          requested_ship_date?: string | null
+          source_id?: string | null
+          source_system?: string | null
+          status?: string | null
+          updated_at?: string
+        }
+        Update: {
+          actual_ship_date?: string | null
+          company_id?: string | null
+          created_at?: string
+          factory_id?: string | null
+          id?: string
+          metadata?: Json
+          order_date?: string | null
+          production_order_number?: string
+          requested_ship_date?: string | null
+          source_id?: string | null
+          source_system?: string | null
+          status?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      production_order_line: {
+        Row: {
+          created_at: string
+          id: string
+          item_id: string | null
+          line_number: string | null
+          metadata: Json
+          production_order_id: string
+          quantity_ordered: number | null
+          quantity_shipped: number | null
+          sku: string | null
+          source_id: string | null
+          source_system: string | null
+          status: string | null
+          unit_cost: number | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          item_id?: string | null
+          line_number?: string | null
+          metadata?: Json
+          production_order_id: string
+          quantity_ordered?: number | null
+          quantity_shipped?: number | null
+          sku?: string | null
+          source_id?: string | null
+          source_system?: string | null
+          status?: string | null
+          unit_cost?: number | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          item_id?: string | null
+          line_number?: string | null
+          metadata?: Json
+          production_order_id?: string
+          quantity_ordered?: number | null
+          quantity_shipped?: number | null
+          sku?: string | null
+          source_id?: string | null
+          source_system?: string | null
+          status?: string | null
+          unit_cost?: number | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "production_order_line_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: false
+            referencedRelation: "item"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "production_order_line_production_order_id_fkey"
+            columns: ["production_order_id"]
+            isOneToOne: false
+            referencedRelation: "production_order"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      property_import: {
+        Row: {
+          division_code: string | null
+          imported_at: string
+          licensor_id: string | null
+          mg_category: string | null
+          mg_code: string | null
+          mg_code2: string | null
+          parent_id: string | null
+          plm_parent_licensor_id: string | null
+          plm_property_id: string
+          property_id: string
+          raw: Json
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          division_code?: string | null
+          imported_at?: string
+          licensor_id?: string | null
+          mg_category?: string | null
+          mg_code?: string | null
+          mg_code2?: string | null
+          parent_id?: string | null
+          plm_parent_licensor_id?: string | null
+          plm_property_id: string
+          property_id: string
+          raw?: Json
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          division_code?: string | null
+          imported_at?: string
+          licensor_id?: string | null
+          mg_category?: string | null
+          mg_code?: string | null
+          mg_code2?: string | null
+          parent_id?: string | null
+          plm_parent_licensor_id?: string | null
+          plm_property_id?: string
+          property_id?: string
+          raw?: Json
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      reference_value: {
+        Row: {
+          code: string | null
+          created_at: string
+          family: string
+          id: string
+          metadata: Json
+          name: string
+          source_id: string | null
+          source_system: string | null
+          source_table: string | null
+          updated_at: string
+        }
+        Insert: {
+          code?: string | null
+          created_at?: string
+          family: string
+          id?: string
+          metadata?: Json
+          name: string
+          source_id?: string | null
+          source_system?: string | null
+          source_table?: string | null
+          updated_at?: string
+        }
+        Update: {
+          code?: string | null
+          created_at?: string
+          family?: string
+          id?: string
+          metadata?: Json
+          name?: string
+          source_id?: string | null
+          source_system?: string | null
+          source_table?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      rfq_group: {
+        Row: {
+          company_id: string | null
+          created_at: string
+          id: string
+          metadata: Json
+          name: string | null
+          source_id: string | null
+          source_system: string | null
+          status: string | null
+          updated_at: string
+        }
+        Insert: {
+          company_id?: string | null
+          created_at?: string
+          id?: string
+          metadata?: Json
+          name?: string | null
+          source_id?: string | null
+          source_system?: string | null
+          status?: string | null
+          updated_at?: string
+        }
+        Update: {
+          company_id?: string | null
+          created_at?: string
+          id?: string
+          metadata?: Json
+          name?: string | null
+          source_id?: string | null
+          source_system?: string | null
+          status?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      rfq_item: {
+        Row: {
+          created_at: string
+          id: string
+          item_id: string | null
+          metadata: Json
+          rfq_group_id: string | null
+          source_id: string | null
+          source_system: string | null
+          status: string | null
+          target_cost: number | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          item_id?: string | null
+          metadata?: Json
+          rfq_group_id?: string | null
+          source_id?: string | null
+          source_system?: string | null
+          status?: string | null
+          target_cost?: number | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          item_id?: string | null
+          metadata?: Json
+          rfq_group_id?: string | null
+          source_id?: string | null
+          source_system?: string | null
+          status?: string | null
+          target_cost?: number | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "rfq_item_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: false
+            referencedRelation: "item"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "rfq_item_rfq_group_id_fkey"
+            columns: ["rfq_group_id"]
+            isOneToOne: false
+            referencedRelation: "rfq_group"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      rfq_vendor: {
+        Row: {
+          created_at: string
+          factory_id: string | null
+          id: string
+          metadata: Json
+          rfq_group_id: string | null
+          source_id: string | null
+          source_system: string | null
+          status: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          factory_id?: string | null
+          id?: string
+          metadata?: Json
+          rfq_group_id?: string | null
+          source_id?: string | null
+          source_system?: string | null
+          status?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          factory_id?: string | null
+          id?: string
+          metadata?: Json
+          rfq_group_id?: string | null
+          source_id?: string | null
+          source_system?: string | null
+          status?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "rfq_vendor_rfq_group_id_fkey"
+            columns: ["rfq_group_id"]
+            isOneToOne: false
+            referencedRelation: "rfq_group"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      style_tracker_item_bridge: {
+        Row: {
+          bridge_source: string
+          commissioned: string | null
+          company_id: string | null
+          concept_status: string | null
+          core_licensor_id: string | null
+          created_at: string
+          customer_name: string | null
+          customer_sku: string | null
+          default_vendor_name: string | null
+          description: string | null
+          designer_name: string | null
+          discontinued: boolean | null
+          erp_item_id: string | null
+          factory_id: string | null
+          id: string
+          last_matched_at: string | null
+          license_status: string | null
+          licensor_name: string | null
+          match_confidence: string
+          match_notes: Json
+          match_status: string
+          notes: string | null
+          plm_item_id: string | null
+          pre_production_status: string | null
+          production_status: string | null
+          public_licensor_id: string | null
+          raw_row_data: Json
+          royalty: string | null
+          sku: string | null
+          source_row_number: number | null
+          source_sheet: string
+          source_workbook_id: string
+          style_group_id: string | null
+          style_tracker_row_id: string
+          tracker_type: string
+          upc: string | null
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          bridge_source?: string
+          commissioned?: string | null
+          company_id?: string | null
+          concept_status?: string | null
+          core_licensor_id?: string | null
+          created_at?: string
+          customer_name?: string | null
+          customer_sku?: string | null
+          default_vendor_name?: string | null
+          description?: string | null
+          designer_name?: string | null
+          discontinued?: boolean | null
+          erp_item_id?: string | null
+          factory_id?: string | null
+          id?: string
+          last_matched_at?: string | null
+          license_status?: string | null
+          licensor_name?: string | null
+          match_confidence?: string
+          match_notes?: Json
+          match_status?: string
+          notes?: string | null
+          plm_item_id?: string | null
+          pre_production_status?: string | null
+          production_status?: string | null
+          public_licensor_id?: string | null
+          raw_row_data?: Json
+          royalty?: string | null
+          sku?: string | null
+          source_row_number?: number | null
+          source_sheet: string
+          source_workbook_id: string
+          style_group_id?: string | null
+          style_tracker_row_id: string
+          tracker_type: string
+          upc?: string | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          bridge_source?: string
+          commissioned?: string | null
+          company_id?: string | null
+          concept_status?: string | null
+          core_licensor_id?: string | null
+          created_at?: string
+          customer_name?: string | null
+          customer_sku?: string | null
+          default_vendor_name?: string | null
+          description?: string | null
+          designer_name?: string | null
+          discontinued?: boolean | null
+          erp_item_id?: string | null
+          factory_id?: string | null
+          id?: string
+          last_matched_at?: string | null
+          license_status?: string | null
+          licensor_name?: string | null
+          match_confidence?: string
+          match_notes?: Json
+          match_status?: string
+          notes?: string | null
+          plm_item_id?: string | null
+          pre_production_status?: string | null
+          production_status?: string | null
+          public_licensor_id?: string | null
+          raw_row_data?: Json
+          royalty?: string | null
+          sku?: string | null
+          source_row_number?: number | null
+          source_sheet?: string
+          source_workbook_id?: string
+          style_group_id?: string | null
+          style_tracker_row_id?: string
+          tracker_type?: string
+          upc?: string | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "style_tracker_item_bridge_plm_item_id_fkey"
+            columns: ["plm_item_id"]
+            isOneToOne: false
+            referencedRelation: "item"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      style_tracker_value_resolution: {
+        Row: {
+          confidence: string
+          created_at: string
+          field_key: string
+          id: string
+          local_value: string | null
+          normalized_value: string
+          notes: Json
+          raw_value: string
+          resolution_type: string
+          target_id: string | null
+          target_label: string | null
+          target_schema: string | null
+          target_table: string | null
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          confidence?: string
+          created_at?: string
+          field_key: string
+          id?: string
+          local_value?: string | null
+          normalized_value: string
+          notes?: Json
+          raw_value: string
+          resolution_type: string
+          target_id?: string | null
+          target_label?: string | null
+          target_schema?: string | null
+          target_table?: string | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          confidence?: string
+          created_at?: string
+          field_key?: string
+          id?: string
+          local_value?: string | null
+          normalized_value?: string
+          notes?: Json
+          raw_value?: string
+          resolution_type?: string
+          target_id?: string | null
+          target_label?: string | null
+          target_schema?: string | null
+          target_table?: string | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
+    }
+    Views: {
+      [_ in never]: never
+    }
+    Functions: {
+      import_master_data: {
+        Args: { customers_payload: Json; licensors_payload: Json }
+        Returns: {
+          customers_seen: number
+          licensors_seen: number
+          properties_seen: number
+          raw_records_upserted: number
+          sync_run_id: string
+        }[]
+      }
+      normalize_style_tracker_value: {
+        Args: { p_field_key: string; p_value: string }
+        Returns: string
+      }
+      refresh_style_tracker_item_bridge: {
+        Args: never
+        Returns: {
+          inserted_count: number
+          total_count: number
+          updated_count: number
+        }[]
+      }
+    }
+    Enums: {
+      [_ in never]: never
+    }
+    CompositeTypes: {
+      [_ in never]: never
+    }
+  }
 }
 
 type DatabaseWithoutInternals = Omit<Database, "__InternalSupabase">
@@ -3024,6 +6008,20 @@ export const Constants = {
     Enums: {},
   },
   crm: {
+    Enums: {},
+  },
+  dam: {
+    Enums: {},
+  },
+  ingest: {
+    Enums: {
+      sync_status: ["pending", "running", "succeeded", "failed", "cancelled"],
+    },
+  },
+  pim: {
+    Enums: {},
+  },
+  plm: {
     Enums: {},
   },
 } as const

@@ -6,7 +6,7 @@ import { FilterSelect } from '@/components/app/FilterSelect'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { ErrorState, CardGridSkeleton } from '@/components/app/states'
 import { useRecordSelection } from '@/features/crm/useRecordSelection'
-import { AccountRelationLogo } from '@/features/crm/components/AccountRelationLogo'
+import { CustomerRelationLogo } from '@/features/crm/components/CustomerRelationLogo'
 import { OpportunityModal } from '@/features/crm/components/OpportunityModal'
 import { StageBadge } from '@/features/crm/components/CrmStatusBadge'
 import { OPPORTUNITY_STAGES, stageChipClass } from '@/features/crm/constants'
@@ -83,7 +83,7 @@ export function PipelinePage() {
       hideBelow: 'md',
       sortValue: (o) => relatedName(o.retailer),
       filterValue: (o) => relatedName(o.retailer),
-      cell: (o) => <AccountRelationLogo value={o.retailer} accountById={retailerById} />,
+      cell: (o) => <CustomerRelationLogo value={o.retailer} customerById={retailerById} />,
     },
     {
       key: 'stage',

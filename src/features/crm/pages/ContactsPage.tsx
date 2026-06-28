@@ -6,7 +6,7 @@ import { AppPage, ListBar } from '@/components/app/AppPage'
 import { DataTable, type Column, type EditOption } from '@/components/app/DataTable'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { ErrorState } from '@/components/app/states'
-import { AccountRelationLogo } from '@/features/crm/components/AccountRelationLogo'
+import { CustomerRelationLogo } from '@/features/crm/components/CustomerRelationLogo'
 import { useRecordSelection } from '@/features/crm/useRecordSelection'
 import { ContactDrawer } from '@/features/crm/components/ContactDrawer'
 import { idOf, label, relatedName, textOf } from '@/features/crm/format'
@@ -19,19 +19,19 @@ import {
   useContactSegmentCountsQuery,
   useContactSegmentQuery,
   useDepartmentsQuery,
-  useAccountSegmentQuery,
+  useCustomerSegmentQuery,
   useUpdateContactMutation,
 } from '@/features/crm/queries'
 import type { Buyer } from '@/lib/types'
 
 type Segment = 'customer' | 'department' | 'triage' | 'all'
 
-function isCustomerAccount(status: string | null | undefined) {
+function isCustomerStatus(status: string | null | undefined) {
   return status === 'ACTIVE_CUSTOMER' || status === 'POTENTIAL_CUSTOMER'
 }
 
-function isTriageAccount(status: string | null | undefined) {
-  return isCustomerAccount(status) || status === 'OTHER'
+function isTriageCustomerStatus(status: string | null | undefined) {
+  return isCustomerStatus(status) || status === 'OTHER'
 }
 
 export function ContactsPage() {
@@ -42,7 +42,7 @@ export function ContactsPage() {
   const segmentQuery = useContactSegmentQuery(activeSegment, -1, segment !== 'all')
   const allContactsQuery = useAllContactsQuery(-1, segment === 'all')
   const countsQuery = useContactSegmentCountsQuery()
-  const retailersQuery = useAccountSegmentQuery('all', -1)
+  const retailersQuery = useCustomerSegmentQuery('all', -1)
   const departmentsQuery = useDepartmentsQuery(-1)
   const updateContactMutation = useUpdateContactMutation()
   const activeContactsQuery = segment === 'all' ? allContactsQuery : segmentQuery
@@ -52,20 +52,20 @@ export function ContactsPage() {
   const [selected, select] = useRecordSelection<Buyer>('contact', buyers)
   const retailerById = useMemo(() => new Map(retailers.map((r) => [r.id, r])), [retailers])
   const departmentById = useMemo(() => new Map(departments.map((d) => [d.id, d])), [departments])
-  const customerAccountOptions = useMemo<EditOption[]>(
+  const customerOptions = useMemo<EditOption[]>(
     () => [
       { value: '', label: 'Unassigned' },
       ...retailers
-        .filter((r) => isCustomerAccount(r.customer_status))
+        .filter((r) => isCustomerStatus(r.customer_status))
         .map((r) => ({ value: r.id, label: r.name })),
     ],
     [retailers],
   )
-  const triageAccountOptions = useMemo<EditOption[]>(
+  const triageCustomerOptions = useMemo<EditOption[]>(
     () => [
       { value: '', label: 'Unassigned' },
       ...retailers
-        .filter((r) => isTriageAccount(r.customer_status))
+        .filter((r) => isTriageCustomerStatus(r.customer_status))
         .map((r) => ({
           value: r.id,
           label: r.customer_status === 'OTHER' ? `${r.name} (Not a customer)` : r.name,
@@ -75,11 +75,11 @@ export function ContactsPage() {
   )
   const departmentOptionsFor = useMemo(
     () => (b: Buyer): EditOption[] => {
-      const accountId = idOf(b.retailer)
+      const customerId = idOf(b.retailer)
       return [
         { value: '', label: 'Unassigned' },
         ...departments
-          .filter((d) => !accountId || idOf(d.retailer) === accountId)
+          .filter((d) => !customerId || idOf(d.retailer) === customerId)
           .map((d) => ({ value: d.id, label: d.name })),
       ]
     },
@@ -153,7 +153,7 @@ export function ContactsPage() {
   function isCustomerContact(b: Buyer) {
     const r = b.retailer
     if (!r || typeof r === 'string') return false
-    return isCustomerAccount(r.customer_status)
+    return isCustomerStatus(r.customer_status)
   }
 
   const segCounts = countsQuery.data ?? {
@@ -203,9 +203,9 @@ export function ContactsPage() {
       header: 'Customer',
       sortValue: (b) => relatedName(b.retailer),
       filterValue: (b) => relatedName(b.retailer),
-      editOptions: (b) => (isCustomerContact(b) ? customerAccountOptions : triageAccountOptions),
+      editOptions: (b) => (isCustomerContact(b) ? customerOptions : triageCustomerOptions),
       editValue: (b) => idOf(b.retailer),
-      cell: (b) => <AccountRelationLogo value={b.retailer} accountById={retailerById} />,
+      cell: (b) => <CustomerRelationLogo value={b.retailer} customerById={retailerById} />,
     },
     {
       key: 'department',

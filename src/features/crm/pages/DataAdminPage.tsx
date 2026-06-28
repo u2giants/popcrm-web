@@ -11,8 +11,8 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { AccountLogo } from '@/components/app/AccountLogo'
-import { AccountRelationLogo } from '@/features/crm/components/AccountRelationLogo'
+import { CustomerLogo } from '@/components/app/CustomerLogo'
+import { CustomerRelationLogo } from '@/features/crm/components/CustomerRelationLogo'
 import {
   createDepartment,
   deleteDepartment,
@@ -27,7 +27,7 @@ import {
   listData,
   useDepartmentsQuery,
   useIngestedContactsQuery,
-  useAccountSegmentQuery,
+  useCustomerSegmentQuery,
   useOpportunitiesQuery,
 } from '@/features/crm/queries'
 import type { Buyer, CrmDepartment, CrmOpportunity, Retailer } from '@/lib/types'
@@ -64,7 +64,7 @@ export function DataAdminPage() {
   const buyersQuery = useIngestedContactsQuery(-1)
   const departmentsQuery = useDepartmentsQuery(-1)
   const opportunitiesQuery = useOpportunitiesQuery(-1)
-  const retailersQuery = useAccountSegmentQuery('active', -1)
+  const retailersQuery = useCustomerSegmentQuery('active', -1)
   const buyers = listData(buyersQuery.data)
   const departments = listData(departmentsQuery.data)
   const opportunities = listData(opportunitiesQuery.data)
@@ -129,7 +129,7 @@ export function DataAdminPage() {
       header: 'Customer',
       sortValue: (d) => relatedName(d.retailer),
       filterValue: (d) => relatedName(d.retailer),
-      cell: (d) => <AccountRelationLogo value={d.retailer} accountById={retailerById} />,
+      cell: (d) => <CustomerRelationLogo value={d.retailer} customerById={retailerById} />,
     },
     {
       key: 'primary_buyer',
@@ -155,7 +155,7 @@ export function DataAdminPage() {
       header: 'Customer',
       sortValue: (r) => r.name?.toLowerCase(),
       filterValue: (r) => r.name,
-      cell: (r) => <AccountRelationLogo value={r} size={24} variant="token-name" />,
+      cell: (r) => <CustomerRelationLogo value={r} size={24} variant="token-name" />,
     },
     {
       key: 'domain',
@@ -168,7 +168,7 @@ export function DataAdminPage() {
       key: 'token',
       header: 'Token logo.dev',
       filterValue: (r) => (r.domain ? 'Has domain' : 'No domain'),
-      cell: (r) => <AccountLogo name={r.name} domain={r.domain} size={28} />,
+      cell: (r) => <CustomerLogo name={r.name} domain={r.domain} size={28} />,
     },
     {
       key: 'full-logo',
@@ -178,7 +178,7 @@ export function DataAdminPage() {
       cell: (r) =>
         r.logo_url ? (
           <span className="flex h-9 w-[136px] items-center">
-            <AccountLogo name={r.name} domain={r.domain} logoUrl={r.logo_url} variant="full" width={128} height={32} />
+            <CustomerLogo name={r.name} domain={r.domain} logoUrl={r.logo_url} variant="full" width={128} height={32} />
           </span>
         ) : (
           <span className="text-muted-foreground">No stored full logo</span>
@@ -471,7 +471,7 @@ export function DataAdminPage() {
                 pageSize={50}
                 emptyIcon={<Database className="size-5" />}
                 emptyTitle="No customers found"
-                emptyDescription="Stored full logos are unavailable until the CRM account API exposes the PLM logo URL."
+                emptyDescription="Stored full logos are unavailable until the CRM customer API exposes the PLM logo URL."
                 initialSort={{ key: 'name', dir: 'asc' }}
               />
             </section>

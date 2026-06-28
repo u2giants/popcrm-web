@@ -21,7 +21,7 @@ VITE_LOGODEV_TOKEN=pk_xxxxxxxxxxxxxxxx
 `src/lib/supabase.ts`; the app throws during startup if either is missing. The
 anon key is public client configuration, not a service-role key.
 
-`VITE_LOGODEV_TOKEN` is read by `src/components/app/AccountLogo.tsx`. It is a
+`VITE_LOGODEV_TOKEN` is read by `src/components/app/CustomerLogo.tsx`. It is a
 **publishable** logo.dev key (safe to ship in client JS). Customer logos are
 fetched from `img.logo.dev` keyed on each retailer's `domain`, with a graceful
 fallback to the initials avatar when there is no domain, no token, or the image

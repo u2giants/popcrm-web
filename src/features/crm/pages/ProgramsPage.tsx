@@ -3,13 +3,13 @@ import { Route } from 'lucide-react'
 import { AppPage, ListBar } from '@/components/app/AppPage'
 import { DataTable, type Column } from '@/components/app/DataTable'
 import { ErrorState } from '@/components/app/states'
-import { AccountRelationLogo } from '@/features/crm/components/AccountRelationLogo'
+import { CustomerRelationLogo } from '@/features/crm/components/CustomerRelationLogo'
 import { RelationLabel } from '@/features/crm/components/RelationLabel'
 import { useRecordSelection } from '@/features/crm/useRecordSelection'
 import { OpportunityModal } from '@/features/crm/components/OpportunityModal'
 import { StageBadge } from '@/features/crm/components/CrmStatusBadge'
 import { formatDate, label, relatedName, textOf } from '@/features/crm/format'
-import { listData, useAccountSegmentQuery, useOpportunitiesQuery } from '@/features/crm/queries'
+import { listData, useCustomerSegmentQuery, useOpportunitiesQuery } from '@/features/crm/queries'
 import type { CrmOpportunity } from '@/lib/types'
 
 function fmtAmount(val: string | number | null | undefined): string | null {
@@ -23,7 +23,7 @@ function fmtAmount(val: string | number | null | undefined): string | null {
 
 export function ProgramsPage() {
   const opportunitiesQuery = useOpportunitiesQuery(-1)
-  const retailersQuery = useAccountSegmentQuery('all', -1)
+  const retailersQuery = useCustomerSegmentQuery('all', -1)
   const opportunities = listData(opportunitiesQuery.data)
   const retailers = listData(retailersQuery.data)
   const [query, setQuery] = useState('')
@@ -69,7 +69,7 @@ export function ProgramsPage() {
       header: 'Customer',
       sortValue: (o) => relatedName(o.retailer),
       filterValue: (o) => relatedName(o.retailer),
-      cell: (o) => <AccountRelationLogo value={o.retailer} accountById={retailerById} />,
+      cell: (o) => <CustomerRelationLogo value={o.retailer} customerById={retailerById} />,
     },
     {
       key: 'department',

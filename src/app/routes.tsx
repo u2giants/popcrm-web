@@ -6,7 +6,7 @@ import { AppLayout } from '@/app/AppLayout'
 // out of the initial bundle and load on demand.
 const OverviewPage = lazy(() => import('@/features/crm/pages/OverviewPage').then((m) => ({ default: m.OverviewPage })))
 const PipelinePage = lazy(() => import('@/features/crm/pages/PipelinePage').then((m) => ({ default: m.PipelinePage })))
-const AccountsPage = lazy(() => import('@/features/crm/pages/AccountsPage').then((m) => ({ default: m.AccountsPage })))
+const CustomersPage = lazy(() => import('@/features/crm/pages/CustomersPage').then((m) => ({ default: m.CustomersPage })))
 const DepartmentsPage = lazy(() => import('@/features/crm/pages/DepartmentsPage').then((m) => ({ default: m.DepartmentsPage })))
 const ProgramsPage = lazy(() => import('@/features/crm/pages/ProgramsPage').then((m) => ({ default: m.ProgramsPage })))
 const ContactsPage = lazy(() => import('@/features/crm/pages/ContactsPage').then((m) => ({ default: m.ContactsPage })))
@@ -37,7 +37,8 @@ export function AppRoutes() {
           }
         />
         <Route path="pipeline" element={<Suspense fallback={<PageFallback />}><PipelinePage /></Suspense>} />
-        <Route path="customers" element={<Suspense fallback={<PageFallback />}><AccountsPage /></Suspense>} />
+        <Route path="customers" element={<Suspense fallback={<PageFallback />}><CustomersPage /></Suspense>} />
+        {/* Legacy bookmark compatibility: /accounts was renamed to /customers. */}
         <Route path="accounts" element={<Navigate to="/customers" replace />} />
         <Route path="departments" element={<Suspense fallback={<PageFallback />}><DepartmentsPage /></Suspense>} />
         <Route path="programs" element={<Suspense fallback={<PageFallback />}><ProgramsPage /></Suspense>} />
