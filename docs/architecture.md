@@ -95,13 +95,20 @@ bucket: factories and licensors are companies too, and those live in
 | Potential customer | A company POP is tracking but has not yet done business with. | `core.customer`, `is_potential = true` | Yes. |
 | Active customer | A company POP has done business with. The authoritative source is PLM/ERP. | `core.customer`, `is_potential = false` plus a `designflow_plm`/`coldlion` source ref | Yes. |
 
-The Customers page follows this split. **Customers**, **Not a customer**, and
-**All** read curated customer rows from `api.crm_account_list`. **Triage** reads
+The Customers page follows this split. **Customers** must read actual customer
+rows from customer-scoped API contracts; **Triage** reads
 `api.crm_ingested_domain_list` and shows domain evidence plus a promotion action.
 A domain becomes a shared `core.customer` row only when someone promotes it with
 `crm.promote_ingested_domain(...)`; that promoted row is potential until PLM/ERP
 confirms it. Use `is_potential` for the factual "have we done business with
 them" signal, and keep `customer_status` as the CRM workflow/status axis.
+
+Naming debt to remove: older CRM migrations and frontend helpers still expose
+`api.crm_account_list` / `api.crm_update_account` compatibility names. Those names
+are legacy only. New shared customer reads should use `api.customer_list` or a
+CRM-specific `api.crm_customer_*` view, and no screen should use an "all accounts"
+path as a proxy for customers. Ingested domains must stay in
+`crm.ingested_domain` until promoted.
 
 Lifecycle:
 
@@ -137,7 +144,7 @@ target.
 |---|---|---|
 | `OverviewPage` | `/` | KPI strip, email volume chart, routing donut, pipeline bar, activity panels |
 | `PipelinePage` | `/pipeline` | Board (kanban by stage) + List (DataTable) toggle |
-| `AccountsPage` | `/customers` | Customer tabs over `api.crm_account_list`: **Customers** (default), **Not a customer**, **All**. **Triage** is a separate ingested-domain review table over `api.crm_ingested_domain_list`, with a promotion action that creates a potential customer. Customer tabs keep inline status/chain edits and `AccountDrawer`; Triage does not render customer-only edits or drawers |
+| `AccountsPage` | `/customers` | Customer tabs for real `core.customer` rows: **Customers** (default), **Not a customer**, **All**. **Triage** is a separate ingested-domain review table over `api.crm_ingested_domain_list`, with a promotion action that creates a potential customer. Customer tabs keep inline status/chain edits and `AccountDrawer`; Triage does not render customer-only edits or drawers. Legacy code may still call this page/module `AccountsPage`; that is naming debt, not the domain model |
 | `DepartmentsPage` | `/departments` | DataTable grouped/sorted by customer. Department-name clicks open `DepartmentDrawer` with assigned contacts and programs |
 | `ProgramsPage` | `/programs` | DataTable over CRM opportunities/programs + OpportunityModal |
 | `ContactsPage` | `/contacts` | DataTable + ContactDrawer. Segmented tabs: **Cust Contacts** (linked to Active/Potential customer, no department), **Dept. Contacts** (linked to Active/Potential customer and department), **Triage** (not linked to a customer), **All**. Customer inline-edit choices are row-aware |

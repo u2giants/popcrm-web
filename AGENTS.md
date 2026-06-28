@@ -184,7 +184,7 @@ generated database types are in `src/lib/database.types.ts`:
 
 | Entity/System | Identifier | Where defined | Notes |
 |---|---|---|---|
-| Customer | `core.customer` / `api.crm_account_list` | Supabase | shared customer hub. `is_potential = false` means PLM/ERP-confirmed active customer; `true` means tracked potential customer. `customer_status` remains the CRM workflow/status axis. No logo field — see Quirks |
+| Customer | `core.customer` / `api.customer_list` (shared) plus legacy CRM compatibility views | Supabase | shared customer hub. `is_potential = false` means PLM/ERP-confirmed active customer; `true` means tracked potential customer. `customer_status` remains the CRM workflow/status axis. Older CRM code still contains `api.crm_account_list` / `api.crm_update_account` names; treat those as compatibility debt to migrate to customer-named API contracts, not as the desired model. No logo field — see Quirks |
 | Ingested domain | `crm.ingested_domain` / `api.crm_ingested_domain_list` | Supabase | CRM-only email-domain triage inbox. These rows are **not** customers and are not shared with PM/DAM/PLM. Promote with `crm.promote_ingested_domain(...)` to create a potential `core.customer` row |
 | Contact | `core.contact` + `core.contact_company` / `api.crm_contact_list` | Supabase | contacts and customer/department relation rows (migrated from Twenty `person`/Directus `buyer`) |
 | Department | `crm.department` / `api.crm_department_list` | Supabase | retailer departments |
@@ -325,8 +325,13 @@ domains must not become shared customer rows until a human promotes them with
 (`is_potential = true`).
 
 Future sessions should:
-Keep customer lists and customer pickers on `api.crm_account_list`; keep Customers
-Triage on `api.crm_ingested_domain_list`. If a frontend change requires a new
+Keep customer lists and customer pickers on customer-scoped API contracts
+(`api.customer_list` for shared/basic reads, or a CRM-specific
+`api.crm_customer_*` view when CRM-owned fields are needed); keep Customers
+Triage on `api.crm_ingested_domain_list`. Do not add new `account`-named API
+contracts. Existing `api.crm_account_list` / `api.crm_update_account` references
+are legacy compatibility debt and should be removed with a shared-db migration
+that preserves production rollout safety. If a frontend change requires a new
 view/RPC/policy/trigger, make that change in canonical `/worksp/shared-db` and
 document it in the appropriate `u2giants/shared-db` `.md` file, not this repo's
 vendored `shared-db/` mirror.
