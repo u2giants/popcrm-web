@@ -226,6 +226,7 @@ const toRetailer = (r: Row): Retailer => ({
   id: r.id as string,
   name: (r.name ?? null) as unknown as string,
   domain: (r.domain ?? null) as string | null,
+  logo_url: (r.logo_url ?? null) as string | null,
   customer_status: (r.customer_status ?? null) as string | null,
   chain_type: (r.chain_type ?? null) as string | null,
   routing_aliases: (r.routing_aliases ?? null) as string | null,

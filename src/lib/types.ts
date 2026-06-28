@@ -17,6 +17,7 @@ export interface Retailer {
   id: string
   name: string
   domain: string | null
+  logo_url?: string | null
   customer_status: string | null
   chain_type: string | null
   routing_aliases: string | null

@@ -11,6 +11,7 @@ type RelationValue = Parameters<typeof relatedName>[0] | {
   last_name?: string | null
   email?: string | null
   domain?: string | null
+  logo_url?: string | null
 }
 
 function relationDomain(value: RelationValue): string | null {
@@ -22,6 +23,11 @@ function relationId(value: RelationValue): string {
   if (!value) return ''
   if (typeof value === 'string') return value
   return 'id' in value ? value.id ?? '' : ''
+}
+
+function relationLogoUrl(value: RelationValue): string | null {
+  if (!value || typeof value === 'string' || !('logo_url' in value)) return null
+  return (value.logo_url as string | null | undefined) ?? null
 }
 
 export function AccountRelationLogo({
@@ -48,6 +54,8 @@ export function AccountRelationLogo({
   }
 
   const domain = relationDomain(value) ?? account?.domain ?? null
+  const logoUrl = relationLogoUrl(value) ?? account?.logo_url ?? null
+  const logoVariant = variant === 'full' && logoUrl ? 'full' : 'token'
 
   return (
     <span
@@ -58,8 +66,9 @@ export function AccountRelationLogo({
       <AccountLogo
         name={name}
         domain={domain}
+        logoUrl={logoUrl}
         size={size}
-        variant={variant === 'full' ? 'full' : 'token'}
+        variant={logoVariant}
         width={width}
         height={height}
       />

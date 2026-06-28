@@ -60,10 +60,11 @@ function valueOptions(values: string[]): ComboOption[] {
 
 export function DataAdminPage() {
   const queryClient = useQueryClient()
+  const [tab, setTab] = useState<AdminTab>('departments')
   const buyersQuery = useIngestedContactsQuery(-1)
   const departmentsQuery = useDepartmentsQuery(-1)
   const opportunitiesQuery = useOpportunitiesQuery(-1)
-  const retailersQuery = useAccountSegmentQuery('all', -1)
+  const retailersQuery = useAccountSegmentQuery('active', -1)
   const buyers = listData(buyersQuery.data)
   const departments = listData(departmentsQuery.data)
   const opportunities = listData(opportunitiesQuery.data)
@@ -76,7 +77,6 @@ export function DataAdminPage() {
     void opportunitiesQuery.refetch()
     void retailersQuery.refetch()
   }
-  const [tab, setTab] = useState<AdminTab>('departments')
   const [departmentDraft, setDepartmentDraft] = useState<DepartmentForm>(() => departmentForm())
   const [selectedDepartmentId, setSelectedDepartmentId] = useState('')
   const [typeToMove, setTypeToMove] = useState('')
@@ -166,30 +166,33 @@ export function DataAdminPage() {
     },
     {
       key: 'token',
-      header: 'Token',
+      header: 'Token logo.dev',
       filterValue: (r) => (r.domain ? 'Has domain' : 'No domain'),
       cell: (r) => <AccountLogo name={r.name} domain={r.domain} size={28} />,
     },
     {
       key: 'full-logo',
-      header: 'Full logo',
+      header: 'Stored full logo',
       minWidth: 150,
-      filterValue: (r) => (r.domain ? 'Has domain' : 'No domain'),
-      cell: (r) => (
-        <span className="flex h-9 w-[136px] items-center">
-          <AccountLogo name={r.name} domain={r.domain} variant="full" width={128} height={32} />
-        </span>
-      ),
+      filterValue: (r) => (r.logo_url ? 'Has stored full logo' : 'No stored full logo'),
+      cell: (r) =>
+        r.logo_url ? (
+          <span className="flex h-9 w-[136px] items-center">
+            <AccountLogo name={r.name} domain={r.domain} logoUrl={r.logo_url} variant="full" width={128} height={32} />
+          </span>
+        ) : (
+          <span className="text-muted-foreground">No stored full logo</span>
+        ),
     },
     {
       key: 'source',
       header: 'Source',
       hideBelow: 'lg',
-      sortValue: (r) => (r.domain ? 'Domain-derived' : 'Initials fallback'),
-      filterValue: (r) => (r.domain ? 'Domain-derived' : 'Initials fallback'),
+      sortValue: (r) => (r.logo_url ? 'Stored full logo' : r.domain ? 'Logo.dev token only' : 'Initials fallback'),
+      filterValue: (r) => (r.logo_url ? 'Stored full logo' : r.domain ? 'Logo.dev token only' : 'Initials fallback'),
       cell: (r) => (
-        <Badge variant={r.domain ? 'secondary' : 'outline'}>
-          {r.domain ? 'Domain-derived' : 'Initials fallback'}
+        <Badge variant={r.logo_url ? 'secondary' : 'outline'}>
+          {r.logo_url ? 'Stored full logo' : r.domain ? 'Logo.dev token only' : 'Initials fallback'}
         </Badge>
       ),
     },
@@ -457,18 +460,18 @@ export function DataAdminPage() {
               <div className="border-b p-4">
                 <SectionHeader
                   title="Customer Logos"
-                  description={`${retailers.length.toLocaleString()} domain-derived customer logo previews`}
+                  description={`${retailers.length.toLocaleString()} active/potential customer logo records`}
                 />
               </div>
               <DataTable
                 rows={retailers}
                 columns={logoColumns}
                 getRowId={(r) => r.id}
-                loading={loading}
+                loading={retailersQuery.isPending}
                 pageSize={50}
                 emptyIcon={<Database className="size-5" />}
                 emptyTitle="No customers found"
-                emptyDescription="Customer logos are derived from the customer domain when available."
+                emptyDescription="Stored full logos are unavailable until the CRM account API exposes the PLM logo URL."
                 initialSort={{ key: 'name', dir: 'asc' }}
               />
             </section>

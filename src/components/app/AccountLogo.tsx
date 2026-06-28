@@ -1,10 +1,9 @@
 import { useState } from 'react'
 import { NameAvatar } from '@/components/app/NameAvatar'
 
-// Brand logo for a customer, fetched from logo.dev keyed on the customer's
-// domain (the same domain-derived approach Twenty used). Falls back to the
-// name-initials avatar when there is no domain, no API token, or the image
-// fails to load.
+// Brand mark for a customer. Compact token marks are fetched from logo.dev keyed
+// on the customer's domain; full-width logos use a stored logoUrl when the API
+// exposes one. Falls back to the name-initials avatar when no usable image exists.
 //
 // The token is a logo.dev *publishable* key (client-safe by design), supplied
 // at build time via VITE_LOGODEV_TOKEN. When unset, every customer simply shows
@@ -25,6 +24,7 @@ function rootDomain(domain: string | null | undefined): string | null {
 export function AccountLogo({
   name,
   domain,
+  logoUrl,
   size = 24,
   variant = 'token',
   width = 92,
@@ -33,6 +33,7 @@ export function AccountLogo({
 }: {
   name: string | null | undefined
   domain: string | null | undefined
+  logoUrl?: string | null | undefined
   size?: number
   variant?: 'token' | 'full'
   width?: number
@@ -41,20 +42,16 @@ export function AccountLogo({
 }) {
   const [failed, setFailed] = useState(false)
   const host = rootDomain(domain)
-
-  if (!LOGODEV_TOKEN || !host || failed) {
-    return <NameAvatar name={name} size={size} className={className} />
-  }
-
-  const src =
-    variant === 'full'
-      ? `https://img.logo.dev/${host}?token=${LOGODEV_TOKEN}&width=${width}&height=${height}&format=png&theme=light&retina=true&fallback=404`
-      : `https://img.logo.dev/${host}?token=${LOGODEV_TOKEN}&size=${size * 2}&format=png&retries=0`
+  const storedLogo = logoUrl?.trim()
 
   if (variant === 'full') {
+    if (!storedLogo || failed) {
+      return <NameAvatar name={name} size={Math.min(height, size)} className={className} />
+    }
+
     return (
       <img
-        src={src}
+        src={storedLogo}
         alt=""
         aria-hidden
         width={width}
@@ -72,6 +69,12 @@ export function AccountLogo({
       />
     )
   }
+
+  if (!LOGODEV_TOKEN || !host || failed) {
+    return <NameAvatar name={name} size={size} className={className} />
+  }
+
+  const src = `https://img.logo.dev/${host}?token=${LOGODEV_TOKEN}&size=${size * 2}&format=png&retries=0`
 
   return (
     <img
