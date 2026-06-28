@@ -39,6 +39,8 @@ export type AccountSegment = 'active' | 'dismissed' | 'all'
 export type AccountSegmentCounts = Record<AccountSegment, number> & { triage: number }
 export type ContactSegment = 'customer' | 'department' | 'triage' | 'all'
 export type ContactSegmentCounts = Record<ContactSegment, number>
+export type EmailSegment = 'company' | 'department' | 'program' | 'triage' | 'all'
+export type EmailSegmentCounts = Record<EmailSegment, number>
 export interface CrmSearchResults {
   accounts: Retailer[]
   contacts: Buyer[]
@@ -610,6 +612,37 @@ const EMAIL_RELS = ['retailer', 'department', 'opportunity']
 export async function fetchEmailMessages(limit = -1): Promise<CrmEmailMessage[]> {
   const rows = await fetchRows('crm_email_routing_queue', [{ col: 'received_at', asc: false }], limit)
   return rows.map(toEmail)
+}
+
+function emailSegmentOf(row: Row): Exclude<EmailSegment, 'all'> {
+  const status = row.routing_status as string | null | undefined
+  if (status && status !== 'ROUTED' && status !== 'SKIPPED') return 'triage'
+  if (row.opportunity_id) return 'program'
+  if (row.department_id) return 'department'
+  if (row.company_id) return 'company'
+  return 'triage'
+}
+
+export async function fetchEmailSegmentCounts(): Promise<EmailSegmentCounts> {
+  const PAGE = 1000
+  const counts: EmailSegmentCounts = { company: 0, department: 0, program: 0, triage: 0, all: 0 }
+  let from = 0
+  for (;;) {
+    const { data, error } = await anyDb
+      .schema("api")
+      .from('crm_email_routing_queue')
+      .select('routing_status,company_id,department_id,opportunity_id')
+      .range(from, from + PAGE - 1)
+    if (error) throw error
+    const rows = (data ?? []) as Row[]
+    for (const row of rows) {
+      counts[emailSegmentOf(row)] += 1
+      counts.all += 1
+    }
+    if (rows.length < PAGE) break
+    from += PAGE
+  }
+  return counts
 }
 
 export async function updateEmailMessage(id: string, values: Partial<CrmEmailMessage>) {

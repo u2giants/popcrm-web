@@ -319,6 +319,38 @@ function routeColumns(route) {
   return out
 }
 
+async function normalizeRoute(route) {
+  const out = {
+    retailer: null,
+    department: null,
+    opportunity: null,
+    ...route,
+  }
+  if (out.opportunity) {
+    const [opp] = must(await crm('opportunity').select('company_id,department_id').eq('id', out.opportunity).limit(1))
+    if (opp) {
+      out.retailer = opp.company_id || out.retailer || null
+      out.department = opp.department_id || null
+      out.routing_status = 'ROUTED'
+    }
+  }
+  if (out.department) {
+    const [dept] = must(await crm('department').select('company_id').eq('id', out.department).limit(1))
+    if (dept?.company_id) {
+      if (!out.retailer) out.retailer = dept.company_id
+      if (out.retailer !== dept.company_id) {
+        console.warn(`route normalized: dropped department ${out.department} because it belongs to ${dept.company_id}, not ${out.retailer}`)
+        out.department = null
+        if (!out.opportunity && out.routing_status === 'COMPANY_DEPT') out.routing_status = out.retailer ? 'COMPANY_ONLY' : 'UNROUTED'
+      }
+    } else {
+      out.department = null
+      if (!out.opportunity && out.routing_status === 'COMPANY_DEPT') out.routing_status = out.retailer ? 'COMPANY_ONLY' : 'UNROUTED'
+    }
+  }
+  return out
+}
+
 async function aiRouteFallback({ subject, bodyText, addresses, task = 'email_routing_model' }) {
   if (!process.env.OPENROUTER_API_KEY) return null
   const [retailers, opportunities] = await Promise.all([
@@ -530,7 +562,7 @@ async function outlookIngest() {
     const addresses = participantAddresses(message)
     if (gated && !addresses.some((addr) => !addr.endsWith(`@${INTERNAL_DOMAIN}`))) continue
     const bodyText = message.body?.content || message.bodyPreview || ''
-    const route = await routeEmail({ subject: message.subject || '', bodyText, addresses, displayNames: displayNameMap(message) })
+    const route = await normalizeRoute(await routeEmail({ subject: message.subject || '', bodyText, addresses, displayNames: displayNameMap(message) }))
     let retailerPatterns = ''
     if (route.retailer) {
       const rows = must(await core('customer').select('so_patterns').eq('id', route.retailer).limit(1))
@@ -562,12 +594,16 @@ async function reroute() {
   let evaluated = 0
   for (const row of rows) {
     const addresses = extractAddresses(`${row.sender || ''} ${row.recipients || ''}`)
-    const route = await routeEmail({ subject: row.subject || '', bodyText: row.body_preview || '', addresses, allowAi: process.env.CRM_REROUTE_AI === 'true' })
+    const route = await normalizeRoute(await routeEmail({ subject: row.subject || '', bodyText: row.body_preview || '', addresses, allowAi: process.env.CRM_REROUTE_AI === 'true' }))
     evaluated += 1
     if (routingImproves(row.routing_status, route, row.company_id)) {
-      must(await crm('email_message').update(routeColumns(route)).eq('id', row.id))
-      if (route.opportunity) await updateOpportunitySummary(route.opportunity)
-      updated += 1
+      try {
+        must(await crm('email_message').update(routeColumns(route)).eq('id', row.id))
+        if (route.opportunity) await updateOpportunitySummary(route.opportunity)
+        updated += 1
+      } catch (error) {
+        console.warn(`reroute skipped ${row.id}: ${error.message}`)
+      }
     }
     if (evaluated % 500 === 0) console.log(`reroute: ${evaluated}/${rows.length} evaluated, ${updated} improved`)
   }
