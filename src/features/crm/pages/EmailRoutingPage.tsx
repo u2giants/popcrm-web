@@ -59,7 +59,7 @@ export function EmailRoutingPage() {
   const emailsQuery = useEmailsQuery(EMAIL_ROUTE_LIMIT)
   const countsQuery = useEmailSegmentCountsQuery()
   const ignoreRulesQuery = useIgnoreRulesQuery()
-  const retailersQuery = useAccountSegmentQuery('all', -1)
+  const retailersQuery = useAccountSegmentQuery('active', -1)
   const departmentsQuery = useDepartmentsQuery(-1)
   const opportunitiesQuery = useOpportunitiesQuery(-1)
   const fireflies = useFirefliesHealth()
