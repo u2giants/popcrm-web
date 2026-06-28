@@ -77,7 +77,7 @@ export function OverviewPage() {
   const stats = useMemo(() => {
     const by = (status: string) => emails.filter((e) => e.routing_status === status).length
     return {
-      accounts: retailers.length,
+      customers: retailers.length,
       contacts: buyers.length,
       openOpportunities: opportunities.filter((o) => o.stage !== 'CLOSED').length,
       emails: emails.length,
@@ -162,7 +162,7 @@ export function OverviewPage() {
           <div className="grid grid-cols-2 gap-3 md:grid-cols-4 2xl:grid-cols-7">
             <MetricCard
               label="Customers"
-              value={stats.accounts.toLocaleString()}
+              value={stats.customers.toLocaleString()}
               icon={<Building2 className="size-4" />}
               iconColor="oklch(0.60 0.15 200)"
               onClick={() => navigate('/customers')}

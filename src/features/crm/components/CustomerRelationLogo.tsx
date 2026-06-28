@@ -1,4 +1,4 @@
-import { AccountLogo } from '@/components/app/AccountLogo'
+import { CustomerLogo } from '@/components/app/CustomerLogo'
 import { relatedName } from '@/features/crm/format'
 import type { Retailer } from '@/lib/types'
 import { cn } from '@/lib/utils'
@@ -30,9 +30,9 @@ function relationLogoUrl(value: RelationValue): string | null {
   return (value.logo_url as string | null | undefined) ?? null
 }
 
-export function AccountRelationLogo({
+export function CustomerRelationLogo({
   value,
-  accountById,
+  customerById,
   size = 24,
   variant = 'full',
   width = 92,
@@ -40,21 +40,21 @@ export function AccountRelationLogo({
   className,
 }: {
   value: RelationValue
-  accountById?: Map<string, Retailer>
+  customerById?: Map<string, Retailer>
   size?: number
   variant?: 'full' | 'token' | 'token-name'
   width?: number
   height?: number
   className?: string
 }) {
-  const account = accountById?.get(relationId(value))
-  const name = relatedName(account ?? value)
+  const customer = customerById?.get(relationId(value))
+  const name = relatedName(customer ?? value)
   if (name === '—') {
     return <span className={cn('text-muted-foreground', className)}>—</span>
   }
 
-  const domain = relationDomain(value) ?? account?.domain ?? null
-  const logoUrl = relationLogoUrl(value) ?? account?.logo_url ?? null
+  const domain = relationDomain(value) ?? customer?.domain ?? null
+  const logoUrl = relationLogoUrl(value) ?? customer?.logo_url ?? null
   const logoVariant = variant === 'full' && logoUrl ? 'full' : 'token'
 
   return (
@@ -63,7 +63,7 @@ export function AccountRelationLogo({
       title={name}
       aria-label={name}
     >
-      <AccountLogo
+      <CustomerLogo
         name={name}
         domain={domain}
         logoUrl={logoUrl}

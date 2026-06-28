@@ -20,7 +20,7 @@ const SUBSCRIPTIONS: SubscriptionSpec[] = [
   {
     table: 'ingested_domain',
     debounceMs: 1_250,
-    invalidate: [[...crmKeys.all, 'ingestedDomains'], crmKeys.ingestedDomainCount(), crmKeys.accountSegmentCounts()],
+    invalidate: [[...crmKeys.all, 'ingestedDomains'], crmKeys.ingestedDomainCount(), crmKeys.customerSegmentCounts()],
   },
   {
     schema: 'core',

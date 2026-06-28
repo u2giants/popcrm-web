@@ -43,7 +43,7 @@ export function CommandSearch({ open, onClose }: { open: boolean; onClose: () =>
     const data = searchQ.data
     if (!data) return []
     const out: Result[] = []
-    for (const r of data.accounts) {
+    for (const r of data.customers) {
       out.push({ id: `r-${r.id}`, group: 'Customers', label: r.name, hint: r.domain ?? undefined, icon: Building2, to: `/customers?retailer=${r.id}` })
     }
     for (const b of data.contacts) {

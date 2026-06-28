@@ -22,11 +22,11 @@ import type {
 //   • crm.* operational writes go directly to the `crm` schema tables (baseline
 //     crm_write RLS lets sales/licensing/admin write them).
 //   • Canonical company/contact (customer/contact) writes go through the guarded
-//     api.crm_update_account / api.crm_update_contact RPCs.
+//     api.crm_update_customer / api.crm_update_contact RPCs.
 //
 // View rows are flat (company_id + company_name, ...); adapters below rebuild the
 // nested {id, name} shapes the existing UI/types expect, so pages stay unchanged.
-// Curated customers come from api.crm_account_list. Email-domain triage
+// Curated customers come from api.crm_customer_list. Email-domain triage
 // comes from api.crm_ingested_domain_list and is promoted into customers only
 // after human review — see fetchRetailers/fetchIngestedDomains.
 // ---------------------------------------------------------------------------
@@ -35,23 +35,21 @@ const CUSTOMER_STATUSES = ['ACTIVE_CUSTOMER', 'POTENTIAL_CUSTOMER']
 
 type Row = Record<string, unknown>
 type Order = { col: string; asc?: boolean }
-export type AccountSegment = 'active' | 'dismissed' | 'all'
-export type AccountSegmentCounts = Record<AccountSegment, number> & { triage: number }
+export type CustomerSegment = 'active' | 'dismissed' | 'all'
+export type CustomerSegmentCounts = Record<CustomerSegment, number> & { triage: number }
 export type ContactSegment = 'customer' | 'department' | 'triage' | 'all'
 export type ContactSegmentCounts = Record<ContactSegment, number>
 export type EmailSegment = 'company' | 'department' | 'program' | 'triage' | 'all'
 export type EmailSegmentCounts = Record<EmailSegment, number>
 export interface CrmSearchResults {
-  accounts: Retailer[]
+  customers: Retailer[]
   contacts: Buyer[]
   opportunities: CrmOpportunity[]
   emails: CrmEmailMessage[]
 }
 
-// Dynamic table/view names and generic Row payloads can't satisfy the generated
-// literal-keyed client types, so the data helpers below go through this untyped
-// surface. RPC calls (updateRetailer/updateBuyer) stay on the typed client so
-// their argument names remain checked against database.types.ts.
+// Dynamic table/view names, generic Row payloads, and newly-added customer
+// contracts can outrun generated types, so these helpers use the untyped surface.
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const anyDb = supabase as any
 
@@ -128,21 +126,21 @@ function ilikeAny(columns: string[], pattern: string): string {
   return columns.map((column) => `${column}.ilike.${pattern}`).join(',')
 }
 
-function applyAccountSegment(q: ReturnType<typeof anyDb.schema>, segment: AccountSegment) {
+function applyCustomerSegment(q: ReturnType<typeof anyDb.schema>, segment: CustomerSegment) {
   if (segment === 'active') return q.in('customer_status', CUSTOMER_STATUSES)
   if (segment === 'dismissed') return q.eq('customer_status', 'OTHER')
   return q
 }
 
-async function fetchAccountSegmentRows(segment: AccountSegment, limit = -1): Promise<Row[]> {
-  if (segment === 'all') return fetchRows('crm_account_list', [{ col: 'name' }], limit)
+async function fetchCustomerSegmentRows(segment: CustomerSegment, limit = -1): Promise<Row[]> {
+  if (segment === 'all') return fetchRows('crm_customer_list', [{ col: 'name' }], limit)
   const PAGE = 1000
   const out: Row[] = []
   let from = 0
   for (;;) {
     const cappedEnd = limit >= 0 ? Math.min(from + PAGE - 1, limit - 1) : from + PAGE - 1
-    const q = applyAccountSegment(
-      anyDb.schema("api").from('crm_account_list').select('*').order('name').range(from, cappedEnd),
+    const q = applyCustomerSegment(
+      anyDb.schema("api").from('crm_customer_list').select('*').order('name').range(from, cappedEnd),
       segment,
     )
     const { data, error } = await q
@@ -155,9 +153,9 @@ async function fetchAccountSegmentRows(segment: AccountSegment, limit = -1): Pro
   return limit >= 0 ? out.slice(0, limit) : out
 }
 
-async function countAccountSegment(segment: AccountSegment): Promise<number> {
-  const q = applyAccountSegment(
-    anyDb.schema("api").from('crm_account_list').select('*', { count: 'exact', head: true }),
+async function countCustomerSegment(segment: CustomerSegment): Promise<number> {
+  const q = applyCustomerSegment(
+    anyDb.schema("api").from('crm_customer_list').select('*', { count: 'exact', head: true }),
     segment,
   )
   const { count, error } = await q
@@ -397,7 +395,7 @@ export async function askOpportunityAi(id: string, question: string): Promise<st
 // Customers / companies (curated customers vs full ingested registry)
 // ---------------------------------------------------------------------------
 export async function fetchRetailers(limit = -1): Promise<Retailer[]> {
-  let q = supabase.schema('api').from('crm_account_list').select('*').in('customer_status', CUSTOMER_STATUSES).order('name')
+  let q = supabase.schema('api').from('crm_customer_list').select('*').in('customer_status', CUSTOMER_STATUSES).order('name')
   if (limit >= 0) q = q.limit(limit)
   const { data, error } = await q
   if (error) throw error
@@ -446,25 +444,25 @@ export async function promoteIngestedDomain(domain: string, name: string): Promi
   return data as string
 }
 
-export async function fetchAccountSegment(segment: AccountSegment, limit = -1): Promise<Retailer[]> {
-  const rows = await fetchAccountSegmentRows(segment, limit)
+export async function fetchCustomerSegment(segment: CustomerSegment, limit = -1): Promise<Retailer[]> {
+  const rows = await fetchCustomerSegmentRows(segment, limit)
   return rows.map(toRetailer)
 }
 
-export async function fetchAccountSegmentCounts(): Promise<AccountSegmentCounts> {
+export async function fetchCustomerSegmentCounts(): Promise<CustomerSegmentCounts> {
   const [active, triage, dismissed, all] = await Promise.all([
-    countAccountSegment('active'),
+    countCustomerSegment('active'),
     fetchIngestedDomainCount(),
-    countAccountSegment('dismissed'),
-    countAccountSegment('all'),
+    countCustomerSegment('dismissed'),
+    countCustomerSegment('all'),
   ])
   return { active, triage, dismissed, all }
 }
 
 export async function updateRetailer(id: string, values: Partial<Retailer>) {
   const v = values as Row
-  const { error } = await supabase.schema('api').rpc('crm_update_account', {
-    p_company_id: id,
+  const { error } = await anyDb.schema('api').rpc('crm_update_customer', {
+    p_customer_id: id,
     p_name: arg(v.name),
     p_domain: arg(v.domain),
     p_customer_status: arg(v.customer_status),
@@ -550,7 +548,7 @@ export async function updateBuyer(id: string, values: Partial<Buyer>) {
     p_email: arg(v.email),
     p_phone: arg(v.phone),
     p_job_title: arg(v.job_title),
-    p_company_id: arg(relId(v.retailer)),
+    p_customer_id: arg(relId(v.retailer)),
     p_crm_department_id: arg(relId(v.department)),
     p_contact_type: arg(v.contact_type),
     p_scope: arg(v.scope),
@@ -569,7 +567,7 @@ export async function updateBuyer(id: string, values: Partial<Buyer>) {
       p_email: args.p_email,
       p_phone: args.p_phone,
       p_job_title: args.p_job_title,
-      p_company_id: args.p_company_id,
+      p_customer_id: args.p_customer_id,
       p_crm_department_id: args.p_crm_department_id,
       p_contact_type: args.p_contact_type,
       p_scope: args.p_scope,
@@ -747,12 +745,12 @@ export async function updateApprovalThread(id: string, values: Partial<CrmLicens
 // ---------------------------------------------------------------------------
 export async function searchCrm(query: string, limitPerGroup = 8): Promise<CrmSearchResults> {
   const pattern = searchPattern(query)
-  if (!pattern) return { accounts: [], contacts: [], opportunities: [], emails: [] }
+  if (!pattern) return { customers: [], contacts: [], opportunities: [], emails: [] }
 
-  const [accounts, contacts, opportunities, emails] = await Promise.all([
+  const [customers, contacts, opportunities, emails] = await Promise.all([
     anyDb
       .schema("api")
-      .from('crm_account_list')
+      .from('crm_customer_list')
       .select('*')
       .or(ilikeAny(['name', 'domain', 'routing_aliases'], pattern))
       .order('name')
@@ -780,12 +778,12 @@ export async function searchCrm(query: string, limitPerGroup = 8): Promise<CrmSe
       .limit(limitPerGroup),
   ])
 
-  for (const result of [accounts, contacts, opportunities, emails]) {
+  for (const result of [customers, contacts, opportunities, emails]) {
     if (result.error) throw result.error
   }
 
   return {
-    accounts: ((accounts.data ?? []) as Row[]).map(toRetailer),
+    customers: ((customers.data ?? []) as Row[]).map(toRetailer),
     contacts: ((contacts.data ?? []) as Row[]).map(toBuyer),
     opportunities: ((opportunities.data ?? []) as Row[]).map(toOpportunity),
     emails: ((emails.data ?? []) as Row[]).map(toEmail),

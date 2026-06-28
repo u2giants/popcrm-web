@@ -46,7 +46,7 @@ High-change surfaces such as Email Routing, Tasks, Meetings, and Notes also use
 conservative background refetch intervals.
 
 Reads in `src/features/crm/api.ts` go through browser-safe `api.crm_*` views.
-Core customer/contact writes use guarded RPCs (`api.crm_update_account`,
+Core customer/contact writes use guarded RPCs (`api.crm_update_customer`,
 `api.crm_update_contact`); CRM-owned rows write to `crm.*` tables or narrower RPCs.
 Write operations use mutation hooks in `queries.ts`, with optimistic query-cache
 updates where the UI already had instant behavior. Related queries are invalidated
@@ -103,9 +103,11 @@ A domain becomes a shared `core.customer` row only when someone promotes it with
 confirms it. Use `is_potential` for the factual "have we done business with
 them" signal, and keep `customer_status` as the CRM workflow/status axis.
 
-Naming debt to remove: older CRM migrations and frontend helpers still expose
-`api.crm_account_list` / `api.crm_update_account` compatibility names. Those names
-are legacy only. New shared customer reads should use `api.customer_list` or a
+Naming rule: active CRM code should use `api.crm_customer_list`,
+`api.crm_customer_overview`, and `api.crm_update_customer`. Legacy
+`api.crm_account_list` / `api.crm_update_account` objects are compatibility names
+only until the production rollout is verified and the final drop migration can
+remove them. New shared customer reads should use `api.customer_list` or a
 CRM-specific `api.crm_customer_*` view, and no screen should use an "all accounts"
 path as a proxy for customers. Ingested domains must stay in
 `crm.ingested_domain` until promoted.
@@ -144,7 +146,7 @@ target.
 |---|---|---|
 | `OverviewPage` | `/` | KPI strip, email volume chart, routing donut, pipeline bar, activity panels |
 | `PipelinePage` | `/pipeline` | Board (kanban by stage) + List (DataTable) toggle |
-| `AccountsPage` | `/customers` | Customer tabs for real `core.customer` rows: **Customers** (default), **Not a customer**, **All**. **Triage** is a separate ingested-domain review table over `api.crm_ingested_domain_list`, with a promotion action that creates a potential customer. Customer tabs keep inline status/chain edits and `AccountDrawer`; Triage does not render customer-only edits or drawers. Legacy code may still call this page/module `AccountsPage`; that is naming debt, not the domain model |
+| `CustomersPage` | `/customers` | Customer tabs for real `core.customer` rows: **Customers** (default), **Not a customer**, **All**. **Triage** is a separate ingested-domain review table over `api.crm_ingested_domain_list`, with a promotion action that creates a potential customer. Customer tabs keep inline status/chain edits and `CustomerDrawer`; Triage does not render customer-only edits or drawers. `/accounts` remains a redirect-only legacy bookmark route |
 | `DepartmentsPage` | `/departments` | DataTable grouped/sorted by customer. Department-name clicks open `DepartmentDrawer` with assigned contacts and programs |
 | `ProgramsPage` | `/programs` | DataTable over CRM opportunities/programs + OpportunityModal |
 | `ContactsPage` | `/contacts` | DataTable + ContactDrawer. Segmented tabs: **Cust Contacts** (linked to Active/Potential customer, no department), **Dept. Contacts** (linked to Active/Potential customer and department), **Triage** (not linked to a customer), **All**. Customer inline-edit choices are row-aware |
@@ -162,7 +164,7 @@ target.
 | `AppPage` | Page wrapper with scroll container; `listBar` slot for the top toolbar |
 | `ListBar` | One-row page header: title · count · optional inline segments · spacer · search · filters · actions; `extra` remains a deliberate second row |
 | `DataTable` | Sortable table with column visibility, resize (visible separator), reorder, and optional `groupBy` row group headers. Per-column tools in the header: a persistent filter icon → checkbox **value popover** (set filter), and a quick-**search box with value autocomplete**. Optional inline editing: columns with `editOptions` render click-to-edit dropdowns and a spreadsheet **drag-to-copy** fill handle; `editOptions` may be a static array or row-aware function. Edits persist via the `onCellEdit` prop. Columns with `opensDetail` are the only detail-drawer triggers once any column opts in. Popovers/autocomplete use fixed positioning to escape `overflow:hidden` |
-| `AccountLogo` | Brand logo from logo.dev keyed on `retailer.domain` (token `VITE_LOGODEV_TOKEN`), falling back to `NameAvatar` initials when no domain/token or on image error |
+| `CustomerLogo` | Brand logo from logo.dev keyed on `retailer.domain` (token `VITE_LOGODEV_TOKEN`) for compact tokens, stored `logo_url` for full-width PLM logos, falling back to `NameAvatar` initials when no usable image exists |
 | `DetailDrawer` | Side-sheet shell used by all record drawers |
 | `MetricCard` | KPI tile with icon, value, label, optional tone/color, onClick |
 | `StatusBadge` | Inline tone-keyed badge (success/danger/warning/neutral/accent) |
@@ -180,7 +182,7 @@ Each drawer is a `DetailDrawer` with domain-specific sections. All support deep-
 | Drawer | Key features |
 |---|---|
 | `OpportunityModal` | Full-screen-capable dialog; board card click; Ask AI scroll, Share clipboard, Expand toggle; composer calls `createNote` |
-| `AccountDrawer` | Logo avatar (`AccountLogo`) in header, colored status/chain chips, contact list, opportunity list, close button footer |
+| `CustomerDrawer` | Logo avatar (`CustomerLogo`) in header, colored status/chain chips, contact list, opportunity list, close button footer |
 | `ContactDrawer` | Related customer, opportunity list |
 | `DepartmentDrawer` | Department detail panel with core fields, all contacts assigned to that department, and all programs assigned to that department |
 | `EmailDrawer` | Mail-header preview band; `MethodConfidence` bar; Apply routing / Create ignore rule actions |

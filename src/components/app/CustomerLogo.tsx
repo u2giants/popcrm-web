@@ -21,7 +21,7 @@ function rootDomain(domain: string | null | undefined): string | null {
   return d.includes('.') ? d : null
 }
 
-export function AccountLogo({
+export function CustomerLogo({
   name,
   domain,
   logoUrl,

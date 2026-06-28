@@ -8,20 +8,20 @@ import { Button } from '@/components/ui/button'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { ErrorState } from '@/components/app/states'
 import { useRecordSelection } from '@/features/crm/useRecordSelection'
-import { AccountDrawer } from '@/features/crm/components/AccountDrawer'
-import { AccountRelationLogo } from '@/features/crm/components/AccountRelationLogo'
+import { CustomerDrawer } from '@/features/crm/components/CustomerDrawer'
+import { CustomerRelationLogo } from '@/features/crm/components/CustomerRelationLogo'
 import { ChainBadge } from '@/features/crm/components/CrmStatusBadge'
 import { CHAIN_TYPES, CUSTOMER_STATUSES, customerStatusLabel, customerStatusTone } from '@/features/crm/constants'
 import { formatDateTime, idOf, label, textOf } from '@/features/crm/format'
 import {
   listData,
-  useAccountSegmentCountsQuery,
-  useAccountSegmentQuery,
+  useCustomerSegmentCountsQuery,
+  useCustomerSegmentQuery,
   useIngestedDomainsQuery,
   useIngestedContactsQuery,
   useOpportunitiesQuery,
   usePromoteIngestedDomainMutation,
-  useUpdateAccountMutation,
+  useUpdateCustomerMutation,
 } from '@/features/crm/queries'
 import type { CrmIngestedDomain, Retailer } from '@/lib/types'
 
@@ -38,44 +38,44 @@ const potentialLabel = (value: boolean | null | undefined) =>
 const potentialTone = (value: boolean | null | undefined) =>
   value === true ? 'warning' : value === false ? 'success' : 'neutral'
 
-export function AccountsPage() {
+export function CustomersPage() {
   const [query, setQuery] = useState('')
   const [segment, setSegment] = useState<Segment>('active')
-  const activeAccountsQuery = useAccountSegmentQuery('active')
+  const activeCustomersQuery = useCustomerSegmentQuery('active')
   const triageDomainsQuery = useIngestedDomainsQuery(-1)
-  const dismissedAccountsQuery = useAccountSegmentQuery('dismissed', -1, segment === 'dismissed')
-  const allAccountsQuery = useAccountSegmentQuery('all', -1, segment === 'all')
-  const countsQuery = useAccountSegmentCountsQuery()
+  const dismissedCustomersQuery = useCustomerSegmentQuery('dismissed', -1, segment === 'dismissed')
+  const allCustomersQuery = useCustomerSegmentQuery('all', -1, segment === 'all')
+  const countsQuery = useCustomerSegmentCountsQuery()
   const buyersQuery = useIngestedContactsQuery(-1)
   const opportunitiesQuery = useOpportunitiesQuery(-1)
-  const updateAccountMutation = useUpdateAccountMutation()
+  const updateCustomerMutation = useUpdateCustomerMutation()
   const promoteDomainMutation = usePromoteIngestedDomainMutation()
   const buyers = listData(buyersQuery.data)
   const opportunities = listData(opportunitiesQuery.data)
-  const activeAccounts = listData(activeAccountsQuery.data)
+  const activeCustomers = listData(activeCustomersQuery.data)
   const triageDomains = listData(triageDomainsQuery.data)
-  const dismissedAccounts = listData(dismissedAccountsQuery.data)
-  const allAccounts = listData(allAccountsQuery.data)
-  const accountRows =
+  const dismissedCustomers = listData(dismissedCustomersQuery.data)
+  const allCustomers = listData(allCustomersQuery.data)
+  const customerRows =
     segment === 'all'
-      ? allAccounts
+      ? allCustomers
       : segment === 'dismissed'
-        ? dismissedAccounts
-        : activeAccounts
+        ? dismissedCustomers
+        : activeCustomers
   const visibleFetch =
     segment === 'all'
-      ? allAccountsQuery
+      ? allCustomersQuery
       : segment === 'dismissed'
-        ? dismissedAccountsQuery
+        ? dismissedCustomersQuery
         : segment === 'triage'
           ? triageDomainsQuery
-          : activeAccountsQuery
-  const [selected, select] = useRecordSelection<Retailer>('retailer', accountRows)
+          : activeCustomersQuery
+  const [selected, select] = useRecordSelection<Retailer>('retailer', customerRows)
 
   // Inline edit / drag-copy for the Status and Chain columns.
   async function editCell(row: Retailer, key: string, value: string) {
     try {
-      await updateAccountMutation.mutateAsync({ id: row.id, values: { [key]: value } as Partial<Retailer> })
+      await updateCustomerMutation.mutateAsync({ id: row.id, values: { [key]: value } as Partial<Retailer> })
     } catch {
       toast.error('Could not save change')
     }
@@ -108,25 +108,25 @@ export function AccountsPage() {
     return { contacts, opps }
   }, [buyers, opportunities])
 
-  // Segment counts. Customer counts come from crm_account_list; Triage counts
+  // Segment counts. Customer counts come from crm_customer_list; Triage counts
   // CRM-private ingested domains awaiting promotion/review.
   const segCounts = countsQuery.data ?? {
-    active: activeAccounts.length,
+    active: activeCustomers.length,
     triage: triageDomains.length,
-    dismissed: dismissedAccounts.length,
-    all: allAccounts.length,
+    dismissed: dismissedCustomers.length,
+    all: allCustomers.length,
   }
 
-  const filteredAccounts = useMemo(() => {
+  const filteredCustomers = useMemo(() => {
     const q = query.trim().toLowerCase()
-    return accountRows.filter((r) => {
+    return customerRows.filter((r) => {
       const s = statusOf(r)
       if (segment === 'active' && (s === 'OTHER' || s === 'UNASSIGNED')) return false
       if (segment === 'dismissed' && s !== 'OTHER') return false
       if (q && !textOf(r.name, r.domain, r.routing_aliases, r.customer_status, r.chain_type, r.is_potential).includes(q)) return false
       return true
     })
-  }, [accountRows, query, segment])
+  }, [customerRows, query, segment])
 
   const filteredDomains = useMemo(() => {
     const q = query.trim().toLowerCase()
@@ -143,16 +143,16 @@ export function AccountsPage() {
     })
   }, [triageDomains, query])
 
-  const count = segment === 'triage' ? filteredDomains.length : filteredAccounts.length
+  const count = segment === 'triage' ? filteredDomains.length : filteredCustomers.length
 
-  const accountColumns: Column<Retailer>[] = [
+  const customerColumns: Column<Retailer>[] = [
     {
       key: 'name',
       header: 'Customer',
       opensDetail: true,
       sortValue: (r) => r.name?.toLowerCase(),
       filterValue: (r) => r.name,
-      cell: (r) => <AccountRelationLogo value={r} size={24} variant="token-name" />,
+      cell: (r) => <CustomerRelationLogo value={r} size={24} variant="token-name" />,
     },
     {
       key: 'customer_status',
@@ -337,8 +337,8 @@ export function AccountsPage() {
         />
       ) : (
         <DataTable
-          rows={filteredAccounts}
-          columns={accountColumns}
+          rows={filteredCustomers}
+          columns={customerColumns}
           getRowId={(r) => r.id}
           onRowClick={(r) => select(r)}
           onCellEdit={editCell}
@@ -349,7 +349,7 @@ export function AccountsPage() {
           initialSort={{ key: 'name', dir: 'asc' }}
         />
       )}
-      <AccountDrawer row={selected} onClose={() => select(null)} />
+      <CustomerDrawer row={selected} onClose={() => select(null)} />
     </AppPage>
   )
 }

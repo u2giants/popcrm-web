@@ -3,7 +3,7 @@ import { Building2, Mail, Route, X } from 'lucide-react'
 import { DetailDrawer, DescriptionItem, DescriptionList, DrawerSection } from '@/components/app/DetailDrawer'
 import { StatusBadge } from '@/components/app/StatusBadge'
 import { NameAvatar } from '@/components/app/NameAvatar'
-import { AccountLogo } from '@/components/app/AccountLogo'
+import { CustomerLogo } from '@/components/app/CustomerLogo'
 import { Button } from '@/components/ui/button'
 import { listData, useDepartmentsQuery, useEmailsQuery, useIngestedContactsQuery, useOpportunitiesQuery } from '@/features/crm/queries'
 import { ChainBadge, StageBadge } from '@/features/crm/components/CrmStatusBadge'
@@ -20,7 +20,7 @@ function fmtAmount(val: string | number | null | undefined): string {
   return `$${n.toFixed(0)}`
 }
 
-export function AccountDrawer({ row, onClose }: { row: Retailer | null; onClose: () => void }) {
+export function CustomerDrawer({ row, onClose }: { row: Retailer | null; onClose: () => void }) {
   const buyers = listData(useIngestedContactsQuery(-1).data)
   const departments = listData(useDepartmentsQuery(-1).data)
   const opportunities = listData(useOpportunitiesQuery(-1).data)
@@ -47,7 +47,7 @@ export function AccountDrawer({ row, onClose }: { row: Retailer | null; onClose:
       onClose={onClose}
       title={row?.name || 'Customer'}
       subtitle={row?.domain ?? undefined}
-      avatar={row ? <AccountLogo name={row.name} domain={row.domain} size={36} /> : undefined}
+      avatar={row ? <CustomerLogo name={row.name} domain={row.domain} size={36} /> : undefined}
       status={
         row ? (
           <>

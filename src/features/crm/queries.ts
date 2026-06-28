@@ -2,8 +2,8 @@ import { useMutation, useQuery, useQueryClient, type QueryClient } from '@tansta
 import {
   createIgnoreRule,
   createNote,
-  fetchAccountSegment,
-  fetchAccountSegmentCounts,
+  fetchCustomerSegment,
+  fetchCustomerSegmentCounts,
   fetchAiModelConfigs,
   fetchAllContacts,
   fetchApprovalThreads,
@@ -34,8 +34,8 @@ import {
   updateOpportunity,
   updateRetailer,
   updateTask,
-  type AccountSegment,
-  type AccountSegmentCounts,
+  type CustomerSegment,
+  type CustomerSegmentCounts,
   type ContactSegment,
   type ContactSegmentCounts,
   type EmailSegmentCounts,
@@ -62,8 +62,8 @@ export const crmKeys = {
   fireflies: () => [...crmKeys.all, 'fireflies'] as const,
   opportunities: (limit = -1) => [...crmKeys.all, 'opportunities', { limit }] as const,
   retailers: (limit = -1) => [...crmKeys.all, 'retailers', { limit }] as const,
-  accountSegment: (segment: AccountSegment, limit = -1) => [...crmKeys.all, 'accountSegment', segment, { limit }] as const,
-  accountSegmentCounts: () => [...crmKeys.all, 'accountSegmentCounts'] as const,
+  customerSegment: (segment: CustomerSegment, limit = -1) => [...crmKeys.all, 'customerSegment', segment, { limit }] as const,
+  customerSegmentCounts: () => [...crmKeys.all, 'customerSegmentCounts'] as const,
   buyers: (limit = -1) => [...crmKeys.all, 'buyers', { limit }] as const,
   ingestedDomains: (limit = -1) => [...crmKeys.all, 'ingestedDomains', { limit }] as const,
   ingestedDomainCount: () => [...crmKeys.all, 'ingestedDomainCount'] as const,
@@ -136,20 +136,20 @@ export function useRetailersQuery(limit = -1) {
   return useQuery({ queryKey: crmKeys.retailers(limit), queryFn: () => fetchRetailers(limit), ...crmQueryDefaults, staleTime: 2 * 60_000 })
 }
 
-export function useAccountSegmentQuery(segment: AccountSegment, limit = -1, enabled = true) {
+export function useCustomerSegmentQuery(segment: CustomerSegment, limit = -1, enabled = true) {
   return useQuery({
-    queryKey: crmKeys.accountSegment(segment, limit),
-    queryFn: () => fetchAccountSegment(segment, limit),
+    queryKey: crmKeys.customerSegment(segment, limit),
+    queryFn: () => fetchCustomerSegment(segment, limit),
     ...crmQueryDefaults,
     enabled,
     staleTime: 2 * 60_000,
   })
 }
 
-export function useAccountSegmentCountsQuery() {
-  return useQuery<AccountSegmentCounts>({
-    queryKey: crmKeys.accountSegmentCounts(),
-    queryFn: fetchAccountSegmentCounts,
+export function useCustomerSegmentCountsQuery() {
+  return useQuery<CustomerSegmentCounts>({
+    queryKey: crmKeys.customerSegmentCounts(),
+    queryFn: fetchCustomerSegmentCounts,
     ...crmQueryDefaults,
     staleTime: 30_000,
   })
@@ -318,17 +318,17 @@ export function useUpdateEmailMutation() {
   })
 }
 
-export function useUpdateAccountMutation() {
+export function useUpdateCustomerMutation() {
   const queryClient = useQueryClient()
   return useMutation({
     mutationFn: ({ id, values }: { id: string; values: Partial<Retailer> }) => updateRetailer(id, values),
     onMutate: async ({ id, values }) => {
-      await queryClient.cancelQueries({ queryKey: [...crmKeys.all, 'accountSegment'] })
+      await queryClient.cancelQueries({ queryKey: [...crmKeys.all, 'customerSegment'] })
       await queryClient.cancelQueries({ queryKey: [...crmKeys.all, 'retailers'] })
-      const previousSegments = queryClient.getQueriesData<Retailer[]>({ queryKey: [...crmKeys.all, 'accountSegment'] })
+      const previousSegments = queryClient.getQueriesData<Retailer[]>({ queryKey: [...crmKeys.all, 'customerSegment'] })
       const previousRetailers = queryClient.getQueriesData<Retailer[]>({ queryKey: [...crmKeys.all, 'retailers'] })
       updateMatchingLists<Retailer>(queryClient, [...crmKeys.all, 'retailers'], id, values)
-      updateMatchingLists<Retailer>(queryClient, [...crmKeys.all, 'accountSegment'], id, values)
+      updateMatchingLists<Retailer>(queryClient, [...crmKeys.all, 'customerSegment'], id, values)
       return { previousSegments, previousRetailers }
     },
     onError: (_error, _vars, context) => {
@@ -337,8 +337,8 @@ export function useUpdateAccountMutation() {
     },
     onSettled: () => {
       void queryClient.invalidateQueries({ queryKey: [...crmKeys.all, 'retailers'] })
-      void queryClient.invalidateQueries({ queryKey: [...crmKeys.all, 'accountSegment'] })
-      void queryClient.invalidateQueries({ queryKey: crmKeys.accountSegmentCounts() })
+      void queryClient.invalidateQueries({ queryKey: [...crmKeys.all, 'customerSegment'] })
+      void queryClient.invalidateQueries({ queryKey: crmKeys.customerSegmentCounts() })
       void queryClient.invalidateQueries({ queryKey: crmKeys.stats() })
     },
   })
@@ -363,8 +363,8 @@ export function usePromoteIngestedDomainMutation() {
       void queryClient.invalidateQueries({ queryKey: [...crmKeys.all, 'ingestedDomains'] })
       void queryClient.invalidateQueries({ queryKey: crmKeys.ingestedDomainCount() })
       void queryClient.invalidateQueries({ queryKey: [...crmKeys.all, 'retailers'] })
-      void queryClient.invalidateQueries({ queryKey: [...crmKeys.all, 'accountSegment'] })
-      void queryClient.invalidateQueries({ queryKey: crmKeys.accountSegmentCounts() })
+      void queryClient.invalidateQueries({ queryKey: [...crmKeys.all, 'customerSegment'] })
+      void queryClient.invalidateQueries({ queryKey: crmKeys.customerSegmentCounts() })
       void queryClient.invalidateQueries({ queryKey: crmKeys.stats() })
     },
   })

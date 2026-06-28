@@ -184,7 +184,7 @@ generated database types are in `src/lib/database.types.ts`:
 
 | Entity/System | Identifier | Where defined | Notes |
 |---|---|---|---|
-| Customer | `core.customer` / `api.customer_list` (shared) plus legacy CRM compatibility views | Supabase | shared customer hub. `is_potential = false` means PLM/ERP-confirmed active customer; `true` means tracked potential customer. `customer_status` remains the CRM workflow/status axis. Older CRM code still contains `api.crm_account_list` / `api.crm_update_account` names; treat those as compatibility debt to migrate to customer-named API contracts, not as the desired model. No logo field — see Quirks |
+| Customer | `core.customer` / `api.customer_list` (shared) plus CRM-specific `api.crm_customer_*` contracts | Supabase | shared customer hub. `is_potential = false` means PLM/ERP-confirmed active customer; `true` means tracked potential customer. `customer_status` remains the CRM workflow/status axis. Legacy `api.crm_account_list` / `api.crm_update_account` names are deprecated compatibility contracts only; do not add new callers. `api.crm_customer_list.logo_url` exposes PLM-imported full-width logo URLs when available |
 | Ingested domain | `crm.ingested_domain` / `api.crm_ingested_domain_list` | Supabase | CRM-only email-domain triage inbox. These rows are **not** customers and are not shared with PM/DAM/PLM. Promote with `crm.promote_ingested_domain(...)` to create a potential `core.customer` row |
 | Contact | `core.contact` + `core.contact_company` / `api.crm_contact_list` | Supabase | contacts and customer/department relation rows (migrated from Twenty `person`/Directus `buyer`) |
 | Department | `crm.department` / `api.crm_department_list` | Supabase | retailer departments |
@@ -308,7 +308,7 @@ potential, blue New Company (untriaged), gray Not-a-Customer — no red.
 ### Customers Triage is ingested domains, not customer rows
 
 Looks like:
-You could load Customers → Triage from `api.crm_account_list` rows where
+You could load Customers → Triage from `api.crm_customer_list` rows where
 `customer_status` is `UNASSIGNED`.
 
 Actually:
@@ -316,7 +316,7 @@ Email-domain noise lives in `crm.ingested_domain` and is exposed through
 `api.crm_ingested_domain_list`. Those rows are not customers and should
 use the `CrmIngestedDomain` frontend type, not `Retailer`. The Triage table shows
 domain evidence and a promote action; it must not render customer-only inline
-status/chain edits or `AccountDrawer`.
+status/chain edits or `CustomerDrawer`.
 
 Why:
 `core.customer` is the shared hub used by CRM, PM, DAM, and PLM. Random email
@@ -329,9 +329,9 @@ Keep customer lists and customer pickers on customer-scoped API contracts
 (`api.customer_list` for shared/basic reads, or a CRM-specific
 `api.crm_customer_*` view when CRM-owned fields are needed); keep Customers
 Triage on `api.crm_ingested_domain_list`. Do not add new `account`-named API
-contracts. Existing `api.crm_account_list` / `api.crm_update_account` references
-are legacy compatibility debt and should be removed with a shared-db migration
-that preserves production rollout safety. If a frontend change requires a new
+contracts or callers. Existing `api.crm_account_list` / `api.crm_update_account`
+objects are legacy compatibility names and should only be dropped after every
+deployed client has moved to customer-named contracts. If a frontend change requires a new
 view/RPC/policy/trigger, make that change in canonical `/worksp/shared-db` and
 document it in the appropriate `u2giants/shared-db` `.md` file, not this repo's
 vendored `shared-db/` mirror.
@@ -465,9 +465,11 @@ Logos might have been migrated from Twenty as uploaded files.
 Actually:
 Twenty's `company` table has **no logo/avatar/image column** — Twenty rendered
 logos live from each company's domain via its `twenty-favicon` service. There was
-nothing to migrate. `src/components/app/AccountLogo.tsx` replicates this: it fetches
-from `img.logo.dev` keyed on `retailer.domain` (token `VITE_LOGODEV_TOKEN`), falling
-back to the name-initials `NameAvatar` when there's no domain/token or the image fails.
+nothing to migrate from Twenty. `src/components/app/CustomerLogo.tsx` fetches
+compact logo tokens from `img.logo.dev` keyed on `retailer.domain` (token
+`VITE_LOGODEV_TOKEN`) and uses `api.crm_customer_list.logo_url` for stored
+full-width PLM customer logos when available, falling back to the name-initials
+`NameAvatar` when no usable image exists.
 The publishable logo.dev token is stored in 1Password at
 `op://vibe_coding/logo.dev publishable token - popcrm-web/password` and mirrored
 to the GitHub Actions secret `LOGODEV_TOKEN`.
