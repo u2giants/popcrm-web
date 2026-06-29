@@ -133,6 +133,12 @@ function applyCustomerSegment(q: ReturnType<typeof anyDb.schema>, segment: Custo
 }
 
 async function fetchCustomerSegmentRows(segment: CustomerSegment, limit = -1): Promise<Row[]> {
+  const { data, error } = await anyDb
+    .schema("api")
+    .rpc('crm_customer_segment_list', { p_segment: segment, p_limit: limit })
+  if (!error) return (data ?? []) as Row[]
+  if (!isMissingApiObject(error)) throw error
+
   if (segment === 'all') return fetchRows('crm_customer_list', [{ col: 'name' }], limit)
   const PAGE = 1000
   const out: Row[] = []
@@ -395,11 +401,8 @@ export async function askOpportunityAi(id: string, question: string): Promise<st
 // Customers / companies (curated customers vs full ingested registry)
 // ---------------------------------------------------------------------------
 export async function fetchRetailers(limit = -1): Promise<Retailer[]> {
-  let q = supabase.schema('api').from('crm_customer_list').select('*').in('customer_status', CUSTOMER_STATUSES).order('name')
-  if (limit >= 0) q = q.limit(limit)
-  const { data, error } = await q
-  if (error) throw error
-  return ((data ?? []) as Row[]).map(toRetailer)
+  const rows = await fetchCustomerSegmentRows('active', limit)
+  return rows.map(toRetailer)
 }
 
 export async function fetchIngestedDomains(limit = -1): Promise<CrmIngestedDomain[]> {
@@ -450,6 +453,18 @@ export async function fetchCustomerSegment(segment: CustomerSegment, limit = -1)
 }
 
 export async function fetchCustomerSegmentCounts(): Promise<CustomerSegmentCounts> {
+  const { data, error } = await anyDb.schema("api").rpc('crm_customer_segment_counts')
+  if (!error) {
+    const row = ((Array.isArray(data) ? data[0] : data) ?? {}) as Row
+    return {
+      active: Number(row.active ?? 0),
+      triage: Number(row.triage ?? 0),
+      dismissed: Number(row.dismissed ?? 0),
+      all: Number(row.all ?? 0),
+    }
+  }
+  if (!isMissingApiObject(error)) throw error
+
   const [active, triage, dismissed, all] = await Promise.all([
     countCustomerSegment('active'),
     fetchIngestedDomainCount(),

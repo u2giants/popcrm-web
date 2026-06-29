@@ -1057,6 +1057,34 @@ export type Database = {
       }
     }
     Functions: {
+      crm_customer_segment_counts: {
+        Args: never
+        Returns: {
+          active: number
+          all: number
+          dismissed: number
+          triage: number
+        }[]
+      }
+      crm_customer_segment_list: {
+        Args: { p_limit?: number; p_segment?: string }
+        Returns: {
+          account_owner_profile_id: string
+          chain_type: string
+          company_type: string
+          customer_status: string
+          domain: string
+          id: string
+          is_potential: boolean
+          logo_url: string
+          name: string
+          primary_salesperson_profile_id: string
+          routing_aliases: string
+          so_patterns: string
+          status: string
+          updated_at: string
+        }[]
+      }
       crm_email_routing_recent: {
         Args: { p_limit?: number }
         Returns: {

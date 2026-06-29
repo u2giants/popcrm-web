@@ -184,7 +184,7 @@ generated database types are in `src/lib/database.types.ts`:
 
 | Entity/System | Identifier | Where defined | Notes |
 |---|---|---|---|
-| Customer | `core.customer` / `api.customer_list` (shared) plus CRM-specific `api.crm_customer_*` contracts | Supabase | shared customer hub. `is_potential = false` means PLM/ERP-confirmed active customer; `true` means tracked potential customer. `customer_status` remains the CRM workflow/status axis. Legacy `api.crm_account_list` / `api.crm_update_account` names are deprecated compatibility contracts only; do not add new callers. `api.crm_customer_list.logo_url` exposes PLM-imported full-width logo URLs when available |
+| Customer | `core.customer` / `api.customer_list` (shared) plus CRM-specific `api.crm_customer_*` contracts | Supabase | shared customer hub. `is_potential = false` means PLM/ERP-confirmed active customer; `true` means tracked potential customer. `customer_status` remains the CRM workflow/status axis. Use `api.crm_customer_segment_list` / `api.crm_customer_segment_counts` for CRM customer page tabs and active pickers. Legacy `api.crm_account_list` / `api.crm_update_account` names are deprecated compatibility contracts only; do not add new callers. `api.crm_customer_list.logo_url` exposes PLM-imported full-width logo URLs when available |
 | Ingested domain | `crm.ingested_domain` / `api.crm_ingested_domain_list` | Supabase | CRM-only email-domain triage inbox. These rows are **not** customers and are not shared with PM/DAM/PLM. Promote with `crm.promote_ingested_domain(...)` to create a potential `core.customer` row |
 | Contact | `core.contact` + `core.contact_company` / `api.crm_contact_list` | Supabase | contacts and customer/department relation rows (migrated from Twenty `person`/Directus `buyer`) |
 | Department | `crm.department` / `api.crm_department_list` | Supabase | retailer departments |
@@ -335,6 +335,26 @@ deployed client has moved to customer-named contracts. If a frontend change requ
 view/RPC/policy/trigger, make that change in canonical `/worksp/shared-db` and
 document it in the appropriate `u2giants/shared-db` `.md` file, not this repo's
 vendored `shared-db/` mirror.
+
+### Customer tabs use server segments
+
+What changed:
+Browser verification on 2026-06-28 showed broad
+`api.crm_customer_list?select=*` reads and exact counts could still time out
+after the account-to-customer contract rename. Migration
+`20260629033000_crm_customer_segment_timeout_fixes.sql` adds
+`api.crm_customer_segment_list(p_segment, p_limit)` and
+`api.crm_customer_segment_counts()`.
+
+Why:
+The Customers page needs active, dismissed, and all counts/rows, but the browser
+should not page or count the full customer compatibility view. Segment RPCs
+filter `core.customer` directly and return the needed rows/counts quickly.
+
+Future sessions should:
+Keep Customers page tabs and active customer pickers on
+`useCustomerSegmentQuery` / `useCustomerSegmentCountsQuery`. Do not restore
+full browser paging or exact head counts against `api.crm_customer_list`.
 
 ### Contacts page customer segmentation and customer edit choices
 
