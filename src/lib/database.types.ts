@@ -1057,6 +1057,39 @@ export type Database = {
       }
     }
     Functions: {
+      crm_email_routing_recent: {
+        Args: { p_limit?: number }
+        Returns: {
+          body_preview: string
+          company_id: string
+          company_name: string
+          department_id: string
+          department_name: string
+          detected_po_numbers: string
+          detected_so_numbers: string
+          id: string
+          opportunity_id: string
+          opportunity_name: string
+          opportunity_stage: string
+          received_at: string
+          recipients: string
+          routing_method: string
+          routing_status: string
+          sender: string
+          subject: string
+          updated_at: string
+        }[]
+      }
+      crm_email_routing_segment_counts: {
+        Args: never
+        Returns: {
+          all: number
+          company: number
+          department: number
+          program: number
+          triage: number
+        }[]
+      }
       crm_set_opportunity_stage: {
         Args: { p_opportunity_id: string; p_stage: string }
         Returns: Database["crm"]["Tables"]["opportunity"]["Row"]

@@ -189,7 +189,7 @@ generated database types are in `src/lib/database.types.ts`:
 | Contact | `core.contact` + `core.contact_company` / `api.crm_contact_list` | Supabase | contacts and customer/department relation rows (migrated from Twenty `person`/Directus `buyer`) |
 | Department | `crm.department` / `api.crm_department_list` | Supabase | retailer departments |
 | Opportunity | `crm.opportunity` / `api.crm_opportunity_list` | Supabase | pipeline; `stage` enum in `constants.ts:OPPORTUNITY_STAGES` |
-| Email | `crm.email_message` / `api.crm_email_routing_queue` | Supabase | Outlook-ingested; `routing_status` drives routing UI |
+| Email | `crm.email_message` / `api.crm_email_routing_recent` / `api.crm_email_routing_segment_counts` plus `api.crm_email_routing_queue` for small searches | Supabase | Outlook-ingested; `routing_status` drives routing UI. Do not page the entire joined queue view in the browser; use the recent feed and count RPCs to avoid PostgREST timeouts |
 | Meeting note | `crm.meeting_note` / `api.crm_meeting_list` | Supabase | Fireflies/imported |
 | Note / Task | `crm.note` / `crm.task` | Supabase | manual CRM records |
 | Ignore rule | `crm.ignore_rule` / `api.crm_ignore_rule_list` | Supabase | email routing skip rules |
@@ -415,6 +415,29 @@ Do not re-add server-side `order('name')` or
 loaded segment. `api.crm_contact_list` remains the generic/fallback contract. If
 Contacts are zero, test the exact authenticated REST pages and check
 `app.profile.auth_user_id` / `app.app_access` before assuming data is missing.
+
+### Email Routing uses a recent feed plus server counts
+
+What changed:
+After the customer-contract rename, browser verification showed Email Routing
+could still time out because the app paged the full joined
+`api.crm_email_routing_queue` view and computed segment counts client-side.
+Migration `20260629031500_crm_timeout_fixes.sql` adds
+`api.crm_email_routing_recent(p_limit)` and
+`api.crm_email_routing_segment_counts()`.
+
+Why:
+Production has enough historical emails that a broad joined queue read can hit
+PostgREST statement timeouts and leave the UI empty or stale. The recent feed
+limits `crm.email_message` first, then joins labels; the count RPC computes full
+tab badges server-side.
+
+Future sessions should:
+Keep Email Routing's table on `useEmailsQuery(EMAIL_ROUTE_LIMIT)` with a
+positive limit, and keep tab badges on `useEmailSegmentCountsQuery`. Do not
+restore `useEmailsQuery(-1)` for Email Routing or use full queue paging to
+compute counts. Small explicit-limit global search against
+`api.crm_email_routing_queue` is still acceptable.
 
 ### Fireflies health does not prove meeting ingestion
 
