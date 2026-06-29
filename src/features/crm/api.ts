@@ -609,7 +609,12 @@ const EMAIL_MAP = { retailer: 'company_id', department: 'department_id', opportu
 const EMAIL_RELS = ['retailer', 'department', 'opportunity']
 
 export async function fetchEmailMessages(limit = -1): Promise<CrmEmailMessage[]> {
-  const rows = await fetchRows('crm_email_routing_queue', [{ col: 'received_at', asc: false }], limit)
+  const rowLimit = limit >= 0 ? limit : 500
+  const { data, error } = await anyDb.schema("api").rpc('crm_email_routing_recent', { p_limit: rowLimit })
+  if (!error) return ((data ?? []) as Row[]).map(toEmail)
+  if (!isMissingApiObject(error)) throw error
+
+  const rows = await fetchRows('crm_email_routing_queue', [{ col: 'received_at', asc: false }], rowLimit)
   return rows.map(toEmail)
 }
 
@@ -623,6 +628,19 @@ function emailSegmentOf(row: Row): Exclude<EmailSegment, 'all'> {
 }
 
 export async function fetchEmailSegmentCounts(): Promise<EmailSegmentCounts> {
+  const { data, error } = await anyDb.schema("api").rpc('crm_email_routing_segment_counts')
+  if (!error) {
+    const row = ((Array.isArray(data) ? data[0] : data) ?? {}) as Row
+    return {
+      company: Number(row.company ?? 0),
+      department: Number(row.department ?? 0),
+      program: Number(row.program ?? 0),
+      triage: Number(row.triage ?? 0),
+      all: Number(row.all ?? 0),
+    }
+  }
+  if (!isMissingApiObject(error)) throw error
+
   const PAGE = 1000
   const counts: EmailSegmentCounts = { company: 0, department: 0, program: 0, triage: 0, all: 0 }
   let from = 0

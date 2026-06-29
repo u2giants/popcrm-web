@@ -38,7 +38,7 @@ import {
 import type { CrmEmailMessage } from '@/lib/types'
 
 type Segment = 'company' | 'department' | 'program' | 'triage' | 'all'
-const EMAIL_ROUTE_LIMIT = -1
+const EMAIL_ROUTE_LIMIT = 500
 
 const METHOD_LABEL: Record<string, string> = {
   DETERMINISTIC: 'Rule match',
