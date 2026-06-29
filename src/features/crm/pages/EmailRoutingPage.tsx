@@ -38,7 +38,7 @@ import {
 import type { CrmEmailMessage } from '@/lib/types'
 
 type Segment = 'company' | 'department' | 'program' | 'triage' | 'all'
-const EMAIL_ROUTE_LIMIT = 1000
+const EMAIL_ROUTE_LIMIT = -1
 
 const METHOD_LABEL: Record<string, string> = {
   DETERMINISTIC: 'Rule match',
@@ -76,7 +76,7 @@ export function EmailRoutingPage() {
   const { user } = useAuth()
   const roleText = `${user?.role?.name ?? ''} ${user?.role?.id ?? ''}`.toLowerCase()
   const canSeeAll = /admin/.test(roleText)
-  const [segment, setSegment] = useState<Segment>('company')
+  const [segment, setSegment] = useState<Segment>('triage')
   const [query, setQuery] = useState('')
   const [selected, select] = useRecordSelection<CrmEmailMessage>('message', emails)
   const retailerById = useMemo(() => new Map(retailers.map((r) => [r.id, r])), [retailers])
