@@ -561,6 +561,26 @@ Running `npx shadcn add` may rewrite these with a different import style and bre
 
 See Credentials and environment / `docs/deployment.md` — a static SPA bakes config at build, so there is no Coolify runtime env for app config.
 
+### DataTable horizontal scroll can be caused by header resize handles
+
+What changed:
+On 2026-06-30, Data Admin's department table showed a horizontal scrollbar even
+when there was visible empty page space. Two causes overlapped: the page body was
+capped at `max-w-6xl`, and `DataTable` rendered as `w-max` with resize handles
+positioned `right-[-4px]`, making the last header cell overflow by 4px.
+
+Why:
+The table was being squeezed inside an artificially narrow centered wrapper; the
+off-cell resize handle then created a scrollbar even when the table otherwise
+fit.
+
+Future sessions should:
+Keep wide table pages full-width unless there is a deliberate readability reason
+to cap them. If a table scrollbar looks unnecessary, verify with Playwright by
+comparing the table wrapper's `clientWidth` and `scrollWidth`; do not trust the
+visual screenshot alone. Current intended behavior is `DataTable` tables use
+`min-w-full`, and resize handles stay inside header cells (`right-0`).
+
 ## Credentials and environment
 
 No secret values appear here or in the repo.
