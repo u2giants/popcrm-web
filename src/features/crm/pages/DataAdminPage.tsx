@@ -364,7 +364,7 @@ export function DataAdminPage() {
       {error ? (
         <ErrorState onRetry={refresh} />
       ) : (
-        <div className="mx-auto grid max-w-6xl gap-5 p-4 sm:p-6 lg:p-8">
+        <div className="grid w-full gap-5 p-4 sm:p-6 lg:p-8">
           {tab === 'departments' ? (
             <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_360px]">
               <section className="min-w-0 rounded-[8px] border bg-card shadow-[var(--shadow-xs)]">

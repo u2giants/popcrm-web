@@ -463,7 +463,7 @@ export function DataTable<T>({
       {/* Scrollable table */}
       <div className="overflow-auto">
         <table
-          className="w-max border-collapse"
+          className="min-w-full border-collapse"
           style={{
             tableLayout: hasWidths ? 'fixed' : undefined,
             width: tableWidth,
@@ -572,7 +572,7 @@ export function DataTable<T>({
 
                     {/* Resize handle with a visible separator line */}
                     <div
-                      className="group/resize absolute top-0 right-[-4px] z-[3] flex h-full w-[9px] cursor-col-resize items-center justify-center"
+                      className="group/resize absolute top-0 right-0 z-[3] flex h-full w-[9px] cursor-col-resize items-center justify-center"
                       onMouseDown={(e) => onResizeDown(e, col.key)}
                       onClick={(e) => e.stopPropagation()}
                     >
