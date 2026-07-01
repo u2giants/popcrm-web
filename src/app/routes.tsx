@@ -11,6 +11,7 @@ const DepartmentsPage = lazy(() => import('@/features/crm/pages/DepartmentsPage'
 const ProgramsPage = lazy(() => import('@/features/crm/pages/ProgramsPage').then((m) => ({ default: m.ProgramsPage })))
 const ContactsPage = lazy(() => import('@/features/crm/pages/ContactsPage').then((m) => ({ default: m.ContactsPage })))
 const EmailRoutingPage = lazy(() => import('@/features/crm/pages/EmailRoutingPage').then((m) => ({ default: m.EmailRoutingPage })))
+const TriagePage = lazy(() => import('@/features/crm/pages/TriagePage').then((m) => ({ default: m.TriagePage })))
 const MeetingsPage = lazy(() => import('@/features/crm/pages/MeetingsPage').then((m) => ({ default: m.MeetingsPage })))
 const NotesPage = lazy(() => import('@/features/crm/pages/NotesPage').then((m) => ({ default: m.NotesPage })))
 const TasksPage = lazy(() => import('@/features/crm/pages/TasksPage').then((m) => ({ default: m.TasksPage })))
@@ -44,6 +45,7 @@ export function AppRoutes() {
         <Route path="programs" element={<Suspense fallback={<PageFallback />}><ProgramsPage /></Suspense>} />
         <Route path="contacts" element={<Suspense fallback={<PageFallback />}><ContactsPage /></Suspense>} />
         <Route path="email" element={<Suspense fallback={<PageFallback />}><EmailRoutingPage /></Suspense>} />
+        <Route path="triage" element={<Suspense fallback={<PageFallback />}><TriagePage /></Suspense>} />
         <Route path="meetings" element={<Suspense fallback={<PageFallback />}><MeetingsPage /></Suspense>} />
         <Route path="notes" element={<Suspense fallback={<PageFallback />}><NotesPage /></Suspense>} />
         <Route path="tasks" element={<Suspense fallback={<PageFallback />}><TasksPage /></Suspense>} />

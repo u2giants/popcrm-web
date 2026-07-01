@@ -5,7 +5,13 @@ import { useCrmStatsQuery, useFirefliesHealth } from '@/features/crm/queries'
 import { isApprovalResolved, needsRouting } from '@/features/crm/constants'
 import { cn } from '@/lib/utils'
 
-function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
+function SidebarContent({
+  onNavigate,
+  variant = 'desktop',
+}: {
+  onNavigate?: () => void
+  variant?: 'desktop' | 'mobile'
+}) {
   const statsQuery = useCrmStatsQuery()
   const fireflies = useFirefliesHealth()
   const statsData = statsQuery.data
@@ -17,11 +23,18 @@ function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
 
   const badges: Record<string, number> = {
     '/email': stats.needsRouting,
+    '/triage': stats.needsRouting,
     '/tasks': stats.openTasks,
     '/approvals': stats.pendingApprovals,
   }
 
   const healthOk = fireflies.data !== false
+
+  // `mobileOnly` items (e.g. Quick Triage) surface only in the mobile nav sheet.
+  const sections = NAV_SECTIONS.map((section) => ({
+    ...section,
+    items: section.items.filter((item) => variant === 'mobile' || !item.mobileOnly),
+  })).filter((section) => section.items.length > 0)
 
   return (
     <div className="flex h-full flex-col" style={{ background: 'var(--sidebar)', color: 'var(--sidebar-foreground)' }}>
@@ -50,7 +63,7 @@ function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
 
       {/* Nav sections */}
       <nav className="flex-1 overflow-y-auto py-[10px]">
-        {NAV_SECTIONS.map((section) => (
+        {sections.map((section) => (
           <div key={section.label}>
             <div
               className="px-[20px] pb-[6px] pt-[14px] text-[10px] font-[600] uppercase tracking-[0.07em]"
@@ -147,7 +160,7 @@ function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
 }
 
 export function AppSidebarContent({ onNavigate }: { onNavigate?: () => void }) {
-  return <SidebarContent onNavigate={onNavigate} />
+  return <SidebarContent onNavigate={onNavigate} variant="mobile" />
 }
 
 export function AppSidebar() {
