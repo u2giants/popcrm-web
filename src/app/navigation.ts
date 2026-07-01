@@ -11,6 +11,7 @@ import {
   Route,
   Settings2,
   ShieldCheck,
+  Zap,
 } from 'lucide-react'
 
 export interface NavItem {
@@ -20,6 +21,8 @@ export interface NavItem {
   end?: boolean
   iconColor: string
   badgeMuted?: boolean
+  /** Only shown in the mobile nav sheet; hidden from the desktop sidebar. */
+  mobileOnly?: boolean
 }
 
 export interface NavSection {
@@ -33,6 +36,7 @@ export const NAV_SECTIONS: NavSection[] = [
     items: [
       { to: '/', label: 'Overview', icon: LayoutDashboard, end: true, iconColor: 'oklch(0.60 0.17 255)' },
       { to: '/email', label: 'Email Routing', icon: MailWarning, iconColor: 'oklch(0.62 0.16 25)' },
+      { to: '/triage', label: 'Quick Triage', icon: Zap, iconColor: 'oklch(0.64 0.16 95)', mobileOnly: true },
       { to: '/meetings', label: 'Meetings', icon: CalendarDays, iconColor: 'oklch(0.66 0.15 60)' },
     ],
   },
