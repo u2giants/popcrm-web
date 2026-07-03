@@ -68,9 +68,12 @@ receives the `administrator` role. Migration
 `20260703172500_fix_crm_auth_profile_email_link.sql` also makes that trigger
 link an existing pre-seeded `app.profile` by email before inserting a new
 profile, avoiding `app.profile.email` uniqueness failures for imported staff
-profiles. So a brand-new staff member can sign in and immediately see CRM data
-without manual seeding, and an imported staff profile can be linked on first SSO
-login.
+profiles. Migration
+`20260703220000_fix_crm_auth_profile_mismatched_email_relink.sql` covers the
+related stale-link case where a CRM profile email is already attached to an
+older Auth user with a different email. So a brand-new staff member can sign in
+and immediately see CRM data without manual seeding, and an imported staff
+profile can be linked or relinked on first SSO login.
 
 The mapping still matters when debugging: the user's `auth.users.id` is linked
 from `app.profile.auth_user_id`, and the profile must have `app.app_access` for
@@ -78,8 +81,10 @@ from `app.profile.auth_user_id`, and the profile must have `app.app_access` for
 rows, verify that profile/app-access mapping first — and confirm the
 auto-provision trigger is still present on `auth.users`. If Microsoft SSO
 returns to the app with `error_description=Database error saving new user`, check
-for a pre-seeded `app.profile.email` row with a missing `auth_user_id` and verify
-that the email-link migration is applied in the shared Supabase project.
+for a pre-seeded `app.profile.email` row with a missing `auth_user_id` or an
+`auth_user_id` whose `auth.users.email` differs from the profile email, and
+verify that both email-link migrations are applied in the shared Supabase
+project.
 
 Backend secrets, service-role keys, and OAuth configuration live outside this
 frontend repo. The frontend must never receive or bake a Supabase service-role
