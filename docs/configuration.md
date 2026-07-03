@@ -64,14 +64,22 @@ Profile provisioning is automatic. A shared-db trigger
 (`app.handle_new_auth_user` on `auth.users` insert, migration
 `20260621162220_crm_auth_provision.sql`) creates `app.profile` and grants
 `app.app_access('crm')` on a user's **first** SSO login; the owner email also
-receives the `administrator` role. So a brand-new staff member can sign in and
-immediately see CRM data without manual seeding.
+receives the `administrator` role. Migration
+`20260703172500_fix_crm_auth_profile_email_link.sql` also makes that trigger
+link an existing pre-seeded `app.profile` by email before inserting a new
+profile, avoiding `app.profile.email` uniqueness failures for imported staff
+profiles. So a brand-new staff member can sign in and immediately see CRM data
+without manual seeding, and an imported staff profile can be linked on first SSO
+login.
 
 The mapping still matters when debugging: the user's `auth.users.id` is linked
 from `app.profile.auth_user_id`, and the profile must have `app.app_access` for
 `crm`. If one user sees empty CRM lists while service-role or admin checks show
 rows, verify that profile/app-access mapping first — and confirm the
-auto-provision trigger is still present on `auth.users`.
+auto-provision trigger is still present on `auth.users`. If Microsoft SSO
+returns to the app with `error_description=Database error saving new user`, check
+for a pre-seeded `app.profile.email` row with a missing `auth_user_id` and verify
+that the email-link migration is applied in the shared Supabase project.
 
 Backend secrets, service-role keys, and OAuth configuration live outside this
 frontend repo. The frontend must never receive or bake a Supabase service-role

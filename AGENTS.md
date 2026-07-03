@@ -532,16 +532,26 @@ What changed:
 During the 2026-06-22 contacts incident, the imported data was present but a
 signed-in user with no linked `app.profile.auth_user_id` saw empty CRM lists.
 Linking the existing `app.profile` row to the Supabase Auth user and confirming
-`app.app_access` for `crm` restored access.
+`app.app_access` for `crm` restored access. On 2026-07-03, Microsoft SSO for
+some users failed before the app rendered with Supabase Auth's
+`Database error saving new user` callback error because pre-seeded
+`app.profile` rows had unique emails but no `auth_user_id`.
 
 Why:
 RLS and API views are app-access gated. Supabase Auth can authenticate a browser
-session while the CRM profile/app-access mapping is still missing or stale.
+session while the CRM profile/app-access mapping is still missing or stale. The
+first-login auth trigger must link imported profiles by email before inserting a
+new profile, otherwise `app.profile.email` can collide and abort `auth.users`
+creation.
 
 Future sessions should:
 If one user sees zero records while service-role counts are nonzero, verify
 `auth.users.id -> app.profile.auth_user_id` and the user's `app.app_access` row
-for `crm` before debugging frontend filters or rerunning imports.
+for `crm` before debugging frontend filters or rerunning imports. If Microsoft
+SSO redirects back with `error_description=Database error saving new user`, check
+the shared-db migration `20260703172500_fix_crm_auth_profile_email_link.sql`,
+the `app.handle_new_auth_user()` trigger function, and whether the user's
+`app.profile.email` is still unlinked.
 
 ### `src/components/ui` is hand-maintained, imports from `radix-ui`
 
