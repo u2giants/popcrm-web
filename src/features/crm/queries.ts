@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient, type QueryClient } from '@tansta
 import {
   createIgnoreRule,
   createNote,
+  createDepartment,
   fetchCustomerSegment,
   fetchCustomerSegmentCounts,
   fetchAiModelConfigs,
@@ -454,6 +455,17 @@ export function useUpdateDepartmentMutation() {
   return useMutation({
     mutationFn: ({ id, values }: { id: string; values: Partial<CrmDepartment> }) => updateDepartment(id, values),
     onSettled: () => void queryClient.invalidateQueries({ queryKey: [...crmKeys.all, 'departments'] }),
+  })
+}
+
+export function useCreateDepartmentMutation() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: (values: Partial<CrmDepartment>) => createDepartment(values),
+    onSuccess: (department) => {
+      prependMatchingLists<CrmDepartment>(queryClient, [...crmKeys.all, 'departments'], department)
+      void queryClient.invalidateQueries({ queryKey: [...crmKeys.all, 'departments'] })
+    },
   })
 }
 
