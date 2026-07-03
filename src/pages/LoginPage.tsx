@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { Route } from 'lucide-react'
 import { useAuth } from '@/auth/auth'
 import { Button } from '@/components/ui/button'
@@ -11,23 +11,6 @@ export function LoginPage() {
   const [password, setPassword] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
-
-  useEffect(() => {
-    const params = new URLSearchParams(window.location.search)
-    const hashParams = new URLSearchParams(window.location.hash.replace(/^#/, ''))
-    const authError = params.get('error_description') ?? hashParams.get('error_description')
-    const authErrorCode = params.get('error_code') ?? hashParams.get('error_code')
-
-    if (!authError) return
-
-    const message = authErrorCode === 'unexpected_failure' && /saving new user/i.test(authError)
-      ? 'Microsoft sign-in reached POP CRM, but the account could not be provisioned. Please ask an administrator to check your CRM access.'
-      : authError
-
-    setError(message)
-
-    window.history.replaceState({}, document.title, window.location.pathname || '/')
-  }, [])
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault()
