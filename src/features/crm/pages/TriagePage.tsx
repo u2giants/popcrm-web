@@ -172,6 +172,7 @@ export function TriagePage() {
       title="Quick Triage"
       description="Assign customer contacts to departments from your phone"
       scroll={false}
+      bodyClassName="box-border h-full min-h-0"
       actions={
         <Button
           variant="outline"
