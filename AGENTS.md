@@ -535,14 +535,18 @@ Linking the existing `app.profile` row to the Supabase Auth user and confirming
 `app.app_access` for `crm` restored access. On 2026-07-03, Microsoft SSO for
 some users failed before the app rendered with Supabase Auth's
 `Database error saving new user` callback error because pre-seeded
-`app.profile` rows had unique emails but no `auth_user_id`.
+`app.profile` rows had unique emails but no `auth_user_id`. A follow-up case for
+`adweck@popcre.com` had the same callback error because the CRM profile email was
+linked to an older Google Auth user with a different email.
 
 Why:
 RLS and API views are app-access gated. Supabase Auth can authenticate a browser
 session while the CRM profile/app-access mapping is still missing or stale. The
 first-login auth trigger must link imported profiles by email before inserting a
 new profile, otherwise `app.profile.email` can collide and abort `auth.users`
-creation.
+creation. It must also relink same-email CRM profiles when their existing
+`auth_user_id` points at an Auth user whose email does not match the CRM profile
+email.
 
 Future sessions should:
 If one user sees zero records while service-role counts are nonzero, verify
@@ -550,8 +554,9 @@ If one user sees zero records while service-role counts are nonzero, verify
 for `crm` before debugging frontend filters or rerunning imports. If Microsoft
 SSO redirects back with `error_description=Database error saving new user`, check
 the shared-db migration `20260703172500_fix_crm_auth_profile_email_link.sql`,
+follow-up migration `20260703220000_fix_crm_auth_profile_mismatched_email_relink.sql`,
 the `app.handle_new_auth_user()` trigger function, and whether the user's
-`app.profile.email` is still unlinked.
+`app.profile.email` is unlinked or linked to an Auth user with a different email.
 
 ### `src/components/ui` is hand-maintained, imports from `radix-ui`
 
