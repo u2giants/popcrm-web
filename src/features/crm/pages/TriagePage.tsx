@@ -4,6 +4,8 @@ import {
   Building2,
   Check,
   ChevronDown,
+  ChevronLeft,
+  ChevronRight,
   Contact,
   Inbox,
   Plus,
@@ -46,8 +48,9 @@ export function TriagePage() {
   const contacts = listData(contactsQuery.data)
   const departments = listData(departmentsQuery.data)
   const [query, setQuery] = useState('')
-  const [deferred, setDeferred] = useState<Set<string>>(new Set())
+  const [skipped, setSkipped] = useState<Set<string>>(new Set())
   const [completed, setCompleted] = useState<Set<string>>(new Set())
+  const [currentIndex, setCurrentIndex] = useState(0)
   const [departmentId, setDepartmentId] = useState('')
   const [newDepartmentName, setNewDepartmentName] = useState('')
 
@@ -57,13 +60,15 @@ export function TriagePage() {
     const q = query.trim().toLowerCase()
     return contacts
       .filter((contact) => idOf(contact.retailer) && !idOf(contact.department))
-      .filter((contact) => !completed.has(contact.id) && !deferred.has(contact.id))
+      .filter((contact) => !completed.has(contact.id))
       .filter((contact) => !q || contactSearchText(contact).includes(q))
       .sort((a, b) => a.name.localeCompare(b.name))
-  }, [contacts, completed, deferred, query])
+  }, [contacts, completed, query])
 
-  const current = queue[0] ?? null
+  const activeIndex = Math.min(currentIndex, Math.max(0, queue.length - 1))
+  const current = queue[activeIndex] ?? null
   const currentCustomerId = idOf(current?.retailer)
+  const currentSkipped = current ? skipped.has(current.id) : false
 
   const scopedDepartments = useMemo(
     () => departments.filter((department) => idOf(department.retailer) === currentCustomerId),
@@ -76,6 +81,11 @@ export function TriagePage() {
   )
 
   const busy = updateContact.isPending || createDepartment.isPending
+
+  function clearDraft() {
+    setDepartmentId('')
+    setNewDepartmentName('')
+  }
 
   async function assignDepartment(nextDepartmentId: string) {
     if (!current) return
@@ -96,6 +106,11 @@ export function TriagePage() {
         values: { retailer: currentCustomerId, department: department.id },
       })
       setCompleted((prev) => new Set(prev).add(current.id))
+      setSkipped((prev) => {
+        const next = new Set(prev)
+        next.delete(current.id)
+        return next
+      })
       setDepartmentId('')
       setNewDepartmentName('')
       toast.success('Contact routed to department')
@@ -123,6 +138,11 @@ export function TriagePage() {
         values: { retailer: currentCustomerId, department: department.id },
       })
       setCompleted((prev) => new Set(prev).add(current.id))
+      setSkipped((prev) => {
+        const next = new Set(prev)
+        next.delete(current.id)
+        return next
+      })
       setDepartmentId('')
       setNewDepartmentName('')
       toast.success('Department created and contact routed')
@@ -131,11 +151,20 @@ export function TriagePage() {
     }
   }
 
-  function deferCurrent() {
+  function goPrevious() {
+    clearDraft()
+    setCurrentIndex(Math.max(0, activeIndex - 1))
+  }
+
+  function goNext() {
+    clearDraft()
+    setCurrentIndex(Math.min(queue.length - 1, activeIndex + 1))
+  }
+
+  function skipCurrent() {
     if (!current) return
-    setDepartmentId('')
-    setNewDepartmentName('')
-    setDeferred((prev) => new Set(prev).add(current.id))
+    setSkipped((prev) => new Set(prev).add(current.id))
+    goNext()
   }
 
   return (
@@ -147,18 +176,22 @@ export function TriagePage() {
         <Button
           variant="outline"
           size="sm"
-          disabled={!deferred.size}
-          onClick={() => setDeferred(new Set())}
+          disabled={!skipped.size}
+          onClick={() => setSkipped(new Set())}
         >
           <Inbox className="size-4" />
-          Review skipped
+          Clear skipped
         </Button>
       }
     >
       <div className="mx-auto flex h-full min-h-0 w-full max-w-md flex-col gap-3 px-1 py-2">
         <Input
           value={query}
-          onChange={(event) => setQuery(event.target.value)}
+          onChange={(event) => {
+            setQuery(event.target.value)
+            setCurrentIndex(0)
+            clearDraft()
+          }}
           placeholder="Search contacts"
           className="h-10 bg-background"
         />
@@ -175,19 +208,20 @@ export function TriagePage() {
         ) : !current ? (
           <EmptyQueue
             filtered={!!query.trim()}
-            skipped={deferred.size}
+            skipped={skipped.size}
             onReset={() => {
               setQuery('')
-              setDeferred(new Set())
+              setSkipped(new Set())
+              setCurrentIndex(0)
             }}
           />
         ) : (
           <>
             <div className="flex items-center justify-between px-1 text-[12px] text-muted-foreground">
               <span className="font-medium tabular-nums text-foreground">
-                {queue.length} to route
+                {activeIndex + 1} of {queue.length}
               </span>
-              <span>{deferred.size} skipped</span>
+              <span>{currentSkipped ? 'Skipped' : `${skipped.size} skipped`}</span>
             </div>
 
             <section className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-lg border bg-card shadow-[var(--shadow-sm)]">
@@ -257,21 +291,42 @@ export function TriagePage() {
                 size="lg"
                 className="flex-1"
                 disabled={busy}
-                onClick={deferCurrent}
+                onClick={skipCurrent}
               >
                 <ChevronDown className="size-4" />
                 Skip
               </Button>
               <Button
+                variant="outline"
                 size="lg"
                 className="flex-1"
-                disabled={busy || !departmentId}
-                onClick={() => void assignDepartment(departmentId)}
+                disabled={busy || activeIndex === 0}
+                onClick={goPrevious}
               >
-                <Check className="size-4" />
-                Assign
+                <ChevronLeft className="size-4" />
+                Back
+              </Button>
+              <Button
+                variant="outline"
+                size="lg"
+                className="flex-1"
+                disabled={busy || activeIndex >= queue.length - 1}
+                onClick={goNext}
+              >
+                Next
+                <ChevronRight className="size-4" />
               </Button>
             </div>
+
+            <Button
+              size="lg"
+              className="w-full"
+              disabled={busy || !departmentId}
+              onClick={() => void assignDepartment(departmentId)}
+            >
+              <Check className="size-4" />
+              Assign department
+            </Button>
           </>
         )}
       </div>
