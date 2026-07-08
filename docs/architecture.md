@@ -164,7 +164,7 @@ target.
 | `AppPage` | Page wrapper with scroll container; `listBar` slot for the top toolbar |
 | `ListBar` | One-row page header: title · count · optional inline segments · spacer · search · filters · actions; `extra` remains a deliberate second row |
 | `DataTable` | Sortable table with column visibility, resize (visible separator), reorder, and optional `groupBy` row group headers. Per-column tools in the header: a persistent filter icon → checkbox **value popover** (set filter), and a quick-**search box with value autocomplete**. Optional inline editing: columns with `editOptions` render click-to-edit dropdowns and a spreadsheet **drag-to-copy** fill handle; `editOptions` may be a static array or row-aware function. Edits persist via the `onCellEdit` prop. Columns with `opensDetail` are the only detail-drawer triggers once any column opts in. Popovers/autocomplete use fixed positioning to escape `overflow:hidden` |
-| `CustomerLogo` | Brand logo from logo.dev keyed on `retailer.domain` (token `VITE_LOGODEV_TOKEN`) for compact tokens, stored `logo_url` for full-width PLM logos, falling back to `NameAvatar` initials when no usable image exists |
+| `CustomerLogo` | Brand logo from logo.dev keyed on `retailer.domain` (token `VITE_LOGODEV_TOKEN`) for compact tokens, stored `logo_url` for full-width logos. `logo_url` can be a CRM manual override or the PLM-imported logo, falling back to `NameAvatar` initials when no usable image exists |
 | `DetailDrawer` | Side-sheet shell used by all record drawers |
 | `MetricCard` | KPI tile with icon, value, label, optional tone/color, onClick |
 | `StatusBadge` | Inline tone-keyed badge (success/danger/warning/neutral/accent) |

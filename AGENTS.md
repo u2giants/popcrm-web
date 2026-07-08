@@ -500,7 +500,7 @@ After changing worker code, run `node --check workers/crm-worker-supabase.mjs`
 and relevant one-shot systemd smoke tests. Unknown domains must continue to go
 through `crm.record_ingested_domain(...)`, not direct `core.customer` inserts.
 
-### Customer logos are domain-derived (logo.dev), not stored
+### Customer logos use token domains plus optional full-logo overrides
 
 Looks like:
 Logos might have been migrated from Twenty as uploaded files.
@@ -508,11 +508,13 @@ Logos might have been migrated from Twenty as uploaded files.
 Actually:
 Twenty's `company` table has **no logo/avatar/image column** — Twenty rendered
 logos live from each company's domain via its `twenty-favicon` service. There was
-nothing to migrate from Twenty. `src/components/app/CustomerLogo.tsx` fetches
-compact logo tokens from `img.logo.dev` keyed on `retailer.domain` (token
-`VITE_LOGODEV_TOKEN`) and uses `api.crm_customer_list.logo_url` for stored
-full-width PLM customer logos when available, falling back to the name-initials
-`NameAvatar` when no usable image exists.
+nothing to migrate from Twenty. Compact token logos still come from
+`img.logo.dev` keyed on `retailer.domain` (token `VITE_LOGODEV_TOKEN`). Full-width
+logos come from `api.crm_customer_list.logo_url`, which prefers the CRM manual
+override stored at `core.customer.metadata.crm_logo_url` and falls back to the
+PLM-imported `plm.customer_import.logo_url`. The Data Admin → Logos tab can
+upload full logos to the `crm-customer-logos` Supabase Storage bucket, save a
+full logo URL, clear the override, or update the token-logo domain.
 The publishable logo.dev token is stored in 1Password at
 `op://vibe_coding/logo.dev publishable token - popcrm-web/password` and mirrored
 to the GitHub Actions secret `LOGODEV_TOKEN`.
@@ -522,9 +524,10 @@ The user's "uploaded" Twenty logos never existed as stored files; domain-derivat
 is the same mechanism Twenty used.
 
 Do not change because:
-Don't go looking for a logo file/field to migrate — there isn't one. Restoring real
-logos = keep the domain-derived approach (or add a Supabase file/storage-backed
-field + uploads, a shared database/backend change).
+Don't go looking for legacy Twenty logo files — there weren't any. Preserve the
+two-layer contract: token domain on `core.customer.domain`; full logo URL from
+CRM override first, then PLM import. Do not write CRM uploads back into
+`plm.customer_import`.
 
 ### Supabase profile links control whether signed-in users see CRM rows
 
