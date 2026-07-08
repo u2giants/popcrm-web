@@ -24,6 +24,7 @@ import { NoteDrawer } from '@/features/crm/components/NoteDrawer'
 import { label, relatedName, textOf } from '@/features/crm/format'
 import { StatusBadge } from '@/components/app/StatusBadge'
 import { listData, useCreateNoteMutation, useNotesQuery, useOpportunitiesQuery, useRetailersQuery } from '@/features/crm/queries'
+import { logError } from '@/lib/errors'
 import type { CrmNote } from '@/lib/types'
 
 export function NotesPage() {
@@ -171,8 +172,8 @@ function NewNoteDialog({
       toast.success('Note created')
       reset()
       onClose()
-    } catch {
-      toast.error('Could not create note')
+    } catch (error) {
+      toast.error('Could not create note', { description: logError('NotesPage.createNote', error) })
     } finally {
       setBusy(false)
     }

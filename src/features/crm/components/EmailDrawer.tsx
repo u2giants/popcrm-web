@@ -23,6 +23,7 @@ import {
 } from '@/features/crm/queries'
 import { ROUTING_STATUSES } from '@/features/crm/constants'
 import { formatDateTime, idOf, label, relatedName } from '@/features/crm/format'
+import { logError } from '@/lib/errors'
 import type { CrmEmailMessage } from '@/lib/types'
 
 export function EmailDrawer({
@@ -124,8 +125,8 @@ function EmailDrawerForm({ row, onClose }: { row: CrmEmailMessage; onClose: () =
       await updateEmailMutation.mutateAsync({ id: row.id, values })
       toast.success('Routing saved')
       onClose()
-    } catch {
-      toast.error('Could not save routing')
+    } catch (error) {
+      toast.error('Could not save routing', { description: logError('EmailDrawer.saveRouting', error) })
     } finally {
       setSaving(false)
     }
@@ -141,8 +142,8 @@ function EmailDrawerForm({ row, onClose }: { row: CrmEmailMessage; onClose: () =
     try {
       await createIgnoreRuleMutation.mutateAsync({ name: pattern, pattern, match_type: 'CONTAINS', emails_skipped: 0 })
       toast.success('Ignore rule created from subject')
-    } catch {
-      toast.error('Could not create ignore rule')
+    } catch (error) {
+      toast.error('Could not create ignore rule', { description: logError('EmailDrawer.ignoreSubject', error) })
     } finally {
       setIgnoring(false)
     }

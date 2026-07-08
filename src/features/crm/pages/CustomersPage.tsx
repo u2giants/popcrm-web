@@ -23,6 +23,7 @@ import {
   usePromoteIngestedDomainMutation,
   useUpdateCustomerMutation,
 } from '@/features/crm/queries'
+import { logError } from '@/lib/errors'
 import type { CrmIngestedDomain, Retailer } from '@/lib/types'
 
 const STATUS_OPTIONS: EditOption[] = CUSTOMER_STATUSES.map((v) => ({ value: v, label: customerStatusLabel(v) }))
@@ -76,8 +77,8 @@ export function CustomersPage() {
   async function editCell(row: Retailer, key: string, value: string) {
     try {
       await updateCustomerMutation.mutateAsync({ id: row.id, values: { [key]: value } as Partial<Retailer> })
-    } catch {
-      toast.error('Could not save change')
+    } catch (error) {
+      toast.error('Could not save change', { description: logError('CustomersPage.editCell', error) })
     }
   }
 
@@ -89,8 +90,8 @@ export function CustomersPage() {
     try {
       await promoteDomainMutation.mutateAsync({ domain: row.domain, name })
       toast.success('Domain promoted to potential customer')
-    } catch {
-      toast.error('Could not promote domain')
+    } catch (error) {
+      toast.error('Could not promote domain', { description: logError('CustomersPage.promoteDomain', error) })
     }
   }
 

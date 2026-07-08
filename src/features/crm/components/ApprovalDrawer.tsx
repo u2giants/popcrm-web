@@ -16,6 +16,7 @@ import {
 import { useUpdateApprovalMutation } from '@/features/crm/queries'
 import { approvalTone } from '@/features/crm/constants'
 import { formatDate, relatedName } from '@/features/crm/format'
+import { logError } from '@/lib/errors'
 import type { CrmLicensorApprovalThread } from '@/lib/types'
 
 const APPROVAL_STAGES = [
@@ -63,9 +64,9 @@ function ApprovalDrawerForm({ row }: { row: CrmLicensorApprovalThread }) {
     try {
       await updateApprovalMutation.mutateAsync({ id: row.id, values: { stage } })
       toast.success('Approval updated')
-    } catch {
+    } catch (error) {
       setStage(prev || '')
-      toast.error('Could not update approval')
+      toast.error('Could not update approval', { description: logError('ApprovalDrawer.saveStage', error) })
     } finally {
       setSaving(false)
     }

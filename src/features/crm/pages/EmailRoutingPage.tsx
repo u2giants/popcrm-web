@@ -35,6 +35,7 @@ import {
   useOpportunitiesQuery,
   useUpdateEmailMutation,
 } from '@/features/crm/queries'
+import { logError } from '@/lib/errors'
 import type { CrmEmailMessage } from '@/lib/types'
 
 type Segment = 'company' | 'department' | 'program' | 'triage' | 'all'
@@ -122,8 +123,8 @@ export function EmailRoutingPage() {
             : nextValue
     try {
       await updateEmailMutation.mutateAsync({ id: row.id, values: { [key]: expanded ?? nextValue } as Partial<CrmEmailMessage> })
-    } catch {
-      toast.error('Could not save change')
+    } catch (error) {
+      toast.error('Could not save change', { description: logError('EmailRoutingPage.editCell', error) })
     }
   }
 
@@ -339,8 +340,8 @@ export function EmailRoutingPage() {
         await createIgnoreRuleMutation.mutateAsync({ name: value, pattern: value, match_type: matchType, emails_skipped: 0 })
         setPattern('')
         toast.success('Ignore rule added')
-      } catch {
-        toast.error('Could not add ignore rule')
+      } catch (error) {
+        toast.error('Could not add ignore rule', { description: logError('EmailRoutingPage.addIgnoreRule', error) })
       } finally {
         setBusy(false)
       }

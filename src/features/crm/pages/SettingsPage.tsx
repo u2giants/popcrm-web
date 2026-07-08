@@ -16,6 +16,7 @@ import { AI_MODELS, AI_MODEL_FIELDS, WORKER_CADENCE } from '@/features/crm/const
 import { label } from '@/features/crm/format'
 import { listData, useAiConfigsQuery, useFirefliesHealth, useIgnoreRulesQuery, useUpdateAiConfigMutation } from '@/features/crm/queries'
 import { SUPABASE_URL } from '@/lib/supabase'
+import { logError } from '@/lib/errors'
 import type { CrmAiModelConfig } from '@/lib/types'
 
 export function SettingsPage() {
@@ -31,8 +32,8 @@ export function SettingsPage() {
     try {
       await updateAiConfigMutation.mutateAsync({ id: config.id, values: { [field]: value } })
       toast.success('Model updated')
-    } catch {
-      toast.error('Could not update model')
+    } catch (error) {
+      toast.error('Could not update model', { description: logError('SettingsPage.saveField', error) })
     }
   }
 
