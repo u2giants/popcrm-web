@@ -487,6 +487,34 @@ export async function updateRetailer(id: string, values: Partial<Retailer>) {
   if (error) throw error
 }
 
+export async function setRetailerLogo(id: string, logoUrl: string | null): Promise<void> {
+  const { error } = await anyDb.schema('api').rpc('crm_set_customer_logo', {
+    p_customer_id: id,
+    p_logo_url: logoUrl,
+  })
+  if (error) throw error
+}
+
+function logoExtension(file: File): string {
+  const fromName = file.name.split('.').pop()?.toLowerCase()
+  if (fromName && ['png', 'jpg', 'jpeg', 'webp', 'svg'].includes(fromName)) return fromName === 'jpeg' ? 'jpg' : fromName
+  if (file.type === 'image/svg+xml') return 'svg'
+  if (file.type === 'image/webp') return 'webp'
+  if (file.type === 'image/png') return 'png'
+  return 'jpg'
+}
+
+export async function uploadRetailerLogo(id: string, file: File): Promise<string> {
+  const ext = logoExtension(file)
+  const path = `${id}/full-logo-${Date.now()}.${ext}`
+  const { error } = await supabase.storage
+    .from('crm-customer-logos')
+    .upload(path, file, { cacheControl: '31536000', upsert: true, contentType: file.type || undefined })
+  if (error) throw error
+  const { data } = supabase.storage.from('crm-customer-logos').getPublicUrl(path)
+  return data.publicUrl
+}
+
 // ---------------------------------------------------------------------------
 // Contacts / buyers
 // ---------------------------------------------------------------------------

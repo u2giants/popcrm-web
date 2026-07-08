@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react'
 import { toast } from 'sonner'
 import { useQueryClient } from '@tanstack/react-query'
-import { Database, Plus, Save, Trash2, Wand2 } from 'lucide-react'
+import { Database, Image, Link2, Plus, RotateCcw, Save, Search, Trash2, Upload, Wand2, X } from 'lucide-react'
 import { AppPage, ListBar, SectionHeader } from '@/components/app/AppPage'
 import { Combobox, type ComboOption } from '@/components/app/Combobox'
 import { DataTable, type Column } from '@/components/app/DataTable'
@@ -11,14 +11,17 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { CustomerLogo } from '@/components/app/CustomerLogo'
+import { CustomerLogo, LOGODEV_TOKEN, logoDevImageUrl, rootDomain } from '@/components/app/CustomerLogo'
 import { CustomerRelationLogo } from '@/features/crm/components/CustomerRelationLogo'
 import {
   createDepartment,
   deleteDepartment,
+  setRetailerLogo,
   updateBuyer,
   updateDepartment,
   updateOpportunity,
+  updateRetailer,
+  uploadRetailerLogo,
 } from '@/features/crm/api'
 import { idOf, label, relatedName } from '@/features/crm/format'
 import { uniqueValues } from '@/features/crm/pages/_shared'
@@ -33,6 +36,13 @@ import {
 import type { Buyer, CrmDepartment, CrmOpportunity, Retailer } from '@/lib/types'
 
 type AdminTab = 'departments' | 'logos' | 'contact-values' | 'division-values'
+type LogoCandidate = {
+  key: string
+  label: string
+  value: string
+  domain: string | null
+  url: string
+}
 
 interface DepartmentForm {
   id: string
@@ -56,6 +66,10 @@ function departmentForm(row?: CrmDepartment): DepartmentForm {
 
 function valueOptions(values: string[]): ComboOption[] {
   return values.map((v) => ({ value: v, label: label(v) }))
+}
+
+function sanitizeFileToken(value: string): string {
+  return value.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 60) || 'customer'
 }
 
 export function DataAdminPage() {
@@ -83,6 +97,10 @@ export function DataAdminPage() {
   const [divisionFrom, setDivisionFrom] = useState('')
   const [divisionTo, setDivisionTo] = useState('')
   const [busy, setBusy] = useState(false)
+  const [logoBusy, setLogoBusy] = useState(false)
+  const [selectedLogoCustomerId, setSelectedLogoCustomerId] = useState('')
+  const [logoDomainDraft, setLogoDomainDraft] = useState('')
+  const [logoUrlDraft, setLogoUrlDraft] = useState('')
 
   const retailerOptions = useMemo<ComboOption[]>(
     () => retailers.map((r) => ({ value: r.id, label: r.name, hint: r.customer_status ? label(r.customer_status) : undefined })),
@@ -110,10 +128,37 @@ export function DataAdminPage() {
   )
 
   const selectedDepartment = departments.find((d) => d.id === selectedDepartmentId)
+  const selectedLogoCustomer = retailers.find((r) => r.id === selectedLogoCustomerId)
   const moveCandidates = buyers.filter((b) => b.contact_type && (!typeToMove || b.contact_type === typeToMove))
   const moveOverwriteCount = moveCandidates.filter((b) => b.job_title).length
   const divisionDepartmentCount = departments.filter((d) => d.division === divisionFrom).length
   const divisionProgramCount = opportunities.filter((o) => o.division === divisionFrom).length
+
+  const logoCandidates = useMemo<LogoCandidate[]>(() => {
+    if (!selectedLogoCustomer) return []
+    const candidates: LogoCandidate[] = []
+    const seen = new Set<string>()
+    const addDomain = (raw: string | null | undefined, candidateLabel: string) => {
+      const domain = rootDomain(raw)
+      const url = logoDevImageUrl(domain, { width: 192, height: 64, format: 'png', theme: 'dark', fallback: '404' })
+      if (!domain || !url || seen.has(`domain:${domain}`)) return
+      seen.add(`domain:${domain}`)
+      candidates.push({ key: `domain:${domain}`, label: candidateLabel, value: domain, domain, url })
+    }
+    addDomain(selectedLogoCustomer.domain, 'Current domain')
+    addDomain(logoDomainDraft, 'Typed domain')
+    const nameUrl = logoDevImageUrl(selectedLogoCustomer.name, { mode: 'name', width: 192, height: 64, format: 'png', theme: 'dark', fallback: '404' })
+    if (nameUrl) {
+      candidates.push({
+        key: `name:${selectedLogoCustomer.id}`,
+        label: 'Name match',
+        value: selectedLogoCustomer.name,
+        domain: null,
+        url: nameUrl,
+      })
+    }
+    return candidates
+  }, [logoDomainDraft, selectedLogoCustomer])
 
   const departmentColumns: Column<CrmDepartment>[] = [
     {
@@ -196,11 +241,102 @@ export function DataAdminPage() {
         </Badge>
       ),
     },
+    {
+      key: 'edit',
+      header: '',
+      cell: (r) => (
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          onClick={(event) => {
+            event.stopPropagation()
+            editLogoCustomer(r)
+          }}
+        >
+          <Image className="size-4" />
+          Edit
+        </Button>
+      ),
+    },
   ]
 
   function editDepartment(row: CrmDepartment) {
     setSelectedDepartmentId(row.id)
     setDepartmentDraft(departmentForm(row))
+  }
+
+  function editLogoCustomer(row: Retailer) {
+    setSelectedLogoCustomerId(row.id)
+    setLogoDomainDraft(row.domain ?? '')
+    setLogoUrlDraft(row.logo_url ?? '')
+  }
+
+  function patchRetailer(id: string, values: Partial<Retailer>) {
+    const updateRows = (rows: Retailer[] | undefined) => rows?.map((r) => (r.id === id ? { ...r, ...values } : r))
+    queryClient.setQueriesData<Retailer[]>({ queryKey: [...crmKeys.all, 'retailers'] }, updateRows)
+    queryClient.setQueriesData<Retailer[]>({ queryKey: [...crmKeys.all, 'customerSegment'] }, updateRows)
+  }
+
+  async function saveTokenDomain(domain: string) {
+    if (!selectedLogoCustomer) return
+    const normalized = rootDomain(domain)
+    if (!normalized) {
+      toast.error('Enter a domain like target.com')
+      return
+    }
+    setLogoBusy(true)
+    try {
+      await updateRetailer(selectedLogoCustomer.id, { domain: normalized })
+      patchRetailer(selectedLogoCustomer.id, { domain: normalized })
+      setLogoDomainDraft(normalized)
+      toast.success('Token logo domain saved')
+    } catch {
+      toast.error('Could not save logo domain')
+    } finally {
+      setLogoBusy(false)
+    }
+  }
+
+  async function saveFullLogo(url: string | null) {
+    if (!selectedLogoCustomer) return
+    const cleanUrl = url?.trim() || null
+    setLogoBusy(true)
+    try {
+      await setRetailerLogo(selectedLogoCustomer.id, cleanUrl)
+      patchRetailer(selectedLogoCustomer.id, { logo_url: cleanUrl })
+      setLogoUrlDraft(cleanUrl ?? '')
+      toast.success(cleanUrl ? 'Full logo saved' : 'Full logo override cleared')
+    } catch {
+      toast.error('Could not save full logo')
+    } finally {
+      setLogoBusy(false)
+    }
+  }
+
+  async function uploadFullLogo(file: File | null | undefined) {
+    if (!selectedLogoCustomer || !file) return
+    if (!file.type.startsWith('image/')) {
+      toast.error('Choose an image file')
+      return
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error('Logo files must be 5 MB or smaller')
+      return
+    }
+    setLogoBusy(true)
+    try {
+      const renamed = new File([file], `${sanitizeFileToken(selectedLogoCustomer.name)}-${file.name}`, { type: file.type })
+      const url = await uploadRetailerLogo(selectedLogoCustomer.id, renamed)
+      await setRetailerLogo(selectedLogoCustomer.id, url)
+      patchRetailer(selectedLogoCustomer.id, { logo_url: url })
+      setLogoUrlDraft(url)
+      toast.success('Logo uploaded')
+    } catch {
+      toast.error('Could not upload logo')
+    } finally {
+      setLogoBusy(false)
+    }
   }
 
   async function saveDepartment() {
@@ -456,25 +592,164 @@ export function DataAdminPage() {
           ) : null}
 
           {tab === 'logos' ? (
-            <section className="min-w-0 rounded-[8px] border bg-card shadow-[var(--shadow-xs)]">
-              <div className="border-b p-4">
-                <SectionHeader
-                  title="Customer Logos"
-                  description={`${retailers.length.toLocaleString()} active/potential customer logo records`}
+            <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_400px]">
+              <section className="min-w-0 rounded-[8px] border bg-card shadow-[var(--shadow-xs)]">
+                <div className="border-b p-4">
+                  <SectionHeader
+                    title="Customer Logos"
+                    description={`${retailers.length.toLocaleString()} active/potential customer logo records`}
+                  />
+                </div>
+                <DataTable
+                  rows={retailers}
+                  columns={logoColumns}
+                  getRowId={(r) => r.id}
+                  onRowClick={editLogoCustomer}
+                  loading={retailersQuery.isPending}
+                  pageSize={50}
+                  emptyIcon={<Database className="size-5" />}
+                  emptyTitle="No customers found"
+                  emptyDescription="Add customer domains or upload logos here once customers are available."
+                  initialSort={{ key: 'name', dir: 'asc' }}
                 />
-              </div>
-              <DataTable
-                rows={retailers}
-                columns={logoColumns}
-                getRowId={(r) => r.id}
-                loading={retailersQuery.isPending}
-                pageSize={50}
-                emptyIcon={<Database className="size-5" />}
-                emptyTitle="No customers found"
-                emptyDescription="Stored full logos are unavailable until the CRM customer API exposes the PLM logo URL."
-                initialSort={{ key: 'name', dir: 'asc' }}
-              />
-            </section>
+              </section>
+
+              <section className="rounded-[8px] border bg-card p-4 shadow-[var(--shadow-xs)]">
+                <div className="flex items-start justify-between gap-3">
+                  <SectionHeader
+                    title={selectedLogoCustomer ? 'Edit Logo' : 'Pick a Customer'}
+                    description={selectedLogoCustomer ? selectedLogoCustomer.name : 'Select a customer row to upload or match logos.'}
+                  />
+                  {selectedLogoCustomer ? (
+                    <Button type="button" variant="outline" size="icon" onClick={() => setSelectedLogoCustomerId('')} aria-label="Close logo editor">
+                      <X className="size-4" />
+                    </Button>
+                  ) : null}
+                </div>
+
+                {selectedLogoCustomer ? (
+                  <div className="mt-4 grid gap-5">
+                    <div className="grid gap-3 rounded-[8px] border bg-muted/20 p-3">
+                      <div className="flex items-center gap-3">
+                        <CustomerLogo name={selectedLogoCustomer.name} domain={selectedLogoCustomer.domain} size={34} />
+                        <div className="min-w-0">
+                          <div className="truncate font-medium text-foreground">{selectedLogoCustomer.name}</div>
+                          <div className="truncate font-mono text-[11.5px] text-muted-foreground">{selectedLogoCustomer.domain || 'No token domain'}</div>
+                        </div>
+                      </div>
+                      <div className="flex h-14 items-center rounded-[8px] border bg-background px-3">
+                        {selectedLogoCustomer.logo_url ? (
+                          <CustomerLogo
+                            name={selectedLogoCustomer.name}
+                            domain={selectedLogoCustomer.domain}
+                            logoUrl={selectedLogoCustomer.logo_url}
+                            variant="full"
+                            width={190}
+                            height={42}
+                          />
+                        ) : (
+                          <span className="text-[12.5px] text-muted-foreground">No full logo override</span>
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="grid gap-2">
+                      <Label>Upload full logo</Label>
+                      <Input
+                        type="file"
+                        accept="image/png,image/jpeg,image/webp,image/svg+xml"
+                        disabled={logoBusy}
+                        onChange={(event) => {
+                          const file = event.target.files?.[0]
+                          void uploadFullLogo(file)
+                          event.currentTarget.value = ''
+                        }}
+                      />
+                    </div>
+
+                    <div className="grid gap-2">
+                      <Label>Full logo URL</Label>
+                      <div className="flex gap-2">
+                        <Input
+                          value={logoUrlDraft}
+                          onChange={(event) => setLogoUrlDraft(event.target.value)}
+                          placeholder="https://..."
+                          disabled={logoBusy}
+                        />
+                        <Button type="button" onClick={() => void saveFullLogo(logoUrlDraft)} disabled={logoBusy}>
+                          <Link2 className="size-4" />
+                          Save
+                        </Button>
+                      </div>
+                      <Button type="button" variant="outline" onClick={() => void saveFullLogo(null)} disabled={logoBusy || !selectedLogoCustomer.logo_url}>
+                        <RotateCcw className="size-4" />
+                        Clear full logo override
+                      </Button>
+                    </div>
+
+                    <div className="grid gap-2">
+                      <Label>Token logo.dev domain</Label>
+                      <div className="flex gap-2">
+                        <Input
+                          value={logoDomainDraft}
+                          onChange={(event) => setLogoDomainDraft(event.target.value)}
+                          placeholder="target.com"
+                          disabled={logoBusy}
+                        />
+                        <Button type="button" onClick={() => void saveTokenDomain(logoDomainDraft)} disabled={logoBusy}>
+                          <Save className="size-4" />
+                          Save
+                        </Button>
+                      </div>
+                    </div>
+
+                    <div className="grid gap-3">
+                      <div className="flex items-center justify-between gap-2">
+                        <Label>logo.dev matches</Label>
+                        <Badge variant={LOGODEV_TOKEN ? 'secondary' : 'outline'}>{LOGODEV_TOKEN ? 'Enabled' : 'No token'}</Badge>
+                      </div>
+                      {!LOGODEV_TOKEN ? (
+                        <div className="rounded-[8px] border bg-muted/20 p-3 text-[12.5px] text-muted-foreground">
+                          Set the publishable logo.dev token to preview and apply logo.dev matches.
+                        </div>
+                      ) : (
+                        <div className="grid gap-2">
+                          {logoCandidates.map((candidate) => (
+                            <div key={candidate.key} className="grid gap-3 rounded-[8px] border p-3">
+                              <div className="flex items-center justify-between gap-3">
+                                <div className="min-w-0">
+                                  <div className="text-[12.5px] font-medium text-foreground">{candidate.label}</div>
+                                  <div className="truncate font-mono text-[11.5px] text-muted-foreground">{candidate.value}</div>
+                                </div>
+                                <div className="flex h-12 w-36 items-center justify-center rounded-[8px] border bg-background px-2">
+                                  <img src={candidate.url} alt="" aria-hidden className="max-h-9 max-w-full object-contain" />
+                                </div>
+                              </div>
+                              <div className="flex flex-wrap gap-2">
+                                <Button type="button" size="sm" onClick={() => void saveFullLogo(candidate.url)} disabled={logoBusy}>
+                                  <Upload className="size-4" />
+                                  Use as full
+                                </Button>
+                                {candidate.domain ? (
+                                  <Button type="button" size="sm" variant="outline" onClick={() => void saveTokenDomain(candidate.domain!)} disabled={logoBusy}>
+                                    <Search className="size-4" />
+                                    Use as token
+                                  </Button>
+                                ) : null}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                ) : (
+                  <div className="mt-4 rounded-[8px] border bg-muted/20 p-4 text-[12.5px] text-muted-foreground">
+                    Click a row to edit uploaded full logos, full logo URLs, and logo.dev token domains.
+                  </div>
+                )}
+              </section>
+            </div>
           ) : null}
 
           {tab === 'contact-values' ? (
