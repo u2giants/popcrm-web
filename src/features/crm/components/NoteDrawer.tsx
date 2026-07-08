@@ -9,6 +9,7 @@ import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { useUpdateNoteMutation } from '@/features/crm/queries'
 import { label, relatedName } from '@/features/crm/format'
+import { logError } from '@/lib/errors'
 import type { CrmNote } from '@/lib/types'
 
 function parseChecklist(text: string): string[] {
@@ -54,8 +55,8 @@ function NoteDrawerForm({ row, onClose }: { row: CrmNote; onClose: () => void })
       await updateNoteMutation.mutateAsync({ id: row.id, values })
       toast.success('Note saved')
       onClose()
-    } catch {
-      toast.error('Could not save note')
+    } catch (error) {
+      toast.error('Could not save note', { description: logError('NoteDrawer.save', error) })
     } finally {
       setSaving(false)
     }

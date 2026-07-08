@@ -33,6 +33,7 @@ import {
   useCustomerSegmentQuery,
   useOpportunitiesQuery,
 } from '@/features/crm/queries'
+import { logError } from '@/lib/errors'
 import type { Buyer, CrmDepartment, CrmOpportunity, Retailer } from '@/lib/types'
 
 type AdminTab = 'departments' | 'logos' | 'contact-values' | 'division-values'
@@ -291,8 +292,8 @@ export function DataAdminPage() {
       patchRetailer(selectedLogoCustomer.id, { domain: normalized })
       setLogoDomainDraft(normalized)
       toast.success('Token logo domain saved')
-    } catch {
-      toast.error('Could not save logo domain')
+    } catch (error) {
+      toast.error('Could not save logo domain', { description: logError('DataAdminPage.saveTokenDomain', error) })
     } finally {
       setLogoBusy(false)
     }
@@ -307,8 +308,8 @@ export function DataAdminPage() {
       patchRetailer(selectedLogoCustomer.id, { logo_url: cleanUrl })
       setLogoUrlDraft(cleanUrl ?? '')
       toast.success(cleanUrl ? 'Full logo saved' : 'Full logo override cleared')
-    } catch {
-      toast.error('Could not save full logo')
+    } catch (error) {
+      toast.error('Could not save full logo', { description: logError('DataAdminPage.saveFullLogo', error) })
     } finally {
       setLogoBusy(false)
     }
@@ -332,8 +333,8 @@ export function DataAdminPage() {
       patchRetailer(selectedLogoCustomer.id, { logo_url: url })
       setLogoUrlDraft(url)
       toast.success('Logo uploaded')
-    } catch {
-      toast.error('Could not upload logo')
+    } catch (error) {
+      toast.error('Could not upload logo', { description: logError('DataAdminPage.uploadFullLogo', error) })
     } finally {
       setLogoBusy(false)
     }
@@ -388,8 +389,8 @@ export function DataAdminPage() {
         setSelectedDepartmentId('')
         toast.success('Department created')
       }
-    } catch {
-      toast.error('Could not save department')
+    } catch (error) {
+      toast.error('Could not save department', { description: logError('DataAdminPage.saveDepartment', error) })
     } finally {
       setBusy(false)
     }
@@ -410,8 +411,8 @@ export function DataAdminPage() {
       setDepartmentDraft(departmentForm())
       setSelectedDepartmentId('')
       toast.success('Department deleted')
-    } catch {
-      toast.error('Could not delete department')
+    } catch (error) {
+      toast.error('Could not delete department', { description: logError('DataAdminPage.removeDepartment', error) })
     } finally {
       setBusy(false)
     }
@@ -439,9 +440,9 @@ export function DataAdminPage() {
       )
       toast.success(`Updated ${moveCandidates.length.toLocaleString()} contacts`)
       setTypeToMove('')
-    } catch {
+    } catch (error) {
       queryClient.setQueryData<Buyer[]>(crmKeys.ingestedContacts(-1), previous)
-      toast.error('Could not move Type values')
+      toast.error('Could not move Type values', { description: logError('DataAdminPage.moveTypeToTitle', error) })
     } finally {
       setBusy(false)
     }
@@ -469,10 +470,10 @@ export function DataAdminPage() {
       toast.success(`Renamed division on ${(departmentRows.length + programRows.length).toLocaleString()} records`)
       setDivisionFrom('')
       setDivisionTo('')
-    } catch {
+    } catch (error) {
       queryClient.setQueryData<CrmDepartment[]>(crmKeys.departments(-1), previousDepartments)
       queryClient.setQueryData<CrmOpportunity[]>(crmKeys.opportunities(-1), previousOpportunities)
-      toast.error('Could not rename division')
+      toast.error('Could not rename division', { description: logError('DataAdminPage.replaceDivision', error) })
     } finally {
       setBusy(false)
     }

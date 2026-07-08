@@ -24,6 +24,7 @@ import {
 } from '@/features/crm/queries'
 import { OPPORTUNITY_STAGES } from '@/features/crm/constants'
 import { formatDate, idOf, label, relatedName } from '@/features/crm/format'
+import { logError } from '@/lib/errors'
 import type { CrmOpportunity } from '@/lib/types'
 
 export function OpportunityDrawer({
@@ -73,9 +74,9 @@ function OpportunityDrawerForm({ row, onClose }: { row: CrmOpportunity; onClose:
     try {
       await setStageMutation.mutateAsync({ id: row.id, stage: next })
       toast.success(`Stage → ${label(next)}`)
-    } catch {
+    } catch (error) {
       setStage(prev)
-      toast.error('Could not update stage')
+      toast.error('Could not update stage', { description: logError('OpportunityDrawer.changeStage', error) })
     }
   }
 
@@ -85,8 +86,8 @@ function OpportunityDrawerForm({ row, onClose }: { row: CrmOpportunity; onClose:
       await updateOpportunityMutation.mutateAsync({ id: row.id, values: { ai_summary: summary } })
       toast.success('Summary saved')
       onClose()
-    } catch {
-      toast.error('Could not save summary')
+    } catch (error) {
+      toast.error('Could not save summary', { description: logError('OpportunityDrawer.saveSummary', error) })
     } finally {
       setSaving(false)
     }

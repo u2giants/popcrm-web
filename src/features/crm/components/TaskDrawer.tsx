@@ -7,6 +7,7 @@ import { useUpdateTaskMutation } from '@/features/crm/queries'
 import { TASK_STATUSES, taskTone } from '@/features/crm/constants'
 import { formatDateTime, label, relatedName } from '@/features/crm/format'
 import { cn } from '@/lib/utils'
+import { logError } from '@/lib/errors'
 import type { CrmTask } from '@/lib/types'
 
 export function TaskDrawer({ row, onClose }: { row: CrmTask | null; onClose: () => void }) {
@@ -47,9 +48,9 @@ function TaskDrawerForm({ row }: { row: CrmTask }) {
     try {
       await updateTaskMutation.mutateAsync({ id: row.id, values: { status: next } })
       toast.success(`Task → ${label(next)}`)
-    } catch {
+    } catch (error) {
       setStatus(prev)
-      toast.error('Could not update task')
+      toast.error('Could not update task', { description: logError('TaskDrawer.changeStatus', error) })
     }
   }
 

@@ -21,6 +21,7 @@ import {
   useMeetingsQuery,
   useUpdateMeetingMutation,
 } from '@/features/crm/queries'
+import { logError } from '@/lib/errors'
 import type { CrmMeetingNote, Retailer } from '@/lib/types'
 
 type Segment = 'customers' | 'triage' | 'dismissed' | 'all'
@@ -88,11 +89,11 @@ export function MeetingsPage() {
     )
     try {
       await updateMeetingMutation.mutateAsync({ id: row.id, values: { [key]: nextValue } as Partial<CrmMeetingNote> })
-    } catch {
+    } catch (error) {
       queryClient.setQueryData<CrmMeetingNote[]>(crmKeys.meetings(-1), (rows = []) =>
         rows.map((m) => (m.id === row.id ? { ...m, [key]: prev } : m)),
       )
-      toast.error('Could not save change')
+      toast.error('Could not save change', { description: logError('MeetingsPage.editCell', error) })
     }
   }
 

@@ -20,6 +20,7 @@ import { listData, useTasksQuery, useUpdateTaskMutation } from '@/features/crm/q
 import { TASK_STATUSES, taskTone } from '@/features/crm/constants'
 import { formatDateTime, label, relatedName, textOf } from '@/features/crm/format'
 import { cn } from '@/lib/utils'
+import { logError } from '@/lib/errors'
 import type { CrmTask } from '@/lib/types'
 
 function isOverdue(dueAt: string | null | undefined, status: string | null | undefined): boolean {
@@ -45,8 +46,8 @@ export function TasksPage() {
   async function quickStatus(task: CrmTask, next: string) {
     try {
       await updateTaskMutation.mutateAsync({ id: task.id, values: { status: next } })
-    } catch {
-      toast.error('Could not update task')
+    } catch (error) {
+      toast.error('Could not update task', { description: logError('TasksPage.quickStatus', error) })
     }
   }
 

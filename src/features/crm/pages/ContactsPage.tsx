@@ -22,6 +22,7 @@ import {
   useCustomerSegmentQuery,
   useUpdateContactMutation,
 } from '@/features/crm/queries'
+import { logError } from '@/lib/errors'
 import type { Buyer } from '@/lib/types'
 
 type Segment = 'customer' | 'department' | 'triage' | 'all'
@@ -136,7 +137,7 @@ export function ContactsPage() {
     queryClient.setQueriesData<Buyer[]>({ queryKey: [...crmKeys.all, 'ingestedContacts'] }, optimistic)
     try {
       await updateContactMutation.mutateAsync({ id: row.id, values: patch })
-    } catch {
+    } catch (error) {
       const rollback = (rows: Buyer[] = []) =>
         rows.map((b) =>
           b.id === row.id
@@ -146,7 +147,7 @@ export function ContactsPage() {
       queryClient.setQueriesData<Buyer[]>({ queryKey: [...crmKeys.all, 'contactSegment'] }, rollback)
       queryClient.setQueriesData<Buyer[]>({ queryKey: [...crmKeys.all, 'allContacts'] }, rollback)
       queryClient.setQueriesData<Buyer[]>({ queryKey: [...crmKeys.all, 'ingestedContacts'] }, rollback)
-      toast.error('Could not save change')
+      toast.error('Could not save change', { description: logError('ContactsPage.editCell', error) })
     }
   }
 

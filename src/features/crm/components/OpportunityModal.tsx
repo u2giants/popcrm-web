@@ -24,6 +24,7 @@ import { OPPORTUNITY_STAGES, stageChipClass } from '@/features/crm/constants'
 import { formatDate, idOf, label, relatedName } from '@/features/crm/format'
 import { cn } from '@/lib/utils'
 import { NameAvatar } from '@/components/app/NameAvatar'
+import { logError } from '@/lib/errors'
 import type { CrmOpportunity } from '@/lib/types'
 
 function fmtAmount(val: string | number | null | undefined): string {
@@ -167,8 +168,8 @@ function ModalInner({
       const answer = await askOpportunityAi(row.id, question)
       setAiAnswer(answer || 'No answer returned.')
       requestAnimationFrame(() => aiRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' }))
-    } catch {
-      toast.error('AI answer failed')
+    } catch (error) {
+      toast.error('AI answer failed', { description: logError('OpportunityModal.askAi', error) })
     } finally {
       setAsking(false)
     }
@@ -195,8 +196,8 @@ function ModalInner({
         retailer: typeof row.retailer === 'string' ? row.retailer : row.retailer?.id ?? null,
         source: 'MANUAL',
       })
-    } catch {
-      toast.error('Could not save comment')
+    } catch (error) {
+      toast.error('Could not save comment', { description: logError('OpportunityModal.sendComment', error) })
       setComposerText(body)
     } finally {
       setSending(false)
@@ -209,9 +210,9 @@ function ModalInner({
     try {
       await setStageMutation.mutateAsync({ id: row.id, stage: next })
       toast.success(`Stage → ${label(next)}`)
-    } catch {
+    } catch (error) {
       setStage(prev)
-      toast.error('Could not update stage')
+      toast.error('Could not update stage', { description: logError('OpportunityModal.changeStage', error) })
     }
   }
 

@@ -27,6 +27,7 @@ import {
   useDepartmentsQuery,
   useUpdateContactMutation,
 } from '@/features/crm/queries'
+import { describeError, errorCode, logError } from '@/lib/errors'
 import type { Buyer, CrmDepartment } from '@/lib/types'
 
 function contactSearchText(contact: Buyer) {
@@ -105,50 +106,94 @@ export function TriagePage() {
         id: current.id,
         values: { retailer: currentCustomerId, department: department.id },
       })
-      setCompleted((prev) => new Set(prev).add(current.id))
-      setSkipped((prev) => {
-        const next = new Set(prev)
-        next.delete(current.id)
-        return next
-      })
-      setDepartmentId('')
-      setNewDepartmentName('')
+      markCurrentDone(current.id)
       toast.success('Contact routed to department')
-    } catch {
-      toast.error('Could not route contact')
+    } catch (error) {
+      toast.error('Could not route contact', {
+        description: logError('TriagePage.assignDepartment', error),
+      })
     }
   }
 
   async function createAndAssignDepartment() {
     if (!current || !currentCustomerId) return
+    const contactId = current.id
     const name = newDepartmentName.trim()
     if (!name) {
       toast.error('Enter a department name')
       return
     }
 
+    // Departments are unique per company (company_id, name). If one already
+    // exists for this company — even inactive, or just not shown in the picker —
+    // reuse it instead of tripping the unique constraint, which used to surface
+    // as an unexplained "Could not create department".
+    const existing = departments.find(
+      (item) =>
+        idOf(item.retailer) === currentCustomerId &&
+        (item.name ?? '').trim().toLowerCase() === name.toLowerCase(),
+    )
+
+    let departmentId: string
     try {
-      const department = await createDepartment.mutateAsync({
-        name,
-        retailer: currentCustomerId,
-        active: true,
-      } as Partial<CrmDepartment>)
-      await updateContact.mutateAsync({
-        id: current.id,
-        values: { retailer: currentCustomerId, department: department.id },
-      })
-      setCompleted((prev) => new Set(prev).add(current.id))
-      setSkipped((prev) => {
-        const next = new Set(prev)
-        next.delete(current.id)
-        return next
-      })
-      setDepartmentId('')
-      setNewDepartmentName('')
-      toast.success('Department created and contact routed')
-    } catch {
-      toast.error('Could not create department')
+      if (existing) {
+        departmentId = existing.id
+      } else {
+        const department = await createDepartment.mutateAsync({
+          name,
+          retailer: currentCustomerId,
+          active: true,
+        } as Partial<CrmDepartment>)
+        departmentId = department.id
+      }
+    } catch (error) {
+      // Lost a race (or a stale list) against an already-created department:
+      // recover by finding it after a refetch rather than failing outright.
+      if (errorCode(error) === '23505') {
+        logError('TriagePage.createDepartment', error)
+        const refreshed = listData((await departmentsQuery.refetch()).data).find(
+          (item) =>
+            idOf(item.retailer) === currentCustomerId &&
+            (item.name ?? '').trim().toLowerCase() === name.toLowerCase(),
+        )
+        if (!refreshed) {
+          toast.error('Could not create department', { description: describeError(error) })
+          return
+        }
+        departmentId = refreshed.id
+      } else {
+        toast.error('Could not create department', {
+          description: logError('TriagePage.createDepartment', error),
+        })
+        return
+      }
     }
+
+    try {
+      await updateContact.mutateAsync({
+        id: contactId,
+        values: { retailer: currentCustomerId, department: departmentId },
+      })
+    } catch (error) {
+      toast.error('Department is ready, but the contact was not routed', {
+        description: logError('TriagePage.createAndAssign.routeContact', error),
+      })
+      return
+    }
+
+    markCurrentDone(contactId)
+    toast.success(existing ? 'Contact routed to department' : 'Department created and contact routed')
+  }
+
+  function markCurrentDone(contactId: string) {
+    setCompleted((prev) => new Set(prev).add(contactId))
+    setSkipped((prev) => {
+      const next = new Set(prev)
+      next.delete(contactId)
+      return next
+    })
+    setDepartmentId('')
+    setNewDepartmentName('')
   }
 
   function goPrevious() {
