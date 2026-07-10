@@ -53,11 +53,13 @@ Sibling app audit docs:
 
 ## Shared-DB Status
 
-- Branch: `codex/crm-customer-contracts`
+- Branch used: `codex/crm-customer-contracts`
 - Commit: `fed2573` (`Add CRM customer API contracts`)
 - GitHub PR: `https://github.com/u2giants/shared-db/pull/19`
+- PR status: merged on 2026-06-29 with merge commit
+  `19b0ab376bb8ce7f8395da53365d2ce615dd0da7`
 - Migration: `supabase/migrations/20260628165000_crm_customer_contracts.sql`
-- Preview migration status: not applied by this session
+- Preview migration status: not verified by the 2026-07-10 closeout session
 - Production migration status: applied on 2026-06-28 with
   `supabase db push` against linked project `qsllyeztdwjgirsysgai`
 - Production verification:
@@ -67,8 +69,8 @@ Sibling app audit docs:
   - `api.crm_account_overview`: 3,777 rows
   - `api.crm_update_customer`: exists
   - Legacy view comments mark `crm_account_*` as deprecated compatibility names
-- Unrelated dirty file observed before this work: `/worksp/shared-db/AGENTS.md`
-  (do not stage as part of this change)
+- Canonical `/worksp/shared-db` status at 2026-07-10 closeout: clean, on branch
+  `codex/popdam-rich-pdf-extraction-docs` for unrelated shared-db work.
 
 The migration adds:
 
@@ -85,9 +87,9 @@ It does not drop or revoke legacy `api.crm_account_*` objects.
 
 Active app code has moved to customer-named contracts and symbols:
 
-- Commit: this app commit (`Use customer-named CRM contracts`)
-- Push status: not pushed to `origin/main` by this session because the
-  customer-named DB contracts have not been applied to the target schema yet.
+- Commit: `29642f9` (`Use customer-named CRM contracts`)
+- Push/deploy status: pushed to `origin/main` and superseded by later commits.
+  The production app has been deployed many times since this change.
 
 - `crm_account_list` -> `crm_customer_list`
 - `crm_account_overview` -> `crm_customer_overview`
@@ -164,7 +166,9 @@ contracts.
 
 ## Final Compatibility Removal
 
-Only after production app deploy is verified:
+Production app deploy is verified on customer-named contracts. The remaining
+cleanup is intentionally deferred until all POP app scans confirm no live callers
+still depend on the compatibility names:
 
 1. Add a second `/worksp/shared-db` migration that drops or revokes:
    - `api.crm_account_list`
