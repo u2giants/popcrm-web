@@ -16,9 +16,16 @@ router; this file only adds Claude Code-specific notes.
   dependencies, or incident runbooks change.
 - **Branching:** single-branch model — commit directly to `main`; do not create
   feature branches for this repo.
-- **Shared database / cross-app:** before any shared Supabase database, schema,
-  migration, or cross-app change, read and follow `shared-db/AGENTS.md` (the
-  cross-app coordination playbook) — app code here is `main`-only; `shared-db`
-  changes use branch+PR and the AI owns the merge.
+- **Shared DB Gatekeeper:** this repo shares Supabase project
+  `qsllyeztdwjgirsysgai` with the other POP apps. All database/schema changes
+  must be authored in canonical
+  [`u2giants/shared-db`](https://github.com/u2giants/shared-db) before app code:
+  branch + PR + timestamped migration, preview-first, and the AI merges it. Do
+  not make app-side DDL, inline/startup migrations, dashboard SQL, one-off
+  `execute_sql`, or local `supabase/migrations/` changes here. The only local
+  migration copy is the auto-synced read-only `shared-db/` folder. The guard
+  workflow `.github/workflows/shared-db-guard.yml` runs on push and pull request
+  and only allows owner-approved overrides via PR label `db-change-approved` or
+  `[db-change-approved]` in a commit message.
 - Background on the redesign (charts, tokens, layout) lives in `frontend_imp.md`
   (historical plan, largely implemented).

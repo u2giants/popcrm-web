@@ -45,7 +45,7 @@ Then load additional docs only when relevant:
 | Add/change config, env vars, or runtime settings | `AGENTS.md`, `docs/configuration.md`, `docs/deployment.md` if prod/runtime is affected | Unrelated architecture docs |
 | Change local setup, dev/test/lint scripts, or tooling | `AGENTS.md`, `docs/development.md`, `package.json`, `eslint.config.js` | `docs/deployment.md` unless CI/CD changes |
 | Change deployment, Docker, CI/CD, hosting, release, or rollback | `AGENTS.md`, `docs/deployment.md`, `.github/workflows/deploy.yml`, `Dockerfile`, `nginx.conf` | Local-only dev docs |
-| Change data shape, Supabase fields, queries, views, RPCs, or identifiers | `AGENTS.md`, `docs/architecture.md`, `src/lib/types.ts`, `src/lib/database.types.ts`, `src/features/crm/api.ts`, `shared-db/supabase/migrations/` | Deployment docs unless rollout changes |
+| Change data shape, Supabase fields, queries, views, RPCs, or identifiers | `AGENTS.md`, `docs/architecture.md`, `src/lib/types.ts`, `src/lib/database.types.ts`, `src/features/crm/api.ts`, canonical `/worksp/shared-db/supabase/migrations/` for backend changes | Deployment docs unless rollout changes |
 | Investigate bugs or incidents | `AGENTS.md` (Critical incidents), area-relevant source, `HANDOFF.md` if present | Unrelated docs |
 | Continue unfinished work | `AGENTS.md`, `HANDOFF.md` (if present) and the docs it names | Docs outside the handoff scope |
 | Understand the redesign rationale (charts, tokens, layout) | `frontend_imp.md` (historical plan — fully implemented) | Everything else |
@@ -63,6 +63,23 @@ Notes:
   [`u2giants/albert-standards/infrastructure`](https://github.com/u2giants/albert-standards/tree/main/infrastructure).
   When deployment, domains, runtime ownership, server dependencies, break-glass
   runbooks, or infrastructure decisions change for this app, update that repo too.
+
+## Shared DB Gatekeeper
+
+This repo shares the Supabase backend project `qsllyeztdwjgirsysgai` with the
+other POP apps. All database/schema changes for that shared backend must be
+authored in the canonical repo
+[`u2giants/shared-db`](https://github.com/u2giants/shared-db) before any app code:
+branch + PR + timestamped migration, preview-first, and the AI merges it.
+
+Do not make app-side DDL, inline/startup migrations, Supabase dashboard SQL,
+one-off `execute_sql`, or a local `supabase/migrations/` migration in this repo.
+The only migration folder this repo may contain is the auto-synced, read-only
+`shared-db/` vendor copy. The guard workflow
+`.github/workflows/shared-db-guard.yml` runs on push and pull request; it fails
+DB/schema changes outside `shared-db/` unless the owner-approved override is
+present: PR label `db-change-approved` or `[db-change-approved]` in a commit
+message.
 
 ## Shared-backend startup/shutdown hygiene
 
@@ -131,8 +148,9 @@ Docs: `README.md`, `AGENTS.md`, `CLAUDE.md`, `docs/*`, `frontend_imp.md`
 
 Build artifacts / ignored: `dist/`, `node_modules/` (see What to ignore).
 
-Shared Supabase migrations live under `shared-db/supabase/migrations/`; legacy
-Directus code under `/worksp/directus` is rollback/reference context only.
+Shared Supabase migrations live in the canonical `/worksp/shared-db` repo. This
+repo's `shared-db/` folder is a read-only vendor copy; legacy Directus code under
+`/worksp/directus` is rollback/reference context only.
 
 ## Prime Directive: custom-code boundary
 
@@ -167,7 +185,7 @@ the only "generated-style" area, and it is hand-maintained in this repo.
 |---|---|---|
 | Change a CRM page/table/filter | `src/features/crm/pages/<Page>.tsx` | `src/components/ui/*` |
 | Change a record drawer | `src/features/crm/components/<X>Drawer.tsx` | unrelated pages |
-| Add/adjust a Supabase query, field, view, or RPC | `src/features/crm/api.ts`, `src/lib/types.ts`, `src/lib/database.types.ts`, `shared-db/supabase/migrations/` | legacy Directus schema unless explicitly doing rollback/reference work |
+| Add/adjust a Supabase query, field, view, or RPC | `src/features/crm/api.ts`, `src/lib/types.ts`, `src/lib/database.types.ts`; canonical `/worksp/shared-db/supabase/migrations/` for backend changes | legacy Directus schema unless explicitly doing rollback/reference work |
 | Add a route / nav item | `src/app/routes.tsx`, `src/app/navigation.ts` | shell internals unless needed |
 | Change status colors / stage tones | `src/features/crm/constants.ts`, `src/index.css` (tokens) | per-component ad-hoc colors |
 | Add a shared UI building block | `src/components/app/` | `src/components/ui/*` (primitives only) |
