@@ -81,6 +81,27 @@ DB/schema changes outside `shared-db/` unless the owner-approved override is
 present: PR label `db-change-approved` or `[db-change-approved]` in a commit
 message.
 
+### Shared query and search performance contract
+
+The production AI-tagging timeout remediation is the shared reference for
+large-list and search access paths. Read the auto-synced canonical note at
+`shared-db/docs/app-migration-notes/ai-tagging-keyset-timeout-20260714.md`
+before changing a high-volume CRM query. The DAM-only
+`get_ai_tag_candidates(...)` RPC and its indexes are private worker
+infrastructure; CRM must not call or copy them.
+
+Continue using the existing bounded `api.crm_*_list`, recent-feed, segment-list,
+and segment-count contracts. Audit customer/opportunity lists, email routing,
+activity timelines, global search, and tab counts for deep offsets, exact counts
+in the list hot path, broad browser reads, client-side aggregation, and
+nonunique timestamp ordering. Prefer opaque keyset cursors with an ID
+tie-breaker, keep counts optional and independently failure-tolerant, and prove
+new query-shaped indexes with representative
+`EXPLAIN (ANALYZE, BUFFERS)`. New views/RPCs/indexes belong in canonical
+`shared-db` and go preview-first. CRM access to DAM search, when a product
+workflow genuinely needs it, must use a purpose-specific authorized `api.*`
+projection rather than DAM internals or a service-role credential.
+
 ## Shared-backend startup/shutdown hygiene
 
 Why this exists:
