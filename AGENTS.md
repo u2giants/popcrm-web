@@ -623,7 +623,11 @@ admin-only (`isAdmin` from `realUser.roles`), persisted per tab in
 The user list comes from the admin-gated `api.crm_admin_user_list()` RPC in
 canonical `/worksp/shared-db` (migration
 `20260715184500_crm_admin_user_list.sql`) — the browser cannot read the `app`
-schema directly, so identity listing must go through an `api` function.
+schema directly, so identity listing must go through an `api` function. A
+follow-up migration `20260715223108_crm_admin_user_list_exclude_service_accounts.sql`
+filters service/test accounts (`%@example.com`, `svc@%`, `codex%`, `%e2e%`) out
+of that RPC so the picker lists only real people; extend the denylist there
+(server-side), not in the frontend.
 
 Do not change because:
 Adding a real per-user session switch (service-role or minted JWTs) would be a
