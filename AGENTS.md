@@ -213,6 +213,7 @@ the only "generated-style" area, and it is hand-maintained in this repo.
 | Change a base primitive | `src/components/ui/<name>.tsx` | — (note in Core modification inventory) |
 | Change build/deploy | `.github/workflows/deploy.yml`, `Dockerfile`, `nginx.conf` | the production server directly |
 | Add an env/config value | `src/lib/supabase.ts`, `docs/configuration.md`; CI build args for `VITE_*` | a real `.env` in the repo |
+| Change admin impersonation ("view as") | `src/auth/auth.tsx` (identity overlay), `src/components/app/ImpersonationDialog.tsx` (user picker), `src/components/app/ImpersonationBar.tsx` (orange bar), `src/components/app/AppHeader.tsx` (menu item); the `api.crm_admin_user_list()` RPC lives in canonical `/worksp/shared-db` | per-user server-side data filters (there are none — see Quirks) |
 
 ## Data model and external identifiers
 
@@ -600,6 +601,42 @@ follow-up migration `20260703220000_fix_crm_auth_profile_mismatched_email_relink
 the `app.handle_new_auth_user()` trigger function, and whether the user's
 `app.profile.email` is unlinked or linked to an Auth user with a different email.
 
+### Admin impersonation is a frontend "view as", not a data-layer switch
+
+Looks like:
+Impersonation might run queries under the target user's Supabase session so RLS
+returns their rows.
+
+Actually:
+It is a **frontend identity overlay**. `src/auth/auth.tsx` keeps the real
+signed-in account (`realUser`) and, when an admin impersonates, an
+`impersonating` `AppUser`; `useAuth().user` returns `impersonating ?? realUser`.
+The Supabase session never changes — the admin's own JWT still authorizes every
+request. This is correct here because CRM `api.crm_*` list views gate on **app
+access**, not per-user row ownership: every crm-access user sees the same shared
+rows. The only things that vary per user are the rendered identity and
+role-gated UI (e.g. Email Routing's `canSeeAll = /admin/`), and those read
+`useAuth().user`, so the overlay reproduces them faithfully. Impersonation is
+admin-only (`isAdmin` from `realUser.roles`), persisted per tab in
+`sessionStorage` (`popcrm_impersonate`), and cleared on stop/logout.
+
+The user list comes from the admin-gated `api.crm_admin_user_list()` RPC in
+canonical `/worksp/shared-db` (migration
+`20260715184500_crm_admin_user_list.sql`) — the browser cannot read the `app`
+schema directly, so identity listing must go through an `api` function.
+
+Do not change because:
+Adding a real per-user session switch (service-role or minted JWTs) would be a
+large, security-sensitive backend build that returns identical rows anyway,
+since the data is shared. If per-user row scoping is ever added to the CRM
+views, revisit whether the overlay still reflects reality.
+
+Admin emails:
+`app.handle_new_auth_user()` auto-grants the `administrator` role to
+`u2giants@gmail.com` and `albert@popcre.com` on first SSO login (same migration
+also backfilled albert's existing profile). Impersonation and any other
+administrator-gated capability follow the DB role, not a frontend allowlist.
+
 ### `src/components/ui` is hand-maintained, imports from `radix-ui`
 
 Looks like:
@@ -815,6 +852,7 @@ now break-glass only (see `docs/deployment.md`).
 | done | Redesign, CI/CD pipeline, Coolify cutover, data-load fixes | Completed in commits up to `3592b88` |
 | done | Full UI redesign: all pages, drawers, charts, tokens, board/list toggles | All screens complete; `frontend_imp.md` fully implemented |
 | done | Tasks board view | Kanban columns (TODO/In progress/Done/Blocked) with TaskCard, drag-to-status via chip |
+| done | Admin impersonation ("view as another user") | Frontend identity overlay (`auth.tsx`), admin-only picker (`ImpersonationDialog`), orange exit bar (`ImpersonationBar`); backed by admin-gated `api.crm_admin_user_list()` in shared-db; `albert@popcre.com` granted `administrator`. See Quirks. Verified end-to-end 2026-07-15 |
 | done | Pipeline list/board toggle | DataTable list view + existing board; segmented control in ListBar |
 | done | OpportunityModal: Ask AI, Share, Expand/collapse | All three top-bar actions wired; composer calls `createNote` API |
 | done | `label()` enum overrides | `AI`, `DETERMINISTIC`, `IN_PROGRESS`, `TODO`, routing statuses all map to readable labels |
