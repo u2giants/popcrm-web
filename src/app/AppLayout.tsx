@@ -3,6 +3,7 @@ import { Outlet } from 'react-router-dom'
 import { Sheet, SheetContent, SheetTitle, SheetDescription } from '@/components/ui/sheet'
 import { AppSidebar, AppSidebarContent } from '@/components/app/AppSidebar'
 import { AppHeader } from '@/components/app/AppHeader'
+import { ImpersonationBar } from '@/components/app/ImpersonationBar'
 import { CommandSearch } from '@/components/app/CommandSearch'
 
 function initTheme(): 'light' | 'dark' {
@@ -53,7 +54,9 @@ export function AppLayout() {
   }
 
   return (
-    <div className="flex h-svh overflow-hidden bg-background">
+    <div className="flex h-svh flex-col overflow-hidden bg-background">
+      <ImpersonationBar />
+      <div className="flex min-h-0 flex-1 overflow-hidden">
       <AppSidebar />
 
       <Sheet open={mobileNav} onOpenChange={setMobileNav}>
@@ -79,6 +82,7 @@ export function AppLayout() {
       </div>
 
       <CommandSearch open={search} onClose={() => setSearch(false)} />
+      </div>
     </div>
   )
 }

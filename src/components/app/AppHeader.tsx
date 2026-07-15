@@ -1,4 +1,5 @@
-import { AlignJustify, Menu, Moon, RefreshCcw, Search, Sun } from 'lucide-react'
+import { useState } from 'react'
+import { AlignJustify, Menu, Moon, RefreshCcw, Search, Sun, UserCog } from 'lucide-react'
 import { useIsFetching, useQueryClient } from '@tanstack/react-query'
 import { useAuth } from '@/auth/auth'
 import { crmKeys, useFirefliesHealth } from '@/features/crm/queries'
@@ -19,6 +20,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import { initials } from '@/features/crm/format'
+import { ImpersonationDialog } from '@/components/app/ImpersonationDialog'
 
 const COMMIT_HASH = typeof __COMMIT_HASH__ === 'string' ? __COMMIT_HASH__ : ''
 const COMMIT_DATE = (() => {
@@ -51,7 +53,8 @@ export function AppHeader({
   density: 'comfortable' | 'compact'
   onToggleDensity: () => void
 }) {
-  const { user, logout } = useAuth()
+  const { user, isAdmin, impersonating, logout } = useAuth()
+  const [impersonateOpen, setImpersonateOpen] = useState(false)
   const queryClient = useQueryClient()
   const crmFetches = useIsFetching({ queryKey: crmKeys.all })
   const fireflies = useFirefliesHealth()
@@ -174,9 +177,19 @@ export function AppHeader({
               <div className="mt-0.5 text-xs text-muted-foreground">{user?.role?.name ?? '—'}</div>
             </DropdownMenuLabel>
             <DropdownMenuSeparator />
+            {isAdmin ? (
+              <DropdownMenuItem onClick={() => setImpersonateOpen(true)}>
+                <UserCog className="size-4" />
+                {impersonating ? 'Impersonate another user' : 'Impersonate'}
+              </DropdownMenuItem>
+            ) : null}
             <DropdownMenuItem onClick={() => logout()}>Log out</DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
+
+        {isAdmin ? (
+          <ImpersonationDialog open={impersonateOpen} onOpenChange={setImpersonateOpen} />
+        ) : null}
       </div>
     </header>
   )

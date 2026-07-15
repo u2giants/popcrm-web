@@ -1,5 +1,6 @@
 import { supabase } from '@/lib/supabase'
 import type {
+  AdminUserSummary,
   CrmAiModelConfig,
   Buyer,
   CrmDepartment,
@@ -52,6 +53,26 @@ export interface CrmSearchResults {
 // contracts can outrun generated types, so these helpers use the untyped surface.
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const anyDb = supabase as any
+
+// Admin-only user directory (all active profiles + role types) for the
+// impersonation picker. Backed by api.crm_admin_user_list(), which hard-gates
+// on the administrator role; a non-admin caller gets an insufficient_privilege
+// error rather than data.
+export async function fetchAdminUserList(): Promise<AdminUserSummary[]> {
+  const { data, error } = await anyDb.schema('api').rpc('crm_admin_user_list')
+  if (error) throw error
+  const rows: Row[] = Array.isArray(data) ? data : []
+  return rows.map((r): AdminUserSummary => ({
+    id: r.id as string,
+    email: (r.email ?? null) as string | null,
+    display_name: (r.display_name ?? null) as string | null,
+    avatar_url: (r.avatar_url ?? null) as string | null,
+    status: (r.status ?? null) as string | null,
+    roles: Array.isArray(r.roles) ? (r.roles as string[]) : [],
+    apps: Array.isArray(r.apps) ? (r.apps as string[]) : [],
+    crm_access: Boolean(r.crm_access),
+  }))
+}
 
 // Build a nested relation object ({id, name, ...extra}) or null when no id.
 function rel(id: unknown, name: unknown, extra: Row = {}): Row | null {

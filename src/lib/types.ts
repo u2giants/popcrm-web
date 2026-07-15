@@ -13,6 +13,19 @@ export interface AppUser {
   roles?: string[]
 }
 
+// Admin-only user directory row from api.crm_admin_user_list() — powers the
+// "Impersonate / view as" picker. Not the signed-in identity (that is AppUser).
+export interface AdminUserSummary {
+  id: string
+  email: string | null
+  display_name: string | null
+  avatar_url: string | null
+  status: string | null
+  roles: string[]
+  apps: string[]
+  crm_access: boolean
+}
+
 export interface Retailer {
   id: string
   name: string
