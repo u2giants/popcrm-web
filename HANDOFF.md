@@ -1,154 +1,112 @@
-# Handoff — Shared DB Gatekeeper and Legacy Account Cleanup
+# HANDOFF — popcrm-web impersonation feature: code done, prod deploy blocked by host SSH policy
 
-Date: 2026-07-10
+Date: 2026-07-15
+Author: Claude (Opus 4.8) session
 
-## What this application is
+## TL;DR
 
-`popcrm-web` is the POP CRM frontend: a Vite/React/TypeScript single-page app
-served by nginx at `https://crm.designflow.app`. Internal POP Creations staff use
-it for customer, contact, sales pipeline, Outlook email routing, Fireflies
-meeting notes, tasks, notes, approvals, and CRM settings work.
+The **admin impersonation ("view as another user") feature is complete, merged,
+and live in the database** — but the **frontend production deploy is blocked** by
+a host-level SSH change that breaks Coolify deploys for **every** app on the
+`hetz` VPS (not just this one). The fix is in `u2giants/ansible`, not this repo,
+and needs the owner's go-ahead because it changes SSH policy host-wide.
 
-The app stores no data of its own. All data reads/writes go through the shared
-Supabase backend project `qsllyeztdwjgirsysgai`, also used by other POP apps.
-The canonical backend/schema repo is `/worksp/shared-db`
-(`https://github.com/u2giants/shared-db`). This app repo is main-only and deploys
-from `main` through GitHub Actions, GHCR, and Coolify.
+## What is DONE and verified
 
-## What we set out to do this session, and why
+- **Feature code** — committed and pushed to `main`:
+  - `ccc4a33` docs, `fffe858` feature (`git log` on `origin/main`).
+  - Files: `src/auth/auth.tsx` (realUser vs impersonated identity overlay),
+    `src/components/app/ImpersonationDialog.tsx` (admin-only user picker),
+    `src/components/app/ImpersonationBar.tsx` (orange exit bar),
+    `src/components/app/AppHeader.tsx` (menu item above Log out),
+    `src/app/AppLayout.tsx` (bar wiring), `src/features/crm/api.ts` +
+    `src/lib/types.ts` (`fetchAdminUserList` / `AdminUserSummary`).
+  - `npm run build` ✓, `npm run lint` ✓ (only the pre-existing `App.tsx:48`
+    warning; zero new).
+  - Verified end-to-end in a local dev server signed in as a **real
+    administrator** (albert@popcre.com, session minted via service-role): menu
+    item appears, dialog lists all 21 users with role chips, impersonating a
+    viewer swaps the header identity and shows the orange bar, Exit restores the
+    admin. Technique saved in memory `verify-spa-as-user-supabase-session`.
 
-The session goal was to prevent future AI sessions from making shared Supabase
-schema changes inside this app repo. The owner explicitly required:
+- **Backend (shared-db)** — applied to preview + production, PR
+  [#68](https://github.com/u2giants/shared-db/pull/68) merged to `main`:
+  - Migration `20260715184500_crm_admin_user_list.sql`:
+    admin-gated `api.crm_admin_user_list()` (returns all active profiles +
+    roles + apps + crm_access); grants `administrator` to `albert@popcre.com`
+    (trigger + backfill).
+  - Verified in prod: RPC returns the 21-user directory for an administrator,
+    raises `insufficient_privilege` for non-admins; albert has `administrator`.
 
-1. Add the standard shared database guard workflow from `u2giants/ai-devops`.
-2. Add a "Shared DB Gatekeeper" rule to `AGENTS.md` and `CLAUDE.md`.
-3. Commit directly to `main`, push, and confirm the new workflow appears in
-   GitHub Actions.
+- **CI image** — GitHub Actions run `29446957775`: `verify` ✓,
+  `build-and-push` ✓ → `ghcr.io/u2giants/popcrm-web:sha-ccc4a33` published.
 
-This matters because the shared Supabase backend serves CRM, DAM, PM/PIM, and
-other POP apps. App-side DDL, local migrations, dashboard SQL, or one-off SQL can
-create drift and break a different app.
+## What is BLOCKED — and exactly why
 
-## Current state
+The GH Actions `deploy` job triggered Coolify (deployment
+`qw600lsxhro52596hm2jjtyu`, "queued"), but Coolify **failed** it with
+`Server is not functional` / `Permission denied (publickey)`, and the CI
+"Wait for production to serve this commit" step then failed after 7.5 min.
+The live site still serves the old bundle (`/assets/index-XTBhpujx.js`); the
+running container `a1vb55by4benmh25nd4ga8pt-*` is **5 days old**.
 
-- Local repo: `/worksp/popcrm-web`
-- Branch: `main`
-- Remote: `origin` / `https://github.com/u2giants/popcrm-web.git`
-- Latest local/remote commit before this closeout-docs update: `4d827e7`
-- Session commit: `ea04ae9` (`Add shared DB guard [db-change-approved]`)
-- Expected worktree at closeout after committing this handoff update: clean
+Root cause (fully diagnosed on the host, read-only):
+- Coolify deploys by SSHing **as `root`** to `host.docker.internal` from the
+  **docker bridge network `10.0.1.15`**.
+- On **2026-07-14 16:32** the Ansible `ssh_hardening` role rewrote
+  `/etc/ssh/sshd_config.d/20-access-policy.conf`:
+  - global `PermitRootLogin no`;
+  - `Match Address <ssh_trusted_sources>` (Tailscale `100.64.0.0/10` + loopback)
+    → `PermitRootLogin prohibit-password`;
+  - `Match Address *,!<trusted>` → `AllowUsers ai` (no root).
+- `10.0.1.0/24` (the docker bridge Coolify uses) is **not** in
+  `ssh_trusted_sources`, so Coolify's root SSH lands in the "public" bucket and
+  is refused. auth.log: `User root from 10.0.1.15 not allowed because not
+  listed in AllowUsers`, first occurrence **Jul 14 16:33:02** — right after the
+  config was written.
+- Coolify marked its only server (localhost) `is_reachable=f, is_usable=f` at
+  2026-07-14 20:33. The `coolify coolify-localhost` key IS still in
+  `/root/.ssh/authorized_keys` (`from="10.0.1.0/24"`, fingerprint `wXtvwv6u…`,
+  matches Coolify's stored private key) — so this is **not** a key problem; it
+  is purely the sshd root/AllowUsers policy.
 
-Implemented this session:
+Scope: this breaks **all** Coolify-managed app deploys on `hetz`
+(popcrm-web, poppim-web, popdam, monitor, hiclaw…), not just this change.
 
-- Added `.github/workflows/shared-db-guard.yml`.
-- Removed the older `.github/workflows/forbid-shared-db-bypass.yml` so there is
-  one standard guard and one standard override path.
-- Added `AGENTS.md` section `Shared DB Gatekeeper`.
-- Updated `CLAUDE.md` with the same rule.
-- Corrected `AGENTS.md` rows that previously pointed migrations at this repo's
-  vendored `shared-db/` folder; they now point backend changes to canonical
-  `/worksp/shared-db/supabase/migrations/`.
+## The fix (belongs in `u2giants/ansible`, NOT here, NOT a host hand-edit)
 
-Verification already completed:
+Source of truth: `roles/ssh_hardening/templates/20-access-policy.conf.j2` + its
+role vars. Add the Coolify/docker internal bridge `10.0.1.0/24` (IPv4) to
+**`ssh_trusted_sources`** so root gets `PermitRootLogin prohibit-password`
+there. Coolify's authorized_keys entry is already `from="10.0.1.0/24"` and
+key-only, so this is scoped and safe. Then apply via the Ansible GitHub Actions
+pipeline — do NOT hand-edit sshd on the host (break-glass only, and reconcile in
+Ansible after).
 
-- `gh workflow list --repo u2giants/popcrm-web` shows `shared-db guard` as
-  active.
-- `shared-db guard` passed on commit `ea04ae9`.
-- Later auto-sync pushes also triggered and passed `shared-db guard`.
-- `Build and Deploy` passed on `ea04ae9`: lint, typecheck/build, image push, and
-  Coolify deploy.
-- GitHub Actions deploy log verified production served commit `ea04ae9`.
+Heads-up: `/worksp/ansible` is currently on branch `codex/fix-software-drift`
+(someone else's in-flight work) — coordinate/serialize before opening the fix.
 
-Important note:
+## How to finish once the SSH policy is fixed
 
-- The guard workflow file itself contains DDL regex strings, so the installation
-  commit intentionally used the documented push override
-  `[db-change-approved]`. That was only to land the guard cleanly; normal future
-  database changes should not use the override without owner approval.
+1. Re-trigger the popcrm-web deploy (push an empty commit, re-run Actions run
+   `29446957775`, or Coolify redeploy of image `sha-ccc4a33`).
+2. Confirm Coolify deployment `finished` (not `failed`):
+   `docker exec coolify-db psql -U coolify -d coolify -c "select deployment_uuid,status from application_deployment_queues order by created_at desc limit 3;"`
+3. Verify the live SHA: fetch `https://crm.designflow.app/`, find the
+   `/assets/index-*.js`, and confirm it contains `ccc4a33` (the build stamp).
+4. Smoke-test impersonation live as an admin (albert): avatar → Impersonate →
+   pick a user → orange bar → Exit.
+5. Delete this HANDOFF.md once the deploy is verified and no work remains.
 
-## Everything we tried that did NOT work
+## Loose ends / notes
 
-- Tried to apply a larger `AGENTS.md` patch in one pass. It failed because the
-  exact context line for the documentation table did not match. Fix: inspected
-  numbered lines with `nl -ba AGENTS.md` and applied smaller patches.
-- Tried to verify production with a `<meta name="build-sha">` grep. The current
-  app does not expose the commit SHA in an HTML meta tag; the commit stamp is
-  baked into the JS bundle and displayed in the app header. Fix: relied on the
-  existing GitHub Actions deploy step, which fetches the production JS bundle and
-  greps for the expected short SHA. The run logged `production is serving commit
-  ea04ae9`.
-- The root `HANDOFF.md` from 2026-06-28 was stale. It said the customer-named CRM
-  contract app commit had not been pushed, but commit `29642f9` is now in
-  history and deployed. Fix: replaced the handoff with this accurate closeout.
-
-## Root causes and key findings
-
-- The repo already had a custom guard workflow,
-  `.github/workflows/forbid-shared-db-bypass.yml`, but it did not match the
-  standard template or documented override path. It was replaced by
-  `.github/workflows/shared-db-guard.yml`.
-- `AGENTS.md` already warned that `shared-db/` is read-only, but two task routing
-  rows still named `shared-db/supabase/migrations/` without saying it is the
-  vendored copy. Those are now explicit about canonical `/worksp/shared-db`.
-- There is no `.cursor/rules/` folder in this repo, so no Cursor rule file was
-  added.
-- `/worksp/shared-db` was inspected only for status; no canonical shared-db files
-  were edited by this session.
-- `/worksp/shared-db` is currently on branch
-  `codex/popdam-rich-pdf-extraction-docs`, clean at closeout. That is a separate
-  shared-db task branch, not work from this CRM guard session.
-
-## Exact next steps
-
-1. For future CRM app work, continue using this repo's `main` branch.
-   Verification gate: `git status --short --branch` shows
-   `## main...origin/main` with no dirty files.
-2. For any shared Supabase schema/API/RLS/view/RPC change, start in
-   `/worksp/shared-db`, not here.
-   Verification gate: the change is represented by a timestamped migration on a
-   shared-db branch/PR and preview is tested before production.
-3. For the legacy account compatibility cleanup, scan all POP app repos for live
-   callers of `crm_account_*` and `crm_update_account`, then create a new
-   shared-db migration that drops/revokes only after owner approval.
-   Verification gate: all app scans are clean, the shared-db PR passes, preview
-   works, and production rollout is explicitly approved.
-4. After the compatibility cleanup lands, regenerate affected app database types
-   and delete this `HANDOFF.md` only when there is no unfinished work.
-   Verification gate: no `HANDOFF.md` remains, app builds pass, and production
-   deploy verifies the intended SHA.
-
-## Constraints and gotchas in force
-
-- App repos are main-only; do not create feature branches in `popcrm-web`.
-- Shared backend changes belong in `u2giants/shared-db` with branch + PR; the AI
-  opens and merges the PR when safe.
-- Do not hand-edit this repo's vendored `shared-db/` mirror.
-- Do not add app-side DDL, inline/startup migrations, dashboard SQL, one-off
-  `execute_sql`, or local `supabase/migrations/` migrations here.
-- The guard override exists only for owner-approved exceptions:
-  PR label `db-change-approved` or `[db-change-approved]` in a commit message.
-- Production deploy verification for this app is currently via the GitHub
-  Actions bundle-SHA check, not a `build-sha` meta tag in `index.html`.
-
-## Access and environment
-
-- GitHub CLI is authenticated and was used for workflow/run verification.
-- Production app URL: `https://crm.designflow.app`
-- Preview alias: `https://crm-dev.designflow.app`
-- Shared Supabase project: `qsllyeztdwjgirsysgai`
-- Canonical shared-db repo: `/worksp/shared-db`
-- Secrets remain in 1Password vault `vibe_coding`; no secret values were added
-  or printed this session.
-
-## Open questions and risks
-
-- Legacy `api.crm_account_list`, `api.crm_account_overview`, and
-  `api.crm_update_account` compatibility objects still exist intentionally. The
-  cleanup is a future shared-db change and should not be done casually.
-- GitHub Actions emits a Node.js 20 deprecation warning for `actions/checkout@v4`
-  and `actions/setup-node@v4` being forced to Node.js 24 by the runner. It did
-  not block this session, but a future CI maintenance pass may need to update
-  action versions if warnings become failures.
-- Self-audit passed: this handoff names the app, session goal, current state,
-  failed attempts, root findings, exact next steps with verification gates,
-  constraints, access/environment, and remaining risks for a fresh developer.
+- Prod has a few non-human profiles that now appear in the picker
+  (`Codex CRM Verification`, `POP CRM E2E Test`, `Admin User / svc@popcre.com`).
+  If undesired, filter them in `api.crm_admin_user_list()` (shared-db) or in
+  `ImpersonationDialog`. Not done pending owner preference.
+- Impersonation is a **frontend identity overlay**, deliberately (CRM rows are
+  shared across all crm-access users; only identity + role-gated UI vary). See
+  AGENTS.md → Quirks → "Admin impersonation is a frontend view as".
+- No secret values were committed or printed. Temp dev `.env`, minted session,
+  and screenshots were deleted. Coolify DB password (used read-only for
+  diagnosis) is in 1Password `vibe_coding/coolify-secrets`.
