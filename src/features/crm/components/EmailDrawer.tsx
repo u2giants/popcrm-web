@@ -22,6 +22,7 @@ import {
   useUpdateEmailMutation,
 } from '@/features/crm/queries'
 import { ROUTING_STATUSES } from '@/features/crm/constants'
+import { customerPickerOptions } from '@/features/crm/pages/_shared'
 import { formatDateTime, idOf, label, relatedName } from '@/features/crm/format'
 import { logError } from '@/lib/errors'
 import type { CrmEmailMessage } from '@/lib/types'
@@ -89,8 +90,8 @@ function EmailDrawerForm({ row, onClose }: { row: CrmEmailMessage; onClose: () =
   const [ignoring, setIgnoring] = useState(false)
 
   const retailerOptions = useMemo<ComboOption[]>(
-    () => retailers.map((r) => ({ value: r.id, label: r.name, hint: r.domain ?? undefined })),
-    [retailers],
+    () => customerPickerOptions(retailers, retailer, (r) => r.domain ?? undefined),
+    [retailers, retailer],
   )
   const departmentOptions = useMemo<ComboOption[]>(
     () =>

@@ -22,14 +22,15 @@ import { RelationLabel } from '@/features/crm/components/RelationLabel'
 import { useRecordSelection } from '@/features/crm/useRecordSelection'
 import { NoteDrawer } from '@/features/crm/components/NoteDrawer'
 import { label, relatedName, textOf } from '@/features/crm/format'
+import { customerPickerOptions } from '@/features/crm/pages/_shared'
 import { StatusBadge } from '@/components/app/StatusBadge'
-import { listData, useCreateNoteMutation, useNotesQuery, useOpportunitiesQuery, useRetailersQuery } from '@/features/crm/queries'
+import { listData, useCreateNoteMutation, useNotesQuery, useOpportunitiesQuery, useCustomerSegmentQuery } from '@/features/crm/queries'
 import { logError } from '@/lib/errors'
 import type { CrmNote } from '@/lib/types'
 
 export function NotesPage() {
   const notesQuery = useNotesQuery(-1)
-  const retailersQuery = useRetailersQuery(-1)
+  const retailersQuery = useCustomerSegmentQuery('all', -1)
   const opportunitiesQuery = useOpportunitiesQuery(-1)
   const notes = listData(notesQuery.data)
   const retailers = listData(retailersQuery.data)
@@ -123,7 +124,7 @@ export function NotesPage() {
       <NewNoteDialog
         open={creating}
         onClose={() => setCreating(false)}
-        retailerOptions={retailers.map((r) => ({ value: r.id, label: r.name }))}
+        retailerOptions={customerPickerOptions(retailers)}
         opportunityOptions={opportunities.map((o) => ({ value: o.id, label: o.name || 'Untitled program', hint: relatedName(o.retailer) }))}
       />
     </AppPage>

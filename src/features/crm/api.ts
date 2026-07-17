@@ -240,16 +240,18 @@ const toOpportunity = (r: Row): CrmOpportunity => ({
   hard_delivery_date: (r.hard_delivery_date ?? null) as string | null,
   ai_summary: (r.ai_summary ?? null) as string | null,
   ai_state: (r.ai_state ?? null) as string | null,
-  retailer: rel(r.company_id, r.company_name, { customer_status: r.company_customer_status ?? null, domain: r.company_domain ?? null }),
+  retailer: rel(r.company_id, r.company_name, { display_name: r.company_display_name ?? null, customer_status: r.company_customer_status ?? null, domain: r.company_domain ?? null }),
   contact: rel(r.contact_id, r.contact_name, { email: r.contact_email ?? null }),
   department: rel(r.department_id, r.department_name),
-  factory: rel(r.factory_id, r.factory_name),
+  factory: rel(r.factory_id, r.factory_name, { display_name: r.factory_display_name ?? null, status: r.factory_status ?? null }),
   project: r.project_id ? { id: r.project_id as string, title: (r.project_title ?? null) as string | null } : null,
 }) as unknown as CrmOpportunity
 
 const toRetailer = (r: Row): Retailer => ({
   id: r.id as string,
   name: (r.name ?? null) as unknown as string,
+  display_name: (r.display_name ?? null) as string | null,
+  status: (r.status ?? null) as string | null,
   domain: (r.domain ?? null) as string | null,
   logo_url: (r.logo_url ?? null) as string | null,
   customer_status: (r.customer_status ?? null) as string | null,
@@ -283,7 +285,7 @@ const toBuyer = (r: Row): Buyer => ({
   job_title: (r.job_title ?? null) as string | null,
   contact_type: (r.contact_type ?? null) as string | null,
   scope: (r.scope ?? null) as string | null,
-  retailer: rel(r.company_id, r.company_name, { customer_status: r.company_customer_status ?? null, domain: r.company_domain ?? null }),
+  retailer: rel(r.company_id, r.company_name, { display_name: r.company_display_name ?? null, customer_status: r.company_customer_status ?? null, domain: r.company_domain ?? null }),
   department: rel(r.department_id, r.department_name),
 }) as unknown as Buyer
 
@@ -293,7 +295,7 @@ const toDepartment = (r: Row): CrmDepartment => ({
   category: (r.category ?? null) as string | null,
   division: (r.division ?? null) as string | null,
   active: (r.active ?? null) as boolean | null,
-  retailer: rel(r.company_id, r.company_name, { domain: r.company_domain ?? null }),
+  retailer: rel(r.company_id, r.company_name, { display_name: r.company_display_name ?? null, domain: r.company_domain ?? null }),
   primary_buyer: rel(r.primary_contact_id, r.primary_contact_name, { email: r.primary_contact_email ?? null }),
 }) as unknown as CrmDepartment
 
@@ -306,7 +308,7 @@ const toEmail = (r: Row): CrmEmailMessage => ({
   routing_status: (r.routing_status ?? null) as string | null,
   routing_method: (r.routing_method ?? null) as string | null,
   body_preview: (r.body_preview ?? null) as string | null,
-  retailer: rel(r.company_id, r.company_name, { domain: r.company_domain ?? null }),
+  retailer: rel(r.company_id, r.company_name, { display_name: r.company_display_name ?? null, domain: r.company_domain ?? null }),
   department: rel(r.department_id, r.department_name),
   opportunity: rel(r.opportunity_id, r.opportunity_name, { stage: r.opportunity_stage ?? null }),
 }) as unknown as CrmEmailMessage
@@ -320,7 +322,7 @@ const toMeeting = (r: Row): CrmMeetingNote => ({
   action_items: (r.action_items ?? null) as string | null,
   source: (r.source ?? null) as string | null,
   fireflies_transcript_id: (r.fireflies_transcript_id ?? null) as string | null,
-  retailer: rel(r.company_id, r.company_name, { customer_status: r.company_customer_status ?? null, domain: r.company_domain ?? null }),
+  retailer: rel(r.company_id, r.company_name, { display_name: r.company_display_name ?? null, customer_status: r.company_customer_status ?? null, domain: r.company_domain ?? null }),
   department: rel(r.department_id, r.department_name),
   contact: rel(r.contact_id, r.contact_name, { email: r.contact_email ?? null }),
 }) as unknown as CrmMeetingNote
@@ -332,7 +334,7 @@ const toNote = (r: Row): CrmNote => ({
   action_items: (r.action_items ?? null) as string | null,
   source: (r.source ?? null) as string | null,
   fireflies_transcript_id: (r.fireflies_transcript_id ?? null) as string | null,
-  retailer: rel(r.company_id, r.company_name, { domain: r.company_domain ?? null }),
+  retailer: rel(r.company_id, r.company_name, { display_name: r.company_display_name ?? null, domain: r.company_domain ?? null }),
   contact: rel(r.contact_id, r.contact_name, { email: r.contact_email ?? null }),
   opportunity: rel(r.opportunity_id, r.opportunity_name, { stage: r.opportunity_stage ?? null }),
   department: rel(r.department_id, r.department_name),
@@ -344,7 +346,7 @@ const toTask = (r: Row): CrmTask => ({
   body: (r.body ?? null) as string | null,
   status: (r.status ?? null) as string | null,
   due_at: (r.due_at ?? null) as string | null,
-  retailer: rel(r.company_id, r.company_name, { domain: r.company_domain ?? null }),
+  retailer: rel(r.company_id, r.company_name, { display_name: r.company_display_name ?? null, domain: r.company_domain ?? null }),
   contact: rel(r.contact_id, r.contact_name, { email: r.contact_email ?? null }),
   opportunity: rel(r.opportunity_id, r.opportunity_name, { stage: r.opportunity_stage ?? null }),
   department: rel(r.department_id, r.department_name),
@@ -834,7 +836,7 @@ export async function searchCrm(query: string, limitPerGroup = 8): Promise<CrmSe
       .schema("api")
       .from('crm_customer_list')
       .select('*')
-      .or(ilikeAny(['name', 'domain', 'routing_aliases'], pattern))
+      .or(ilikeAny(['name', 'display_name', 'domain', 'routing_aliases'], pattern))
       .order('name')
       .limit(limitPerGroup),
     anyDb

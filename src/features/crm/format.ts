@@ -28,12 +28,20 @@ export function label(value: string | null | undefined) {
     .join(' ')
 }
 
+// Short human label for customer/vendor pickers and relation rendering:
+// the curated display_name when present, else the full (legal/ERP) name.
+export function customerLabel(row: { name?: string | null; display_name?: string | null }) {
+  return row.display_name?.trim() || row.name || ''
+}
+
 // Resolve the display name of a Directus relation that may be expanded or an id.
-// Handles named records (name/title) and user records (first/last/email).
+// Prefers the hub display_name (customers/vendors) over the full name; handles
+// named records (name/title) and user records (first/last/email).
 export function relatedName(
   value:
     | string
     | {
+        display_name?: string | null
         name?: string | null
         title?: string | null
         first_name?: string | null
@@ -45,6 +53,7 @@ export function relatedName(
 ) {
   if (!value) return '—'
   if (typeof value === 'string') return '—'
+  if (value.display_name) return value.display_name
   if (value.name) return value.name
   if (value.title) return value.title
   const full = [value.first_name, value.last_name].filter(Boolean).join(' ')
