@@ -30,6 +30,9 @@ export interface Column<T> {
   headerSearch?: boolean
   /** Make cells inline-editable: clicking a cell opens a value dropdown instead of the row action. */
   editOptions?: EditOption[] | ((row: T) => EditOption[])
+  /** Allow a typed value that is not already in editOptions (for shared free-text lists). */
+  allowCustomEditValue?: boolean
+  customEditLabel?: string
   /** Current raw value of an editable cell (used by the editor + drag-to-copy). */
   editValue?: (row: T) => string | null | undefined
   /** When set, this cell opens the row detail action. */
@@ -758,7 +761,9 @@ export function DataTable<T>({
         const options = editOptionsFor(col, row)
         const q = editQuery.trim().toLowerCase()
         const filtered = q ? options.filter((o) => o.label.toLowerCase().includes(q)) : options
-        const showSearch = options.length > 3
+        const showSearch = options.length > 3 || col.allowCustomEditValue
+        const customValue = editQuery.trim()
+        const hasExactOption = options.some((o) => o.value.toLowerCase() === customValue.toLowerCase())
         async function pick(value: string) {
           setEditCell(null)
           if (value !== current) await onCellEdit?.(row!, editCell!.key, value)
@@ -776,13 +781,25 @@ export function DataTable<T>({
                 value={editQuery}
                 onChange={(e) => setEditQuery(e.target.value)}
                 onKeyDown={(e) => {
-                  if (e.key === 'Enter') { e.preventDefault(); if (filtered[0]) void pick(filtered[0].value) }
+                  if (e.key === 'Enter') {
+                    e.preventDefault()
+                    if (col.allowCustomEditValue && customValue && !hasExactOption) void pick(customValue)
+                    else if (filtered[0]) void pick(filtered[0].value)
+                  }
                 }}
                 placeholder="Search…"
                 className="mb-1 w-full rounded-[7px] border bg-background px-[8px] py-[6px] text-[12.5px] outline-none focus:border-ring"
               />
             )}
             <div className="max-h-[230px] overflow-y-auto">
+              {col.allowCustomEditValue && customValue && !hasExactOption ? (
+                <button
+                  className="flex w-full items-center rounded-[7px] px-[8px] py-[6px] text-left text-[12.5px] font-[600] text-primary hover:bg-accent"
+                  onClick={() => void pick(customValue)}
+                >
+                  {col.customEditLabel ?? 'Create'} “{customValue}”
+                </button>
+              ) : null}
               {filtered.map((opt) => (
                 <button
                   key={opt.value}
@@ -800,7 +817,7 @@ export function DataTable<T>({
                   )}
                 </button>
               ))}
-              {filtered.length === 0 && (
+              {filtered.length === 0 && !(col.allowCustomEditValue && customValue) && (
                 <div className="px-[8px] py-[6px] text-[12px] text-muted-foreground">No matches</div>
               )}
             </div>
