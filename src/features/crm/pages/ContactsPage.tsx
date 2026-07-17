@@ -95,6 +95,15 @@ export function ContactsPage() {
     ],
     [buyers],
   )
+  const titleOptions = useMemo<EditOption[]>(
+    () => [
+      { value: '', label: 'No title' },
+      ...Array.from(new Set(buyers.map((b) => b.job_title?.trim()).filter(Boolean) as string[]))
+        .sort((a, b) => a.localeCompare(b))
+        .map((v) => ({ value: v, label: v })),
+    ],
+    [buyers],
+  )
 
   async function editCell(row: Buyer, key: string, value: string) {
     const prev = (row as unknown as Record<string, unknown>)[key]
@@ -197,6 +206,10 @@ export function ContactsPage() {
       hideBelow: 'md',
       sortValue: (b) => b.job_title ?? '',
       filterValue: (b) => b.job_title,
+      editOptions: titleOptions,
+      editValue: (b) => b.job_title,
+      allowCustomEditValue: true,
+      customEditLabel: 'Create title',
       cell: (b) => <span className="text-muted-foreground">{b.job_title || '—'}</span>,
     },
     {

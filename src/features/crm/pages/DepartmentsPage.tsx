@@ -108,7 +108,7 @@ export function DepartmentsPage() {
           initialSort={{ key: 'retailer', dir: 'asc' }}
         />
       )}
-      <DepartmentDrawer row={selected} onClose={() => select(null)} />
+      <DepartmentDrawer row={selected} departments={departments} onClose={() => select(null)} />
     </AppPage>
   )
 }

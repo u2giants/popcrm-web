@@ -1,11 +1,17 @@
-import { useMemo } from 'react'
-import { Contact, Route, X } from 'lucide-react'
+import { useMemo, useState } from 'react'
+import { Contact, Pencil, Route, X } from 'lucide-react'
+import { toast } from 'sonner'
 import { DetailDrawer, DescriptionItem, DescriptionList, DrawerSection } from '@/components/app/DetailDrawer'
+import { Combobox, type ComboOption } from '@/components/app/Combobox'
 import { NameAvatar } from '@/components/app/NameAvatar'
 import { Button } from '@/components/ui/button'
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
 import { StageBadge } from '@/features/crm/components/CrmStatusBadge'
-import { listData, useIngestedContactsQuery, useOpportunitiesQuery } from '@/features/crm/queries'
+import { listData, useIngestedContactsQuery, useOpportunitiesQuery, useUpdateDepartmentMutation } from '@/features/crm/queries'
 import { formatDate, idOf, label, relatedName } from '@/features/crm/format'
+import { logError } from '@/lib/errors'
 import type { CrmDepartment } from '@/lib/types'
 
 function fmtAmount(val: string | number | null | undefined): string {
@@ -17,9 +23,12 @@ function fmtAmount(val: string | number | null | undefined): string {
   return `$${n.toFixed(0)}`
 }
 
-export function DepartmentDrawer({ row, onClose }: { row: CrmDepartment | null; onClose: () => void }) {
+export function DepartmentDrawer({ row, departments, onClose }: { row: CrmDepartment | null; departments: CrmDepartment[]; onClose: () => void }) {
   const buyers = listData(useIngestedContactsQuery(-1).data)
   const opportunities = listData(useOpportunitiesQuery(-1).data)
+  const updateDepartment = useUpdateDepartmentMutation()
+  const [renameOpen, setRenameOpen] = useState(false)
+  const [nameDraft, setNameDraft] = useState('')
 
   const related = useMemo(() => {
     if (!row) return { contacts: [], programs: [] }
@@ -29,18 +38,53 @@ export function DepartmentDrawer({ row, onClose }: { row: CrmDepartment | null; 
     }
   }, [row, buyers, opportunities])
 
+  const contactOptions = useMemo<ComboOption[]>(() => {
+    if (!row) return []
+    const customerId = idOf(row.retailer)
+    return buyers
+      .filter((b) => idOf(b.retailer) === customerId)
+      .map((b) => ({ value: b.id, label: b.name, hint: b.job_title ?? undefined }))
+      .sort((a, b) => a.label.localeCompare(b.label))
+  }, [row, buyers])
+  const categoryOptions = useMemo<ComboOption[]>(() => distinctOptions(departments.map((d) => d.category)), [departments])
+  const divisionOptions = useMemo<ComboOption[]>(() => distinctOptions(departments.map((d) => d.division)), [departments])
+
+  async function save(values: Partial<CrmDepartment>, successMessage?: string): Promise<boolean> {
+    if (!row) return false
+    try {
+      await updateDepartment.mutateAsync({ id: row.id, values })
+      if (successMessage) toast.success(successMessage)
+      return true
+    } catch (error) {
+      toast.error('Could not update department', { description: logError('DepartmentDrawer.save', error) })
+      return false
+    }
+  }
+
+  async function confirmRename() {
+    const name = nameDraft.trim()
+    if (!row || !name || name === row.name) return
+    if (await save({ name }, `Department renamed to ${name}`)) setRenameOpen(false)
+  }
+
   return (
-    <DetailDrawer
+    <>
+      <DetailDrawer
       open={!!row}
       onClose={onClose}
       title={row?.name || 'Department'}
       subtitle={row ? relatedName(row.retailer) : undefined}
       footer={
-        <Button variant="outline" size="sm" onClick={onClose}>
-          <X className="size-[13px]" /> Close
-        </Button>
+        <>
+          <Button variant="outline" size="sm" onClick={() => { setNameDraft(row?.name ?? ''); setRenameOpen(true) }}>
+            <Pencil className="size-[13px]" /> Rename department
+          </Button>
+          <Button variant="outline" size="sm" onClick={onClose}>
+            <X className="size-[13px]" /> Close
+          </Button>
+        </>
       }
-    >
+      >
       {row ? (
         <>
           <DrawerSection>
@@ -63,9 +107,15 @@ export function DepartmentDrawer({ row, onClose }: { row: CrmDepartment | null; 
           <DrawerSection>
             <DescriptionList>
               <DescriptionItem term="Customer">{relatedName(row.retailer)}</DescriptionItem>
-              <DescriptionItem term="Primary contact">{relatedName(row.primary_buyer)}</DescriptionItem>
-              <DescriptionItem term="Category">{label(row.category)}</DescriptionItem>
-              <DescriptionItem term="Division">{label(row.division)}</DescriptionItem>
+              <DescriptionItem term="Primary contact">
+                <Combobox options={contactOptions} value={idOf(row.primary_buyer)} onChange={(value) => void save({ primary_buyer: value || null })} placeholder="Select contact" className="h-8" />
+              </DescriptionItem>
+              <DescriptionItem term="Category">
+                <Combobox options={categoryOptions} value={row.category ?? ''} onChange={(value) => void save({ category: value || null })} placeholder="Select category" className="h-8" />
+              </DescriptionItem>
+              <DescriptionItem term="Division">
+                <Combobox options={divisionOptions} value={row.division ?? ''} onChange={(value) => void save({ division: value || null })} placeholder="Select division" className="h-8" />
+              </DescriptionItem>
             </DescriptionList>
           </DrawerSection>
 
@@ -119,8 +169,33 @@ export function DepartmentDrawer({ row, onClose }: { row: CrmDepartment | null; 
           </DrawerSection>
         </>
       ) : null}
-    </DetailDrawer>
+      </DetailDrawer>
+      <Dialog open={renameOpen} onOpenChange={setRenameOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Rename department</DialogTitle>
+            <DialogDescription>
+              This changes the department name everywhere it appears in CRM. Are you sure you want to rename “{row?.name}”?
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-2">
+            <Label htmlFor="department-name">New department name</Label>
+            <Input id="department-name" value={nameDraft} onChange={(e) => setNameDraft(e.target.value)} autoFocus />
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setRenameOpen(false)}>Cancel</Button>
+            <Button onClick={() => void confirmRename()} disabled={!nameDraft.trim() || nameDraft.trim() === row?.name || updateDepartment.isPending}>Yes, rename department</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </>
   )
+}
+
+function distinctOptions(values: (string | null)[]): ComboOption[] {
+  return Array.from(new Set(values.map((value) => value?.trim()).filter(Boolean) as string[]))
+    .sort((a, b) => label(a).localeCompare(label(b)))
+    .map((value) => ({ value, label: label(value) }))
 }
 
 function StatCard({
