@@ -6056,7 +6056,7 @@ export const Constants = {
         "viewer",
         "vendor",
       ],
-      entity_status: ["active", "inactive", "archived", "deleted"],
+      entity_status: ["active", "inactive", "archived", "deleted", "potential"],
       file_storage_provider: [
         "supabase",
         "spaces",
