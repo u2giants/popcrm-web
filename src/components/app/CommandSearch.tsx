@@ -13,7 +13,7 @@ import { Dialog, DialogContent, DialogTitle, DialogDescription } from '@/compone
 import { Input } from '@/components/ui/input'
 import { searchCrm } from '@/features/crm/api'
 import { crmQueryDefaults } from '@/features/crm/queries'
-import { relatedName } from '@/features/crm/format'
+import { customerLabel, relatedName } from '@/features/crm/format'
 import { cn } from '@/lib/utils'
 
 interface Result {
@@ -44,7 +44,7 @@ export function CommandSearch({ open, onClose }: { open: boolean; onClose: () =>
     if (!data) return []
     const out: Result[] = []
     for (const r of data.customers) {
-      out.push({ id: `r-${r.id}`, group: 'Customers', label: r.name, hint: r.domain ?? undefined, icon: Building2, to: `/customers?retailer=${r.id}` })
+      out.push({ id: `r-${r.id}`, group: 'Customers', label: customerLabel(r), hint: r.domain ?? undefined, icon: Building2, to: `/customers?retailer=${r.id}` })
     }
     for (const b of data.contacts) {
       out.push({ id: `b-${b.id}`, group: 'Contacts', label: b.name, hint: b.email ?? relatedName(b.retailer), icon: Contact, to: `/contacts?contact=${b.id}` })

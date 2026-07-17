@@ -11,9 +11,9 @@ import { OpportunityModal } from '@/features/crm/components/OpportunityModal'
 import { StageBadge } from '@/features/crm/components/CrmStatusBadge'
 import { OPPORTUNITY_STAGES, stageChipClass } from '@/features/crm/constants'
 import { idOf, label, relatedName, textOf, formatDate } from '@/features/crm/format'
-import { uniqueValues } from '@/features/crm/pages/_shared'
+import { uniqueValues, customerPickerOptions } from '@/features/crm/pages/_shared'
 import { cn } from '@/lib/utils'
-import { listData, useOpportunitiesQuery, useRetailersQuery } from '@/features/crm/queries'
+import { listData, useOpportunitiesQuery, useCustomerSegmentQuery } from '@/features/crm/queries'
 import type { CrmOpportunity } from '@/lib/types'
 
 function fmtAmount(val: string | number | null | undefined): string | null {
@@ -27,7 +27,7 @@ function fmtAmount(val: string | number | null | undefined): string | null {
 
 export function PipelinePage() {
   const opportunitiesQuery = useOpportunitiesQuery(-1)
-  const retailersQuery = useRetailersQuery(-1)
+  const retailersQuery = useCustomerSegmentQuery('all', -1)
   const opportunities = listData(opportunitiesQuery.data)
   const retailers = listData(retailersQuery.data)
   const [query, setQuery] = useState('')
@@ -160,7 +160,7 @@ export function PipelinePage() {
                 onChange={setRetailer}
                 allLabel="All customers"
                 placeholder="Customer"
-                options={retailers.map((r) => ({ value: r.id, label: r.name }))}
+                options={customerPickerOptions(retailers, retailer)}
               />
               <FilterSelect
                 value={program}

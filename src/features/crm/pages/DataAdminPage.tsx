@@ -24,7 +24,7 @@ import {
   uploadRetailerLogo,
 } from '@/features/crm/api'
 import { idOf, label, relatedName } from '@/features/crm/format'
-import { uniqueValues } from '@/features/crm/pages/_shared'
+import { uniqueValues, customerPickerOptions } from '@/features/crm/pages/_shared'
 import {
   crmKeys,
   listData,
@@ -104,8 +104,8 @@ export function DataAdminPage() {
   const [logoUrlDraft, setLogoUrlDraft] = useState('')
 
   const retailerOptions = useMemo<ComboOption[]>(
-    () => retailers.map((r) => ({ value: r.id, label: r.name, hint: r.customer_status ? label(r.customer_status) : undefined })),
-    [retailers],
+    () => customerPickerOptions(retailers, departmentDraft.retailer, (r) => (r.customer_status ? label(r.customer_status) : undefined)),
+    [retailers, departmentDraft.retailer],
   )
   const retailerById = useMemo(() => new Map(retailers.map((r) => [r.id, r])), [retailers])
   const contactOptions = useMemo<ComboOption[]>(

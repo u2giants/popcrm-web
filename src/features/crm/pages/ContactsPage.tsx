@@ -9,7 +9,8 @@ import { ErrorState } from '@/components/app/states'
 import { CustomerRelationLogo } from '@/features/crm/components/CustomerRelationLogo'
 import { useRecordSelection } from '@/features/crm/useRecordSelection'
 import { ContactDrawer } from '@/features/crm/components/ContactDrawer'
-import { idOf, label, relatedName, textOf } from '@/features/crm/format'
+import { customerLabel, idOf, label, relatedName, textOf } from '@/features/crm/format'
+import { isSelectableCustomer, withCurrentCustomer } from '@/features/crm/pages/_shared'
 import { StatusBadge } from '@/components/app/StatusBadge'
 import { NameAvatar } from '@/components/app/NameAvatar'
 import {
@@ -58,7 +59,8 @@ export function ContactsPage() {
       { value: '', label: 'Unassigned' },
       ...retailers
         .filter((r) => isCustomerStatus(r.customer_status))
-        .map((r) => ({ value: r.id, label: r.name })),
+        .filter((r) => isSelectableCustomer(r.status))
+        .map((r) => ({ value: r.id, label: customerLabel(r) })),
     ],
     [retailers],
   )
@@ -67,9 +69,10 @@ export function ContactsPage() {
       { value: '', label: 'Unassigned' },
       ...retailers
         .filter((r) => isTriageCustomerStatus(r.customer_status))
+        .filter((r) => isSelectableCustomer(r.status))
         .map((r) => ({
           value: r.id,
-          label: r.customer_status === 'OTHER' ? `${r.name} (Not a customer)` : r.name,
+          label: r.customer_status === 'OTHER' ? `${customerLabel(r)} (Not a customer)` : customerLabel(r),
         })),
     ],
     [retailers],
@@ -204,7 +207,7 @@ export function ContactsPage() {
       header: 'Customer',
       sortValue: (b) => relatedName(b.retailer),
       filterValue: (b) => relatedName(b.retailer),
-      editOptions: (b) => (isCustomerContact(b) ? customerOptions : triageCustomerOptions),
+      editOptions: (b) => withCurrentCustomer(isCustomerContact(b) ? customerOptions : triageCustomerOptions, idOf(b.retailer), retailerById),
       editValue: (b) => idOf(b.retailer),
       cell: (b) => <CustomerRelationLogo value={b.retailer} customerById={retailerById} />,
     },
