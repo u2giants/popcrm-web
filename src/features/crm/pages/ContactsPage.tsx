@@ -32,10 +32,6 @@ function isCustomerStatus(status: string | null | undefined) {
   return status === 'ACTIVE_CUSTOMER' || status === 'POTENTIAL_CUSTOMER'
 }
 
-function isTriageCustomerStatus(status: string | null | undefined) {
-  return isCustomerStatus(status) || status === 'OTHER'
-}
-
 export function ContactsPage() {
   const queryClient = useQueryClient()
   const [query, setQuery] = useState('')
@@ -58,18 +54,18 @@ export function ContactsPage() {
     () => [
       { value: '', label: 'Unassigned' },
       ...retailers
-        .filter((r) => isCustomerStatus(r.customer_status))
         .filter((r) => isSelectableCustomer(r.status))
         .map((r) => ({ value: r.id, label: customerLabel(r) })),
     ],
     [retailers],
   )
+  // Triage rows also offer reviewed not-a-customer companies (hub status is
+  // inactive for those, so they need an explicit carve-out) for classification.
   const triageCustomerOptions = useMemo<EditOption[]>(
     () => [
       { value: '', label: 'Unassigned' },
       ...retailers
-        .filter((r) => isTriageCustomerStatus(r.customer_status))
-        .filter((r) => isSelectableCustomer(r.status))
+        .filter((r) => isSelectableCustomer(r.status) || r.customer_status === 'OTHER')
         .map((r) => ({
           value: r.id,
           label: r.customer_status === 'OTHER' ? `${customerLabel(r)} (Not a customer)` : customerLabel(r),

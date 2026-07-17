@@ -476,6 +476,41 @@ loaded segment. `api.crm_contact_list` remains the generic/fallback contract. If
 Contacts are zero, test the exact authenticated REST pages and check
 `app.profile.auth_user_id` / `app.app_access` before assuming data is missing.
 
+### Customer/vendor pickers label with hub `display_name` and filter hub `status`
+
+What changed:
+On 2026-07-17 the shared customer hub gained `core.customer.display_name` and a
+three-state `status` (`active` / `potential` / `inactive`; most ERP-imported
+rows are inactive), exposed through `api.crm_customer_list` /
+`api.crm_account_list` and the `api.crm_customer_segment_list` RPC (shared-db
+migrations `20260717122317`, `20260717125909`, `20260717160023`, with trigram
+indexes for type-ahead). CRM customer pickers now label options with
+`display_name ?? name` and default selectable options to hub-status
+active/potential; the legacy `customer_status` axis no longer gates pickers
+(except the Contacts triage "(Not a customer)" carve-out).
+
+Why:
+The Coldlion ERP import pushed the hub to 859 customers (707 inactive), so
+pickers were unusable and showed long legal names.
+
+Future sessions should:
+- Build customer option lists with `customerPickerOptions` /
+  `customerEditOptions` (+ `withCurrentCustomer` for edit contexts) from
+  `src/features/crm/pages/_shared.ts`; labels via `customerLabel` in
+  `format.ts` (`relatedName` also prefers `display_name`).
+- Feed pickers from `useCustomerSegmentQuery('all', -1)` and filter client-side
+  with `isSelectableCustomer(r.status)` — the RPC's `'active'` segment still
+  filters the legacy `customer_status` axis and would hide ERP-active but
+  CRM-untriaged customers.
+- Keep the currently-referenced record reachable: a Combobox's selected label
+  comes from its options, so the current (possibly inactive) customer must stay
+  in the list; DataTable edit cells render from row data, so filter options
+  freely there.
+- Vendors (`core.factory`) have no `api.*` view and no picker in this app yet —
+  opportunity `factory` is read-only via `crm_opportunity_list`
+  (`factory_name`; adapters already pass through `factory_display_name` /
+  `factory_status` for when the views expose them).
+
 ### Email Routing uses a recent feed plus server counts
 
 What changed:
