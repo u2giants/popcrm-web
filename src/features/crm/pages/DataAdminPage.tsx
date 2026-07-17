@@ -24,7 +24,7 @@ import {
   uploadRetailerLogo,
 } from '@/features/crm/api'
 import { idOf, label, relatedName } from '@/features/crm/format'
-import { uniqueValues } from '@/features/crm/pages/_shared'
+import { uniqueValues, customerPickerOptions, isSelectableCustomer } from '@/features/crm/pages/_shared'
 import {
   crmKeys,
   listData,
@@ -79,7 +79,7 @@ export function DataAdminPage() {
   const buyersQuery = useIngestedContactsQuery(-1)
   const departmentsQuery = useDepartmentsQuery(-1)
   const opportunitiesQuery = useOpportunitiesQuery(-1)
-  const retailersQuery = useCustomerSegmentQuery('active', -1)
+  const retailersQuery = useCustomerSegmentQuery('all', -1)
   const buyers = listData(buyersQuery.data)
   const departments = listData(departmentsQuery.data)
   const opportunities = listData(opportunitiesQuery.data)
@@ -104,10 +104,12 @@ export function DataAdminPage() {
   const [logoUrlDraft, setLogoUrlDraft] = useState('')
 
   const retailerOptions = useMemo<ComboOption[]>(
-    () => retailers.map((r) => ({ value: r.id, label: r.name, hint: r.customer_status ? label(r.customer_status) : undefined })),
-    [retailers],
+    () => customerPickerOptions(retailers, departmentDraft.retailer, (r) => (r.customer_status ? label(r.customer_status) : undefined)),
+    [retailers, departmentDraft.retailer],
   )
   const retailerById = useMemo(() => new Map(retailers.map((r) => [r.id, r])), [retailers])
+  // The Logos tab manages customers that appear in pickers — same active/potential set.
+  const logoCustomers = useMemo(() => retailers.filter((r) => isSelectableCustomer(r.status)), [retailers])
   const contactOptions = useMemo<ComboOption[]>(
     () => buyers.map((b) => ({ value: b.id, label: b.name, hint: relatedName(b.retailer) })),
     [buyers],
@@ -129,7 +131,7 @@ export function DataAdminPage() {
   )
 
   const selectedDepartment = departments.find((d) => d.id === selectedDepartmentId)
-  const selectedLogoCustomer = retailers.find((r) => r.id === selectedLogoCustomerId)
+  const selectedLogoCustomer = logoCustomers.find((r) => r.id === selectedLogoCustomerId)
   const moveCandidates = buyers.filter((b) => b.contact_type && (!typeToMove || b.contact_type === typeToMove))
   const moveOverwriteCount = moveCandidates.filter((b) => b.job_title).length
   const divisionDepartmentCount = departments.filter((d) => d.division === divisionFrom).length
@@ -598,11 +600,11 @@ export function DataAdminPage() {
                 <div className="border-b p-4">
                   <SectionHeader
                     title="Customer Logos"
-                    description={`${retailers.length.toLocaleString()} active/potential customer logo records`}
+                    description={`${logoCustomers.length.toLocaleString()} active/potential customer logo records`}
                   />
                 </div>
                 <DataTable
-                  rows={retailers}
+                  rows={logoCustomers}
                   columns={logoColumns}
                   getRowId={(r) => r.id}
                   onRowClick={editLogoCustomer}

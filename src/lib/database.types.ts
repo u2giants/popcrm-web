@@ -23,6 +23,7 @@ export type Database = {
           chain_type: string | null
           company_type: string | null
           customer_status: string | null
+          display_name: string | null
           domain: string | null
           id: string | null
           is_potential: boolean | null
@@ -38,6 +39,7 @@ export type Database = {
           chain_type?: string | null
           company_type?: string | null
           customer_status?: string | null
+          display_name?: string | null
           domain?: string | null
           id?: string | null
           is_potential?: boolean | null
@@ -53,6 +55,7 @@ export type Database = {
           chain_type?: string | null
           company_type?: string | null
           customer_status?: string | null
+          display_name?: string | null
           domain?: string | null
           id?: string | null
           is_potential?: boolean | null
@@ -274,6 +277,7 @@ export type Database = {
           chain_type: string | null
           company_type: string | null
           customer_status: string | null
+          display_name: string | null
           domain: string | null
           id: string | null
           is_potential: boolean | null
@@ -1073,6 +1077,7 @@ export type Database = {
           chain_type: string
           company_type: string
           customer_status: string
+          display_name: string
           domain: string
           id: string
           is_potential: boolean
@@ -1611,7 +1616,7 @@ export type Database = {
         | "designer"
         | "viewer"
         | "vendor"
-      entity_status: "active" | "inactive" | "archived" | "deleted"
+      entity_status: "active" | "inactive" | "archived" | "deleted" | "potential"
       file_storage_provider:
         | "supabase"
         | "spaces"
@@ -1940,6 +1945,7 @@ export type Database = {
           company_id: string | null
           country: string | null
           created_at: string
+          display_name: string | null
           id: string
           metadata: Json
           name: string
@@ -1952,6 +1958,7 @@ export type Database = {
           company_id?: string | null
           country?: string | null
           created_at?: string
+          display_name?: string | null
           id?: string
           metadata?: Json
           name: string
@@ -1964,6 +1971,7 @@ export type Database = {
           company_id?: string | null
           country?: string | null
           created_at?: string
+          display_name?: string | null
           id?: string
           metadata?: Json
           name?: string
@@ -6048,7 +6056,7 @@ export const Constants = {
         "viewer",
         "vendor",
       ],
-      entity_status: ["active", "inactive", "archived", "deleted"],
+      entity_status: ["active", "inactive", "archived", "deleted", "potential"],
       file_storage_provider: [
         "supabase",
         "spaces",

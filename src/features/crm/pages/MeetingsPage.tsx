@@ -11,6 +11,7 @@ import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { useRecordSelection } from '@/features/crm/useRecordSelection'
 import { MeetingDrawer } from '@/features/crm/components/MeetingDrawer'
 import { formatDate, idOf, label, relatedName, textOf } from '@/features/crm/format'
+import { customerEditOptions, withCurrentCustomer } from '@/features/crm/pages/_shared'
 import { StatusBadge } from '@/components/app/StatusBadge'
 import {
   crmKeys,
@@ -52,7 +53,7 @@ export function MeetingsPage() {
   const departmentById = useMemo(() => new Map(departments.map((d) => [d.id, d])), [departments])
   const buyerById = useMemo(() => new Map(buyers.map((b) => [b.id, b])), [buyers])
   const customerOptions = useMemo<EditOption[]>(
-    () => [{ value: '', label: 'Unassigned' }, ...retailers.map((r) => ({ value: r.id, label: r.name }))],
+    () => customerEditOptions(retailers),
     [retailers],
   )
   const departmentOptions = useMemo<EditOption[]>(
@@ -152,7 +153,7 @@ export function MeetingsPage() {
       hideBelow: 'md',
       sortValue: (m) => relatedName(m.retailer),
       filterValue: (m) => relatedName(m.retailer),
-      editOptions: customerOptions,
+      editOptions: (m) => withCurrentCustomer(customerOptions, idOf(m.retailer), retailerById),
       editValue: (m) => idOf(m.retailer),
       cell: (m) => <CustomerRelationLogo value={m.retailer} customerById={retailerById} />,
     },
