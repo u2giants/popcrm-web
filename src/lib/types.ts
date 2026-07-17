@@ -29,6 +29,12 @@ export interface AdminUserSummary {
 export interface Retailer {
   id: string
   name: string
+  // Short human name for dropdowns from the shared customer hub; fall back to
+  // `name` when null (see customerLabel in features/crm/format).
+  display_name?: string | null
+  // Hub entity status: active | potential | inactive. Pickers default to
+  // active/potential; ERP-imported rows are mostly inactive.
+  status?: string | null
   domain: string | null
   logo_url?: string | null
   customer_status: string | null
@@ -69,6 +75,11 @@ export interface Buyer {
 export interface Factory {
   id: string
   name: string
+  // Vendor hub fields mirror the customer hub (see Retailer): display_name is
+  // the short dropdown name, status gates picker visibility.
+  display_name?: string | null
+  status?: string | null
+  code?: string | null
   location: string | null
   contact_name: string | null
   contact_email: string | null

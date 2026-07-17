@@ -22,6 +22,7 @@ import { useRecordSelection } from '@/features/crm/useRecordSelection'
 import { EmailDrawer } from '@/features/crm/components/EmailDrawer'
 import { MATCH_TYPES, ROUTING_STATUSES, WORKER_CADENCE, needsRouting } from '@/features/crm/constants'
 import { formatDateTime, idOf, label, relatedName, textOf } from '@/features/crm/format'
+import { customerEditOptions, withCurrentCustomer } from '@/features/crm/pages/_shared'
 import { useAuth } from '@/auth/auth'
 import {
   listData,
@@ -60,7 +61,7 @@ export function EmailRoutingPage() {
   const emailsQuery = useEmailsQuery(EMAIL_ROUTE_LIMIT)
   const countsQuery = useEmailSegmentCountsQuery()
   const ignoreRulesQuery = useIgnoreRulesQuery()
-  const retailersQuery = useCustomerSegmentQuery('active', -1)
+  const retailersQuery = useCustomerSegmentQuery('all', -1)
   const departmentsQuery = useDepartmentsQuery(-1)
   const opportunitiesQuery = useOpportunitiesQuery(-1)
   const fireflies = useFirefliesHealth()
@@ -84,7 +85,7 @@ export function EmailRoutingPage() {
   const departmentById = useMemo(() => new Map(departments.map((d) => [d.id, d])), [departments])
   const opportunityById = useMemo(() => new Map(opportunities.map((o) => [o.id, o])), [opportunities])
   const customerOptions = useMemo<EditOption[]>(
-    () => [{ value: '', label: 'Unassigned' }, ...retailers.map((r) => ({ value: r.id, label: r.name }))],
+    () => customerEditOptions(retailers),
     [retailers],
   )
   const departmentOptions = useMemo<EditOption[]>(
@@ -184,7 +185,7 @@ export function EmailRoutingPage() {
       hideBelow: 'lg',
       sortValue: (e) => relatedName(e.retailer),
       filterValue: (e) => relatedName(e.retailer),
-      editOptions: customerOptions,
+      editOptions: (e) => withCurrentCustomer(customerOptions, idOf(e.retailer), retailerById),
       editValue: (e) => idOf(e.retailer),
       cell: (e) => <CustomerRelationLogo value={e.retailer} customerById={retailerById} />,
     },
