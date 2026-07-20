@@ -13,7 +13,7 @@ licensor approvals, and AI-model settings.
 
 It **stores no data of its own** — every read/write goes through the shared
 Supabase project (`https://qsllyeztdwjgirsysgai.supabase.co`). The CRM backend is
-a Supabase/Postgres port of the earlier Twenty→Directus CRM data model. The
+a Supabase/Postgres port of the retired CRM data model. The
 outcome that matters: a fast, dense operations console over that shared data.
 
 - Production: `https://crm.designflow.app`
@@ -40,7 +40,7 @@ Then load additional docs only when relevant:
 
 | Task / question | Read these docs | Usually do not need |
 |---|---|---|
-| Quick repo orientation | `README.md`, `AGENTS.md` | Deep docs under `docs/`, `frontend_imp.md` |
+| Quick repo orientation | `README.md`, `AGENTS.md` | Deep docs under `docs/` |
 | Modify app behavior or project-owned code | `AGENTS.md`, `docs/architecture.md` if data flow/shape changes | `docs/deployment.md` unless deploy behavior changes |
 | Add/change config, env vars, or runtime settings | `AGENTS.md`, `docs/configuration.md`, `docs/deployment.md` if prod/runtime is affected | Unrelated architecture docs |
 | Change local setup, dev/test/lint scripts, or tooling | `AGENTS.md`, `docs/development.md`, `package.json`, `eslint.config.js` | `docs/deployment.md` unless CI/CD changes |
@@ -48,7 +48,6 @@ Then load additional docs only when relevant:
 | Change data shape, Supabase fields, queries, views, RPCs, or identifiers | `AGENTS.md`, `docs/architecture.md`, `src/lib/types.ts`, `src/lib/database.types.ts`, `src/features/crm/api.ts`, canonical `/worksp/shared-db/supabase/migrations/` for backend changes | Deployment docs unless rollout changes |
 | Investigate bugs or incidents | `AGENTS.md` (Critical incidents), area-relevant source, `HANDOFF.md` if present | Unrelated docs |
 | Continue unfinished work | `AGENTS.md`, `HANDOFF.md` (if present) and the docs it names | Docs outside the handoff scope |
-| Understand the redesign rationale (charts, tokens, layout) | `frontend_imp.md` (historical plan — fully implemented) | Everything else |
 | Claude Code session | `CLAUDE.md`, then `AGENTS.md` | Other docs unless the task requires them |
 | Documentation-only cleanup | `AGENTS.md`, `README.md`, affected `docs/`, ignore files | Source files except to verify accuracy |
 | Pull secrets from 1Password (MCP server or `op` CLI) | `AGENTS.md`, `docs/1password.md` | Unrelated architecture/deploy docs |
@@ -56,9 +55,6 @@ Then load additional docs only when relevant:
 Notes:
 - `HANDOFF.md` is **absent** when there is no unfinished work. If it exists, it is
   required reading for continuation tasks.
-- `frontend_imp.md` is a large background design plan — now fully implemented. It is in
-  `.claudeignore`/`.cursorignore` to keep it out of routine AI context.
-- `design_handoff_popcrm_elevation/` is a historical design-spec directory — also ignored.
 - Shared non-code infrastructure/server standards live in
   [`u2giants/albert-standards/infrastructure`](https://github.com/u2giants/albert-standards/tree/main/infrastructure).
   When deployment, domains, runtime ownership, server dependencies, break-glass
@@ -165,13 +161,12 @@ Build / config / deploy:
 - `Dockerfile`, `nginx.conf`, `.github/workflows/deploy.yml`
 - `vite.config.ts`, `tsconfig*.json`, `eslint.config.js`, `components.json`, `package.json`
 
-Docs: `README.md`, `AGENTS.md`, `CLAUDE.md`, `docs/*`, `frontend_imp.md`
+Docs: `README.md`, `AGENTS.md`, `CLAUDE.md`, `docs/*`
 
 Build artifacts / ignored: `dist/`, `node_modules/` (see What to ignore).
 
 Shared Supabase migrations live in the canonical `/worksp/shared-db` repo. This
-repo's `shared-db/` folder is a read-only vendor copy; legacy Directus code under
-`/worksp/directus` is rollback/reference context only.
+repo's `shared-db/` folder is a read-only vendor copy.
 
 ## Prime Directive: custom-code boundary
 
@@ -206,7 +201,7 @@ the only "generated-style" area, and it is hand-maintained in this repo.
 |---|---|---|
 | Change a CRM page/table/filter | `src/features/crm/pages/<Page>.tsx` | `src/components/ui/*` |
 | Change a record drawer | `src/features/crm/components/<X>Drawer.tsx` | unrelated pages |
-| Add/adjust a Supabase query, field, view, or RPC | `src/features/crm/api.ts`, `src/lib/types.ts`, `src/lib/database.types.ts`; canonical `/worksp/shared-db/supabase/migrations/` for backend changes | legacy Directus schema unless explicitly doing rollback/reference work |
+| Add/adjust a Supabase query, field, view, or RPC | `src/features/crm/api.ts`, `src/lib/types.ts`, `src/lib/database.types.ts`; canonical `/worksp/shared-db/supabase/migrations/` for backend changes | retired backend schemas |
 | Add a route / nav item | `src/app/routes.tsx`, `src/app/navigation.ts` | shell internals unless needed |
 | Change status colors / stage tones | `src/features/crm/constants.ts`, `src/index.css` (tokens) | per-component ad-hoc colors |
 | Add a shared UI building block | `src/components/app/` | `src/components/ui/*` (primitives only) |
@@ -226,7 +221,7 @@ generated database types are in `src/lib/database.types.ts`:
 |---|---|---|---|
 | Customer | `core.customer` / `api.customer_list` (shared) plus CRM-specific `api.crm_customer_*` contracts | Supabase | shared customer hub. `is_potential = false` means PLM/ERP-confirmed active customer; `true` means tracked potential customer. `customer_status` remains the CRM workflow/status axis. Use `api.crm_customer_segment_list` / `api.crm_customer_segment_counts` for CRM customer page tabs and active pickers. Legacy `api.crm_account_list` / `api.crm_update_account` names are deprecated compatibility contracts only; do not add new callers. `api.crm_customer_list.logo_url` exposes PLM-imported full-width logo URLs when available |
 | Ingested domain | `crm.ingested_domain` / `api.crm_ingested_domain_list` | Supabase | CRM-only email-domain triage inbox. These rows are **not** customers and are not shared with PM/DAM/PLM. Promote with `crm.promote_ingested_domain(...)` to create a potential `core.customer` row |
-| Contact | `core.contact` + `core.contact_company` / `api.crm_contact_list` | Supabase | contacts and customer/department relation rows (migrated from Twenty `person`/Directus `buyer`) |
+| Contact | `core.contact` + `core.contact_company` / `api.crm_contact_list` | Supabase | contacts and customer/department relation rows migrated from the retired CRM stack |
 | Department | `crm.department` / `api.crm_department_list` | Supabase | retailer departments |
 | Opportunity | `crm.opportunity` / `api.crm_opportunity_list` | Supabase | pipeline; `stage` enum in `constants.ts:OPPORTUNITY_STAGES` |
 | Email | `crm.email_message` / `api.crm_email_routing_recent` / `api.crm_email_routing_segment_counts` plus `api.crm_email_routing_queue` for small searches | Supabase | Outlook-ingested; `routing_status` drives routing UI. Do not page the entire joined queue view in the browser; use the recent feed and count RPCs to avoid PostgREST timeouts |
@@ -259,7 +254,6 @@ this same host, owned by other repos/systems — listed for context):
 | `popcrm-web` (this app) | Frontend SPA via nginx | Coolify | app `a1vb55by4benmh25nd4ga8pt` | `ghcr.io/u2giants/popcrm-web` |
 | POP CRM host workers | Outlook ingest, reroute, contact sync, summaries, ignore rules | host systemd | `systemd/popcrm-*` | `workers/crm-worker-supabase.mjs` |
 | Supabase | Backend API/Postgres (`qsllyeztdwjgirsysgai.supabase.co`) | Supabase | project `qsllyeztdwjgirsysgai` | shared database |
-| Directus | Legacy backend API (`data.designflow.app`) | Coolify (repo `u2giants/directus`) | — | rollback/reference only |
 | popcrm-fireflies | Fireflies webhook/health worker | host Docker on `coolify` network | — | `workers/crm-worker-supabase.mjs` |
 | coolify-proxy | Traefik reverse proxy / TLS | Coolify | — | `traefik:v3.6` |
 
@@ -275,8 +269,6 @@ Do not load these into AI context unless explicitly needed:
 - `.env`, `*.local`
 - `.cache/`, `coverage/`
 - Leftover Vite-template assets (unused): `src/assets/react.svg`, `src/assets/vite.svg`, `src/assets/hero.png`, `public/icons.svg`
-- `design_handoff_popcrm_elevation/` — historical design spec directory (fully implemented)
-- `frontend_imp.md` — historical design plan (fully implemented)
 
 These align with `.claudeignore` and `.cursorignore`.
 
@@ -292,7 +284,7 @@ Each Supabase view/table/RPC load runs independently; a failing one leaves its
 section empty and a hard error shows only if everything fails.
 
 Why:
-A single 403 (e.g. a Directus permission/schema gap on one collection) previously blanked the entire app. See Critical incidents 2026-06-12.
+A single 403 on one legacy collection previously blanked the entire app. See Critical incidents 2026-06-12.
 
 Do not change because:
 Reverting to all-or-nothing makes one bad collection take down every page.
@@ -553,18 +545,18 @@ When meeting ingestion is stale, check CRM row dates, `popcrm-fireflies` logs,
 proxy logs, and the Fireflies dashboard webhook configuration before debugging
 the frontend. Do not assume a green Fireflies badge means notes are ingesting.
 
-### CRM host workers live in this repo, not Directus
+### CRM host workers live in this repo
 
 What changed:
-On 2026-06-26, the active CRM host worker runtime moved out of
-`/worksp/directus` and into `workers/crm-worker-supabase.mjs` in this repo.
+On 2026-06-26, the active CRM host worker runtime moved into
+`workers/crm-worker-supabase.mjs` in this repo.
 Installed systemd units use the templates in `systemd/`, and the
 `popcrm-fireflies` container bind-mounts `/worksp/popcrm-web` read-only and runs
 the same Supabase worker with `fireflies-server`.
 
 Why:
 The CRM backend source of truth is Supabase.com and canonical schema/docs live in
-`/worksp/shared-db`. Deleting `/worksp/directus` must not affect Outlook ingest,
+`/worksp/shared-db`. Retiring an old backend must not affect Outlook ingest,
 reroute, contact sync, summaries, ignore-rule sweeps, opportunity chat, or
 Fireflies ingestion.
 
@@ -790,7 +782,7 @@ represent the full relevant dataset or a documented server segment with counts.
 ### 2026-06-22 Contacts zero after Supabase cutover — contact view timeout/access gate
 
 What happened:
-`/contacts` showed 0 for every segment after the Directus-to-Supabase import,
+`/contacts` showed 0 for every segment after the legacy-backend import,
 even though the Supabase tables contained 8,654 contacts and 3,744 canonical
 companies.
 
@@ -814,7 +806,7 @@ segments/counts.
 Rule added to prevent recurrence:
 Verify authenticated REST page loads (`0-999`, `1000-1999`, `2000-2999`, etc.)
 and profile/app-access mapping before changing contact segmentation or rerunning
-the Directus import.
+the legacy import.
 
 ### 2026-06-22 Bad Gateway after deploy — Coolify proxy lost Docker socket
 
@@ -850,8 +842,8 @@ The whole CRM UI was unusable while signed in (no page rendered data).
 
 Root cause:
 `fetchApprovalThreads` requested `crm_licensor_approval_thread` fields that don't
-exist in Directus (`licensor_name`, `approval_status`, `submitted_at`, `approved_at`,
-`latest_comment`). Directus returned 403 for the unknown fields. The loader used
+exist in the retired backend (`licensor_name`, `approval_status`, `submitted_at`, `approved_at`,
+`latest_comment`). The retired backend returned 403 for the unknown fields. The loader used
 `Promise.all`, so that single rejection failed the entire bootstrap and blanked all pages.
 
 Recovery:
@@ -862,7 +854,7 @@ corrected query returns 200 and the live site loads.
 
 Rule added to prevent recurrence:
 Never load all collections all-or-nothing; verify requested fields against the real
-Directus schema (`information_schema.columns`) before relying on them.
+actual source schema (`information_schema.columns`) before relying on them.
 
 ### 2026-06-11 Migration: raw `docker run` → Coolify-managed deploy
 
@@ -901,8 +893,8 @@ now break-glass only (see `docs/deployment.md`).
 | done | All record drawers polished | Meeting/Task/Email/Note/Approval drawers match spec |
 | done | DataTable ag-Grid-style tools | Persistent per-column filter icon → checkbox value popover; per-column header quick-search + autocomplete; visible resize separator; inline-edit dropdowns (`editOptions`/`onCellEdit`); spreadsheet drag-to-copy fill handle |
 | done | Customers status/chain UX | Real-schema colored chips; inline-editable; Twenty logos via logo.dev; segmented tabs (Customers/Triage/Not a customer/All), with Triage backed by `api.crm_ingested_domain_list` |
-| done | Customer status data normalized | 24 null `customer_status` rows → `UNASSIGNED` (direct Directus PG write); now one "New Company" bucket |
-| done | Directus-to-Supabase CRM data import/reconciliation | Completed 2026-06-22; verified 8,654 contacts, 3,744 canonical customer rows, 38 departments, 11,267 emails, 27 meetings, and matching zero-count tables |
+| done | Customer status data normalized | 24 null `customer_status` rows → `UNASSIGNED` during the legacy cutover; now one "New Company" bucket |
+| done | Legacy-to-Supabase CRM data import/reconciliation | Completed 2026-06-22; verified 8,654 contacts, 3,744 canonical customer rows, 38 departments, 11,267 emails, 27 meetings, and matching zero-count tables |
 | done | Contacts zero after Supabase cutover | Fixed 2026-06-22 via frontend client-side contact segmentation plus `api.crm_contact_list` access-gated view migration |
 | done | Live-query refactor cap regression | Fixed 2026-06-22; restored full reads/true counts for CRM screens and documented the "no arbitrary limits without server contracts" rule |
 | blocked | Customer logos go live | Code deployed but inert until `LOGODEV_TOKEN` GitHub secret is set (publishable logo.dev key) — see HANDOFF.md. Falls back to initials until then |

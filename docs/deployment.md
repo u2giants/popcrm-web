@@ -70,7 +70,7 @@ POP CRM also owns host-side maintenance workers for the shared Supabase backend:
 
 Secrets stay outside git in mode-600 `/home/ai/.crm-worker.env` and in
 1Password item `POP CRM Supabase Worker Env - hetz /home/ai/.crm-worker.env`.
-The active workers must not reference `/worksp/directus`.
+The active workers must not reference any retired backend.
 
 ### GitHub Actions secrets (CI/CD only)
 
