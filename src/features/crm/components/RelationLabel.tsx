@@ -1,7 +1,7 @@
 import { relatedName } from '@/features/crm/format'
 import { cn } from '@/lib/utils'
 
-// Renders a Directus relation's display name (or an em dash), truncating long
+// Renders a legacy relation's display name (or an em dash), truncating long
 // values. Muted when empty so unset relations recede visually.
 export function RelationLabel({
   value,

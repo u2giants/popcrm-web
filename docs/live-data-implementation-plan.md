@@ -268,7 +268,7 @@ This phase also has a shared-db prerequisite if it needs new aggregate views,
 search views, or RPCs. Those schema/API additions belong in `u2giants/shared-db`
 and must follow its branch + PR process before the frontend depends on them.
 Document the database change as part of that PR, not after it. The shared
-database is used by CRM, PIM, DAM, and the Directus/worker stack, so undocumented
+database is used by CRM, PIM, DAM, and the worker stack, so undocumented
 views/RPCs become production risk for other sessions. The shared-db PR must
 include:
 
@@ -380,10 +380,10 @@ Contacts and Customers now do for their primary tabs.
   broad.
 - Some existing pages assume all CRM arrays are globally available; migration
   should be incremental to avoid a large risky rewrite.
-- Documentation still contains Directus-era language and should be updated as a
+- Documentation still contains legacy-backend language and should be updated as a
   separate cleanup so future contributors do not make the wrong architectural
   assumptions. The code comments should be swept at the same time, including old
-  "Directus permission gap" wording in `CrmDataContext`.
+  old permission-gap wording in `CrmDataContext`.
 
 ## Acceptance Criteria
 

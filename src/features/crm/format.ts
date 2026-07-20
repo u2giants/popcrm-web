@@ -10,7 +10,7 @@ const LABEL_OVERRIDES: Record<string, string> = {
   CUSTOMER_EMAIL_NO_COMPANY: 'Unmatched sender',
   IN_PROGRESS: 'In progress',
   TODO: 'To do',
-  // Customer status / chain — match the real Directus schema choice labels.
+  // Customer status / chain — match the imported legacy choice labels.
   UNASSIGNED: 'New Company',
   OFF_PRICE: 'Off-Price',
   ECOM: 'eCom',
@@ -34,7 +34,7 @@ export function customerLabel(row: { name?: string | null; display_name?: string
   return row.display_name?.trim() || row.name || ''
 }
 
-// Resolve the display name of a Directus relation that may be expanded or an id.
+// Resolve the display name of a legacy relation that may be expanded or an id.
 // Prefers the hub display_name (customers/vendors) over the full name; handles
 // named records (name/title) and user records (first/last/email).
 export function relatedName(

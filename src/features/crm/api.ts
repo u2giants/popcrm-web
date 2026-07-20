@@ -87,7 +87,7 @@ function relId(value: unknown): string | null {
   return null
 }
 
-// Page through an api view so we match the old Directus `limit: -1` (fetch all).
+// Page through an API view to preserve the old fetch-all behavior.
 async function fetchAllRows(view: string, order: Order[] = []): Promise<Row[]> {
   const PAGE = 1000
   const out: Row[] = []

@@ -27,8 +27,8 @@ export const ROUTING_STATUSES = [
 
 export const TASK_STATUSES = ['TODO', 'IN_PROGRESS', 'DONE', 'CANCELED'] as const
 
-// Real Directus choices for retailer.customer_status / retailer.chain_type
-// (source: u2giants/directus pm-system/crm-schema.mjs). Order = display order.
+// Imported legacy choices for retailer.customer_status / retailer.chain_type.
+// Order = display order.
 export const CUSTOMER_STATUSES = [
   'ACTIVE_CUSTOMER',
   'POTENTIAL_CUSTOMER',
@@ -176,7 +176,7 @@ export function taskTone(status: string | null | undefined): StatusTone {
   }
 }
 
-// The approval `stage` is a free-form string in Directus (no fixed enum), so
+// The approval `stage` is a free-form legacy string (no fixed enum), so
 // tone is matched on keywords rather than exact values.
 export function approvalTone(stage: string | null | undefined): StatusTone {
   const s = (stage ?? '').toLowerCase()

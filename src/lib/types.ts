@@ -1,5 +1,5 @@
 // App identity, sourced from Supabase Auth + app.profile (via api.current_user_profile).
-// Field names kept Directus-compatible (first_name/last_name/avatar/role) so existing
+// Legacy field names are retained (first_name/last_name/avatar/role) so existing
 // UI (AppHeader, EmailRoutingPage, relatedName) keeps working unchanged.
 export interface AppUser {
   id: string

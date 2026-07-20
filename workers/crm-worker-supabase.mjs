@@ -1,10 +1,10 @@
 // CRM companion worker for the shared Supabase backend.
 //
 // This file is the active runtime for POP CRM host workers and the Fireflies
-// webhook/chat server. It lives in popcrm-web so /worksp/directus can remain
+// webhook/chat server. It lives in popcrm-web so the retired backend can remain
 // legacy rollback/reference context only.
 //
-// Collection/field mapping (Directus -> shared Supabase):
+// Legacy collection/field mapping into shared Supabase:
 //   retailer / ingested_domains -> core.customer       (customers = customer_status in ACTIVE/POTENTIAL)
 //   buyer / ingested_contact    -> core.contact (+ core.contact_company for scope/type/department)
 //   crm_department              -> crm.department      (retailer->company_id, primary_buyer->primary_contact_id)
@@ -98,7 +98,7 @@ const COMPANY_NAME_STOPWORDS = new Set([
 ])
 const STATUS_PRIORITY = { UNROUTED: 0, CUSTOMER_EMAIL_NO_COMPANY: 0, COMPANY_ONLY: 1, COMPANY_DEPT: 2, ROUTED: 3, SKIPPED: -1 }
 
-// --- Pure helpers (identical to the Directus worker; no backend coupling) -----
+// --- Pure helpers retained from the legacy worker; no backend coupling --------
 function domainOf(address) { return String(address || '').split('@')[1]?.toLowerCase() || '' }
 function domainCandidates(domain) {
   const parts = String(domain || '').toLowerCase().split('.').filter(Boolean)

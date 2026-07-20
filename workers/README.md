@@ -1,8 +1,7 @@
 # POP CRM Host Workers
 
 This directory owns the current CRM host-side worker runtime for the shared
-Supabase backend. `/worksp/directus` is legacy rollback/reference context and
-must not be required by these workers.
+Supabase backend. No retired backend is required by these workers.
 
 Runtime:
 
