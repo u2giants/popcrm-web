@@ -25,6 +25,7 @@ jobs:
           done
 
       - name: Remove unused legacy CRM worker variables
+        continue-on-error: true
         shell: bash
         env:
           COOLIFY_BASE_URL: ${{ secrets.COOLIFY_BASE_URL }}
@@ -34,16 +35,22 @@ jobs:
           auth="Authorization: Bearer ${COOLIFY_API_TOKEN}"
           applications="$(curl --fail --silent --show-error \
             "${COOLIFY_BASE_URL}/api/v1/applications" -H "$auth")"
-          app_uuid="$(jq -er '.[] | select(.name == "popcrm-fireflies") | .uuid' <<<"$applications")"
-          envs="$(curl --fail --silent --show-error \
-            "${COOLIFY_BASE_URL}/api/v1/applications/${app_uuid}/envs" -H "$auth")"
-          for key in DX_URL DX_ADMIN_EMAIL DX_ADMIN_PASSWORD; do
-            env_uuid="$(jq -er --arg key "$key" '.[] | select(.key == $key) | .uuid' <<<"$envs" || true)"
-            if [[ -n "$env_uuid" ]]; then
-              curl --fail --silent --show-error -X DELETE \
-                "${COOLIFY_BASE_URL}/api/v1/applications/${app_uuid}/envs/${env_uuid}" \
-                -H "$auth" >/dev/null
-            fi
+          mapfile -t app_uuids < <(jq -r \
+            'if type == "array" then .[] else (.applications // .data // [])[] end | .uuid' \
+            <<<"$applications")
+          for app_uuid in "${app_uuids[@]}"; do
+            envs="$(curl --fail --silent --show-error \
+              "${COOLIFY_BASE_URL}/api/v1/applications/${app_uuid}/envs" -H "$auth")"
+            for key in DX_URL DX_ADMIN_EMAIL DX_ADMIN_PASSWORD; do
+              env_uuid="$(jq -er --arg key "$key" \
+                'if type == "array" then .[] else (.envs // .data // [])[] end | select(.key == $key) | .uuid' \
+                <<<"$envs" || true)"
+              if [[ -n "$env_uuid" ]]; then
+                curl --fail --silent --show-error -X DELETE \
+                  "${COOLIFY_BASE_URL}/api/v1/applications/${app_uuid}/envs/${env_uuid}" \
+                  -H "$auth" >/dev/null
+              fi
+            done
           done
 
       - name: Stop obsolete CMS service through Coolify
