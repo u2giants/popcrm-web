@@ -20,9 +20,9 @@ import {
   useIngestedDomainsQuery,
   useIngestedContactsQuery,
   useOpportunitiesQuery,
-  usePromoteIngestedDomainMutation,
   useUpdateCustomerMutation,
 } from '@/features/crm/queries'
+import { isSelectableCustomer } from '@/features/crm/pages/_shared'
 import { logError } from '@/lib/errors'
 import type { CrmIngestedDomain, Retailer } from '@/lib/types'
 
@@ -33,7 +33,6 @@ type Segment = 'active' | 'triage' | 'dismissed' | 'all'
 
 // Normalize to the canonical bucket (empty/null == New Company / UNASSIGNED).
 const statusOf = (r: Retailer) => r.customer_status || 'UNASSIGNED'
-const ingestedDomainName = (r: CrmIngestedDomain) => r.display_name || r.promoted_company_name || r.domain
 const potentialLabel = (value: boolean | null | undefined) =>
   value === true ? 'Potential' : value === false ? 'ERP confirmed' : 'Unknown'
 const potentialTone = (value: boolean | null | undefined) =>
@@ -50,7 +49,6 @@ export function CustomersPage() {
   const buyersQuery = useIngestedContactsQuery(-1)
   const opportunitiesQuery = useOpportunitiesQuery(-1)
   const updateCustomerMutation = useUpdateCustomerMutation()
-  const promoteDomainMutation = usePromoteIngestedDomainMutation()
   const buyers = listData(buyersQuery.data)
   const opportunities = listData(opportunitiesQuery.data)
   const activeCustomers = listData(activeCustomersQuery.data)
@@ -82,17 +80,13 @@ export function CustomersPage() {
     }
   }
 
-  async function promoteDomain(row: CrmIngestedDomain) {
-    const defaultName = ingestedDomainName(row)
-    const name = window.prompt('Customer name', defaultName)?.trim()
-    if (!name) return
-
-    try {
-      await promoteDomainMutation.mutateAsync({ domain: row.domain, name })
-      toast.success('Domain promoted to potential customer')
-    } catch (error) {
-      toast.error('Could not promote domain', { description: logError('CustomersPage.promoteDomain', error) })
-    }
+  async function promoteDomain(_row: CrmIngestedDomain) {
+    // Forbidden architecture: ingested domains must not create/link core.customer.
+    // The RPC was dropped in 20260629034600; fail loudly instead of a silent 404.
+    toast.error('Promote is unavailable', {
+      description:
+        'Email domains stay in CRM triage only. They are never converted into Customers. Create a Customer through the curated customer path if you need one.',
+    })
   }
 
   const counts = useMemo(() => {
@@ -122,9 +116,12 @@ export function CustomersPage() {
     const q = query.trim().toLowerCase()
     return customerRows.filter((r) => {
       const s = statusOf(r)
-      if (segment === 'active' && (s === 'OTHER' || s === 'UNASSIGNED')) return false
+      // Hub global status is authoritative: hide global-inactive from the
+      // Customers tab even if legacy CRM customer_status still says ACTIVE.
+      const hubOk = isSelectableCustomer(r.status)
+      if (segment === 'active' && (s === 'OTHER' || s === 'UNASSIGNED' || !hubOk)) return false
       if (segment === 'dismissed' && s !== 'OTHER') return false
-      if (q && !textOf(r.name, r.domain, r.routing_aliases, r.customer_status, r.chain_type, r.is_potential).includes(q)) return false
+      if (q && !textOf(r.name, r.display_name, r.domain, r.routing_aliases, r.customer_status, r.chain_type, r.is_potential, r.status).includes(q)) return false
       return true
     })
   }, [customerRows, query, segment])
@@ -282,7 +279,8 @@ export function CustomersPage() {
           size="xs"
           variant="outline"
           onClick={() => void promoteDomain(r)}
-          disabled={promoteDomainMutation.isPending || !!r.promoted_customer_id}
+          disabled={!!r.promoted_customer_id}
+          title="Ingested domains cannot be promoted to Customers"
         >
           <Upload className="size-3" />
           Promote

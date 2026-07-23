@@ -34,10 +34,20 @@ export function customerPickerOptions(
   retailers: Retailer[],
   currentId?: string,
   hint?: (r: Retailer) => string | undefined,
+  currentRetailer?: Retailer | null,
 ): ComboOption[] {
-  return retailers
+  const options = retailers
     .filter((r) => isSelectableCustomer(r.status) || (!!currentId && r.id === currentId))
     .map((r) => ({ value: r.id, label: customerLabel(r), hint: hint?.(r) }))
+  if (currentId && !options.some((o) => o.value === currentId)) {
+    const current = currentRetailer ?? retailers.find((r) => r.id === currentId)
+    options.push({
+      value: currentId,
+      label: current ? customerLabel(current) : currentId,
+      hint: current ? hint?.(current) : undefined,
+    })
+  }
+  return options
 }
 
 // Same defaults as a DataTable inline-edit list: picker customers plus an
@@ -56,4 +66,32 @@ export function withCurrentCustomer(
   if (!currentId || options.some((o) => o.value === currentId)) return options
   const current = retailerById.get(currentId)
   return [...options, { value: currentId, label: current ? customerLabel(current) : currentId }]
+}
+
+/**
+ * Build a retailer id map from the picker-safe list, then fold in any
+ * already-assigned relations from page rows so historical/inactive labels
+ * still resolve after the picker feed no longer includes them.
+ */
+export function buildRetailerById(
+  pickerRetailers: Retailer[],
+  assigned: Array<{ id?: string | null; name?: string | null; display_name?: string | null; status?: string | null } | null | undefined> = [],
+): Map<string, Retailer> {
+  const map = new Map<string, Retailer>()
+  for (const r of pickerRetailers) map.set(r.id, r)
+  for (const rel of assigned) {
+    if (!rel?.id || map.has(rel.id)) continue
+    map.set(rel.id, {
+      id: rel.id,
+      name: (rel.name ?? rel.id) as string,
+      display_name: rel.display_name ?? null,
+      status: rel.status ?? 'inactive',
+      domain: null,
+      logo_url: null,
+      customer_status: null,
+      chain_type: null,
+      routing_aliases: null,
+    })
+  }
+  return map
 }

@@ -17,15 +17,15 @@ import {
   listData,
   useCreateIgnoreRuleMutation,
   useDepartmentsQuery,
-  useCustomerSegmentQuery,
+  useCustomerPickerQuery,
   useOpportunitiesQuery,
   useUpdateEmailMutation,
 } from '@/features/crm/queries'
 import { ROUTING_STATUSES } from '@/features/crm/constants'
-import { customerPickerOptions } from '@/features/crm/pages/_shared'
+import { customerPickerOptions, buildRetailerById } from '@/features/crm/pages/_shared'
 import { formatDateTime, idOf, label, relatedName } from '@/features/crm/format'
 import { logError } from '@/lib/errors'
-import type { CrmEmailMessage } from '@/lib/types'
+import type { CrmEmailMessage, Retailer } from '@/lib/types'
 
 export function EmailDrawer({
   row,
@@ -73,7 +73,7 @@ function MethodConfidence({ method }: { method: string }) {
 }
 
 function EmailDrawerForm({ row, onClose }: { row: CrmEmailMessage; onClose: () => void }) {
-  const retailersQuery = useCustomerSegmentQuery('all', -1)
+  const retailersQuery = useCustomerPickerQuery(-1)
   const opportunitiesQuery = useOpportunitiesQuery(-1)
   const departmentsQuery = useDepartmentsQuery(-1)
   const updateEmailMutation = useUpdateEmailMutation()
@@ -90,8 +90,14 @@ function EmailDrawerForm({ row, onClose }: { row: CrmEmailMessage; onClose: () =
   const [ignoring, setIgnoring] = useState(false)
 
   const retailerOptions = useMemo<ComboOption[]>(
-    () => customerPickerOptions(retailers, retailer, (r) => r.domain ?? undefined),
-    [retailers, retailer],
+    () =>
+      customerPickerOptions(
+        retailers,
+        retailer,
+        (r) => r.domain ?? undefined,
+        typeof row.retailer === 'object' && row.retailer ? (row.retailer as Retailer) : null,
+      ),
+    [retailers, retailer, row.retailer],
   )
   const departmentOptions = useMemo<ComboOption[]>(
     () =>
@@ -109,7 +115,10 @@ function EmailDrawerForm({ row, onClose }: { row: CrmEmailMessage; onClose: () =
       })),
     [opportunities],
   )
-  const retailerById = useMemo(() => new Map(retailers.map((r) => [r.id, r])), [retailers])
+  const retailerById = useMemo(
+    () => buildRetailerById(retailers, [typeof row.retailer === 'object' ? row.retailer : null]),
+    [retailers, row.retailer],
+  )
   const departmentById = useMemo(() => new Map(departments.map((d) => [d.id, d])), [departments])
   const opportunityById = useMemo(() => new Map(opportunities.map((o) => [o.id, o])), [opportunities])
 

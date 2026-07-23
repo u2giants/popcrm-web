@@ -24,13 +24,13 @@ import {
   uploadRetailerLogo,
 } from '@/features/crm/api'
 import { idOf, label, relatedName } from '@/features/crm/format'
-import { uniqueValues, customerPickerOptions, isSelectableCustomer } from '@/features/crm/pages/_shared'
+import { uniqueValues, customerPickerOptions, isSelectableCustomer, buildRetailerById } from '@/features/crm/pages/_shared'
 import {
   crmKeys,
   listData,
   useDepartmentsQuery,
   useIngestedContactsQuery,
-  useCustomerSegmentQuery,
+  useCustomerPickerQuery,
   useOpportunitiesQuery,
 } from '@/features/crm/queries'
 import { logError } from '@/lib/errors'
@@ -79,7 +79,7 @@ export function DataAdminPage() {
   const buyersQuery = useIngestedContactsQuery(-1)
   const departmentsQuery = useDepartmentsQuery(-1)
   const opportunitiesQuery = useOpportunitiesQuery(-1)
-  const retailersQuery = useCustomerSegmentQuery('all', -1)
+  const retailersQuery = useCustomerPickerQuery(-1)
   const buyers = listData(buyersQuery.data)
   const departments = listData(departmentsQuery.data)
   const opportunities = listData(opportunitiesQuery.data)
@@ -107,7 +107,7 @@ export function DataAdminPage() {
     () => customerPickerOptions(retailers, departmentDraft.retailer, (r) => (r.customer_status ? label(r.customer_status) : undefined)),
     [retailers, departmentDraft.retailer],
   )
-  const retailerById = useMemo(() => new Map(retailers.map((r) => [r.id, r])), [retailers])
+  const retailerById = useMemo(() => buildRetailerById(retailers), [retailers])
   // The Logos tab manages customers that appear in pickers — same active/potential set.
   const logoCustomers = useMemo(() => retailers.filter((r) => isSelectableCustomer(r.status)), [retailers])
   const contactOptions = useMemo<ComboOption[]>(

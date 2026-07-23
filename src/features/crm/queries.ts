@@ -21,6 +21,7 @@ import {
   fetchMeetingNotes,
   fetchNotes,
   fetchOpportunities,
+  fetchCustomerPickerList,
   fetchRetailers,
   fetchTasks,
   promoteIngestedDomain,
@@ -141,6 +142,17 @@ export function useCustomerSegmentQuery(segment: CustomerSegment, limit = -1, en
   return useQuery({
     queryKey: crmKeys.customerSegment(segment, limit),
     queryFn: () => fetchCustomerSegment(segment, limit),
+    ...crmQueryDefaults,
+    enabled,
+    staleTime: 2 * 60_000,
+  })
+}
+
+/** Status-aware Customer picker feed (api.crm_customer_picker_list). */
+export function useCustomerPickerQuery(limit = -1, enabled = true) {
+  return useQuery({
+    queryKey: [...crmKeys.all, 'customerPicker', limit] as const,
+    queryFn: () => fetchCustomerPickerList(limit),
     ...crmQueryDefaults,
     enabled,
     staleTime: 2 * 60_000,

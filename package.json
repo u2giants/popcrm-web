@@ -8,6 +8,8 @@
     "build": "tsc -b && vite build",
     "lint": "eslint .",
     "preview": "vite preview",
+    "test": "vitest run",
+    "test:watch": "vitest",
     "crm:outlook-ingest": "node workers/crm-worker-supabase.mjs outlook-ingest",
     "crm:reroute": "node workers/crm-worker-supabase.mjs reroute",
     "crm:contact-sync": "node workers/crm-worker-supabase.mjs contact-sync",
@@ -58,6 +60,7 @@
     "globals": "^17.6.0",
     "typescript": "~6.0.2",
     "typescript-eslint": "^8.59.2",
-    "vite": "^8.0.12"
+    "vite": "^8.0.12",
+    "vitest": "^3.2.4"
   }
 }

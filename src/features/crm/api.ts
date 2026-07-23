@@ -428,6 +428,36 @@ export async function fetchRetailers(limit = -1): Promise<Retailer[]> {
   return rows.map(toRetailer)
 }
 
+/**
+ * Picker-safe CRM customers: api.crm_customer_picker_list
+ * (global active/potential AND CRM extension active). Use for every combobox /
+ * assign UI. Do not use crm_customer_segment_list('all') for pickers — that
+ * includes inactive hub rows and ignores CRM-local inactivation.
+ */
+export async function fetchCustomerPickerList(limit = -1): Promise<Retailer[]> {
+  let q = anyDb
+    .schema('api')
+    .from('crm_customer_picker_list')
+    .select('id,name,display_name,core_status,crm_status,updated_at')
+    .order('display_name', { ascending: true, nullsFirst: false })
+    .order('name')
+  if (limit >= 0) q = q.limit(limit)
+  const { data, error } = await q
+  if (error) throw error
+  return ((data ?? []) as Row[]).map((r) => ({
+    id: r.id as string,
+    name: (r.name ?? '') as string,
+    display_name: (r.display_name ?? null) as string | null,
+    status: (r.core_status ?? null) as string | null,
+    domain: null,
+    logo_url: null,
+    customer_status: null,
+    chain_type: null,
+    routing_aliases: null,
+    is_potential: String(r.core_status ?? '').toLowerCase() === 'potential',
+  }))
+}
+
 export async function fetchIngestedDomains(limit = -1): Promise<CrmIngestedDomain[]> {
   const PAGE = 1000
   const out: Row[] = []
@@ -461,13 +491,16 @@ export async function fetchIngestedDomainCount(): Promise<number> {
   return count ?? 0
 }
 
-export async function promoteIngestedDomain(domain: string, name: string): Promise<string> {
-  const { data, error } = await anyDb.schema('crm').rpc('promote_ingested_domain', {
-    p_domain: domain,
-    p_name: name,
-  })
-  if (error) throw error
-  return data as string
+/**
+ * Deliberately retired. crm.promote_ingested_domain was dropped by
+ * 20260629034600 because ingested domains must never become core.customer
+ * rows. Keep the function name so call sites fail loudly with a clear message
+ * instead of a PostgREST 404.
+ */
+export async function promoteIngestedDomain(_domain: string, _name: string): Promise<string> {
+  throw new Error(
+    'Promoting an ingested email domain to a Customer is no longer available. Ingested domains stay in CRM triage only and must not create or link to core.customer. Create a Customer through the normal curated path if needed.',
+  )
 }
 
 export async function fetchCustomerSegment(segment: CustomerSegment, limit = -1): Promise<Retailer[]> {
@@ -832,11 +865,13 @@ export async function searchCrm(query: string, limitPerGroup = 8): Promise<CrmSe
   if (!pattern) return { customers: [], contacts: [], opportunities: [], emails: [] }
 
   const [customers, contacts, opportunities, emails] = await Promise.all([
+    // Status-aware picker contract — never surface global-inactive or
+    // CRM-inactive rows in global CommandSearch.
     anyDb
       .schema("api")
-      .from('crm_customer_list')
-      .select('*')
-      .or(ilikeAny(['name', 'display_name', 'domain', 'routing_aliases'], pattern))
+      .from('crm_customer_picker_list')
+      .select('id,name,display_name,core_status,crm_status,updated_at')
+      .or(ilikeAny(['name', 'display_name'], pattern))
       .order('name')
       .limit(limitPerGroup),
     anyDb
@@ -867,7 +902,18 @@ export async function searchCrm(query: string, limitPerGroup = 8): Promise<CrmSe
   }
 
   return {
-    customers: ((customers.data ?? []) as Row[]).map(toRetailer),
+    customers: ((customers.data ?? []) as Row[]).map((r) => ({
+      id: r.id as string,
+      name: (r.name ?? '') as string,
+      display_name: (r.display_name ?? null) as string | null,
+      status: (r.core_status ?? null) as string | null,
+      domain: null,
+      logo_url: null,
+      customer_status: null,
+      chain_type: null,
+      routing_aliases: null,
+      is_potential: String(r.core_status ?? '').toLowerCase() === 'potential',
+    })),
     contacts: ((contacts.data ?? []) as Row[]).map(toBuyer),
     opportunities: ((opportunities.data ?? []) as Row[]).map(toOpportunity),
     emails: ((emails.data ?? []) as Row[]).map(toEmail),

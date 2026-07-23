@@ -11,14 +11,14 @@ import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { useRecordSelection } from '@/features/crm/useRecordSelection'
 import { MeetingDrawer } from '@/features/crm/components/MeetingDrawer'
 import { formatDate, idOf, label, relatedName, textOf } from '@/features/crm/format'
-import { customerEditOptions, withCurrentCustomer } from '@/features/crm/pages/_shared'
+import { customerEditOptions, withCurrentCustomer, buildRetailerById } from '@/features/crm/pages/_shared'
 import { StatusBadge } from '@/components/app/StatusBadge'
 import {
   crmKeys,
   listData,
   useDepartmentsQuery,
   useIngestedContactsQuery,
-  useCustomerSegmentQuery,
+  useCustomerPickerQuery,
   useMeetingsQuery,
   useUpdateMeetingMutation,
 } from '@/features/crm/queries'
@@ -38,7 +38,7 @@ function acctStatusOf(m: CrmMeetingNote): string {
 export function MeetingsPage() {
   const queryClient = useQueryClient()
   const meetingsQuery = useMeetingsQuery(-1)
-  const retailersQuery = useCustomerSegmentQuery('all', -1)
+  const retailersQuery = useCustomerPickerQuery(-1)
   const departmentsQuery = useDepartmentsQuery(-1)
   const buyersQuery = useIngestedContactsQuery(-1)
   const updateMeetingMutation = useUpdateMeetingMutation()
@@ -49,7 +49,10 @@ export function MeetingsPage() {
   const [query, setQuery] = useState('')
   const [segment, setSegment] = useState<Segment>('customers')
   const [selected, select] = useRecordSelection<CrmMeetingNote>('meeting', meetings)
-  const retailerById = useMemo(() => new Map(retailers.map((r) => [r.id, r])), [retailers])
+  const retailerById = useMemo(
+    () => buildRetailerById(retailers, meetings.map((m) => (typeof m.retailer === 'object' ? m.retailer : null))),
+    [retailers, meetings],
+  )
   const departmentById = useMemo(() => new Map(departments.map((d) => [d.id, d])), [departments])
   const buyerById = useMemo(() => new Map(buyers.map((b) => [b.id, b])), [buyers])
   const customerOptions = useMemo<EditOption[]>(

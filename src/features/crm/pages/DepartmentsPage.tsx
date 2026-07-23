@@ -9,17 +9,18 @@ import { useRecordSelection } from '@/features/crm/useRecordSelection'
 import { DepartmentDrawer } from '@/features/crm/components/DepartmentDrawer'
 import { label, relatedName, textOf } from '@/features/crm/format'
 import { StatusBadge } from '@/components/app/StatusBadge'
-import { listData, useCustomerSegmentQuery, useDepartmentsQuery } from '@/features/crm/queries'
+import { listData, useCustomerPickerQuery, useDepartmentsQuery } from '@/features/crm/queries'
+import { buildRetailerById } from '@/features/crm/pages/_shared'
 import type { CrmDepartment } from '@/lib/types'
 
 export function DepartmentsPage() {
   const departmentsQuery = useDepartmentsQuery(-1)
-  const retailersQuery = useCustomerSegmentQuery('all', -1)
+  const retailersQuery = useCustomerPickerQuery(-1)
   const departments = listData(departmentsQuery.data)
   const retailers = listData(retailersQuery.data)
   const [query, setQuery] = useState('')
   const [selected, select] = useRecordSelection<CrmDepartment>('department', departments)
-  const retailerById = useMemo(() => new Map(retailers.map((r) => [r.id, r])), [retailers])
+  const retailerById = useMemo(() => buildRetailerById(retailers), [retailers])
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase()
