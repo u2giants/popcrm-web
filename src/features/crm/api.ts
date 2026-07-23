@@ -14,6 +14,7 @@ import type {
   CrmTask,
   Retailer,
 } from '@/lib/types'
+import { rowsOrReport } from './searchResults'
 
 // ---------------------------------------------------------------------------
 // CRM data access over the shared Supabase backend (see u2giants/shared-db).
@@ -897,12 +898,15 @@ export async function searchCrm(query: string, limitPerGroup = 8): Promise<CrmSe
       .limit(limitPerGroup),
   ])
 
-  for (const result of [customers, contacts, opportunities, emails]) {
-    if (result.error) throw result.error
-  }
+  // Search groups are independent. A slow email query must not blank a valid
+  // Customer result (and every degraded group is reported loudly).
+  const customerRows = rowsOrReport('customers', customers)
+  const contactRows = rowsOrReport('contacts', contacts)
+  const opportunityRows = rowsOrReport('opportunities', opportunities)
+  const emailRows = rowsOrReport('emails', emails)
 
   return {
-    customers: ((customers.data ?? []) as Row[]).map((r) => ({
+    customers: (customerRows as Row[]).map((r) => ({
       id: r.id as string,
       name: (r.name ?? '') as string,
       display_name: (r.display_name ?? null) as string | null,
@@ -914,8 +918,8 @@ export async function searchCrm(query: string, limitPerGroup = 8): Promise<CrmSe
       routing_aliases: null,
       is_potential: String(r.core_status ?? '').toLowerCase() === 'potential',
     })),
-    contacts: ((contacts.data ?? []) as Row[]).map(toBuyer),
-    opportunities: ((opportunities.data ?? []) as Row[]).map(toOpportunity),
-    emails: ((emails.data ?? []) as Row[]).map(toEmail),
+    contacts: (contactRows as Row[]).map(toBuyer),
+    opportunities: (opportunityRows as Row[]).map(toOpportunity),
+    emails: (emailRows as Row[]).map(toEmail),
   }
 }
