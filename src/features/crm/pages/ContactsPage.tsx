@@ -10,7 +10,7 @@ import { CustomerRelationLogo } from '@/features/crm/components/CustomerRelation
 import { useRecordSelection } from '@/features/crm/useRecordSelection'
 import { ContactDrawer } from '@/features/crm/components/ContactDrawer'
 import { customerLabel, idOf, label, relatedName, textOf } from '@/features/crm/format'
-import { isSelectableCustomer, withCurrentCustomer } from '@/features/crm/pages/_shared'
+import { buildRetailerById, isSelectableCustomer, withCurrentCustomer } from '@/features/crm/pages/_shared'
 import { StatusBadge } from '@/components/app/StatusBadge'
 import { NameAvatar } from '@/components/app/NameAvatar'
 import {
@@ -20,7 +20,7 @@ import {
   useContactSegmentCountsQuery,
   useContactSegmentQuery,
   useDepartmentsQuery,
-  useCustomerSegmentQuery,
+  useCustomerPickerQuery,
   useUpdateContactMutation,
 } from '@/features/crm/queries'
 import { logError } from '@/lib/errors'
@@ -40,7 +40,7 @@ export function ContactsPage() {
   const segmentQuery = useContactSegmentQuery(activeSegment, -1, segment !== 'all')
   const allContactsQuery = useAllContactsQuery(-1, segment === 'all')
   const countsQuery = useContactSegmentCountsQuery()
-  const retailersQuery = useCustomerSegmentQuery('all', -1)
+  const retailersQuery = useCustomerPickerQuery(-1)
   const departmentsQuery = useDepartmentsQuery(-1)
   const updateContactMutation = useUpdateContactMutation()
   const activeContactsQuery = segment === 'all' ? allContactsQuery : segmentQuery
@@ -48,7 +48,10 @@ export function ContactsPage() {
   const retailers = listData(retailersQuery.data)
   const departments = listData(departmentsQuery.data)
   const [selected, select] = useRecordSelection<Buyer>('contact', buyers)
-  const retailerById = useMemo(() => new Map(retailers.map((r) => [r.id, r])), [retailers])
+  const retailerById = useMemo(
+    () => buildRetailerById(retailers, buyers.map((b) => (typeof b.retailer === 'object' ? b.retailer : null))),
+    [retailers, buyers],
+  )
   const departmentById = useMemo(() => new Map(departments.map((d) => [d.id, d])), [departments])
   const customerOptions = useMemo<EditOption[]>(
     () => [

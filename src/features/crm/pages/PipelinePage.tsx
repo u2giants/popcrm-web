@@ -11,9 +11,9 @@ import { OpportunityModal } from '@/features/crm/components/OpportunityModal'
 import { StageBadge } from '@/features/crm/components/CrmStatusBadge'
 import { OPPORTUNITY_STAGES, stageChipClass } from '@/features/crm/constants'
 import { idOf, label, relatedName, textOf, formatDate } from '@/features/crm/format'
-import { uniqueValues, customerPickerOptions } from '@/features/crm/pages/_shared'
+import { uniqueValues, customerPickerOptions, buildRetailerById } from '@/features/crm/pages/_shared'
 import { cn } from '@/lib/utils'
-import { listData, useOpportunitiesQuery, useCustomerSegmentQuery } from '@/features/crm/queries'
+import { listData, useOpportunitiesQuery, useCustomerPickerQuery } from '@/features/crm/queries'
 import type { CrmOpportunity } from '@/lib/types'
 
 function fmtAmount(val: string | number | null | undefined): string | null {
@@ -27,7 +27,7 @@ function fmtAmount(val: string | number | null | undefined): string | null {
 
 export function PipelinePage() {
   const opportunitiesQuery = useOpportunitiesQuery(-1)
-  const retailersQuery = useCustomerSegmentQuery('all', -1)
+  const retailersQuery = useCustomerPickerQuery(-1)
   const opportunities = listData(opportunitiesQuery.data)
   const retailers = listData(retailersQuery.data)
   const [query, setQuery] = useState('')
@@ -36,7 +36,7 @@ export function PipelinePage() {
   const [division, setDivision] = useState('')
   const [view, setView] = useState<'board' | 'list'>('board')
   const [selected, select] = useRecordSelection<CrmOpportunity>('opportunity', opportunities)
-  const retailerById = useMemo(() => new Map(retailers.map((r) => [r.id, r])), [retailers])
+  const retailerById = useMemo(() => buildRetailerById(retailers), [retailers])
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase()

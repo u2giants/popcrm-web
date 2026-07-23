@@ -22,7 +22,7 @@ import { useRecordSelection } from '@/features/crm/useRecordSelection'
 import { EmailDrawer } from '@/features/crm/components/EmailDrawer'
 import { MATCH_TYPES, ROUTING_STATUSES, WORKER_CADENCE, needsRouting } from '@/features/crm/constants'
 import { formatDateTime, idOf, label, relatedName, textOf } from '@/features/crm/format'
-import { customerEditOptions, withCurrentCustomer } from '@/features/crm/pages/_shared'
+import { customerEditOptions, withCurrentCustomer, buildRetailerById } from '@/features/crm/pages/_shared'
 import { useAuth } from '@/auth/auth'
 import {
   listData,
@@ -32,7 +32,7 @@ import {
   useEmailSegmentCountsQuery,
   useFirefliesHealth,
   useIgnoreRulesQuery,
-  useCustomerSegmentQuery,
+  useCustomerPickerQuery,
   useOpportunitiesQuery,
   useUpdateEmailMutation,
 } from '@/features/crm/queries'
@@ -61,7 +61,7 @@ export function EmailRoutingPage() {
   const emailsQuery = useEmailsQuery(EMAIL_ROUTE_LIMIT)
   const countsQuery = useEmailSegmentCountsQuery()
   const ignoreRulesQuery = useIgnoreRulesQuery()
-  const retailersQuery = useCustomerSegmentQuery('all', -1)
+  const retailersQuery = useCustomerPickerQuery(-1)
   const departmentsQuery = useDepartmentsQuery(-1)
   const opportunitiesQuery = useOpportunitiesQuery(-1)
   const fireflies = useFirefliesHealth()
@@ -81,7 +81,10 @@ export function EmailRoutingPage() {
   const [segment, setSegment] = useState<Segment>('triage')
   const [query, setQuery] = useState('')
   const [selected, select] = useRecordSelection<CrmEmailMessage>('message', emails)
-  const retailerById = useMemo(() => new Map(retailers.map((r) => [r.id, r])), [retailers])
+  const retailerById = useMemo(
+    () => buildRetailerById(retailers, emails.map((e) => (typeof e.retailer === 'object' ? e.retailer : null))),
+    [retailers, emails],
+  )
   const departmentById = useMemo(() => new Map(departments.map((d) => [d.id, d])), [departments])
   const opportunityById = useMemo(() => new Map(opportunities.map((o) => [o.id, o])), [opportunities])
   const customerOptions = useMemo<EditOption[]>(
