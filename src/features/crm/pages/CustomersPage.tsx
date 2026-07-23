@@ -80,7 +80,7 @@ export function CustomersPage() {
     }
   }
 
-  async function promoteDomain(_row: CrmIngestedDomain) {
+  function promoteDomain() {
     // Forbidden architecture: ingested domains must not create/link core.customer.
     // The RPC was dropped in 20260629034600; fail loudly instead of a silent 404.
     toast.error('Promote is unavailable', {
@@ -278,7 +278,7 @@ export function CustomersPage() {
         <Button
           size="xs"
           variant="outline"
-          onClick={() => void promoteDomain(r)}
+          onClick={() => promoteDomain()}
           disabled={!!r.promoted_customer_id}
           title="Ingested domains cannot be promoted to Customers"
         >
