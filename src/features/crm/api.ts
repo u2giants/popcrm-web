@@ -497,9 +497,9 @@ export async function fetchIngestedDomainCount(): Promise<number> {
  * rows. Keep the function name so call sites fail loudly with a clear message
  * instead of a PostgREST 404.
  */
-export async function promoteIngestedDomain(_domain: string, _name: string): Promise<string> {
+export async function promoteIngestedDomain(domain: string, name: string): Promise<string> {
   throw new Error(
-    'Promoting an ingested email domain to a Customer is no longer available. Ingested domains stay in CRM triage only and must not create or link to core.customer. Create a Customer through the normal curated path if needed.',
+    `Promoting an ingested email domain to a Customer is no longer available (domain=${domain}, name=${name}). Ingested domains stay in CRM triage only and must not create or link to core.customer. Create a Customer through the normal curated path if needed.`,
   )
 }
 
