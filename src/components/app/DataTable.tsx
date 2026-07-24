@@ -2,6 +2,7 @@ import { Fragment, useEffect, useMemo, useRef, useState, type ReactNode } from '
 import { ChevronDown, ChevronUp, ChevronsUpDown, Columns3, GripVertical, ListFilter, Search, X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { LoadingState, EmptyState } from '@/components/app/states'
+import { columnDistinctValues } from '@/components/app/columnFilters'
 import { cn } from '@/lib/utils'
 
 type Breakpoint = 'sm' | 'md' | 'lg' | 'xl'
@@ -167,12 +168,7 @@ export function DataTable<T>({
     const col = byKey[key]
     const valueOf = col?.filterValue ?? col?.sortValue
     if (!valueOf) return []
-    const seen = new Set<string>()
-    for (const row of rows) {
-      const v = String(valueOf(row) ?? '').trim()
-      if (v) seen.add(v)
-    }
-    return [...seen].sort((a, b) => a.localeCompare(b))
+    return columnDistinctValues(rows, valueOf)
   }
 
   const openFilterValues = useMemo(
