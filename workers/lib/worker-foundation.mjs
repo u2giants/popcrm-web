@@ -121,6 +121,20 @@ export function safeWorkerErrorDetails(error) {
   }
 }
 
+export function createUserScopedSupabaseClient({
+  createClient,
+  url,
+  serviceRoleKey,
+  token,
+  realtimeTransport,
+}) {
+  return createClient(url, serviceRoleKey, {
+    auth: { persistSession: false, autoRefreshToken: false },
+    global: { headers: { Authorization: `Bearer ${token}` } },
+    realtime: { transport: realtimeTransport },
+  })
+}
+
 export async function respondToOpportunityChatRequest({
   response,
   headers,
