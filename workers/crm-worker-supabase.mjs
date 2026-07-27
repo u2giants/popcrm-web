@@ -28,6 +28,7 @@ import { pathToFileURL } from 'node:url'
 import { createClient } from '@supabase/supabase-js'
 import WebSocket from 'ws'
 import {
+  createUserScopedSupabaseClient,
   createWorkerBoundaries,
   domainCandidates,
   domainOf,
@@ -840,9 +841,12 @@ async function verifySupabaseUser(token) {
 }
 
 async function resolveCrmProfile(token) {
-  const userClient = createClient(SUPABASE_URL, SERVICE_ROLE_KEY, {
-    auth: { persistSession: false, autoRefreshToken: false },
-    global: { headers: { Authorization: `Bearer ${token}` } },
+  const userClient = createUserScopedSupabaseClient({
+    createClient,
+    url: SUPABASE_URL,
+    serviceRoleKey: SERVICE_ROLE_KEY,
+    token,
+    realtimeTransport: WebSocket,
   })
   return boundaries.resolveCrmProfile(userClient)
 }

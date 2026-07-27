@@ -1,10 +1,35 @@
 import { describe, expect, it, vi } from 'vitest'
 import {
+  createUserScopedSupabaseClient,
   handleOpportunityChatRequest,
   respondToOpportunityChatRequest,
 } from './lib/worker-foundation.mjs'
 
 const opportunityId = '11111111-1111-4111-8111-111111111111'
+
+describe('user-scoped Supabase client', () => {
+  it('constructs under Node 20 with injected WebSocket transport and caller authorization', () => {
+    const createClient = vi.fn(() => ({ client: true }))
+    class TestWebSocket {}
+    const client = createUserScopedSupabaseClient({
+      createClient,
+      url: 'https://example.supabase.co',
+      serviceRoleKey: 'test-only-service-key',
+      token: 'caller-jwt',
+      realtimeTransport: TestWebSocket,
+    })
+    expect(client).toEqual({ client: true })
+    expect(createClient).toHaveBeenCalledWith(
+      'https://example.supabase.co',
+      'test-only-service-key',
+      {
+        auth: { persistSession: false, autoRefreshToken: false },
+        global: { headers: { Authorization: 'Bearer caller-jwt' } },
+        realtime: { transport: TestWebSocket },
+      },
+    )
+  })
+})
 
 function request(overrides = {}) {
   return handleOpportunityChatRequest({
