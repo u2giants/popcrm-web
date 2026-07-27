@@ -1,7 +1,7 @@
 # HANDOFF — POP CRM codebase audit remediation
 
-**Handoff status:** Session 1 complete in code and production; Session 2 is the
-next pending implementation phase
+**Handoff status:** Session 1 complete; Session 2 code reviewed, pushed, CI
+green, and awaiting its production worker restart/live authorization check
 **Prepared:** 2026-07-26 (America/New_York)
 **Repository:** `/worksp/popcrm-web` → GitHub `u2giants/popcrm-web`
 **Branch:** `main` (main-only repository)
@@ -92,6 +92,51 @@ enforce CRM authorization on Opportunity Chat, run Kimi K3 read-only review,
 return any concrete findings to that same agent, then verify, commit, push,
 confirm CI, and perform the authorized worker rollout/runtime checks required by
 the plan.
+
+### Session 2 code and review result
+
+Session 2 was implemented by the dedicated `phase_2_chat_authorization` agent.
+No shared-db migration or new API contract was needed: the worker verifies the
+bearer token through Supabase Auth, then calls the existing
+`api.current_user_profile()` contract with the caller's JWT context. Only an
+active profile with CRM access or the administrator role may reach
+service-role Opportunity Chat reads.
+
+- App commit: `4c66402` (`fix: authorize CRM opportunity chat`)
+- GitHub Build and Deploy:
+  `https://github.com/u2giants/popcrm-web/actions/runs/30300857606` — passed
+- Shared-db guard: passed
+- Local verification: 5 test files / 30 tests, lint with only the known
+  `src/App.tsx:48` warning, production build, worker/helper syntax, and
+  `git diff --check` all passed.
+- Required cases covered: missing/invalid token, valid non-CRM user,
+  administrator, CRM-granted user, revoked access, explicitly inactive profile,
+  malformed request, denied privileged-call assertions, and generic/non-leaking
+  exception responses.
+
+Kimi K3's first review returned `CHANGES`:
+
+1. the shared public 500 response could expose a profile/PostgREST error message;
+2. profile/chat exception paths lacked a generic-response regression test; and
+3. the inactive-profile test used a missing profile rather than an explicitly
+   inactive one.
+
+The same implementation agent corrected all three. Public errors now return
+only `internal_error`; server logs retain only safe route/name/code/status
+fields; both failure paths are tested; and the inactive-profile gate is tested
+directly. Kimi K3 re-reviewed the corrected diff and returned `APPROVE` with no
+remaining actionable findings.
+
+Session 2 is **code complete / rollout pending**. Do not start Session 3 until:
+
+1. Albert explicitly authorizes updating/restarting the production
+   `popcrm-fireflies` worker on commit `4c66402`;
+2. the production checkout is verified to contain that worker commit;
+3. `popcrm-fireflies` is restarted and its health/logs are checked; and
+4. safe live checks prove missing/invalid credentials return 401, an
+   authenticated non-CRM identity returns 403 when an appropriate identity is
+   available, and the authorized CRM test identity reaches the endpoint without
+   exposing internal errors. Do not log or document JWTs.
 
 ---
 
