@@ -30,6 +30,13 @@ Focused worker tests run as part of `npm test`. Injectable boundaries for
 service authentication, HTTP body reads, Fireflies signatures, upstream fetch,
 Graph cursor storage, and current time live in `workers/lib/worker-foundation.mjs`.
 
+Opportunity Chat verifies the bearer token with Supabase Auth, then resolves
+`api.current_user_profile()` in that user's JWT context. Only an active profile
+with unrevoked CRM access or the administrator role may reach service-role CRM
+reads. Missing or invalid tokens return 401; authenticated users without access
+return 403. Denial logs contain only the status and Auth user ID, never JWTs,
+questions, email content, or CRM records.
+
 The worker records unknown email domains with
 `crm.record_ingested_domain(...)`. It must not insert random email domains into
 `core.customer`; only human promotion through `crm.promote_ingested_domain(...)`
