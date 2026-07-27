@@ -2,8 +2,8 @@
 
 **Plan status:** Ready for implementation
 **Prepared:** 2026-07-26 (America/New_York)
-**Planning baseline:** `u2giants/popcrm-web` `main` at `b3da741`
-**Execution model:** Twelve separate, fresh AI sessions, run serially in the order listed below
+**Planning baseline:** `u2giants/popcrm-web` `main` at `c217f1c`
+**Execution model:** Fifteen separate, fresh AI sessions covering fourteen findings, run serially in the order listed below
 **Canonical plan file:** `/worksp/popcrm-web/plan_codebase_audit_remediation.md`
 
 This file is both the handoff and the build specification. Every implementing
@@ -23,7 +23,7 @@ must remain fast as data grows, deployments must be guarded by meaningful
 automated tests, and routine dependency or authentication behavior must not
 create avoidable operational risk.
 
-When all twelve sessions are complete:
+When all fourteen findings and all fifteen implementation sessions are complete:
 
 - cross-app Supabase users cannot use Opportunity Chat to retrieve CRM data;
 - Fireflies refuses unsigned traffic and refuses to start without its required
@@ -32,6 +32,8 @@ When all twelve sessions are complete:
   bounded execution time;
 - Outlook ingestion processes every message in its durable cursor stream rather
   than only the newest 50 messages in a lookback window;
+- scheduled CRM workers process high-volume queues incrementally without
+  rescanning up to 100,000 rows or issuing avoidable serial per-row queries;
 - Overview and sidebar badges use purpose-built server aggregates/recent feeds,
   not repeated full-table browser downloads;
 - production dependencies have no known high/critical advisories that apply to
@@ -42,7 +44,9 @@ When all twelve sessions are complete:
 - critical worker, auth, API, and page behavior has regression coverage;
 - auth state cannot be restored by a stale asynchronous refresh after logout;
 - the React auth-callback banner no longer causes the known effect/set-state
-  lint warning; and
+  lint warning;
+- retired ingested-domain promotion code and its misleading disabled action are
+  removed from the shipped UI and query layer; and
 - every change is committed, pushed, green in CI, and the final application
   commit is verified live at `https://crm.designflow.app`.
 
@@ -106,10 +110,10 @@ or writes.
 
 On 2026-07-26, after synchronizing `popcrm-web` with GitHub, a whole-codebase
 read-only audit examined project-owned frontend, worker, systemd, CI, Docker,
-nginx, and configuration code. It excluded `node_modules`, `dist`, secrets, the
-untracked `.claude/` directory, and the read-only vendored `shared-db/` mirror.
+nginx, and configuration code. It excluded `node_modules`, `dist`, secrets,
+AI-tool-local configuration, and the read-only vendored `shared-db/` mirror.
 
-The audit ran:
+The audit and follow-up verification ran:
 
 ```bash
 npm ci
@@ -128,9 +132,12 @@ Observed baseline:
 - Worker syntax passed.
 - `npm audit` reported 12 advisories: 1 critical, 5 high, 5 moderate,
   1 low.
-- GitHub's Build and Deploy run for app commit `37d1938` was green and reported
-  production serving that commit. Baseline `b3da741` is a later vendored
-  shared-db synchronization and did not alter audited project-owned code.
+- The deploy workflow's embedded shell was extracted and `bash -n` proved the
+  unmatched `fi` is a real parse failure.
+- Audit/first-plan baseline `c17a86a` was followed by vendor-only shared-db sync
+  `c217f1c`. Current planning baseline `c217f1c` is synchronized with
+  `origin/main`; the intervening commit did not change audited project-owned
+  code, and no remediation code has been implemented yet.
 
 The findings are mostly latent or load-dependent, so there is no single UI
 click sequence that reproduces all of them. Each session below includes its own
@@ -142,7 +149,7 @@ reproduction/verification contract.
 
 ### In scope
 
-This plan fixes all twelve audit findings:
+This plan fixes all fourteen verified audit findings:
 
 1. Opportunity Chat accepts any shared-Supabase user.
 2. Fireflies webhook authentication fails open without a secret.
@@ -156,6 +163,10 @@ This plan fixes all twelve audit findings:
 10. Auth refreshes can resolve out of order after sign-out.
 11. Deployment shell contains unreachable malformed remnants.
 12. Auth callback error state causes the known React lint warning.
+13. High-volume scheduled workers rescan up to 100,000 rows and perform serial
+    N+1 reads/writes, creating load growth and silent fixed-cap truncation.
+14. Retired ingested-domain promotion remains represented by dead API/mutation
+    code and a misleading UI action that can only display an error.
 
 Documentation changes needed to keep `AGENTS.md`, `docs/architecture.md`,
 `docs/development.md`, `docs/deployment.md`, and `workers/README.md` accurate
@@ -167,7 +178,7 @@ are in scope for the session that changes the documented behavior.
 - Rewriting `workers/crm-worker-supabase.mjs` into a new framework.
 - Replacing Supabase, TanStack Query, systemd, Coolify, or GitHub Actions.
 - Changing the CRM data model except for the narrowly scoped server aggregate
-  contracts in Session 7.
+  contracts in Sessions 7A-7B.
 - Direct production/shared-cloud mutations from an ordinary AI session.
 - Fixing advisories that exist only in unused development tooling when the
   permanent solution is to remove that tooling; do not force incompatible
@@ -175,18 +186,22 @@ are in scope for the session that changes the documented behavior.
 - Changing application behavior inside the vendored `shared-db/` directory.
 - Testing Fireflies dashboard configuration; this plan hardens the receiving
   service, not the third-party dashboard.
-- Broadly refactoring every full-list page. Session 7 is limited to Overview
-  and global sidebar statistics/recent activity.
+- Broadly refactoring every full-list page. Sessions 7A-7B are limited to
+  Overview and global sidebar statistics/recent activity.
+- Rewriting every worker query at once. Session 13 is limited to the audited
+  reroute, contact-sync, summarize, and ignore-rule batch paths and any shared
+  helpers they need.
 
 ---
 
 ## 5. Current state of the code
 
-The audited code is committed, pushed, and deployed except for the later
-vendored shared-db-only synchronization at planning baseline `b3da741`.
-There is no top-level `HANDOFF.md`. The only unrelated local state is an
-untracked `.claude/` directory; every session must preserve it and must not
-stage it.
+The audited application code is unchanged from `c17a86a`; current planning
+baseline `c217f1c` adds only a vendored shared-db sync. Remediation
+implementation has not started. A top-level `HANDOFF.md` is created by the
+planning session and links this plan. The planning checkout was clean before
+documentation edits. Every implementation session must still preserve any
+unrelated state it finds and stage only its own files.
 
 ### Existing behavior that must be preserved
 
@@ -217,6 +232,8 @@ stage it.
 | Auth race | `src/auth/auth.tsx:98-131` allows overlapping `refresh()` completions. |
 | Workflow remnants | `.github/workflows/deploy.yml:143-149`; `bash -n` on the extracted run block fails at the unmatched `fi`. |
 | React warning | `src/App.tsx:41-50` initializes to null, then calls `setAuthError` synchronously inside an effect. |
+| Worker rescans/N+1 | `workers/crm-worker-supabase.mjs:591-610`, `:632-679`, `:694-699`, and `:714-732` read fixed sets of up to 100,000 rows and then perform serial per-row routing, lookup, summary, and update work. |
+| Retired promotion residue | `src/features/crm/api.ts:496-506` deliberately fails loudly; `src/features/crm/queries.ts:360-383` nevertheless retains an unreachable optimistic mutation; `src/features/crm/pages/CustomersPage.tsx:83-90` and `:272-288` render a button whose only supported result is an explanatory error toast. The current behavior is safe, but the dead mutation surface and fake affordance should be removed. |
 
 ---
 
@@ -275,6 +292,27 @@ timeouts without invoking real services or reading secrets.
 An earlier `current_user_profile()` request can finish after a newer sign-out
 refresh. React then receives an obsolete `setRealUser`, making the shell look
 signed in until another refresh while RLS requests fail.
+
+### 6.9 Worker batch design does not scale or guarantee completeness
+
+Several scheduled commands use `.limit(100000)` without a stable cursor,
+checkpoint, or deterministic batch loop. The cap is therefore both expensive
+and incomplete: every run can rescan already-seen history, while rows beyond
+the cap may never be reached. Inside those scans, serial Supabase reads and
+writes amplify latency and database load. The permanent fix is bounded,
+deterministically ordered keyset work with durable progress/idempotency and
+bulk lookups or bounded concurrency—not a larger fixed cap.
+
+### 6.10 A retired operation is still modeled as an operation
+
+Ingested-domain promotion is intentionally forbidden by the shared-customer
+architecture. The current always-throwing function and error toast are a
+deliberate loud failure, so this is not an active data-integrity vulnerability.
+However, the API and query layers still model an unreachable mutation and the
+UI still offers a “Promote” button. That creates a misleading affordance, dead
+cache-manipulation code, and future risk that an implementer revives a dropped
+cross-domain behavior. The supported curated-customer path should be explained
+as static guidance without presenting a fake action.
 
 ---
 
@@ -341,8 +379,23 @@ These decisions prevent later sessions from re-entering known dead ends.
 
 14. **Rejected: depend on the unreachable malformed workflow tail remaining
     harmless.**
-    The successful deployment exits before Bash parses the tail, but syntax
-    tooling fails and future edits can make the bad path reachable.
+    Bash parses the whole block before execution, so the unmatched `fi` makes
+    the step invalid regardless of the earlier `exit`; syntax tooling already
+    proves the failure.
+
+15. **Rejected: raise the worker `.limit(100000)` caps.**
+    A larger cap increases load without guaranteeing completeness. Stable
+    keyset batching/checkpoints and idempotent processing are required.
+
+16. **Rejected: parallelize every per-row worker call with unbounded
+    `Promise.all`.**
+    That trades serial slowness for connection/database exhaustion. Use bulk
+    operations where possible and small configurable concurrency otherwise.
+
+17. **Rejected: keep the disabled Promote button as documentation.**
+    Disabled or error-only controls teach users that a workflow almost exists.
+    Replace it with non-actionable explanatory text/help linked to the curated
+    customer workflow and remove the dead mutation surface.
 
 ---
 
@@ -355,8 +408,8 @@ changed. If it has, stop and document the conflict.
 
 - Each numbered remediation session is a fresh context window and lands a
   focused commit on app `main` before the next begins.
-- The untracked `.claude/` directory is unrelated user work and must remain
-  untouched/uncommitted.
+- Any unrelated dirty or untracked files found at execution time belong to
+  another user/session and must remain untouched/uncommitted.
 - Production/shared cloud is read-only to ordinary sessions unless Albert
   explicitly authorizes the exact mutation in the current chat. The
   shared-db workflow's preview/production apply step must follow the
@@ -377,6 +430,11 @@ changed. If it has, stop and document the conflict.
 - Dependency remediation may use supported patch/minor upgrades. Recharts 3 is
   a deliberate major migration and requires visual verification.
 - No lint suppressions are accepted for the two known frontend issues.
+- High-volume worker processing uses deterministic keyset ordering with an ID
+  tie-breaker, bounded batch sizes, idempotent writes, and explicit progress;
+  no fixed row cap may masquerade as complete processing.
+- Ingested domains remain CRM-private triage evidence and are never promoted or
+  linked to `core.customer`; the dead promotion mutation will be removed.
 
 ### Open judgment, with criteria
 
@@ -405,7 +463,7 @@ changed. If it has, stop and document the conflict.
 
 ---
 
-## 9. Implementation plan — twelve separate sessions
+## 9. Implementation plan — fifteen separate sessions
 
 ### Progress ledger
 
@@ -420,20 +478,27 @@ commit SHA and verification evidence, and preserves later rows.
 | 4 | Bounded HTTP request bodies | pending | — |
 | 5 | External and systemd timeouts | pending | — |
 | 6 | Durable Outlook Graph ingestion | pending | — |
-| 7 | Server-side Overview/sidebar aggregates | pending | — |
+| 7A | Shared-db Overview/sidebar aggregate contracts (preview-proven) | pending | — |
+| 7B | Frontend integration after authorized merge/vendor sync | pending | — |
 | 8 | Dependency and Recharts remediation | pending | — |
 | 9 | Deployment shell cleanup | pending | — |
 | 10 | Auth refresh race | pending | — |
 | 11 | CI executes tests | pending | — |
 | 12 | Auth callback lint/performance warning | pending | — |
+| 13 | High-volume worker batching and N+1 removal | pending | — |
+| 14 | Remove retired ingested-domain promotion residue | pending | — |
 
 Every session is a natural fresh-context cut. Before starting Session N:
 
 1. Re-read all remaining sessions for drift.
 2. Pull `origin/main`.
-3. Check `git status --short --branch`.
-4. Confirm earlier ledger rows are complete.
-5. Run the baseline checks.
+3. Run `git status --short --branch` in `/worksp/popcrm-web`.
+4. If the session may touch schema, API contracts, generated database types,
+   or cross-app data contracts, also run `git status --short --branch` in
+   `/worksp/shared-db`; stop if it has unrelated dirty work.
+5. Confirm earlier ledger rows are complete and any required handoff/PR/vendor
+   sync evidence exists.
+6. Run the baseline checks.
 
 ### Session 1 — Create a testable worker foundation
 
@@ -677,7 +742,7 @@ reads.
    not the primary cursor.
 6. Preserve unknown-domain routing and opportunity-summary behavior.
 
-**Dependencies:** Sessions 1 and 5. Session 7 is independent of this after
+**Dependencies:** Sessions 1 and 5. Session 7A is independent of this after
 Session 5, but execution remains serial.
 
 **Verification gate — you'll know it worked when:**
@@ -691,25 +756,16 @@ Session 5, but execution remains serial.
   second run is idempotent.
 - No production apply/run occurs without explicit authority.
 
-### Session 7 — Replace browser-wide stats loads with server contracts
+### Session 7A — Create preview-proven server aggregate contracts
 
 **Finding owned:** Overview/sidebar repeatedly download complete datasets.
 
-**Repositories and files:**
+**Repository and files:**
 
 - canonical `/worksp/shared-db`
   - `AGENTS.md`
   - new timestamped migration under `supabase/migrations/`
   - relevant tests/docs
-- after DB contract lands:
-  - `src/lib/database.types.ts`
-  - `src/lib/types.ts`
-  - `src/features/crm/api.ts`
-  - `src/features/crm/queries.ts`
-  - `src/components/app/AppSidebar.tsx`
-  - `src/features/crm/pages/OverviewPage.tsx`
-  - focused API/adapter/component tests
-  - `docs/architecture.md`
 
 **Work:**
 
@@ -733,16 +789,15 @@ Session 5, but execution remains serial.
    - add an additive/idempotent timestamped migration;
    - run `scripts/check-sql.sh` and repository tests;
    - preview dry-run/apply/verification;
-   - production apply only with authority;
-   - merge PR;
-   - confirm consumer vendor sync.
-5. Regenerate `src/lib/database.types.ts`; do not hand-invent generated types.
-6. Replace `useCrmStatsQuery`'s seven full fetches with typed snapshot/recent
-   queries. Ensure Sidebar and Overview share cache keys instead of duplicating
-   network calls.
-7. Preserve exact displayed totals and explicitly label recent-only activity.
-8. Remove obsolete unlimited stats-only fetch usage, but do not change other
-   page-specific list behavior in this session.
+   - open/update the shared-db PR with SQL, test, EXPLAIN, access-control, and
+     preview evidence;
+   - stop at the preview-proven gate unless Albert explicitly authorizes the
+     exact production apply/merge action in that implementation session.
+5. Record the branch, PR URL, migration filename, preview project, preview apply
+   status, production apply status, and the exact next action in both the
+   shared-db handoff and this plan's ledger. Do not mark Session 7A complete
+   until the shared-db change is merged under the repository's authorized
+   workflow; use `preview complete / merge pending` when authority is absent.
 
 **Dependencies:** Sessions 1-6 complete. This is the only mandatory shared-db
 phase.
@@ -753,6 +808,46 @@ phase.
   for a CRM user.
 - Contract counts match direct preview SQL fixtures.
 - EXPLAIN evidence is saved in shared-db verification docs.
+- `scripts/check-sql.sh` and all shared-db repository checks pass.
+- The shared-db worktree has no untracked migration or unexplained file.
+- The PR/preview evidence is durable; no production apply or merge was inferred
+  from this plan.
+
+### Session 7B — Integrate the merged aggregate contracts in the frontend
+
+**Finding owned:** Same stats-load finding as Session 7A, app-side half.
+
+**Files:**
+
+- `src/lib/database.types.ts`
+- `src/lib/types.ts`
+- `src/features/crm/api.ts`
+- `src/features/crm/queries.ts`
+- `src/components/app/AppSidebar.tsx`
+- `src/features/crm/pages/OverviewPage.tsx`
+- focused API/adapter/component tests
+- `docs/architecture.md`
+- vendored `shared-db/` only through the repository's automated sync
+
+**Work:**
+
+1. Start only after the shared-db PR is owner/AI-authorized, merged, applied as
+   required, and the generated vendor sync is available on app `main`. If any
+   of those facts is missing, stop and leave Session 7B pending.
+2. Regenerate `src/lib/database.types.ts` through the canonical shared-db type
+   workflow; do not hand-invent generated types.
+3. Replace `useCrmStatsQuery`'s seven full fetches with typed snapshot/recent
+   queries. Ensure Sidebar and Overview share cache keys instead of duplicating
+   network calls.
+4. Preserve exact displayed totals and explicitly label recent-only activity.
+5. Remove obsolete unlimited stats-only fetch usage, but do not change other
+   page-specific list behavior in this session.
+
+**Dependencies:** Session 7A merged/applied/vendor-synced under its own
+authorization gate.
+
+**Verification gate — you'll know it worked when:**
+
 - Browser network inspection on Overview shows only aggregate/bounded recent
   calls—no unbounded customer/contact/opportunity/email/meeting/task/approval
   list calls.
@@ -794,7 +889,7 @@ Recharts 2.
 7. Record any justified residual advisory, upstream issue/version, exposure
    analysis, and review date in `docs/development.md`.
 
-**Dependencies:** Session 7 so its chart/data changes are already stable.
+**Dependencies:** Session 7B so its chart/data changes are already stable.
 
 **Verification gate — you'll know it worked when:**
 
@@ -953,12 +1048,135 @@ syntactically clean, so whole-workflow validation is now a valid gate.
 - Local browser verification confirms the banner and dismiss button at desktop
   and mobile widths.
 
+### Session 13 — Make high-volume worker jobs incremental and bounded
+
+**Finding owned:** Reroute, contact sync, summary refresh, and ignore-rule
+commands repeatedly scan fixed sets of up to 100,000 rows and issue avoidable
+serial per-row queries/updates.
+
+**Files and repositories:**
+
+- worker batch/query modules created in Session 1
+- `workers/crm-worker-supabase.mjs`
+- worker batching/checkpoint tests
+- `workers/README.md`
+- `docs/architecture.md`
+- `docs/configuration.md`
+- canonical `/worksp/shared-db` only if durable checkpoints or purpose-built
+  batch RPCs/indexes are required
+
+**Work:**
+
+1. Inventory each command's real eligibility rule, current ordering, idempotency
+   key, and definition of successful completion:
+   - `reroute`: only records still eligible for routing improvement;
+   - `contact-sync`: only email/contact evidence not already reconciled;
+   - `summarize`: only opportunities whose source activity is newer than the
+     stored summary state;
+   - `apply-ignore-rules`: only currently unrouted messages not already
+     evaluated under the current rule set.
+2. Replace fixed `.limit(100000)` reads with deterministic keyset batches using
+   a unique ID tie-breaker. A batch is complete only when the query returns no
+   more eligible rows; a failed batch must be retryable without skipping rows.
+3. Prefer purpose-built server-side selection/bulk-update RPCs where they reduce
+   round trips and can preserve authorization/idempotency. Any new RPC, table,
+   column, trigger, or index belongs in canonical `/worksp/shared-db` under the
+   branch/PR/preview-first gate.
+4. Remove N+1 lookup patterns by preloading/bulk-fetching customer domains,
+   contacts, opportunity IDs, and ignore rules per batch. Where a paid AI call
+   or per-row write cannot be bulked, use small configurable concurrency with
+   retry/backoff from Session 5 and never unbounded `Promise.all`.
+5. Emit structured per-run evidence: batches processed, eligible rows,
+   succeeded, skipped/idempotent, failed, duration, and last safe cursor. A
+   partial failure must exit non-zero after preserving retryability.
+6. Keep job schedules and business routing semantics unchanged unless measured
+   duration proves a schedule conflict; schedule changes require explicit
+   documentation and operational review.
+7. Measure preview query plans and execution counts. Add query-shaped indexes
+   only with representative `EXPLAIN (ANALYZE, BUFFERS)` evidence in
+   shared-db.
+
+**Dependencies:** Sessions 1, 5, and 6. Execute after Session 12 in this serial
+plan so the full test/CI foundation is already available.
+
+**Verification gate — you'll know it worked when:**
+
+- Tests process more than one batch and prove every eligible row is reached
+  exactly once despite equal timestamps.
+- A forced middle-batch failure followed by restart processes the remaining
+  rows without gaps or duplicate side effects.
+- Tests prove concurrency never exceeds its configured bound.
+- Query spies show customer/contact/rule lookups are per batch rather than per
+  row.
+- A preview one-shot reports bounded batches and a second run is idempotent or
+  processes only genuinely new/changed work.
+- `npm test`, lint, build, worker syntax, and applicable shared-db checks pass.
+- No production worker rollout occurs without the Section 12 authority gate.
+
+### Session 14 — Remove retired ingested-domain promotion residue
+
+**Finding owned:** The app still exposes an error-only promotion affordance and
+dead optimistic mutation for an operation that the architecture forbids.
+
+**Files:**
+
+- `src/features/crm/api.ts`
+- `src/features/crm/queries.ts`
+- `src/features/crm/pages/CustomersPage.tsx`
+- `src/features/crm/pages/CustomersPage.test.tsx` or the focused page/helper
+  test location established by prior sessions
+- `src/lib/types.ts` only if promotion-only fields are genuinely unused
+- `AGENTS.md` and `docs/architecture.md` to reconcile wording
+
+**Work:**
+
+1. Prove with `rg` that `promoteIngestedDomain` and
+   `usePromoteIngestedDomainMutation` have no valid caller outside the
+   error-only path.
+2. Remove the always-throwing API function, optimistic mutation, imports, cache
+   invalidations, `promoteDomain` handler, Upload icon, and Promote table
+   action.
+3. Preserve the triage table and its evidence fields. Replace the action column
+   only if necessary with concise non-interactive guidance such as “Create a
+   curated customer separately”; do not imply that the domain row will be
+   linked or converted.
+4. Do not remove `promoted_customer_id`/historical display fields merely because
+   new promotion is forbidden. Keep them when existing data/contracts use them
+   for history; remove them only after backend/data evidence proves they are
+   obsolete and no migration is required.
+5. Update durable documentation so it consistently says ingested domains remain
+   CRM-private triage evidence and customer creation uses the normal curated
+   workflow. Do not create or restore a database promotion RPC.
+6. Visually verify Customers → Triage at desktop and mobile widths, including
+   empty/loading/error states and long domain/subject values.
+
+**Dependencies:** Sessions 1-13. No shared-db change is expected.
+
+**Verification gate — you'll know it worked when:**
+
+- `rg -n "promoteIngestedDomain|usePromoteIngestedDomainMutation|Promote is unavailable"`
+  returns no project-owned source matches.
+- A focused test proves the Triage table has no Promote button and preserves
+  domain evidence/status rendering.
+- `npm test`, lint, and build pass.
+- Desktop/mobile screenshots show a clear triage experience with no fake
+  action.
+
 ---
 
 ## 10. Tests required
 
 The per-session gates above are mandatory. The final suite must include these
 named behavioral groups, regardless of exact filenames:
+
+Worker/frontend unit tests should use Vitest `vi.fn()`/`vi.mock()`, controlled
+promises, fake timers where time matters, and in-memory/request-stream doubles.
+They must assert exact call counts and negative behavior (for example, denied
+requests never reach service-role reads, aborted requests never invoke paid
+APIs, and batch concurrency never exceeds its limit). Keep extraction limited
+to the pure helpers and injected I/O seams needed for these tests; do not turn
+testability into a full worker rewrite. Tests must not read real environment
+files, contact external services, or emit secrets.
 
 ### Worker security
 
@@ -992,6 +1210,15 @@ named behavioral groups, regardless of exact filenames:
 - `graph ingestion rejects off-host next link`
 - `expired delta cursor enters explicit reconciliation path`
 
+### Worker batching
+
+- `reroute traverses every deterministic keyset batch`
+- `contact sync bulk-loads existing contacts per batch`
+- `summary refresh selects only stale opportunities`
+- `ignore rules resume safely after a failed batch`
+- `batch restart has no gaps or duplicate side effects`
+- `worker concurrency never exceeds configured bound`
+
 ### Overview contracts
 
 - shared-db contract access denial/allowance tests
@@ -1015,6 +1242,11 @@ named behavioral groups, regardless of exact filenames:
 - valid-session/profile-failure fallback
 - callback error query/hash parsing and cleanup
 
+### Retired promotion
+
+- `customer triage renders domain evidence without a promote action`
+- `customer triage guidance does not imply conversion or linkage`
+
 ### CI
 
 The final local gate is:
@@ -1036,7 +1268,7 @@ The final CI gate must visibly run tests before building the image.
 
 1. Albert is a business owner, not the operator for routine engineering steps.
    Do all accessible work yourself.
-2. Preserve unrelated dirty/untracked files. Never stage `.claude/`.
+2. Preserve unrelated dirty/untracked files and stage only session-owned paths.
 3. `popcrm-web` is main-only. State repo and branch before push.
 4. Shared-db is branch + PR; database contracts land there before app code.
 5. Never edit migrations already applied. Use new timestamped additive
@@ -1184,15 +1416,15 @@ Each session is complete only when:
 - no mystery files, untracked migrations, unfinished shared-db PR, or secrets
   remain.
 
-For Sessions 1-6, “complete” additionally requires the approved worker rollout
-and runtime-SHA verification described in Section 12. If production authority
-is absent, the code may be committed/pushed but the ledger must remain
+For Sessions 1-6 and 13, “complete” additionally requires the approved worker
+rollout and runtime-SHA verification described in Section 12. If production
+authority is absent, the code may be committed/pushed but the ledger must remain
 `code complete / rollout pending` with a comprehensive `HANDOFF.md`; it is not
 per-session done.
 
 ### Whole-plan done
 
-- All twelve ledger rows are `complete` with commit/evidence.
+- All fifteen ledger rows are `complete` with commit/evidence.
 - Shared-db aggregate/cursor contracts, if used, are canonical, tested,
   preview-proven, appropriately applied, merged, and vendor-synced.
 - Final `npm ci`, tests, lint, build, worker syntax, and git checks pass.
@@ -1226,6 +1458,10 @@ per-session done.
   behavior. Lockfile rollback is safe; compare screenshots before ship.
 - **Worker timeout too short:** Measure jobs and choose margins; timeouts must
   alert rather than silently truncate batches.
+- **Batch/checkpoint error:** A bad cursor or eligibility predicate can skip
+  records or repeat paid work. Preview-prove multi-batch restart behavior,
+  preserve idempotency keys, and roll back code without deleting checkpoint
+  evidence until the cursor can be reconciled.
 
 ### Genuinely open questions and decision criteria
 
@@ -1274,6 +1510,73 @@ safe/executable once the rollout and ordering corrections above were made.
 
 ---
 
+## Independent Grok critique and integration
+
+The reconciled plan was reviewed read-only by xAI Grok Build 0.2.112
+(`grok-4.20-0309-non-reasoning`) on 2026-07-26. Grok read `AGENTS.md`, the
+entire plan, and the cited project-owned files with file-read/search tools only.
+It returned **APPROVE WITH CHANGES**, explicitly confirmed that all fourteen
+current-code claims were accurate, and found no BLOCK-level defect.
+
+### Accepted and integrated
+
+1. **Split the shared-db and frontend phases.** The former Session 7 was too
+   large for one fresh context and could blur the preview/authorization stop.
+   It is now Session 7A (canonical shared-db through preview/PR and explicit
+   authority gate) plus Session 7B (frontend only after authorized merge/apply
+   and vendor sync).
+2. **Make test mechanics and negative assertions explicit.** Section 10 now
+   requires Vitest mocks, controlled promises/fake timers, exact call counts,
+   bounded pure-helper extraction, and proof that denied/aborted paths never
+   reach privileged or paid operations.
+3. **Correct the promotion-risk wording.** Sections 5, 6.10, and 14 now state
+   that the current throw/toast is a deliberate safe loud failure; the planned
+   change removes dead mutation code and a fake affordance rather than fixing
+   an active data-integrity bypass.
+4. **Strengthen session startup and worker completion gates.** Section 9 now
+   requires the canonical shared-db status check when a session may touch data
+   contracts, and Section 13 explicitly applies worker rollout/runtime-SHA
+   requirements to Session 13.
+
+### Evaluated but not adopted
+
+1. **Claim that the plan grants implicit production authority.** Not adopted.
+   Sections 8, 11, 12, and 13 already say production/shared infrastructure is
+   read-only unless Albert authorizes the exact action in the current chat.
+   Session 7A was split to make this even clearer, but the critique's claim that
+   the earlier wording itself granted authority was incorrect.
+2. **Duplicate the complete 13-section standard inside every session.** Not
+   adopted. Every implementing session is already required to read the entire
+   plan and `AGENTS.md`; duplicating the standard fifteen times would increase
+   drift risk and obscure session-specific instructions.
+3. **Add a blanket `git revert`/Coolify rollback to every session.** Not
+   adopted. Section 13 already provides risk-specific rollback. A generic
+   revert is unsafe for applied database migrations and irrelevant to
+   documentation-only or host-worker phases; each session must use the
+   mechanism appropriate to its change.
+4. **Treat Graph paging without a durable delta cursor as potentially
+   permanent.** Not adopted. Paging closes the immediate 50-message truncation,
+   but the business goal requires restart-safe, gap-free ingestion. The durable
+   cursor remains the permanent design, with shared-db changes only if existing
+   integration state cannot safely own it.
+5. **Append a production live-SHA check to every verification gate.** Not
+   adopted. Section 13 already requires exact live-SHA verification for
+   deployment-triggering app changes. Shared-db preview work and code-complete
+   but rollout-pending worker work must not claim a frontend production deploy.
+6. **Narrow the Session 7 inventory further.** No change was needed: Session
+   7A already enumerates only the values used by Sidebar and Overview, and
+   Section 4 explicitly excludes other full-list pages.
+
+After these judgments, Grok's material conclusion applies: the plan is safe and
+zero-context executable once the accepted corrections are present.
+
+Grok then re-read the integrated plan and `HANDOFF.md` in the same read-only
+session. Its final verdict was **APPROVE**, with no remaining blocker; it
+confirmed the 7A/7B authority split, test/negative-assertion detail, corrected
+promotion wording, ordering, zero-context completeness, and the handoff link.
+
+---
+
 ## Mandatory plan self-audit
 
 ### Objective checklist
@@ -1308,12 +1611,14 @@ safe/executable once the rollout and ordering corrections above were made.
 2. **Does the plan carry every piece of background, nuance, and reasoning held
    by the planning session, including what was ruled out and why?**
    **Yes.** Section 5 preserves working behavior and exact problem locations;
-   Section 6 records the non-obvious root causes; Section 7 records fourteen
+   Section 6 records the non-obvious root causes; Section 7 records seventeen
    rejected shortcuts/dead ends; Section 8 separates locked decisions from
    evidence-driven implementation judgment. Section 12 now carries the
-   non-obvious split between frontend deployment and host-worker rollout. The
-   plan also records the post-audit baseline advance from deployed `37d1938` to
-   vendor-sync `b3da741` and the independent Opus corrections.
+   non-obvious split between frontend deployment and host-worker rollout.
+   Sections 7A-7B carry the separate shared-db preview/authority and frontend
+   integration gates. The plan records audit baseline `c17a86a`, current
+   vendor-sync baseline `c217f1c`, and the evaluated Opus and Grok corrections,
+   including which Grok suggestions were rejected and why.
 
 3. **Is the ultimate goal clear enough for an implementer to make the correct
    judgment call if a prescribed step is wrong?**
