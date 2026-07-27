@@ -33,9 +33,11 @@ import {
   domainCandidates,
   domainOf,
   extractAddresses,
+  normalizeFirefliesWebhookPayload,
   normalizeSubject,
   respondToOpportunityChatRequest,
   routingImproves,
+  validateCommandEnvironment,
 } from './lib/worker-foundation.mjs'
 
 let SUPABASE_URL
@@ -44,6 +46,7 @@ let sb
 let crm
 let core
 let LOOKBACK_MINUTES
+let runtimeEnv = process.env
 let boundaries = createWorkerBoundaries()
 
 function loadEnvironmentFile(env = process.env) {
@@ -60,12 +63,9 @@ function loadEnvironmentFile(env = process.env) {
 }
 
 function initializeRuntime(env = process.env, overrides = {}) {
-  loadEnvironmentFile(env)
+  runtimeEnv = env
   SUPABASE_URL = env.SUPABASE_URL
   SERVICE_ROLE_KEY = env.SUPABASE_SERVICE_ROLE_KEY
-  if (!SUPABASE_URL || !SERVICE_ROLE_KEY) {
-    throw new Error('SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY are required')
-  }
   boundaries = createWorkerBoundaries(overrides)
   sb = createClient(SUPABASE_URL, SERVICE_ROLE_KEY, {
     auth: { persistSession: false, autoRefreshToken: false },
@@ -356,7 +356,7 @@ async function normalizeRoute(route) {
 }
 
 async function aiRouteFallback({ subject, bodyText, addresses, task = 'email_routing_model' }) {
-  if (!process.env.OPENROUTER_API_KEY) return null
+  if (!runtimeEnv.OPENROUTER_API_KEY) return null
   const [retailers, opportunities] = await Promise.all([
     core('customer').select('id,name,domain').in('customer_status', CUSTOMERS).order('name').limit(120).then(must),
     crm('opportunity').select('id,name,company_id,department_id,production_po_number,sales_order_number').not('stage', 'in', '(CLOSED,SHIPPED)').order('created_at', { ascending: false }).limit(120).then(must),
@@ -364,7 +364,7 @@ async function aiRouteFallback({ subject, bodyText, addresses, task = 'email_rou
   const model = await routingModel(task)
   const res = await boundaries.fetch('https://openrouter.ai/api/v1/chat/completions', {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${process.env.OPENROUTER_API_KEY}`, 'HTTP-Referer': SUPABASE_URL, 'X-Title': 'POP CRM Supabase Router' },
+    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${runtimeEnv.OPENROUTER_API_KEY}`, 'HTTP-Referer': SUPABASE_URL, 'X-Title': 'POP CRM Supabase Router' },
     body: JSON.stringify({
       model,
       messages: [
@@ -392,7 +392,7 @@ async function aiRouteFallback({ subject, bodyText, addresses, task = 'email_rou
 }
 
 async function summarizeOpportunity(opportunityId) {
-  if (!opportunityId || !process.env.OPENROUTER_API_KEY) return false
+  if (!opportunityId || !runtimeEnv.OPENROUTER_API_KEY) return false
   const [opportunity] = must(await crm('opportunity').select('id,name,stage,company_id,department_id,production_po_number,sales_order_number,project_id').eq('id', opportunityId).limit(1))
   if (!opportunity) return false
   const emails = must(await crm('email_message').select('subject,sender,received_at,body_preview,routing_method').eq('opportunity_id', opportunityId).order('received_at', { ascending: false }).limit(60))
@@ -400,7 +400,7 @@ async function summarizeOpportunity(opportunityId) {
   const model = await routingModel('opportunity_summary_model')
   const res = await boundaries.fetch('https://openrouter.ai/api/v1/chat/completions', {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${process.env.OPENROUTER_API_KEY}`, 'HTTP-Referer': SUPABASE_URL, 'X-Title': 'POP CRM Opportunity Summary' },
+    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${runtimeEnv.OPENROUTER_API_KEY}`, 'HTTP-Referer': SUPABASE_URL, 'X-Title': 'POP CRM Opportunity Summary' },
     body: JSON.stringify({
       model,
       messages: [
@@ -422,7 +422,7 @@ async function summarizeOpportunity(opportunityId) {
 }
 
 async function chatOpportunity(opportunityId, question) {
-  if (!opportunityId || !question || !process.env.OPENROUTER_API_KEY) return ''
+  if (!opportunityId || !question || !runtimeEnv.OPENROUTER_API_KEY) return ''
   const [opportunity] = must(await crm('opportunity').select('id,name,stage,ai_summary,ai_state,company_id,department_id,project_id,production_po_number,sales_order_number').eq('id', opportunityId).limit(1))
   if (!opportunity) return ''
   // Resolve display names (cross-schema, so fetched separately).
@@ -437,7 +437,7 @@ async function chatOpportunity(opportunityId, question) {
   const model = await routingModel('opportunity_summary_model')
   const res = await boundaries.fetch('https://openrouter.ai/api/v1/chat/completions', {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${process.env.OPENROUTER_API_KEY}`, 'HTTP-Referer': SUPABASE_URL, 'X-Title': 'POP CRM Opportunity Chat' },
+    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${runtimeEnv.OPENROUTER_API_KEY}`, 'HTTP-Referer': SUPABASE_URL, 'X-Title': 'POP CRM Opportunity Chat' },
     body: JSON.stringify({
       model,
       messages: [
@@ -738,10 +738,9 @@ async function applyIgnoreRules() {
 
 // --- Fireflies (HTTP unchanged; persistence -> crm.meeting_note) ---------------
 function isValidFirefliesSignature(rawBody, signature) {
-  return boundaries.validateSignature(rawBody, signature, process.env.FIREFLIES_WEBHOOK_SECRET)
+  return boundaries.validateSignature(rawBody, signature, runtimeEnv.FIREFLIES_WEBHOOK_SECRET)
 }
 async function firefliesTranscript(meetingId) {
-  if (!process.env.FIREFLIES_API_KEY) throw new Error('FIREFLIES_API_KEY is required')
   const query = `
     query GetTranscript($transcriptId: String!) {
       transcript(id: $transcriptId) {
@@ -753,7 +752,7 @@ async function firefliesTranscript(meetingId) {
   `
   const res = await boundaries.fetch(FIREFLIES_BASE, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${process.env.FIREFLIES_API_KEY}` },
+    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${runtimeEnv.FIREFLIES_API_KEY}` },
     body: JSON.stringify({ query, variables: { transcriptId: meetingId } }),
   })
   if (!res.ok) throw new Error(`Fireflies API failed: ${res.status} ${await res.text()}`)
@@ -778,13 +777,17 @@ function firefliesParticipants(transcript) {
 }
 
 async function handleFirefliesPayload(payload) {
-  const meetingId = payload?.meetingId || payload?.meeting_id || payload?.transcript?.id
-  if (!meetingId) return { success: false, errors: ['missing meetingId'] }
+  const normalized = normalizeFirefliesWebhookPayload(payload)
+  if (normalized.error) return { success: false, errors: [normalized.error] }
+  if (normalized.skipped) {
+    return { success: true, skipped: normalized.skipped, event: normalized.event }
+  }
+  const { meetingId } = normalized
 
   const existing = must(await crm('meeting_note').select('id').eq('fireflies_transcript_id', meetingId).limit(1))
   if (existing.length) return { success: true, meetingId, noteIds: [existing[0].id], skipped: 'duplicate' }
 
-  const transcript = payload?.transcript?.id ? payload.transcript : await firefliesTranscript(meetingId)
+  const transcript = normalized.transcript || await firefliesTranscript(meetingId)
   const participants = firefliesParticipants(transcript)
   const participantText = participants.map((p) => `${p.name} <${p.email}>`).join(', ')
   const summary = transcript.summary || {}
@@ -853,7 +856,7 @@ async function resolveCrmProfile(token) {
 
 async function firefliesServer() {
   const { createServer } = await import('node:http')
-  const port = Number(process.env.PORT || 8787)
+  const port = Number(runtimeEnv.PORT || 8787)
   const server = createServer(async (req, res) => {
     const origin = req.headers.origin || ''
     const allowedOrigin = /^https:\/\/crm(-dev)?\.designflow\.app$/.test(origin) ? origin : 'https://crm.designflow.app'
@@ -891,9 +894,28 @@ async function firefliesServer() {
       const ok = await isValidFirefliesSignature(raw, req.headers['x-hub-signature'] || req.headers['x-fireflies-signature'])
       if (!ok) { res.writeHead(401, jsonHeaders); res.end(JSON.stringify({ success: false, errors: ['invalid signature'] })); return }
       const payload = raw ? JSON.parse(raw) : {}
-      const result = await handleFirefliesPayload(payload)
-      res.writeHead(result.success ? 200 : 400, jsonHeaders)
-      res.end(JSON.stringify(result))
+      const normalized = normalizeFirefliesWebhookPayload(payload)
+      if (normalized.error) {
+        res.writeHead(400, jsonHeaders)
+        res.end(JSON.stringify({ success: false, errors: [normalized.error] }))
+        return
+      }
+      if (normalized.skipped) {
+        res.writeHead(200, jsonHeaders)
+        res.end(JSON.stringify({ success: true, skipped: normalized.skipped, event: normalized.event }))
+        return
+      }
+
+      res.writeHead(202, jsonHeaders)
+      res.end(JSON.stringify({ success: true, accepted: true, meetingId: normalized.meetingId }))
+      void handleFirefliesPayload(payload).catch((error) => {
+        console.error('fireflies webhook processing failed', {
+          meetingId: normalized.meetingId,
+          name: typeof error?.name === 'string' ? error.name : 'Error',
+          code: typeof error?.code === 'string' ? error.code : undefined,
+          status: Number.isInteger(error?.status) ? error.status : undefined,
+        })
+      })
     } catch (error) {
       console.error('worker request failed', {
         route: req.url || null,
@@ -909,8 +931,10 @@ async function firefliesServer() {
 }
 
 export async function main(argv = process.argv, env = process.env, overrides = {}) {
-  initializeRuntime(env, overrides)
   const command = argv[2] || 'help'
+  loadEnvironmentFile(env)
+  validateCommandEnvironment(command, env)
+  initializeRuntime(env, overrides)
   if (command === 'outlook-ingest') await outlookIngest()
   else if (command === 'reroute') await reroute()
   else if (command === 'fireflies-server') await firefliesServer()

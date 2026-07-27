@@ -91,3 +91,40 @@ frontend repo. The frontend must never receive or bake a Supabase service-role
 key.
 
 Do not put secrets in this repo.
+
+## Host Worker Environment
+
+The host workers read mode-600 `/home/ai/.crm-worker.env`; their documented
+1Password item is
+`POP CRM Supabase Worker Env - hetz /home/ai/.crm-worker.env` in the
+`vibe_coding` vault. Secret values must never be copied into this repository or
+browser configuration.
+
+All worker commands require non-blank `SUPABASE_URL` and
+`SUPABASE_SERVICE_ROLE_KEY`. The always-on `fireflies-server` additionally
+requires:
+
+- `FIREFLIES_WEBHOOK_SECRET` to authenticate webhook bodies;
+- `FIREFLIES_API_KEY` to retrieve Fireflies transcripts; and
+- `OPENROUTER_API_KEY` for the enabled Opportunity Chat endpoint.
+
+These requirements are checked before the HTTP server opens its listening
+port. A missing or whitespace-only value therefore stops startup with a
+non-zero exit instead of weakening authentication or leaving a partially
+working public service.
+
+Fireflies Webhooks V2 is the production integration. Configure the endpoint
+`https://crm-fireflies.designflow.app/s/fireflies-webhook` for only the
+`meeting.transcribed` event and set its signing secret to the same
+`FIREFLIES_WEBHOOK_SECRET` stored in the named 1Password item and host
+environment. The worker accepts V2's `event`, `meeting_id`, and `timestamp`
+payload fields and `sha256=<hex>` signature. It temporarily retains legacy V1
+payload and plain-hex signature compatibility for migration.
+After signature and payload validation, it returns `202 Accepted` before doing
+transcript retrieval, routing, and database writes so the sender receives a
+2xx acknowledgement within its 10-second deadline.
+
+As verified on 2026-07-27, `FIREFLIES_WEBHOOK_SECRET` is present in the named
+1Password item and `/home/ai/.crm-worker.env`, but it has not yet been entered
+in the Fireflies Webhooks V2 integration. Do not restart into fail-closed
+validation until the dashboard uses that same concealed value.
