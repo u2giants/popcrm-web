@@ -26,6 +26,30 @@ when the file is executed through the commands above. The current no-command
 smoke result remains the required Supabase configuration error because runtime
 configuration is intentionally validated before command dispatch.
 
+Configuration is validated per command before runtime clients are created or a
+network port is opened. `fireflies-server` requires non-blank
+`SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `FIREFLIES_API_KEY`,
+`FIREFLIES_WEBHOOK_SECRET`, and `OPENROUTER_API_KEY`. It exits non-zero instead
+of listening if any are missing.
+
+Fireflies Webhooks V2 is the recommended production sender. Configure only its
+`meeting.transcribed` event and point it at
+`https://crm-fireflies.designflow.app/s/fireflies-webhook`; subscribing to
+`meeting.summarized` as well would deliver the same meeting twice. V2 sends
+`event`, `meeting_id`, and `timestamp`. The worker also accepts the legacy V1
+`meetingId` / `eventType` shape during migration. Other V2 events receive a
+successful acknowledgement but are deliberately not ingested.
+
+The webhook accepts only a SHA-256 HMAC in `x-hub-signature`, encoded as V2's
+`sha256=<64 hex characters>` form or the legacy integration's plain
+64-character hex form. Missing secrets, missing headers, malformed digests,
+and mismatches are rejected.
+
+After signature and payload validation, the endpoint returns `202 Accepted`
+before transcript retrieval, routing, and database writes begin. Processing
+continues in the always-on worker and logs failures without holding Fireflies'
+delivery request open, satisfying V2's 10-second acknowledgement requirement.
+
 Focused worker tests run as part of `npm test`. Injectable boundaries for
 service authentication, HTTP body reads, Fireflies signatures, upstream fetch,
 Graph cursor storage, and current time live in `workers/lib/worker-foundation.mjs`.

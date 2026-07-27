@@ -1,3 +1,5 @@
+import { timingSafeEqual } from 'node:crypto'
+
 const STATUS_PRIORITY = {
   UNROUTED: 0,
   CUSTOMER_EMAIL_NO_COMPANY: 0,
@@ -43,8 +45,11 @@ export function routingImproves(currentStatus, next, currentRetailer) {
 }
 
 export async function isValidFirefliesSignature(rawBody, signature, secret) {
-  if (!secret) return true
-  if (!signature) return false
+  if (typeof secret !== 'string' || !secret.trim()) return false
+  if (typeof signature !== 'string' || !signature.trim()) return false
+  const match = signature.trim().match(/^(?:sha256=)?([0-9a-f]{64})$/i)
+  if (!match) return false
+
   const key = await crypto.subtle.importKey(
     'raw',
     new TextEncoder().encode(secret),
@@ -53,10 +58,50 @@ export async function isValidFirefliesSignature(rawBody, signature, secret) {
     ['sign'],
   )
   const buffer = await crypto.subtle.sign('HMAC', key, new TextEncoder().encode(rawBody))
-  const expected = [...new Uint8Array(buffer)]
-    .map((byte) => byte.toString(16).padStart(2, '0'))
-    .join('')
-  return signature === `sha256=${expected}` || signature === expected
+  const expected = Buffer.from(buffer)
+  const received = Buffer.from(match[1], 'hex')
+  return received.length === expected.length && timingSafeEqual(received, expected)
+}
+
+export function normalizeFirefliesWebhookPayload(payload) {
+  if (!payload || typeof payload !== 'object' || Array.isArray(payload)) {
+    return { error: 'invalid_payload' }
+  }
+
+  const isV2 = typeof payload.event === 'string'
+  if (isV2) {
+    const event = typeof payload.event === 'string' ? payload.event.trim() : ''
+    const meetingId = typeof payload.meeting_id === 'string' ? payload.meeting_id.trim() : ''
+    if (!event || !meetingId) return { error: 'invalid_payload' }
+    if (event !== 'meeting.transcribed') {
+      return { skipped: 'unsupported_event', event, version: 'v2' }
+    }
+    return { meetingId, event, version: 'v2' }
+  }
+
+  const meetingId = typeof payload.meetingId === 'string'
+    ? payload.meetingId.trim()
+    : (typeof payload.meeting_id === 'string'
+        ? payload.meeting_id.trim()
+        : (typeof payload.transcript?.id === 'string' ? payload.transcript.id.trim() : ''))
+  if (!meetingId) return { error: 'invalid_payload' }
+  return {
+    meetingId,
+    transcript: payload.transcript?.id ? payload.transcript : undefined,
+    event: typeof payload.eventType === 'string' ? payload.eventType.trim() : undefined,
+    version: 'v1',
+  }
+}
+
+const BASE_REQUIRED_ENV = ['SUPABASE_URL', 'SUPABASE_SERVICE_ROLE_KEY']
+const COMMAND_REQUIRED_ENV = {
+  'fireflies-server': ['FIREFLIES_WEBHOOK_SECRET', 'FIREFLIES_API_KEY', 'OPENROUTER_API_KEY'],
+}
+
+export function validateCommandEnvironment(command, env = process.env) {
+  const required = [...BASE_REQUIRED_ENV, ...(COMMAND_REQUIRED_ENV[command] || [])]
+  const missing = required.filter((name) => typeof env[name] !== 'string' || !env[name].trim())
+  if (missing.length) throw new Error(`${missing.join(', ')} ${missing.length === 1 ? 'is' : 'are'} required`)
 }
 
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
