@@ -1,6 +1,6 @@
 # HANDOFF — POP CRM codebase audit remediation
 
-**Handoff status:** Sessions 1-2 complete in code and production; Session 3 is
+**Handoff status:** Sessions 1-3 complete in code and production; Session 4 is
 the next pending implementation phase
 **Prepared:** 2026-07-26 (America/New_York)
 **Repository:** `/worksp/popcrm-web` → GitHub `u2giants/popcrm-web`
@@ -158,6 +158,55 @@ authorization boundary and ordering without changing business data.
 Session 2 is now **complete**. Start Session 3 with a fresh individual sub-agent:
 make Fireflies signature configuration fail closed, run Kimi K3 review, return
 findings to the same agent, and satisfy the plan's code/CI/worker rollout gates.
+
+### Session 3 code, Fireflies migration, and production result
+
+Session 3 was implemented by dedicated phase agents and reviewed against the
+combined working-tree diff by Kimi K3. The original Fireflies Developer
+Settings webhook was found to be deprecated, so the phase migrated the worker
+to Webhooks V2 while preserving V1 payload compatibility during transition.
+
+- App commit: `12fa536` (`fix: secure Fireflies webhook ingestion`)
+- GitHub Build and Deploy:
+  `https://github.com/u2giants/popcrm-web/actions/runs/30311353112` — passed
+- Worker requires nonblank Supabase URL/key, Fireflies API key,
+  `FIREFLIES_WEBHOOK_SECRET`, and OpenRouter key before listening.
+- Missing, malformed, or incorrect signatures fail closed with timing-safe
+  HMAC-SHA256 comparison.
+- Webhooks V2 `meeting.transcribed` (`event` / `meeting_id`) and legacy V1
+  (`eventType` / `meetingId`) payloads are accepted.
+- Valid deliveries receive a fast success response before asynchronous
+  transcript processing, satisfying Fireflies' ten-second delivery deadline.
+
+Kimi K3's first combined review returned `CHANGES`: synchronous ingestion could
+miss the ten-second acknowledgement deadline, and a legacy snake-case meeting
+ID case had regressed. The same phase agent fixed both, reran 60 tests, lint,
+build, syntax, and diff checks, and Kimi returned `APPROVE`.
+
+Albert authorized the Phase 3 production worker update and configured the
+Fireflies Webhooks V2 integration with:
+
+- URL `https://crm-fireflies.designflow.app/s/fireflies-webhook`
+- the concealed `FIREFLIES_WEBHOOK_SECRET` stored in 1Password item
+  `POP CRM Supabase Worker Env - hetz /home/ai/.crm-worker.env`
+- only the `meeting.transcribed` event
+
+The secret was also added to mode-600 `/home/ai/.crm-worker.env`. Because Docker
+containers retain their creation-time environment, a plain restart correctly
+failed closed until `popcrm-fireflies` was recreated from the same
+`node:20-alpine` image, read-only `/worksp/popcrm-web:/app` bind mount,
+`coolify` network, command, restart policy, and HTTPS routing labels, with the
+updated env file. Final production evidence:
+
+- `https://crm-fireflies.designflow.app/health`: HTTP 200 `{"ok":true}`
+- unsigned V2 delivery: HTTP 401
+- locally generated correctly signed V2 delivery: HTTP 202
+- Fireflies dashboard test delivery: HTTP 200
+- worker log: listening on port 8787; no secret values printed
+
+Session 3 is **complete**. Start Session 4 with a fresh individual sub-agent:
+bound public HTTP request bodies, run Kimi K3 review, return findings to the
+same agent, and satisfy the plan's verification gates before rollout.
 
 ---
 
