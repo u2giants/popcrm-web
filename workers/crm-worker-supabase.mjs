@@ -24,38 +24,62 @@
 //   MS_TENANT_ID/MS_CLIENT_ID/MS_CLIENT_SECRET or AZURE_* ; OUTLOOK_MAILBOX ; OUTLOOK_GATED
 //   FIREFLIES_API_KEY, FIREFLIES_WEBHOOK_SECRET, OPENROUTER_API_KEY, PORT=8787
 import { readFileSync } from 'node:fs'
+import { pathToFileURL } from 'node:url'
 import { createClient } from '@supabase/supabase-js'
 import WebSocket from 'ws'
+import {
+  createWorkerBoundaries,
+  domainCandidates,
+  domainOf,
+  extractAddresses,
+  normalizeSubject,
+  routingImproves,
+} from './lib/worker-foundation.mjs'
 
-if (process.env.POPPIM_ENV_FILE) {
-  for (const line of readFileSync(process.env.POPPIM_ENV_FILE, 'utf8').split('\n')) {
+let SUPABASE_URL
+let SERVICE_ROLE_KEY
+let sb
+let crm
+let core
+let LOOKBACK_MINUTES
+let boundaries = createWorkerBoundaries()
+
+function loadEnvironmentFile(env = process.env) {
+  if (!env.POPPIM_ENV_FILE) return
+  for (const line of readFileSync(env.POPPIM_ENV_FILE, 'utf8').split('\n')) {
     const s = line.trim()
     if (!s || s.startsWith('#') || !s.includes('=')) continue
     const i = s.indexOf('=')
     const k = s.slice(0, i).trim()
     let v = s.slice(i + 1).trim()
     if ((v.startsWith('"') && v.endsWith('"')) || (v.startsWith("'") && v.endsWith("'"))) v = v.slice(1, -1)
-    if (process.env[k] === undefined) process.env[k] = v
+    if (env[k] === undefined) env[k] = v
   }
 }
 
-const SUPABASE_URL = process.env.SUPABASE_URL
-const SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY
-if (!SUPABASE_URL || !SERVICE_ROLE_KEY) throw new Error('SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY are required')
+function initializeRuntime(env = process.env, overrides = {}) {
+  loadEnvironmentFile(env)
+  SUPABASE_URL = env.SUPABASE_URL
+  SERVICE_ROLE_KEY = env.SUPABASE_SERVICE_ROLE_KEY
+  if (!SUPABASE_URL || !SERVICE_ROLE_KEY) {
+    throw new Error('SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY are required')
+  }
+  boundaries = createWorkerBoundaries(overrides)
+  sb = createClient(SUPABASE_URL, SERVICE_ROLE_KEY, {
+    auth: { persistSession: false, autoRefreshToken: false },
+    realtime: { transport: WebSocket },
+  })
+  crm = (table) => sb.schema('crm').from(table)
+  core = (table) => sb.schema('core').from(table)
+  LOOKBACK_MINUTES = Number(env.OUTLOOK_LOOKBACK_MINUTES || 20)
+}
 
-const sb = createClient(SUPABASE_URL, SERVICE_ROLE_KEY, {
-  auth: { persistSession: false, autoRefreshToken: false },
-  realtime: { transport: WebSocket },
-})
-const crm = (t) => sb.schema('crm').from(t)
-const core = (t) => sb.schema('core').from(t)
 const must = (res) => { if (res.error) throw new Error(res.error.message); return res.data }
 
 const INTERNAL_DOMAIN = 'popcre.com'
 const GRAPH_BASE = 'https://graph.microsoft.com/v1.0'
 const LOGIN_BASE = 'https://login.microsoftonline.com'
 const PAGE_SIZE = 50
-const LOOKBACK_MINUTES = Number(process.env.OUTLOOK_LOOKBACK_MINUTES || 20)
 const FIREFLIES_BASE = 'https://api.fireflies.ai/graphql'
 const CUSTOMERS = ['ACTIVE_CUSTOMER', 'POTENTIAL_CUSTOMER']
 
@@ -96,29 +120,13 @@ const COMPANY_NAME_STOPWORDS = new Set([
   'global', 'national', 'american', 'retail', 'wholesale', 'trading', 'stores', 'store', 'brands',
   'outlet', 'outlets', 'factory',
 ])
-const STATUS_PRIORITY = { UNROUTED: 0, CUSTOMER_EMAIL_NO_COMPANY: 0, COMPANY_ONLY: 1, COMPANY_DEPT: 2, ROUTED: 3, SKIPPED: -1 }
 
 // --- Pure helpers retained from the legacy worker; no backend coupling --------
-function domainOf(address) { return String(address || '').split('@')[1]?.toLowerCase() || '' }
-function domainCandidates(domain) {
-  const parts = String(domain || '').toLowerCase().split('.').filter(Boolean)
-  if (parts.length <= 2) return parts.length ? [parts.join('.')] : []
-  return [parts.join('.'), parts.slice(-2).join('.')]
-}
 function isNoiseDomain(domain) { return NOISE_DOMAINS.has(domain) || NOISE_PREFIXES.some((p) => domain.startsWith(p)) }
 function isNoiseSender(address, isCustomerDomain = false) {
   const lower = String(address || '').toLowerCase()
   if (lower.startsWith('info@') && !isCustomerDomain) return true
   return NOISE_SENDER_PATTERNS.some((p) => lower.startsWith(p))
-}
-function normalizeSubject(subject) {
-  let s = subject || ''
-  let prev
-  do { prev = s; s = s.replace(/^(回复:|回覆:|RE:|FW:|Fwd:)\s*/i, '').trim() } while (s !== prev)
-  return s
-}
-function extractAddresses(text) {
-  return [...new Set(String(text || '').match(/[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}/g) || [])].map((x) => x.toLowerCase())
 }
 function compiledRetailerPatterns(patternText) {
   const out = []
@@ -162,12 +170,6 @@ function companyNameScore(subject, companyName) {
   return tokens.filter((t) => subjectLower.includes(t)).length / tokens.length
 }
 function resolveModel(stored) { return MODEL_VALUE_MAP[stored] || stored }
-function routingImproves(currentStatus, next, currentRetailer) {
-  const currentPriority = STATUS_PRIORITY[currentStatus] ?? 0
-  const nextPriority = STATUS_PRIORITY[next.routing_status] ?? 0
-  if (nextPriority > currentPriority) return true
-  return nextPriority === currentPriority && nextPriority > 0 && next.retailer && next.retailer !== currentRetailer
-}
 function participantAddresses(message) {
   return [
     message.from?.emailAddress?.address,
@@ -358,7 +360,7 @@ async function aiRouteFallback({ subject, bodyText, addresses, task = 'email_rou
     crm('opportunity').select('id,name,company_id,department_id,production_po_number,sales_order_number').not('stage', 'in', '(CLOSED,SHIPPED)').order('created_at', { ascending: false }).limit(120).then(must),
   ])
   const model = await routingModel(task)
-  const res = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+  const res = await boundaries.fetch('https://openrouter.ai/api/v1/chat/completions', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${process.env.OPENROUTER_API_KEY}`, 'HTTP-Referer': SUPABASE_URL, 'X-Title': 'POP CRM Supabase Router' },
     body: JSON.stringify({
@@ -394,7 +396,7 @@ async function summarizeOpportunity(opportunityId) {
   const emails = must(await crm('email_message').select('subject,sender,received_at,body_preview,routing_method').eq('opportunity_id', opportunityId).order('received_at', { ascending: false }).limit(60))
   if (!emails.length) return false
   const model = await routingModel('opportunity_summary_model')
-  const res = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+  const res = await boundaries.fetch('https://openrouter.ai/api/v1/chat/completions', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${process.env.OPENROUTER_API_KEY}`, 'HTTP-Referer': SUPABASE_URL, 'X-Title': 'POP CRM Opportunity Summary' },
     body: JSON.stringify({
@@ -431,7 +433,7 @@ async function chatOpportunity(opportunityId, question) {
     crm('task').select('title,body,status,due_at').eq('opportunity_id', opportunityId).order('status').order('due_at').limit(25).then(must),
   ])
   const model = await routingModel('opportunity_summary_model')
-  const res = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+  const res = await boundaries.fetch('https://openrouter.ai/api/v1/chat/completions', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${process.env.OPENROUTER_API_KEY}`, 'HTTP-Referer': SUPABASE_URL, 'X-Title': 'POP CRM Opportunity Chat' },
     body: JSON.stringify({
@@ -536,16 +538,16 @@ async function graphToken() {
   const secret = process.env.AZURE_CLIENT_SECRET || process.env.MS_CLIENT_SECRET
   if (!tenant || !client || !secret) throw new Error('Missing Microsoft Graph credentials')
   const body = new URLSearchParams({ grant_type: 'client_credentials', client_id: client, client_secret: secret, scope: 'https://graph.microsoft.com/.default' })
-  const res = await fetch(`${LOGIN_BASE}/${tenant}/oauth2/v2.0/token`, { method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body })
+  const res = await boundaries.fetch(`${LOGIN_BASE}/${tenant}/oauth2/v2.0/token`, { method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body })
   if (!res.ok) throw new Error(`Graph token failed: ${res.status} ${await res.text()}`)
   return (await res.json()).access_token
 }
 async function fetchRecentEmails(accessToken, mailbox) {
-  const since = new Date(Date.now() - LOOKBACK_MINUTES * 60 * 1000).toISOString()
+  const since = new Date(boundaries.now() - LOOKBACK_MINUTES * 60 * 1000).toISOString()
   const selectFields = ['id', 'subject', 'receivedDateTime', 'bodyPreview', 'body', 'from', 'toRecipients', 'ccRecipients', 'isRead'].join(',')
   const filterParam = `receivedDateTime ge ${since}`
   const url = `${GRAPH_BASE}/users/${encodeURIComponent(mailbox)}/messages?$filter=${encodeURIComponent(filterParam)}&$select=${selectFields}&$top=${PAGE_SIZE}&$orderby=${encodeURIComponent('receivedDateTime desc')}`
-  const res = await fetch(url, { headers: { Authorization: `Bearer ${accessToken}`, 'Content-Type': 'application/json' } })
+  const res = await boundaries.fetch(url, { headers: { Authorization: `Bearer ${accessToken}`, 'Content-Type': 'application/json' } })
   if (!res.ok) throw new Error(`Graph messages failed: ${res.status} ${await res.text()}`)
   return (await res.json()).value || []
 }
@@ -734,15 +736,7 @@ async function applyIgnoreRules() {
 
 // --- Fireflies (HTTP unchanged; persistence -> crm.meeting_note) ---------------
 function isValidFirefliesSignature(rawBody, signature) {
-  const secret = process.env.FIREFLIES_WEBHOOK_SECRET
-  if (!secret) return true
-  if (!signature) return false
-  return crypto.subtle.importKey('raw', new TextEncoder().encode(secret), { name: 'HMAC', hash: 'SHA-256' }, false, ['sign'])
-    .then((key) => crypto.subtle.sign('HMAC', key, new TextEncoder().encode(rawBody)))
-    .then((buf) => {
-      const expected = [...new Uint8Array(buf)].map((b) => b.toString(16).padStart(2, '0')).join('')
-      return signature === `sha256=${expected}` || signature === expected
-    })
+  return boundaries.validateSignature(rawBody, signature, process.env.FIREFLIES_WEBHOOK_SECRET)
 }
 async function firefliesTranscript(meetingId) {
   if (!process.env.FIREFLIES_API_KEY) throw new Error('FIREFLIES_API_KEY is required')
@@ -755,7 +749,7 @@ async function firefliesTranscript(meetingId) {
       }
     }
   `
-  const res = await fetch(FIREFLIES_BASE, {
+  const res = await boundaries.fetch(FIREFLIES_BASE, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${process.env.FIREFLIES_API_KEY}` },
     body: JSON.stringify({ query, variables: { transcriptId: meetingId } }),
@@ -841,10 +835,7 @@ async function handleFirefliesPayload(payload) {
 }
 
 async function verifySupabaseUser(token) {
-  if (!token) return null
-  const { data, error } = await sb.auth.getUser(token)
-  if (error || !data?.user) return null
-  return data.user
+  return boundaries.verifyAccess(sb, token)
 }
 
 async function firefliesServer() {
@@ -863,14 +854,12 @@ async function firefliesServer() {
       if (req.method === 'OPTIONS') { res.writeHead(204, jsonHeaders); res.end(); return }
       if (req.method === 'GET' && req.url === '/health') { res.writeHead(200, jsonHeaders); res.end(JSON.stringify({ ok: true })); return }
       if (req.method === 'POST' && req.url === '/s/opportunity-chat') {
-        const chunks = []
-        req.on('data', (chunk) => chunks.push(chunk))
-        await new Promise((resolve, reject) => { req.on('end', resolve); req.on('error', reject) })
+        const raw = await boundaries.readRequestBody(req)
         const authz = req.headers.authorization || ''
         const token = authz.startsWith('Bearer ') ? authz.slice(7) : ''
         const user = await verifySupabaseUser(token)
         if (!user) { res.writeHead(401, jsonHeaders); res.end(JSON.stringify({ error: 'unauthorized' })); return }
-        const payload = JSON.parse(Buffer.concat(chunks).toString('utf8') || '{}')
+        const payload = JSON.parse(raw || '{}')
         const answer = await chatOpportunity(payload.opportunityId, payload.question)
         res.writeHead(200, jsonHeaders)
         res.end(JSON.stringify({ answer }))
@@ -881,10 +870,7 @@ async function firefliesServer() {
         res.end(JSON.stringify({ error: 'not_found' }))
         return
       }
-      const chunks = []
-      req.on('data', (chunk) => chunks.push(chunk))
-      await new Promise((resolve, reject) => { req.on('end', resolve); req.on('error', reject) })
-      const raw = Buffer.concat(chunks).toString('utf8')
+      const raw = await boundaries.readRequestBody(req)
       const ok = await isValidFirefliesSignature(raw, req.headers['x-hub-signature'] || req.headers['x-fireflies-signature'])
       if (!ok) { res.writeHead(401, jsonHeaders); res.end(JSON.stringify({ success: false, errors: ['invalid signature'] })); return }
       const payload = raw ? JSON.parse(raw) : {}
@@ -899,11 +885,18 @@ async function firefliesServer() {
   server.listen(port, '0.0.0.0', () => console.log(`fireflies-server (supabase) listening on ${port}`))
 }
 
-const command = process.argv[2] || 'help'
-if (command === 'outlook-ingest') await outlookIngest()
-else if (command === 'reroute') await reroute()
-else if (command === 'fireflies-server') await firefliesServer()
-else if (command === 'contact-sync') await contactSync()
-else if (command === 'summarize') await summarize()
-else if (command === 'apply-ignore-rules') await applyIgnoreRules()
-else console.log('Usage: node workers/crm-worker-supabase.mjs <outlook-ingest|reroute|fireflies-server|contact-sync|summarize|apply-ignore-rules>')
+export async function main(argv = process.argv, env = process.env, overrides = {}) {
+  initializeRuntime(env, overrides)
+  const command = argv[2] || 'help'
+  if (command === 'outlook-ingest') await outlookIngest()
+  else if (command === 'reroute') await reroute()
+  else if (command === 'fireflies-server') await firefliesServer()
+  else if (command === 'contact-sync') await contactSync()
+  else if (command === 'summarize') await summarize()
+  else if (command === 'apply-ignore-rules') await applyIgnoreRules()
+  else console.log('Usage: node workers/crm-worker-supabase.mjs <outlook-ingest|reroute|fireflies-server|contact-sync|summarize|apply-ignore-rules>')
+}
+
+if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
+  await main()
+}

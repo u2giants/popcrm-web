@@ -9,7 +9,7 @@ export default defineConfig({
   },
   test: {
     environment: 'node',
-    include: ['src/**/*.test.{ts,tsx}'],
+    include: ['src/**/*.test.{ts,tsx}', 'workers/**/*.test.mjs'],
     exclude: ['node_modules', 'dist', 'shared-db/**'],
   },
 })
