@@ -1,7 +1,7 @@
 # HANDOFF — POP CRM codebase audit remediation
 
-**Handoff status:** Session 1 code complete and pushed; production worker rollout
-and all later sessions remain pending
+**Handoff status:** Session 1 complete in code and production; Session 2 is the
+next pending implementation phase
 **Prepared:** 2026-07-26 (America/New_York)
 **Repository:** `/worksp/popcrm-web` → GitHub `u2giants/popcrm-web`
 **Branch:** `main` (main-only repository)
@@ -68,31 +68,30 @@ reran the complete Session 1 gate successfully. A requested final K3
 confirmation could not run because the authenticated Kimi account reported its
 billing-cycle quota exhausted. No Kimi configuration or credential was changed.
 
-### Exact blockers and next action
+### Production rollout evidence and next action
 
-Session 1 is **code complete / rollout pending**, not fully complete. The plan's
-Section 12/13 worker gate requires the production host checkout to be updated to
-the reviewed SHA through approved automation, affected worker runtime(s) to be
-restarted as appropriate, and runtime SHA/status/log evidence to be recorded.
-This chat did not explicitly authorize the exact production host update,
-systemd/container restart, or equivalent automation actions, so none were
-performed or implied.
+On 2026-07-27 Albert explicitly authorized the production worker update and
+restart. The production checkout was already at documentation commit `c0dca01`,
+which contains worker implementation commit `ccf9565`.
 
-Do not begin Session 2 yet: the authoritative serial plan requires Session 1's
-runtime gate to be satisfied first. Resume by:
+- `popcrm-fireflies` was confirmed to run
+  `node /app/workers/crm-worker-supabase.mjs fireflies-server`.
+- Its `/app` path is a read-only bind mount from `/worksp/popcrm-web`.
+- The container was restarted at `2026-07-27T19:49:14Z`.
+- Post-restart logs contained
+  `fireflies-server (supabase) listening on 8787`.
+- `https://crm-fireflies.designflow.app/health` returned `{"ok":true}`.
+- `popcrm-outlook-ingest.timer`, `popcrm-reroute.timer`,
+  `popcrm-contact-sync.timer`, `popcrm-summarize.timer`, and
+  `popcrm-apply-ignore-rules.timer` were all enabled and active/waiting. These
+  one-shot jobs load the current worker file on each timer run, so they did not
+  require a service restart for this import-safety-only change.
 
-1. Obtaining exact authority for the supported production worker rollout of app
-   commit `ccf9565`, including the named affected runtime actions.
-2. Reading the current infrastructure runbook and using only its approved
-   automation path; do not use an ad-hoc host `git pull` or file copy.
-3. Verifying the production worker checkout/runtime SHA is `ccf9565`, the
-   affected services remain healthy, and the import-safe/CLI behavior matches
-   the Session 1 gate.
-4. Updating Session 1's ledger row from `code complete / rollout pending` to
-   `complete` with runtime evidence.
-5. Restoring Kimi K3 quota/access, then starting Session 2 with a fresh
-   individual sub-agent and repeating the implement → K3 review → same-agent
-   correction → verification → commit/push/CI/rollout sequence.
+Session 1 is now **complete**. Start Session 2 with a fresh individual sub-agent:
+enforce CRM authorization on Opportunity Chat, run Kimi K3 read-only review,
+return any concrete findings to that same agent, then verify, commit, push,
+confirm CI, and perform the authorized worker rollout/runtime checks required by
+the plan.
 
 ---
 

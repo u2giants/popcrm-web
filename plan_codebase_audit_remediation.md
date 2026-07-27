@@ -472,7 +472,7 @@ commit SHA and verification evidence, and preserves later rows.
 
 | Session | Finding | Status | Commit/evidence |
 |---|---|---|---|
-| 1 | Testable worker foundation / coverage gap | code complete / rollout pending | App commit `ccf9565` pushed to `main`; 4 files/17 Vitest tests, lint (only pre-existing `src/App.tsx:48` warning), build, worker/helper syntax, import-only/no-env smoke, CLI required-env smoke, and `git diff --check` passed. Kimi K3 reviewed the working diff and its one actionable finding (unused extracted-helper import) was fixed and reverified. Production worker checkout/runtime SHA was not changed or verified because this chat did not authorize the exact host rollout/restart actions. |
+| 1 | Testable worker foundation / coverage gap | complete | App commit `ccf9565` pushed to `main`; 4 files/17 Vitest tests, lint (only pre-existing `src/App.tsx:48` warning), build, worker/helper syntax, import-only/no-env smoke, CLI required-env smoke, and `git diff --check` passed. Kimi K3's one finding was fixed. On 2026-07-27, after exact owner authorization, production checkout `c0dca01` was verified to contain worker commit `ccf9565`; `popcrm-fireflies` (bind mount `/worksp/popcrm-web` → `/app`) was restarted, logged `fireflies-server (supabase) listening on 8787`, and `https://crm-fireflies.designflow.app/health` returned `{"ok":true}`. All five `popcrm-*` timers were active/waiting and will load the current worker file on their next runs. |
 | 2 | Opportunity Chat CRM authorization | pending | — |
 | 3 | Mandatory Fireflies signature configuration | pending | — |
 | 4 | Bounded HTTP request bodies | pending | — |
