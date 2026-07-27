@@ -1,7 +1,7 @@
 # HANDOFF — POP CRM codebase audit remediation
 
-**Handoff status:** Session 1 complete; Session 2 code reviewed, pushed, CI
-green, and awaiting its production worker restart/live authorization check
+**Handoff status:** Sessions 1-2 complete in code and production; Session 3 is
+the next pending implementation phase
 **Prepared:** 2026-07-26 (America/New_York)
 **Repository:** `/worksp/popcrm-web` → GitHub `u2giants/popcrm-web`
 **Branch:** `main` (main-only repository)
@@ -127,16 +127,37 @@ fields; both failure paths are tested; and the inactive-profile gate is tested
 directly. Kimi K3 re-reviewed the corrected diff and returned `APPROVE` with no
 remaining actionable findings.
 
-Session 2 is **code complete / rollout pending**. Do not start Session 3 until:
+Albert authorized the Phase 2 production rollout and security checks. The first
+authorized live probe exposed a Node 20-only defect: the new user-scoped
+Supabase client did not receive the `ws` transport already used by the main
+worker client, so Supabase Realtime initialization threw before the profile RPC.
+The same Phase 2 agent added `createUserScopedSupabaseClient`, preserved the
+caller Authorization header, injected the existing WebSocket transport, and
+added a regression test for the exact client options. Kimi K3 reviewed this
+production-derived correction and returned `APPROVE`.
 
-1. Albert explicitly authorizes updating/restarting the production
-   `popcrm-fireflies` worker on commit `4c66402`;
-2. the production checkout is verified to contain that worker commit;
-3. `popcrm-fireflies` is restarted and its health/logs are checked; and
-4. safe live checks prove missing/invalid credentials return 401, an
-   authenticated non-CRM identity returns 403 when an appropriate identity is
-   available, and the authorized CRM test identity reaches the endpoint without
-   exposing internal errors. Do not log or document JWTs.
+- Correction commit: `4f9a9a4` (`fix: support CRM auth client on Node 20`)
+- GitHub Build and Deploy:
+  `https://github.com/u2giants/popcrm-web/actions/runs/30303290580` — passed
+- Production checkout and worker file: `4f9a9a4`
+- `popcrm-fireflies` restart: `2026-07-27T20:38:54Z`
+- Post-restart health: `{"ok":true}`
+- Missing bearer token: 401 `unauthorized`
+- Invalid bearer token: 401 `unauthorized`
+- Real DAM viewer test account with CRM access explicitly revoked: 403
+  `forbidden`
+- Active CRM test account: passed authentication/authorization and reached
+  request validation, returning the expected 400 `invalid_request` for a
+  deliberately invalid UUID
+
+No opportunity rows were available through the production contracts for a safe
+non-invented 200 chat probe, so no fake production row was created and no CRM
+content was printed. The 401/403/authorized-validation evidence proves the
+authorization boundary and ordering without changing business data.
+
+Session 2 is now **complete**. Start Session 3 with a fresh individual sub-agent:
+make Fireflies signature configuration fail closed, run Kimi K3 review, return
+findings to the same agent, and satisfy the plan's code/CI/worker rollout gates.
 
 ---
 
