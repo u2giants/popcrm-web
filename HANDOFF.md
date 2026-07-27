@@ -1,6 +1,7 @@
 # HANDOFF — POP CRM codebase audit remediation
 
-**Handoff status:** Implementation not started; comprehensive plan ready
+**Handoff status:** Session 1 code complete and pushed; production worker rollout
+and all later sessions remain pending
 **Prepared:** 2026-07-26 (America/New_York)
 **Repository:** `/worksp/popcrm-web` → GitHub `u2giants/popcrm-web`
 **Branch:** `main` (main-only repository)
@@ -17,6 +18,81 @@ scope, ordering, design decisions, rejected approaches, tests, verification,
 access, rollback, and definition of done. This handoff records the present state
 and the exact starting point. Do not implement from the short audit summary or
 from memory.
+
+## 2026-07-26 autonomous execution update
+
+Albert asked Codex to execute every implementation phase serially, using one
+fresh sub-agent per phase and Kimi K3 as the independent review gate. Session 1
+was implemented by the dedicated `phase_1_worker_foundation` agent, reviewed
+read-only by Kimi K3, corrected by the same agent, independently verified by the
+primary agent, committed, and pushed.
+
+### Session 1 result
+
+- App commit: `ccf9565` (`test: make CRM worker import-safe`)
+- Branch/remote: `u2giants/popcrm-web` `main`; pushed to `origin/main`
+- Files changed:
+  - `workers/crm-worker-supabase.mjs`
+  - `workers/lib/worker-foundation.mjs`
+  - `workers/worker-foundation.test.mjs`
+  - `vitest.config.ts`
+  - `workers/README.md`
+- Production semantics preserved: importing the worker no longer reads the
+  environment file, validates secrets, creates Supabase clients, dispatches a
+  command, or binds a port. Direct CLI execution still validates Supabase
+  configuration before command dispatch and preserves the existing systemd
+  entry file and command names.
+- Test seams now exist for authentication/access lookup, request-body reads,
+  Fireflies signatures, upstream fetch, Graph cursor storage, and current time.
+- Characterization coverage exists for subject normalization,
+  routing-improvement ordering, address/domain normalization, explicit-secret
+  signature success/failure, import safety, and dependency injection.
+
+Verification after the Kimi-requested correction:
+
+```text
+npm test: PASS — 4 files / 17 tests
+npm run lint: PASS — 0 errors; only the pre-existing src/App.tsx:48 warning
+npm run build: PASS
+node --check workers/crm-worker-supabase.mjs: PASS
+node --check workers/lib/worker-foundation.mjs: PASS
+import with nonexistent POPPIM_ENV_FILE and blank Supabase vars: IMPORT_OK
+direct no-env CLI smoke: expected SUPABASE_URL/SUPABASE_SERVICE_ROLE_KEY error
+git diff --check: PASS
+```
+
+Kimi K3 inspected the actual working-tree implementation. Its one actionable
+finding was an unused alias import for the extracted signature helper in
+`workers/crm-worker-supabase.mjs`; the same implementation agent removed it and
+reran the complete Session 1 gate successfully. A requested final K3
+confirmation could not run because the authenticated Kimi account reported its
+billing-cycle quota exhausted. No Kimi configuration or credential was changed.
+
+### Exact blockers and next action
+
+Session 1 is **code complete / rollout pending**, not fully complete. The plan's
+Section 12/13 worker gate requires the production host checkout to be updated to
+the reviewed SHA through approved automation, affected worker runtime(s) to be
+restarted as appropriate, and runtime SHA/status/log evidence to be recorded.
+This chat did not explicitly authorize the exact production host update,
+systemd/container restart, or equivalent automation actions, so none were
+performed or implied.
+
+Do not begin Session 2 yet: the authoritative serial plan requires Session 1's
+runtime gate to be satisfied first. Resume by:
+
+1. Obtaining exact authority for the supported production worker rollout of app
+   commit `ccf9565`, including the named affected runtime actions.
+2. Reading the current infrastructure runbook and using only its approved
+   automation path; do not use an ad-hoc host `git pull` or file copy.
+3. Verifying the production worker checkout/runtime SHA is `ccf9565`, the
+   affected services remain healthy, and the import-safe/CLI behavior matches
+   the Session 1 gate.
+4. Updating Session 1's ledger row from `code complete / rollout pending` to
+   `complete` with runtime evidence.
+5. Restoring Kimi K3 quota/access, then starting Session 2 with a fresh
+   individual sub-agent and repeating the implement → K3 review → same-agent
+   correction → verification → commit/push/CI/rollout sequence.
 
 ---
 
