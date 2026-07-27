@@ -33,6 +33,13 @@ The frontend has no database and stores no CRM data locally. It uses Supabase
 Auth in the browser, then loads the user's CRM profile with
 `api.current_user_profile()`.
 
+Opportunity Chat is hosted by the service-role worker, so it independently
+verifies the bearer token with Supabase Auth and resolves
+`api.current_user_profile()` using that user's JWT. The endpoint reaches
+service-role CRM reads only for an active profile with unrevoked CRM access or
+the administrator role. It does not trust browser-supplied role/access claims,
+and unauthorized requests cannot reveal whether an opportunity exists.
+
 ## Data loading
 
 Data loading is page-scoped through TanStack Query hooks in

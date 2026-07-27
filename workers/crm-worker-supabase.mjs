@@ -33,6 +33,7 @@ import {
   domainOf,
   extractAddresses,
   normalizeSubject,
+  respondToOpportunityChatRequest,
   routingImproves,
 } from './lib/worker-foundation.mjs'
 
@@ -838,6 +839,14 @@ async function verifySupabaseUser(token) {
   return boundaries.verifyAccess(sb, token)
 }
 
+async function resolveCrmProfile(token) {
+  const userClient = createClient(SUPABASE_URL, SERVICE_ROLE_KEY, {
+    auth: { persistSession: false, autoRefreshToken: false },
+    global: { headers: { Authorization: `Bearer ${token}` } },
+  })
+  return boundaries.resolveCrmProfile(userClient)
+}
+
 async function firefliesServer() {
   const { createServer } = await import('node:http')
   const port = Number(process.env.PORT || 8787)
@@ -855,14 +864,18 @@ async function firefliesServer() {
       if (req.method === 'GET' && req.url === '/health') { res.writeHead(200, jsonHeaders); res.end(JSON.stringify({ ok: true })); return }
       if (req.method === 'POST' && req.url === '/s/opportunity-chat') {
         const raw = await boundaries.readRequestBody(req)
-        const authz = req.headers.authorization || ''
-        const token = authz.startsWith('Bearer ') ? authz.slice(7) : ''
-        const user = await verifySupabaseUser(token)
-        if (!user) { res.writeHead(401, jsonHeaders); res.end(JSON.stringify({ error: 'unauthorized' })); return }
-        const payload = JSON.parse(raw || '{}')
-        const answer = await chatOpportunity(payload.opportunityId, payload.question)
-        res.writeHead(200, jsonHeaders)
-        res.end(JSON.stringify({ answer }))
+        await respondToOpportunityChatRequest({
+          response: res,
+          headers: jsonHeaders,
+          authorization: req.headers.authorization,
+          rawBody: raw,
+          verifyToken: verifySupabaseUser,
+          loadProfile: resolveCrmProfile,
+          chat: chatOpportunity,
+          logDenied: ({ status, userId }) => {
+            console.warn('opportunity-chat access denied', { status, userId })
+          },
+        })
         return
       }
       if (req.method !== 'POST' || !['/s/fireflies-webhook', '/webhooks/fireflies'].includes(req.url || '')) {
@@ -878,8 +891,14 @@ async function firefliesServer() {
       res.writeHead(result.success ? 200 : 400, jsonHeaders)
       res.end(JSON.stringify(result))
     } catch (error) {
+      console.error('worker request failed', {
+        route: req.url || null,
+        name: typeof error?.name === 'string' ? error.name : 'Error',
+        code: typeof error?.code === 'string' ? error.code : undefined,
+        status: Number.isInteger(error?.status) ? error.status : undefined,
+      })
       res.writeHead(500, jsonHeaders)
-      res.end(JSON.stringify({ success: false, errors: [error.message] }))
+      res.end(JSON.stringify({ success: false, errors: ['internal_error'] }))
     }
   })
   server.listen(port, '0.0.0.0', () => console.log(`fireflies-server (supabase) listening on ${port}`))
