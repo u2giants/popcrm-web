@@ -499,6 +499,9 @@ Every session is a natural fresh-context cut. Before starting Session N:
 5. Confirm earlier ledger rows are complete and any required handoff/PR/vendor
    sync evidence exists.
 6. Run the baseline checks.
+7. At the end of Session N, re-read every downstream session through the end
+   of this plan and record any drift caused or discovered before writing the
+   fresh-session handoff.
 
 ### Session 1 — Create a testable worker foundation
 
@@ -711,6 +714,15 @@ reads.
 ### Session 6 — Make Outlook ingestion durable and complete
 
 **Finding owned:** Newest-50 lookback can permanently skip messages.
+
+**2026-08-11 execution clarification:** This session has two gated parts.
+Session 6A creates and preview-proves the durable cursor contract through the
+canonical shared-db branch/PR/orchestrator workflow. Session 6B changes the app
+worker only after that contract is merged, applied as authorized, and synced
+where required. Do not implement worker code against an invented or unmerged
+contract. The initial Session 6 inspection confirmed that the current worker
+has only a cursor-store stub and that shared-db has no durable Outlook cursor
+contract yet.
 
 **Files:**
 
