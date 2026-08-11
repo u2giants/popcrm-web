@@ -57,7 +57,10 @@ export async function isValidFirefliesSignature(rawBody, signature, secret) {
     false,
     ['sign'],
   )
-  const buffer = await crypto.subtle.sign('HMAC', key, new TextEncoder().encode(rawBody))
+  const bytes = Buffer.isBuffer(rawBody)
+    ? rawBody
+    : new TextEncoder().encode(String(rawBody ?? ''))
+  const buffer = await crypto.subtle.sign('HMAC', key, bytes)
   const expected = Buffer.from(buffer)
   const received = Buffer.from(match[1], 'hex')
   return received.length === expected.length && timingSafeEqual(received, expected)
@@ -98,10 +101,117 @@ const COMMAND_REQUIRED_ENV = {
   'fireflies-server': ['FIREFLIES_WEBHOOK_SECRET', 'FIREFLIES_API_KEY', 'OPENROUTER_API_KEY'],
 }
 
+const BODY_LIMIT_DEFAULTS = {
+  OPPORTUNITY_CHAT_MAX_BODY_BYTES: 65_536,
+  FIREFLIES_MAX_BODY_BYTES: 1_048_576,
+}
+
+export function parsePositiveIntegerSetting(name, value, defaultValue) {
+  if (value === undefined || value === '') return defaultValue
+  if (!/^[1-9]\d*$/.test(String(value))) {
+    throw new Error(`${name} must be a positive integer`)
+  }
+  const parsed = Number(value)
+  if (!Number.isSafeInteger(parsed)) throw new Error(`${name} must be a positive integer`)
+  return parsed
+}
+
+export function resolveHttpBodyLimits(env = process.env) {
+  return {
+    opportunityChat: parsePositiveIntegerSetting(
+      'OPPORTUNITY_CHAT_MAX_BODY_BYTES',
+      env.OPPORTUNITY_CHAT_MAX_BODY_BYTES,
+      BODY_LIMIT_DEFAULTS.OPPORTUNITY_CHAT_MAX_BODY_BYTES,
+    ),
+    fireflies: parsePositiveIntegerSetting(
+      'FIREFLIES_MAX_BODY_BYTES',
+      env.FIREFLIES_MAX_BODY_BYTES,
+      BODY_LIMIT_DEFAULTS.FIREFLIES_MAX_BODY_BYTES,
+    ),
+  }
+}
+
 export function validateCommandEnvironment(command, env = process.env) {
   const required = [...BASE_REQUIRED_ENV, ...(COMMAND_REQUIRED_ENV[command] || [])]
   const missing = required.filter((name) => typeof env[name] !== 'string' || !env[name].trim())
   if (missing.length) throw new Error(`${missing.join(', ')} ${missing.length === 1 ? 'is' : 'are'} required`)
+  if (command === 'fireflies-server') resolveHttpBodyLimits(env)
+}
+
+export class HttpBodyError extends Error {
+  constructor(status, code) {
+    super(code)
+    this.name = 'HttpBodyError'
+    this.status = status
+    this.code = code
+  }
+}
+
+export function readJsonBody(request, { maxBytes, beforeParse } = {}) {
+  if (!Number.isSafeInteger(maxBytes) || maxBytes <= 0) {
+    throw new Error('maxBytes must be a positive integer')
+  }
+
+  return new Promise((resolve, reject) => {
+    const chunks = []
+    let bytes = 0
+    let settled = false
+
+    const cleanup = () => {
+      request.removeListener('data', onData)
+      request.removeListener('end', onEnd)
+      request.removeListener('aborted', onAborted)
+      request.removeListener('error', onError)
+    }
+    const finish = (fn, value) => {
+      if (settled) return
+      settled = true
+      cleanup()
+      fn(value)
+    }
+    const fail = (status, code) => {
+      if (settled) return
+      request.pause?.()
+      // IncomingMessage can emit a late transport error after an abort or
+      // early 413 response. Keep one inert listener so that event cannot
+      // become an uncaught exception after the active reader is cleaned up.
+      request.once('error', () => {})
+      finish(reject, new HttpBodyError(status, code))
+    }
+    const onData = (chunk) => {
+      const buffer = Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk)
+      bytes += buffer.length
+      if (bytes > maxBytes) {
+        fail(413, 'payload_too_large')
+        return
+      }
+      chunks.push(buffer)
+    }
+    const onEnd = async () => {
+      const rawBody = Buffer.concat(chunks, bytes)
+      try {
+        await beforeParse?.(rawBody)
+      } catch (error) {
+        finish(reject, error)
+        return
+      }
+      let body
+      try {
+        body = JSON.parse(rawBody.length ? rawBody.toString('utf8') : '{}')
+      } catch {
+        fail(400, 'invalid_json')
+        return
+      }
+      finish(resolve, { rawBody, body })
+    }
+    const onAborted = () => fail(400, 'request_aborted')
+    const onError = () => fail(400, 'request_error')
+
+    request.on('data', onData)
+    request.once('end', onEnd)
+    request.once('aborted', onAborted)
+    request.once('error', onError)
+  })
 }
 
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
@@ -201,15 +311,7 @@ export function createWorkerBoundaries(overrides = {}) {
   return {
     fetch: globalThis.fetch,
     now: () => Date.now(),
-    readRequestBody: async (request) => {
-      const chunks = []
-      request.on('data', (chunk) => chunks.push(chunk))
-      await new Promise((resolve, reject) => {
-        request.on('end', resolve)
-        request.on('error', reject)
-      })
-      return Buffer.concat(chunks).toString('utf8')
-    },
+    readJsonBody,
     validateSignature: isValidFirefliesSignature,
     verifyAccess: async (client, token) => {
       if (!token) return null
