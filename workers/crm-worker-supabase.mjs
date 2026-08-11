@@ -35,7 +35,9 @@ import {
   extractAddresses,
   normalizeFirefliesWebhookPayload,
   normalizeSubject,
+  fetchWithPolicy,
   resolveHttpBodyLimits,
+  resolveUpstreamSettings,
   respondToOpportunityChatRequest,
   routingImproves,
   validateCommandEnvironment,
@@ -48,6 +50,7 @@ let crm
 let core
 let LOOKBACK_MINUTES
 let httpBodyLimits
+let upstreamSettings
 let runtimeEnv = process.env
 let boundaries = createWorkerBoundaries()
 
@@ -76,6 +79,18 @@ function initializeRuntime(env = process.env, overrides = {}) {
   crm = (table) => sb.schema('crm').from(table)
   core = (table) => sb.schema('core').from(table)
   LOOKBACK_MINUTES = Number(env.OUTLOOK_LOOKBACK_MINUTES || 20)
+  upstreamSettings = resolveUpstreamSettings(env)
+}
+
+function upstreamFetch(operation, url, init, { timeoutMs, retryTransient = false } = {}) {
+  return fetchWithPolicy(boundaries.fetch, url, init, {
+    operation,
+    timeoutMs,
+    retryTransient,
+    maxAttempts: retryTransient ? upstreamSettings.UPSTREAM_MAX_ATTEMPTS : 1,
+    baseDelayMs: upstreamSettings.UPSTREAM_RETRY_BASE_DELAY_MS,
+    maxDelayMs: upstreamSettings.UPSTREAM_RETRY_MAX_DELAY_MS,
+  })
 }
 
 const must = (res) => { if (res.error) throw new Error(res.error.message); return res.data }
@@ -364,7 +379,7 @@ async function aiRouteFallback({ subject, bodyText, addresses, task = 'email_rou
     crm('opportunity').select('id,name,company_id,department_id,production_po_number,sales_order_number').not('stage', 'in', '(CLOSED,SHIPPED)').order('created_at', { ascending: false }).limit(120).then(must),
   ])
   const model = await routingModel(task)
-  const res = await boundaries.fetch('https://openrouter.ai/api/v1/chat/completions', {
+  const res = await upstreamFetch('OpenRouter email routing', 'https://openrouter.ai/api/v1/chat/completions', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${runtimeEnv.OPENROUTER_API_KEY}`, 'HTTP-Referer': SUPABASE_URL, 'X-Title': 'POP CRM Supabase Router' },
     body: JSON.stringify({
@@ -376,7 +391,7 @@ async function aiRouteFallback({ subject, bodyText, addresses, task = 'email_rou
       temperature: 0.1,
       response_format: { type: 'json_object' },
     }),
-  })
+  }, { timeoutMs: upstreamSettings.OPENROUTER_FETCH_TIMEOUT_MS })
   if (!res.ok) return null
   const json = await res.json()
   const content = json.choices?.[0]?.message?.content
@@ -400,7 +415,7 @@ async function summarizeOpportunity(opportunityId) {
   const emails = must(await crm('email_message').select('subject,sender,received_at,body_preview,routing_method').eq('opportunity_id', opportunityId).order('received_at', { ascending: false }).limit(60))
   if (!emails.length) return false
   const model = await routingModel('opportunity_summary_model')
-  const res = await boundaries.fetch('https://openrouter.ai/api/v1/chat/completions', {
+  const res = await upstreamFetch('OpenRouter opportunity summary', 'https://openrouter.ai/api/v1/chat/completions', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${runtimeEnv.OPENROUTER_API_KEY}`, 'HTTP-Referer': SUPABASE_URL, 'X-Title': 'POP CRM Opportunity Summary' },
     body: JSON.stringify({
@@ -412,7 +427,7 @@ async function summarizeOpportunity(opportunityId) {
       temperature: 0.2,
       response_format: { type: 'json_object' },
     }),
-  })
+  }, { timeoutMs: upstreamSettings.OPENROUTER_FETCH_TIMEOUT_MS })
   if (!res.ok) return false
   const json = await res.json()
   const content = json.choices?.[0]?.message?.content
@@ -437,7 +452,7 @@ async function chatOpportunity(opportunityId, question) {
     crm('task').select('title,body,status,due_at').eq('opportunity_id', opportunityId).order('status').order('due_at').limit(25).then(must),
   ])
   const model = await routingModel('opportunity_summary_model')
-  const res = await boundaries.fetch('https://openrouter.ai/api/v1/chat/completions', {
+  const res = await upstreamFetch('OpenRouter opportunity chat', 'https://openrouter.ai/api/v1/chat/completions', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${runtimeEnv.OPENROUTER_API_KEY}`, 'HTTP-Referer': SUPABASE_URL, 'X-Title': 'POP CRM Opportunity Chat' },
     body: JSON.stringify({
@@ -448,8 +463,8 @@ async function chatOpportunity(opportunityId, question) {
       ],
       temperature: 0.2,
     }),
-  })
-  if (!res.ok) throw new Error(`OpenRouter chat failed: ${res.status} ${await res.text()}`)
+  }, { timeoutMs: upstreamSettings.OPENROUTER_FETCH_TIMEOUT_MS })
+  if (!res.ok) throw new Error(`OpenRouter chat failed: HTTP ${res.status}`)
   const json = await res.json()
   return String(json.choices?.[0]?.message?.content || '').trim()
 }
@@ -537,13 +552,13 @@ async function routeEmail({ subject, bodyText, addresses, displayNames = {}, tas
 
 // --- Microsoft Graph (unchanged) ----------------------------------------------
 async function graphToken() {
-  const tenant = process.env.AZURE_TENANT_ID || process.env.MS_TENANT_ID
-  const client = process.env.AZURE_CLIENT_ID || process.env.MS_CLIENT_ID
-  const secret = process.env.AZURE_CLIENT_SECRET || process.env.MS_CLIENT_SECRET
+  const tenant = runtimeEnv.AZURE_TENANT_ID || runtimeEnv.MS_TENANT_ID
+  const client = runtimeEnv.AZURE_CLIENT_ID || runtimeEnv.MS_CLIENT_ID
+  const secret = runtimeEnv.AZURE_CLIENT_SECRET || runtimeEnv.MS_CLIENT_SECRET
   if (!tenant || !client || !secret) throw new Error('Missing Microsoft Graph credentials')
   const body = new URLSearchParams({ grant_type: 'client_credentials', client_id: client, client_secret: secret, scope: 'https://graph.microsoft.com/.default' })
-  const res = await boundaries.fetch(`${LOGIN_BASE}/${tenant}/oauth2/v2.0/token`, { method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body })
-  if (!res.ok) throw new Error(`Graph token failed: ${res.status} ${await res.text()}`)
+  const res = await upstreamFetch('Microsoft Graph token', `${LOGIN_BASE}/${tenant}/oauth2/v2.0/token`, { method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body }, { timeoutMs: upstreamSettings.GRAPH_FETCH_TIMEOUT_MS, retryTransient: true })
+  if (!res.ok) throw new Error(`Graph token failed: HTTP ${res.status}`)
   return (await res.json()).access_token
 }
 async function fetchRecentEmails(accessToken, mailbox) {
@@ -551,14 +566,14 @@ async function fetchRecentEmails(accessToken, mailbox) {
   const selectFields = ['id', 'subject', 'receivedDateTime', 'bodyPreview', 'body', 'from', 'toRecipients', 'ccRecipients', 'isRead'].join(',')
   const filterParam = `receivedDateTime ge ${since}`
   const url = `${GRAPH_BASE}/users/${encodeURIComponent(mailbox)}/messages?$filter=${encodeURIComponent(filterParam)}&$select=${selectFields}&$top=${PAGE_SIZE}&$orderby=${encodeURIComponent('receivedDateTime desc')}`
-  const res = await boundaries.fetch(url, { headers: { Authorization: `Bearer ${accessToken}`, 'Content-Type': 'application/json' } })
-  if (!res.ok) throw new Error(`Graph messages failed: ${res.status} ${await res.text()}`)
+  const res = await upstreamFetch('Microsoft Graph messages', url, { headers: { Authorization: `Bearer ${accessToken}`, 'Content-Type': 'application/json' } }, { timeoutMs: upstreamSettings.GRAPH_FETCH_TIMEOUT_MS, retryTransient: true })
+  if (!res.ok) throw new Error(`Graph messages failed: HTTP ${res.status}`)
   return (await res.json()).value || []
 }
 
 async function outlookIngest() {
-  const mailbox = process.env.OUTLOOK_MAILBOX || 'adweck@popcre.com'
-  const gated = process.env.OUTLOOK_GATED === 'true'
+  const mailbox = runtimeEnv.OUTLOOK_MAILBOX || 'adweck@popcre.com'
+  const gated = runtimeEnv.OUTLOOK_GATED === 'true'
   const token = await graphToken()
   const messages = await fetchRecentEmails(token, mailbox)
   let created = 0
@@ -752,12 +767,12 @@ async function firefliesTranscript(meetingId) {
       }
     }
   `
-  const res = await boundaries.fetch(FIREFLIES_BASE, {
+  const res = await upstreamFetch('Fireflies transcript', FIREFLIES_BASE, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${runtimeEnv.FIREFLIES_API_KEY}` },
     body: JSON.stringify({ query, variables: { transcriptId: meetingId } }),
-  })
-  if (!res.ok) throw new Error(`Fireflies API failed: ${res.status} ${await res.text()}`)
+  }, { timeoutMs: upstreamSettings.FIREFLIES_FETCH_TIMEOUT_MS, retryTransient: true })
+  if (!res.ok) throw new Error(`Fireflies API failed: HTTP ${res.status}`)
   const json = await res.json()
   if (json.errors?.length) throw new Error(`Fireflies GraphQL failed: ${json.errors[0].message}`)
   const t = json.data?.transcript

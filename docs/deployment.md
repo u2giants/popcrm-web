@@ -68,6 +68,19 @@ POP CRM also owns host-side maintenance workers for the shared Supabase backend:
 | Ignore-rule sweep | `systemd/popcrm-apply-ignore-rules.*` -> `workers/crm-worker-supabase.mjs apply-ignore-rules` | every 6 hours |
 | Fireflies webhook/chat | Docker container `popcrm-fireflies` -> `workers/crm-worker-supabase.mjs fireflies-server` | always on |
 
+Each scheduled one-shot unit has a `TimeoutStartSec` ceiling so a stuck network
+call or process cannot occupy the service forever. The checked-in ceilings are
+10 minutes for Outlook ingest, 30 minutes for reroute, 20 minutes for contact
+sync, 30 minutes for summaries, and 20 minutes for ignore-rule sweeps. These
+allow substantial headroom over the read-only production observations on
+2026-08-10: under one second, 3 minutes 12 seconds, 8 seconds, 1 second, and
+1 second respectively. A timeout is a loud failed unit result and must be
+investigated rather than hidden by raising the ceiling.
+
+Installing changed unit files requires `systemctl daemon-reload`; existing
+installed units do not inherit repository changes automatically. Never install,
+reload, or restart production units without exact authorization.
+
 Secrets stay outside git in mode-600 `/home/ai/.crm-worker.env` and in
 1Password item `POP CRM Supabase Worker Env - hetz /home/ai/.crm-worker.env`.
 The active workers must not reference any retired backend.

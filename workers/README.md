@@ -65,6 +65,19 @@ Focused worker tests run as part of `npm test`. Injectable boundaries for
 service authentication, HTTP body reads, Fireflies signatures, upstream fetch,
 Graph cursor storage, and current time live in `workers/lib/worker-foundation.mjs`.
 
+Microsoft Graph and Fireflies read operations use real aborting network
+deadlines plus at most three attempts for timeouts, network resets, HTTP
+408/429, and selected 5xx replies. Retry delays use capped exponential backoff
+with jitter. OpenRouter calls use a hard deadline but no automatic retry, which
+avoids sending a paid AI request twice. Defaults and optional overrides are
+documented in `docs/configuration.md`; invalid values fail startup. Exhausted
+attempts report only the operation, attempt count, and safe HTTP status, never
+tokens, request bodies, or upstream response bodies.
+
+The checked-in systemd one-shot units also have command-level time ceilings.
+Repository changes do not affect installed units until an explicitly authorized
+installation and `systemctl daemon-reload`.
+
 Opportunity Chat verifies the bearer token with Supabase Auth, then resolves
 `api.current_user_profile()` in that user's JWT context. Only an active profile
 with unrevoked CRM access or the administrator role may reach service-role CRM
