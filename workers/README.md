@@ -50,6 +50,17 @@ before transcript retrieval, routing, and database writes begin. Processing
 continues in the always-on worker and logs failures without holding Fireflies'
 delivery request open, satisfying V2's 10-second acknowledgement requirement.
 
+Both public POST routes stop buffering at a configurable raw-byte ceiling:
+
+- Opportunity Chat: `OPPORTUNITY_CHAT_MAX_BODY_BYTES` (default `65536`)
+- Fireflies: `FIREFLIES_MAX_BODY_BYTES` (default `1048576`)
+
+The overrides must be positive integers or `fireflies-server` refuses to start.
+One byte over the applicable limit returns HTTP 413 `payload_too_large`;
+malformed JSON returns HTTP 400 `invalid_json`. Rejected requests do not reach
+CRM reads, Fireflies processing, or paid AI calls. Fireflies HMAC verification
+runs over the exact raw bytes before JSON parsing.
+
 Focused worker tests run as part of `npm test`. Injectable boundaries for
 service authentication, HTTP body reads, Fireflies signatures, upstream fetch,
 Graph cursor storage, and current time live in `workers/lib/worker-foundation.mjs`.

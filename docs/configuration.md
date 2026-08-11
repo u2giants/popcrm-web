@@ -113,6 +113,20 @@ port. A missing or whitespace-only value therefore stops startup with a
 non-zero exit instead of weakening authentication or leaving a partially
 working public service.
 
+The public worker routes also bound their JSON request bodies before
+authentication, signature verification, database reads, or paid AI calls:
+
+- `OPPORTUNITY_CHAT_MAX_BODY_BYTES` defaults to `65536` (64 KiB).
+- `FIREFLIES_MAX_BODY_BYTES` defaults to `1048576` (1 MiB).
+
+Overrides must be positive whole-byte integers. Missing values use the defaults;
+zero, negative, fractional, whitespace-padded, nonnumeric, or unsafe integer
+values stop `fireflies-server` before it listens. Oversized requests receive
+HTTP 413 `payload_too_large`; malformed JSON receives HTTP 400 `invalid_json`.
+Do not raise these limits without evidence from a legitimate rejected payload.
+Fireflies authentication continues to cover the exact raw bytes received, not
+a parsed or re-serialized JSON representation.
+
 Fireflies Webhooks V2 is the production integration. Configure the endpoint
 `https://crm-fireflies.designflow.app/s/fireflies-webhook` for only the
 `meeting.transcribed` event and set its signing secret to the same
@@ -125,6 +139,5 @@ transcript retrieval, routing, and database writes so the sender receives a
 2xx acknowledgement within its 10-second deadline.
 
 As verified on 2026-07-27, `FIREFLIES_WEBHOOK_SECRET` is present in the named
-1Password item and `/home/ai/.crm-worker.env`, but it has not yet been entered
-in the Fireflies Webhooks V2 integration. Do not restart into fail-closed
-validation until the dashboard uses that same concealed value.
+1Password item, `/home/ai/.crm-worker.env`, and the Fireflies Webhooks V2
+integration. The production dashboard test delivery returned HTTP 200.

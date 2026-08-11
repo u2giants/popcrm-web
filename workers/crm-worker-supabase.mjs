@@ -35,6 +35,7 @@ import {
   extractAddresses,
   normalizeFirefliesWebhookPayload,
   normalizeSubject,
+  resolveHttpBodyLimits,
   respondToOpportunityChatRequest,
   routingImproves,
   validateCommandEnvironment,
@@ -46,6 +47,7 @@ let sb
 let crm
 let core
 let LOOKBACK_MINUTES
+let httpBodyLimits
 let runtimeEnv = process.env
 let boundaries = createWorkerBoundaries()
 
@@ -854,10 +856,18 @@ async function resolveCrmProfile(token) {
   return boundaries.resolveCrmProfile(userClient)
 }
 
-async function firefliesServer() {
-  const { createServer } = await import('node:http')
-  const port = Number(runtimeEnv.PORT || 8787)
-  const server = createServer(async (req, res) => {
+export function createWorkerHttpHandler({
+  bodyLimits = httpBodyLimits,
+  readBody = boundaries.readJsonBody,
+  validateSignature = isValidFirefliesSignature,
+  verifyToken = verifySupabaseUser,
+  loadProfile = resolveCrmProfile,
+  chat = chatOpportunity,
+  processFireflies = handleFirefliesPayload,
+  logWarn = console.warn,
+  logError = console.error,
+} = {}) {
+  return async (req, res) => {
     const origin = req.headers.origin || ''
     const allowedOrigin = /^https:\/\/crm(-dev)?\.designflow\.app$/.test(origin) ? origin : 'https://crm.designflow.app'
     const jsonHeaders = {
@@ -870,17 +880,17 @@ async function firefliesServer() {
       if (req.method === 'OPTIONS') { res.writeHead(204, jsonHeaders); res.end(); return }
       if (req.method === 'GET' && req.url === '/health') { res.writeHead(200, jsonHeaders); res.end(JSON.stringify({ ok: true })); return }
       if (req.method === 'POST' && req.url === '/s/opportunity-chat') {
-        const raw = await boundaries.readRequestBody(req)
+        const { rawBody } = await readBody(req, { maxBytes: bodyLimits.opportunityChat })
         await respondToOpportunityChatRequest({
           response: res,
           headers: jsonHeaders,
           authorization: req.headers.authorization,
-          rawBody: raw,
-          verifyToken: verifySupabaseUser,
-          loadProfile: resolveCrmProfile,
-          chat: chatOpportunity,
+          rawBody: rawBody.toString('utf8'),
+          verifyToken,
+          loadProfile,
+          chat,
           logDenied: ({ status, userId }) => {
-            console.warn('opportunity-chat access denied', { status, userId })
+            logWarn('opportunity-chat access denied', { status, userId })
           },
         })
         return
@@ -890,10 +900,15 @@ async function firefliesServer() {
         res.end(JSON.stringify({ error: 'not_found' }))
         return
       }
-      const raw = await boundaries.readRequestBody(req)
-      const ok = await isValidFirefliesSignature(raw, req.headers['x-hub-signature'] || req.headers['x-fireflies-signature'])
-      if (!ok) { res.writeHead(401, jsonHeaders); res.end(JSON.stringify({ success: false, errors: ['invalid signature'] })); return }
-      const payload = raw ? JSON.parse(raw) : {}
+      const signature = req.headers['x-hub-signature'] || req.headers['x-fireflies-signature']
+      const { body: payload } = await readBody(req, {
+        maxBytes: bodyLimits.fireflies,
+        beforeParse: async (rawBody) => {
+          if (!await validateSignature(rawBody, signature)) {
+            throw Object.assign(new Error('invalid_signature'), { status: 401, code: 'invalid_signature' })
+          }
+        },
+      })
       const normalized = normalizeFirefliesWebhookPayload(payload)
       if (normalized.error) {
         res.writeHead(400, jsonHeaders)
@@ -908,8 +923,8 @@ async function firefliesServer() {
 
       res.writeHead(202, jsonHeaders)
       res.end(JSON.stringify({ success: true, accepted: true, meetingId: normalized.meetingId }))
-      void handleFirefliesPayload(payload).catch((error) => {
-        console.error('fireflies webhook processing failed', {
+      void processFireflies(payload).catch((error) => {
+        logError('fireflies webhook processing failed', {
           meetingId: normalized.meetingId,
           name: typeof error?.name === 'string' ? error.name : 'Error',
           code: typeof error?.code === 'string' ? error.code : undefined,
@@ -917,7 +932,17 @@ async function firefliesServer() {
         })
       })
     } catch (error) {
-      console.error('worker request failed', {
+      if (error?.status === 401 && error?.code === 'invalid_signature') {
+        res.writeHead(401, jsonHeaders)
+        res.end(JSON.stringify({ success: false, errors: ['invalid signature'] }))
+        return
+      }
+      if (error?.status === 400 || error?.status === 413) {
+        res.writeHead(error.status, jsonHeaders)
+        res.end(JSON.stringify({ error: error.code }))
+        return
+      }
+      logError('worker request failed', {
         route: req.url || null,
         name: typeof error?.name === 'string' ? error.name : 'Error',
         code: typeof error?.code === 'string' ? error.code : undefined,
@@ -926,7 +951,14 @@ async function firefliesServer() {
       res.writeHead(500, jsonHeaders)
       res.end(JSON.stringify({ success: false, errors: ['internal_error'] }))
     }
-  })
+  }
+}
+
+async function firefliesServer() {
+  const { createServer } = await import('node:http')
+  const port = Number(runtimeEnv.PORT || 8787)
+  httpBodyLimits = resolveHttpBodyLimits(runtimeEnv)
+  const server = createServer(createWorkerHttpHandler())
   server.listen(port, '0.0.0.0', () => console.log(`fireflies-server (supabase) listening on ${port}`))
 }
 
