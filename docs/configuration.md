@@ -127,6 +127,26 @@ Do not raise these limits without evidence from a legitimate rejected payload.
 Fireflies authentication continues to cover the exact raw bytes received, not
 a parsed or re-serialized JSON representation.
 
+All Microsoft Graph, OpenRouter, and Fireflies API calls have hard network
+deadlines. Optional worker overrides are:
+
+- `GRAPH_FETCH_TIMEOUT_MS` defaults to `30000`.
+- `OPENROUTER_FETCH_TIMEOUT_MS` defaults to `60000`.
+- `FIREFLIES_FETCH_TIMEOUT_MS` defaults to `30000`.
+- `UPSTREAM_MAX_ATTEMPTS` defaults to `3` for safe transient retries.
+- `UPSTREAM_RETRY_BASE_DELAY_MS` defaults to `250`.
+- `UPSTREAM_RETRY_MAX_DELAY_MS` defaults to `2000` and must not be below the
+  base delay.
+
+Every override must be a positive whole-number count of milliseconds or
+attempts. Invalid values stop the worker before it makes an upstream request.
+Retries apply only to safe Graph token/message reads and Fireflies transcript
+queries after timeouts, network resets, HTTP 408/429, or selected 5xx replies.
+OpenRouter requests have a deadline but are never retried automatically because
+resending a paid AI request could create duplicate cost or work. Failure logs
+name the operation, attempt count, and safe HTTP status without response bodies,
+tokens, or CRM content.
+
 Fireflies Webhooks V2 is the production integration. Configure the endpoint
 `https://crm-fireflies.designflow.app/s/fireflies-webhook` for only the
 `meeting.transcribed` event and set its signing secret to the same
