@@ -33,7 +33,7 @@ describe('upstream timeout and retry policy', () => {
     expect(fetchImpl.mock.calls[0][1].signal.aborted).toBe(true)
   })
 
-  it('retries transient HTTP responses with capped delays', async () => {
+  it('retries a Graph-style HTTP 429 and transient 5xx with capped delays', async () => {
     const wait = vi.fn(async () => {})
     const fetchImpl = vi.fn()
       .mockResolvedValueOnce(new Response('', { status: 429 }))

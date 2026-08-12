@@ -65,6 +65,23 @@ Focused worker tests run as part of `npm test`. Injectable boundaries for
 service authentication, HTTP body reads, Fireflies signatures, upstream fetch,
 Graph cursor storage, and current time live in `workers/lib/worker-foundation.mjs`.
 
+Outlook ingestion uses Microsoft Graph mail delta synchronization, not a
+newest-message window. The first run follows every page to a final delta link.
+Later runs resume from the durable cursor stored through
+`crm.load_worker_delta_cursor(...)` and
+`crm.save_worker_delta_cursor(...)`. The save uses the loaded version as a
+compare-and-swap ticket and happens only after every message on every page has
+been handled. Duplicate Outlook IDs remain harmless, deleted-message
+tombstones require no local delete, and failures leave the old cursor in place
+for a safe replay. Continuation links must use HTTPS on exactly
+`graph.microsoft.com` and are never logged.
+
+An expired Graph cursor produces a loud warning and permits one full inbox
+delta rebuild by default. `OUTLOOK_DELTA_EXPIRED_RESYNC_MAX` may set the bounded
+allowance from `0` through `3`; exhaustion fails the command instead of silently
+falling back to a recent-message window. HTTP 429 remains covered by the shared
+bounded retry policy.
+
 Microsoft Graph and Fireflies read operations use real aborting network
 deadlines plus at most three attempts for timeouts, network resets, HTTP
 408/429, and selected 5xx replies. Retry delays use capped exponential backoff
