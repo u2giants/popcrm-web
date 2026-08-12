@@ -48,7 +48,6 @@ let SERVICE_ROLE_KEY
 let sb
 let crm
 let core
-let LOOKBACK_MINUTES
 let httpBodyLimits
 let upstreamSettings
 let runtimeEnv = process.env
@@ -78,8 +77,10 @@ function initializeRuntime(env = process.env, overrides = {}) {
   })
   crm = (table) => sb.schema('crm').from(table)
   core = (table) => sb.schema('core').from(table)
-  LOOKBACK_MINUTES = Number(env.OUTLOOK_LOOKBACK_MINUTES || 20)
   upstreamSettings = resolveUpstreamSettings(env)
+  if (!overrides.graphCursorStore) {
+    boundaries.graphCursorStore = createGraphCursorStore(sb)
+  }
 }
 
 function upstreamFetch(operation, url, init, { timeoutMs, retryTransient = false } = {}) {
@@ -99,6 +100,9 @@ const INTERNAL_DOMAIN = 'popcre.com'
 const GRAPH_BASE = 'https://graph.microsoft.com/v1.0'
 const LOGIN_BASE = 'https://login.microsoftonline.com'
 const PAGE_SIZE = 50
+const GRAPH_HOST = 'graph.microsoft.com'
+const OUTLOOK_CURSOR_PURPOSE = 'microsoft-graph-mail-delta'
+const OUTLOOK_CURSOR_CONCURRENCY_RETRY_MAX = 2
 const FIREFLIES_BASE = 'https://api.fireflies.ai/graphql'
 const CUSTOMERS = ['ACTIVE_CUSTOMER', 'POTENTIAL_CUSTOMER']
 
@@ -561,52 +565,197 @@ async function graphToken() {
   if (!res.ok) throw new Error(`Graph token failed: HTTP ${res.status}`)
   return (await res.json()).access_token
 }
-async function fetchRecentEmails(accessToken, mailbox) {
-  const since = new Date(boundaries.now() - LOOKBACK_MINUTES * 60 * 1000).toISOString()
+function outlookCursorKey(mailbox) {
+  return `outlook-ingest:${String(mailbox).trim().toLowerCase()}`
+}
+
+export function resolveOutlookDeltaSettings(env) {
+  const value = env.OUTLOOK_DELTA_EXPIRED_RESYNC_MAX
+  if (value !== undefined && !/^[0-3]$/.test(value)) {
+    throw new Error('OUTLOOK_DELTA_EXPIRED_RESYNC_MAX must be an integer from 0 through 3')
+  }
+  return { maxExpiredTokenResyncs: value === undefined ? 1 : Number(value) }
+}
+
+function cursorRpcResult(result, operation) {
+  if (!result?.error) return result?.data
+  const error = new Error(`Outlook cursor ${operation} failed`)
+  error.code = result.error.code
+  throw error
+}
+
+export function createGraphCursorStore(client) {
+  return {
+    load: async (cursorKey) => cursorRpcResult(
+      await client.schema('crm').rpc('load_worker_delta_cursor', { p_cursor_key: cursorKey }),
+      'load',
+    ),
+    save: async ({ cursorKey, mailbox, deltaLink, expectedVersion }) => cursorRpcResult(
+      await client.schema('crm').rpc('save_worker_delta_cursor', {
+        p_cursor_key: cursorKey,
+        p_purpose: OUTLOOK_CURSOR_PURPOSE,
+        p_owner_identity: mailbox,
+        p_delta_link: deltaLink,
+        p_expected_version: expectedVersion,
+      }),
+      'save',
+    ),
+  }
+}
+
+export function validateGraphDeltaLink(value) {
+  let url
+  try { url = new URL(value) } catch { throw new Error('Microsoft Graph returned an invalid continuation link') }
+  if (url.protocol !== 'https:' || url.hostname !== GRAPH_HOST || url.port || url.username || url.password) {
+    throw new Error('Microsoft Graph returned an untrusted continuation link')
+  }
+  return url.toString()
+}
+
+function initialDeltaUrl(mailbox) {
   const selectFields = ['id', 'subject', 'receivedDateTime', 'bodyPreview', 'body', 'from', 'toRecipients', 'ccRecipients', 'isRead'].join(',')
-  const filterParam = `receivedDateTime ge ${since}`
-  const url = `${GRAPH_BASE}/users/${encodeURIComponent(mailbox)}/messages?$filter=${encodeURIComponent(filterParam)}&$select=${selectFields}&$top=${PAGE_SIZE}&$orderby=${encodeURIComponent('receivedDateTime desc')}`
-  const res = await upstreamFetch('Microsoft Graph messages', url, { headers: { Authorization: `Bearer ${accessToken}`, 'Content-Type': 'application/json' } }, { timeoutMs: upstreamSettings.GRAPH_FETCH_TIMEOUT_MS, retryTransient: true })
-  if (!res.ok) throw new Error(`Graph messages failed: HTTP ${res.status}`)
-  return (await res.json()).value || []
+  return `${GRAPH_BASE}/users/${encodeURIComponent(mailbox)}/mailFolders/inbox/messages/delta?$select=${selectFields}&$top=${PAGE_SIZE}`
+}
+
+function isExpiredDeltaResponse(response) {
+  return response.status === 410
+}
+
+async function fetchGraphDeltaPage(accessToken, url) {
+  const trustedUrl = validateGraphDeltaLink(url)
+  const res = await upstreamFetch('Microsoft Graph mail delta', trustedUrl, { headers: { Authorization: `Bearer ${accessToken}`, 'Content-Type': 'application/json' } }, { timeoutMs: upstreamSettings.GRAPH_FETCH_TIMEOUT_MS, retryTransient: true })
+  if (!res.ok) {
+    const error = new Error(`Microsoft Graph mail delta failed: HTTP ${res.status}`)
+    error.status = res.status
+    error.expiredDeltaToken = isExpiredDeltaResponse(res)
+    throw error
+  }
+  return res.json()
+}
+
+async function loadOutlookCursor(cursorKey) {
+  return boundaries.graphCursorStore.load(cursorKey)
+}
+
+async function saveOutlookCursor({ cursorKey, mailbox, deltaLink, expectedVersion }) {
+  return boundaries.graphCursorStore.save({ cursorKey, mailbox, deltaLink, expectedVersion })
+}
+
+async function processOutlookMessage(message, { gated }) {
+  if (message['@removed']) return 'tombstone'
+  if (!message.id) throw new Error('Microsoft Graph returned a mail change without an id')
+  const existing = must(await crm('email_message').select('id').eq('outlook_message_id', message.id).limit(1))
+  if (existing.length) return 'duplicate'
+  const addresses = participantAddresses(message)
+  if (gated && !addresses.some((addr) => !addr.endsWith(`@${INTERNAL_DOMAIN}`))) return 'gated'
+  const bodyText = message.body?.content || message.bodyPreview || ''
+  const route = await normalizeRoute(await routeEmail({ subject: message.subject || '', bodyText, addresses, displayNames: displayNameMap(message) }))
+  let retailerPatterns = ''
+  if (route.retailer) {
+    const rows = must(await core('customer').select('so_patterns').eq('id', route.retailer).limit(1))
+    retailerPatterns = rows[0]?.so_patterns || ''
+  }
+  const detected = extractOrderNumbers(bodyText, retailerPatterns)
+  must(await crm('email_message').insert({
+    subject: message.subject || '(no subject)',
+    sender: message.from?.emailAddress?.address || '',
+    recipients: [...(message.toRecipients || []), ...(message.ccRecipients || [])].map((r) => r.emailAddress?.address).filter(Boolean).join(', '),
+    received_at: message.receivedDateTime || null,
+    body_preview: message.bodyPreview || '',
+    outlook_message_id: message.id,
+    detected_so_numbers: detected.soNumbers.join(', '),
+    detected_po_numbers: detected.poNumbers.join(', '),
+    external_id: message.id,
+    external_source: 'outlook',
+    ...routeColumns(route),
+  }))
+  if (route.opportunity) await updateOpportunitySummary(route.opportunity)
+  return 'created'
+}
+
+export async function runOutlookDeltaSync({
+  accessToken,
+  mailbox,
+  cursor,
+  fetchPage,
+  processMessage,
+  saveCursor,
+  reloadCursor,
+  maxExpiredTokenResyncs = 1,
+  maxConcurrencyRetries = OUTLOOK_CURSOR_CONCURRENCY_RETRY_MAX,
+  warn = console.warn,
+}) {
+  let url = validateGraphDeltaLink(cursor?.delta_link || initialDeltaUrl(mailbox))
+  let expectedVersion = cursor?.version || null
+  let expiredResyncs = 0
+  let concurrencyRetries = 0
+  let counts = { pages: 0, fetched: 0, created: 0, duplicate: 0, tombstone: 0, gated: 0 }
+
+  while (true) {
+    let page
+    try {
+      page = await fetchPage(accessToken, url)
+    } catch (error) {
+      if (!error?.expiredDeltaToken || expiredResyncs >= maxExpiredTokenResyncs) throw error
+      expiredResyncs += 1
+      warn(`outlook-ingest: saved Microsoft Graph cursor expired; starting bounded full inbox delta rebuild (${expiredResyncs}/${maxExpiredTokenResyncs})`)
+      url = initialDeltaUrl(mailbox)
+      counts = { pages: 0, fetched: 0, created: 0, duplicate: 0, tombstone: 0, gated: 0 }
+      continue
+    }
+    counts.pages += 1
+    const messages = Array.isArray(page.value) ? page.value : []
+    counts.fetched += messages.length
+    for (const message of messages) {
+      const result = await processMessage(message)
+      if (!Object.hasOwn(counts, result)) throw new Error('Outlook message processor returned an unknown result')
+      counts[result] += 1
+    }
+    if (page['@odata.nextLink']) {
+      url = validateGraphDeltaLink(page['@odata.nextLink'])
+      continue
+    }
+    if (!page['@odata.deltaLink']) throw new Error('Microsoft Graph delta response ended without a delta link')
+    const deltaLink = validateGraphDeltaLink(page['@odata.deltaLink'])
+    let saved
+    try {
+      saved = await saveCursor({ deltaLink, expectedVersion })
+    } catch (error) {
+      if (error?.code !== 'P0001' || !reloadCursor || concurrencyRetries >= maxConcurrencyRetries) {
+        if (error?.code === 'P0001') throw new Error('Outlook cursor concurrency retry limit exhausted')
+        throw error
+      }
+      concurrencyRetries += 1
+      warn(`outlook-ingest: another worker advanced the cursor; safely replaying from current state (${concurrencyRetries}/${maxConcurrencyRetries})`)
+      const current = await reloadCursor()
+      url = validateGraphDeltaLink(current?.delta_link || initialDeltaUrl(mailbox))
+      expectedVersion = current?.version || null
+      counts = { pages: 0, fetched: 0, created: 0, duplicate: 0, tombstone: 0, gated: 0 }
+      continue
+    }
+    if (saved?.advanced !== true) warn('outlook-ingest: cursor save succeeded without forward progress')
+    return { ...counts, cursorAdvanced: saved?.advanced === true, cursorVersion: saved?.version || null }
+  }
 }
 
 async function outlookIngest() {
   const mailbox = runtimeEnv.OUTLOOK_MAILBOX || 'adweck@popcre.com'
   const gated = runtimeEnv.OUTLOOK_GATED === 'true'
+  const { maxExpiredTokenResyncs } = resolveOutlookDeltaSettings(runtimeEnv)
   const token = await graphToken()
-  const messages = await fetchRecentEmails(token, mailbox)
-  let created = 0
-  for (const message of messages) {
-    const existing = must(await crm('email_message').select('id').eq('outlook_message_id', message.id).limit(1))
-    if (existing.length) continue
-    const addresses = participantAddresses(message)
-    if (gated && !addresses.some((addr) => !addr.endsWith(`@${INTERNAL_DOMAIN}`))) continue
-    const bodyText = message.body?.content || message.bodyPreview || ''
-    const route = await normalizeRoute(await routeEmail({ subject: message.subject || '', bodyText, addresses, displayNames: displayNameMap(message) }))
-    let retailerPatterns = ''
-    if (route.retailer) {
-      const rows = must(await core('customer').select('so_patterns').eq('id', route.retailer).limit(1))
-      retailerPatterns = rows[0]?.so_patterns || ''
-    }
-    const detected = extractOrderNumbers(bodyText, retailerPatterns)
-    must(await crm('email_message').insert({
-      subject: message.subject || '(no subject)',
-      sender: message.from?.emailAddress?.address || '',
-      recipients: [...(message.toRecipients || []), ...(message.ccRecipients || [])].map((r) => r.emailAddress?.address).filter(Boolean).join(', '),
-      received_at: message.receivedDateTime || null,
-      body_preview: message.bodyPreview || '',
-      outlook_message_id: message.id,
-      detected_so_numbers: detected.soNumbers.join(', '),
-      detected_po_numbers: detected.poNumbers.join(', '),
-      external_id: message.id,
-      external_source: 'outlook',
-      ...routeColumns(route),
-    }))
-    if (route.opportunity) await updateOpportunitySummary(route.opportunity)
-    created += 1
-  }
-  console.log(`outlook-ingest: ${created} created, ${messages.length} fetched`)
+  const cursorKey = outlookCursorKey(mailbox)
+  const cursor = await loadOutlookCursor(cursorKey)
+  const result = await runOutlookDeltaSync({
+    accessToken: token,
+    mailbox,
+    cursor,
+    fetchPage: fetchGraphDeltaPage,
+    processMessage: (message) => processOutlookMessage(message, { gated }),
+    saveCursor: ({ deltaLink, expectedVersion }) => saveOutlookCursor({ cursorKey, mailbox, deltaLink, expectedVersion }),
+    reloadCursor: () => loadOutlookCursor(cursorKey),
+    maxExpiredTokenResyncs,
+  })
+  console.log(`outlook-ingest: ${result.created} created, ${result.duplicate} duplicates, ${result.tombstone} tombstones, ${result.gated} gated, ${result.fetched} fetched across ${result.pages} pages; cursor saved`)
 }
 
 async function reroute() {
