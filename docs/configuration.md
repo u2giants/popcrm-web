@@ -137,6 +137,9 @@ deadlines. Optional worker overrides are:
 - `UPSTREAM_RETRY_BASE_DELAY_MS` defaults to `250`.
 - `UPSTREAM_RETRY_MAX_DELAY_MS` defaults to `2000` and must not be below the
   base delay.
+- `OUTLOOK_DELTA_EXPIRED_RESYNC_MAX` defaults to `1` and must be a whole number
+  from `0` through `3`. It limits loud full-inbox delta rebuilds after Graph
+  invalidates a saved cursor. `0` disables automatic rebuild and fails the run.
 
 Every override must be a positive whole-number count of milliseconds or
 attempts. Invalid values stop the worker before it makes an upstream request.
@@ -145,7 +148,9 @@ queries after timeouts, network resets, HTTP 408/429, or selected 5xx replies.
 OpenRouter requests have a deadline but are never retried automatically because
 resending a paid AI request could create duplicate cost or work. Failure logs
 name the operation, attempt count, and safe HTTP status without response bodies,
-tokens, or CRM content.
+tokens, CRM content, or Graph continuation links. Outlook's cursor is held only
+in the service-role-only shared database contract; there is no cursor secret or
+local state file to configure on the host.
 
 Fireflies Webhooks V2 is the production integration. Configure the endpoint
 `https://crm-fireflies.designflow.app/s/fireflies-webhook` for only the

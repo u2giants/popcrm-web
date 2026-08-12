@@ -86,7 +86,7 @@ ledger.
 - Host-side Node worker: `workers/crm-worker-supabase.mjs`
 - Worker scheduling: systemd templates in `systemd/`
 - Shared backend: Supabase project `qsllyeztdwjgirsysgai`
-- Shared backend preview: Supabase project `xjcyeuvzkhtzsheknaiu`
+- Shared backend preview: Supabase project `rjyboqwcdzcocqgmsyel`
 
 ### Important URLs and identifiers
 
@@ -477,7 +477,7 @@ commit SHA and verification evidence, and preserves later rows.
 | 3 | Mandatory Fireflies signature configuration | complete | App commit `12fa536` pushed to `main`; 60 tests, lint (only the pre-existing `src/App.tsx:48` warning), build, syntax, and diff checks passed. Kimi K3 returned `APPROVE` after requiring fast acknowledgement and restored snake-case V1 compatibility. Fireflies Webhooks V2 is configured for only `meeting.transcribed` with the matching concealed 1Password/host secret. Production health returned 200, unsigned delivery returned 401, a correctly signed V2 delivery returned 202, and Fireflies' dashboard test returned HTTP 200. |
 | 4 | Bounded HTTP request bodies | complete | App commit `fe34c94` pushed to `main`; 82 tests, lint (only the pre-existing `src/App.tsx:48` warning), build, worker syntax, and diff checks passed. Kimi K3 returned `APPROVE` after finding and fixing a late request-error crash risk. GitHub shared-db guard and Build and Deploy run `31447673058` passed, and production served the exact frontend commit. After exact owner authorization on 2026-08-10 America/New_York, only `popcrm-fireflies` was restarted. Logs confirmed port 8787, `/health` returned HTTP 200, a normal unsigned Fireflies request returned 401, and one-byte-over-limit probes returned 413 for both Opportunity Chat (65,537 bytes) and Fireflies (1,048,577 bytes), with no new processing errors logged. |
 | 5 | External and systemd timeouts | complete | App commit `94ab3c7` pushed to `main`; 95 tests, lint (only the pre-existing `src/App.tsx:48` warning), build, worker syntax, and diff checks passed after reconciling seven newer shared-db vendor syncs. Kimi K3 returned `APPROVE` after finding and fixing a retry-cap cleanup test weakness. GitHub shared-db guard and Build and Deploy run `31503031807` passed, and production served the exact frontend commit. After exact owner authorization on 2026-08-11, the five systemd service files were installed and reloaded with 10-minute Outlook, 20-minute contact/ignore-rule, and 30-minute reroute/summary ceilings; all five timers remained active and the in-flight reroute finished successfully. Only `popcrm-fireflies` was restarted, logged port 8787, returned HTTP 200 health, rejected an unsigned request with 401, and rejected an oversized request with 413. |
-| 6 | Durable Outlook Graph ingestion | pending | — |
+| 6 | Durable Outlook Graph ingestion | in progress | Phase 6A merged in shared-db PR #801 at `326c25e` and was preview-proven on `rjyboqwcdzcocqgmsyel`; production remained untouched. Phase 6B worker integration implements exact-host Graph delta paging plus compare-and-swap cursor saves and awaits Kimi review and preview-backed one-shot proof. |
 | 7A | Shared-db Overview/sidebar aggregate contracts (preview-proven) | pending | — |
 | 7B | Frontend integration after authorized merge/vendor sync | pending | — |
 | 8 | Dependency and Recharts remediation | pending | — |
@@ -1285,7 +1285,7 @@ The final CI gate must visibly run tests before building the image.
 4. Shared-db is branch + PR; database contracts land there before app code.
 5. Never edit migrations already applied. Use new timestamped additive
    migrations.
-6. Preview Supabase is `xjcyeuvzkhtzsheknaiu`; production is
+6. Preview Supabase is `rjyboqwcdzcocqgmsyel`; production is
    `qsllyeztdwjgirsysgai`. Never mix these with DAM project refs.
 7. Production/shared infrastructure is read-only unless exact mutation
    authority is present in the current chat. Do not infer it from this plan.
@@ -1338,7 +1338,7 @@ The final CI gate must visibly run tests before building the image.
 - Shared production database password: vault `vibe_coding`, item
   `Supabase DB Password - shared POP database`.
 - Preview database password: use the preview item for project
-  `xjcyeuvzkhtzsheknaiu`.
+  `rjyboqwcdzcocqgmsyel`.
 
 ### Local frontend
 
