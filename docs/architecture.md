@@ -40,21 +40,6 @@ service-role CRM reads only for an active profile with unrevoked CRM access or
 the administrator role. It does not trust browser-supplied role/access claims,
 and unauthorized requests cannot reveal whether an opportunity exists.
 
-Outlook ingestion uses Microsoft Graph mail delta pages. On first use it walks
-the inbox delta stream to completion. On later runs it resumes from one opaque
-cursor held by the CRM-owned `crm.worker_delta_cursor` contract. The worker
-processes every returned message before it saves the final delta link, and the
-save presents the version returned by `crm.load_worker_delta_cursor(...)` so a
-stale concurrent worker cannot overwrite newer progress. Existing
-`outlook_message_id` checks make replay safe. Tombstones are acknowledged
-without deleting the retained CRM email record. A page, message, or cursor-save
-failure exits non-zero while preserving the prior cursor.
-
-Every Graph next/delta link must be HTTPS on exactly `graph.microsoft.com`.
-Links are never logged. An invalidated cursor may trigger only the configured,
-bounded full-inbox rebuild and is announced loudly; the worker never falls back
-silently to a newest-message window.
-
 ## Data loading
 
 Data loading is page-scoped through TanStack Query hooks in
