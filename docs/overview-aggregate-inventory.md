@@ -150,6 +150,27 @@ server; do not fetch a page and slice.
 Every recent panel needs a deterministic `id` tie-breaker; none of the three has
 one today.
 
+## 2b. Verification record
+
+**Numeric parity against production, 2026-08-13.** The old client path and the
+new contracts were run against `qsllyeztdwjgirsysgai` as the same authenticated
+CRM user and compared value by value: **49 of 49 match, zero differences.**
+Coverage: 8 scalar KPIs, 6 donut buckets, 8 pipeline stages, 24 chart buckets,
+and all three recent-row panels compared by row id and order. Sample values:
+Customers 152, Contacts 271, Meetings 27, emails total 500, needs routing 472.
+
+Two harness bugs were found and fixed while producing that evidence, and both
+are worth knowing before anyone repeats it: PostgREST caps a plain request at
+1000 rows, so the "old" side must paginate exactly as `fetchRows(-1)` does; and
+the list views must be fetched with the same `order by` the app applies, or the
+recent-row panels appear to differ when they do not.
+
+**`core.company` vs `core.customer`, closed permanently.** Older view
+definitions join `core.company` while the Phase 7A contracts join
+`core.customer`. These are the same table: `core.company` was renamed by
+`20260625153000_core_company_rename_customer.sql`, and `core.company` no longer
+resolves at all. There is no subset relationship and no row can differ.
+
 ## 3. Non-goals for Phase 7A
 
 - No frontend change. `useCrmStatsQuery` is replaced in Phase 7B only.
