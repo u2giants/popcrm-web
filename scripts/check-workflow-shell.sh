@@ -7,6 +7,12 @@
 # before reaching them, so the syntax error only existed on a path nobody hit.
 #
 # Run locally before touching a workflow:  scripts/check-workflow-shell.sh
+#
+# Scope, deliberately narrow: it handles `run: |` literal blocks, which is every
+# multi-line shell block this repo has. Folded (`run: >`) and chomped (`|-`,
+# `|+`) forms are NOT extracted, so adding one would silently go unchecked. The
+# zero-block guard below is what turns that from a silent gap into a failure:
+# if the extractor ever stops matching, CI goes red instead of passing vacuously.
 set -euo pipefail
 
 cd "$(dirname "$0")/.."
@@ -50,6 +56,11 @@ for n, (path, line, body) in enumerate(blocks):
     open(name, 'w').write(body)
     print(f'{name}\t{path}:{line}')
 PY
+
+if [ ! -s /tmp/workflow-shell-blocks.txt ]; then
+  echo "FAIL: extracted zero shell blocks — the extractor is broken, not the workflows" >&2
+  exit 1
+fi
 
 status=0
 count=0

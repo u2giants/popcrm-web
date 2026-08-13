@@ -130,6 +130,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   useEffect(() => {
+    // A fresh gate per effect run. StrictMode in development mounts, unmounts
+    // and remounts, and the cleanup below disposes the gate permanently — the
+    // same ref object survives that simulated unmount, so reusing it would
+    // leave every later refresh rejected and the app stuck signed out.
+    gateRef.current = createRefreshGate()
     const gate = gateRef.current
     let active = true
     const init = async () => {
