@@ -1,25 +1,23 @@
-# Fresh-session handoff: Phases 7A, 7B, 8 done; Phase 9 blocked on one permission
+# Fresh-session handoff: audit plan Sessions 7A through 12 complete; 13 and 14 remain
 
-Status: OPEN — Phase 9 cannot be finished by an AI session under current tool permissions
-Created: 2026-08-13 04:10 UTC
+Status: OPEN — Sessions 13 and 14 are the only audit work left
+Created: 2026-08-13 04:10 UTC, updated 11:20 UTC
 Machine: hetz
 Agent: Claude (Opus 5)
 
 ## 0. DECISIONS ONLY THE OWNER CAN MAKE
 
-1. **Allow an AI session to edit `.github/workflows/*.yml` in this repo.** Two
-   changes are written, verified and waiting on this: removing the malformed
-   shell tail (Phase 9's entire scope) and adding `npm test` to the CI `verify`
-   job. Both are blocked by the Claude Code permission classifier, not by any
-   technical problem. Recommendation: allow it — the repo's whole deploy
-   contract lives in that one file and no phase past 9 can be verified without
-   touching it.
-2. **Allow browser localStorage injection for visual verification**, or accept
+1. **Allow browser localStorage injection for visual verification**, or accept
    that AI sessions cannot screenshot logged-in pages. The documented method
-   (mint a Supabase session, inject it, drive Playwright) is blocked by the same
-   classifier. A credential-free workaround exists for charts only
+   (mint a Supabase session, inject it, drive Playwright) is blocked by the
+   permission classifier. A credential-free workaround exists for charts only
    (`/__charts`, see §3), but nothing can screenshot the real Overview with real
-   data.
+   data. Everything else this session needed was granted.
+
+### Already granted, do not re-ask
+
+- 2026-08-13: Albert allowed AI edits to `.github/workflows/`. Sessions 9 and 11
+  are done because of it.
 
 ### Already settled, do not re-ask
 
@@ -87,18 +85,50 @@ credential-free probe: `npm run dev`, then `http://localhost:5173/__charts`.
 Zero console errors. Source `src/dev/ChartProbe.tsx`, DEV-gated in
 `src/main.tsx`; confirmed absent from the production bundle by grep.
 
-### Phase 9 — malformed deploy shell. BLOCKED, diagnosis complete.
+### Sessions 9 and 11 — deploy shell and the CI test gate. COMPLETE.
 
-`.github/workflows/deploy.yml` lines 143-149 are orphaned remnants of a deleted
-loop: an `exit 0`, an unmatched `fi`, an unmatched `done`. `bash -n` on the
-extracted block fails with "syntax error near unexpected token `fi`". The fix is
-to delete exactly those seven lines and nothing else. I could not apply it: the
-permission classifier blocks AI edits to `.github/workflows/`.
+Commit `70beeec`, green run `31693044569`. Removed exactly the seven orphaned
+lines from `deploy.yml` (an `exit 0`, an unmatched `fi`, an unmatched `done`).
+They had never gone red because bash parses lazily and the step exits on its
+success path first, so the syntax error lived on a path nobody reached.
 
-Why it has never been noticed: bash parses lazily, and the step's success path
-`exit 0`s at line 126 long before it reaches the junk. The junk only parses if
-the deploy wait loop runs its full 7.5 minutes, which already ends in `exit 1`.
-So it is latent, not currently breaking anything.
+`scripts/check-workflow-shell.sh` now extracts every multi-line `run:` block and
+parses it with `bash -n`. Proven against the pre-fix file: it reports the exact
+failure. It fails loudly if it ever extracts zero blocks, so a broken extractor
+cannot pass vacuously. It only understands `run: |`, not `run: >` or chomped
+scalars — that gap is commented in the script.
+
+The `verify` job now runs four separately named steps before any image is built:
+Validate workflow shell blocks, Lint, Test, Typecheck and build. `npm test` had
+never run in CI at all.
+
+### Session 10 — stale auth refreshes. COMPLETE.
+
+Commits `bf2e3c0` and `1cd7c4c`, green run `31694206708`. `src/auth/refreshGate.ts`
+applies a profile result only if it is the newest refresh and its session user is
+still current; sign-out, `logout()` and unmount reject in-flight refreshes
+synchronously. A failed `current_user_profile` is still non-fatal but is logged.
+Impersonation is erased when the real account is not an administrator.
+
+GLM found the bug that mattered: StrictMode mounts, unmounts and remounts, the
+cleanup disposed the gate permanently, and the ref survived the remount, so every
+later refresh was rejected and the app sat signed out in development. The effect
+now builds a fresh gate per run.
+
+This is also where the repo gained a DOM test environment: `happy-dom` plus
+`@testing-library/react`, opted into per file with a
+`@vitest-environment happy-dom` docblock. **happy-dom, not jsdom** — jsdom 30
+needs Node 22 APIs and this repo builds and deploys on Node 20.
+
+### Session 12 — auth callback banner. COMPLETE.
+
+Commit `948c630`, green run `31694686853`. The gate reads the callback error as
+lazy state instead of setting it from an effect. `readAuthCallbackError` moved to
+`src/auth/callbackError.ts` so it is testable without instantiating the Supabase
+client, which throws when configuration is absent.
+
+**`npm run lint` is now zero errors and zero warnings.** `AGENTS.md` no longer
+carries an accepted-warnings row; do not reintroduce one.
 
 ## 4. Everything tried that did NOT work
 
@@ -175,13 +205,17 @@ plain `npm ci`.
 
 ## 6. Exact next steps
 
-1. Get decision 0.1. Then delete `.github/workflows/deploy.yml` lines 143-149,
-   add `npm test` to the `verify` job, and validate with `bash -n` on every
-   extracted `run:` block. **You'll know it worked when:** `bash -n` is clean and
-   the next Build and Deploy run passes verify, image, deploy and exact-SHA check.
-2. Phase 10 (stale auth refresh after logout) through Phase 14 are unchanged and
-   still valid. Read the plan; do not re-derive.
-3. The `src/App.tsx:48` lint warning belongs to Phase 12. Leave it.
+1. **Session 13 — high-volume worker batching and N+1 removal.** Read its section
+   in the plan. Note the standing constraint from the Phase 6 handoff: the systemd
+   timers execute `/worksp/popcrm-web/workers/*.mjs` **directly out of the live
+   checkout**, so an uncommitted edit is already production-visible at the next
+   firing. Stop the affected timer before the first edit, or work in an isolated
+   worktree. The plan also says Session 13 must reuse `crm.worker_delta_cursor`
+   or its compare-and-swap pattern rather than inventing another state system.
+2. **Session 14 — remove retired ingested-domain promotion residue.** Last row.
+3. Every session closes its own ledger row in
+   `plan_codebase_audit_remediation.md` with commit SHA and evidence. Rows 1-12
+   are closed; do not touch them.
 4. Consider whether `src/dev/ChartProbe.tsx` stays. It is documented in
    `docs/development.md` as the way to verify a charting upgrade. If it is not
    going to be used for the next one, delete it.
