@@ -12,9 +12,18 @@ npm run dev
 ```bash
 npm run build
 npm run lint
+npm test
+./scripts/check-workflow-shell.sh
 ```
 
-Lint should pass cleanly; do not add new warnings in changed code.
+Lint should pass cleanly; do not add new warnings in changed code. All four run
+in CI's `verify` job, in that order, before any image is built — see
+`docs/deployment.md`.
+
+Tests default to the Node environment. Anything that needs a DOM opts in per
+file with a `@vitest-environment happy-dom` docblock; `src/auth/auth.test.tsx`
+is the example. happy-dom rather than jsdom on purpose: jsdom 30 needs Node 22
+APIs, and this repo builds and deploys on Node 20.
 
 ## Local Backend
 
