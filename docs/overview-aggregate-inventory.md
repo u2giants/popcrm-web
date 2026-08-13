@@ -115,6 +115,14 @@ Failure group B. Needs full-dataset counts, not a 500-row window.
 
 Buckets are rolling 7-day windows measured back from the current instant, not
 calendar weeks, and the bucket label the UI prints is the window end date `M/D`.
+
+**Time zone, as shipped:** bucket edges are now computed on the server from a
+single `statement_timestamp()`, which is UTC-canonical, while the old client
+version computed them from the browser's clock. For a user outside UTC a message
+that arrived within a few hours of a bucket edge can land one bucket over. That
+is expected, not a bug. The label itself is still built in the browser's local
+zone, from the bucket start date plus seven days, so the labels read the same as
+before.
 Rows with a null `received_at` are excluded. Exactly 12 buckets are always
 returned, including empty ones. Time zone: bucket edges are computed today in the
 browser's local zone; the server contract must state its zone explicitly and

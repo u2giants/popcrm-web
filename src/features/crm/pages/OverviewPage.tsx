@@ -185,7 +185,7 @@ export function OverviewPage() {
             />
             <MetricCard
               label="Needs routing"
-              value={stats.needsRouting.toLocaleString()}
+              value={emailCounts ? stats.needsRouting.toLocaleString() : '…'}
               icon={<MailWarning className="size-4" />}
               iconColor="oklch(0.62 0.16 25)"
               tone={stats.needsRouting ? 'danger' : 'default'}
@@ -222,12 +222,14 @@ export function OverviewPage() {
                 description="12-week ingest vs. auto-routed"
                 className="mb-[12px]"
               />
-              <ChartAreaVolume
-                data={emailVolume}
-                primaryKey="ingested"
-                secondaryKey="routed"
-                height={150}
-              />
+              <CardState query={volumeQuery} empty={emailVolume.length === 0} emptyText="No email data yet.">
+                <ChartAreaVolume
+                  data={emailVolume}
+                  primaryKey="ingested"
+                  secondaryKey="routed"
+                  height={150}
+                />
+              </CardState>
             </div>
             <div className="rounded-[12px] border bg-card p-5 shadow-[var(--shadow-xs)]">
               <div className="mb-[12px] flex items-start justify-between gap-2">
@@ -236,7 +238,7 @@ export function OverviewPage() {
                     Routing health
                   </p>
                   <p className="mt-[1px] text-[11.5px] text-muted-foreground">
-                    {stats.emails.toLocaleString()} messages
+                    {emailCounts ? `${stats.emails.toLocaleString()} messages` : '…'}
                   </p>
                 </div>
                 <button
@@ -246,15 +248,17 @@ export function OverviewPage() {
                   Open queue <ArrowRight className="size-[13px]" />
                 </button>
               </div>
-              {routingSlices.length ? (
+              <CardState
+                query={emailCountsQuery}
+                empty={routingSlices.length === 0}
+                emptyText="No email data yet."
+              >
                 <ChartDonut
                   data={routingSlices}
                   centerLabel={`${Math.round((routingSlices.find(s => s.key === 'ROUTED')?.value ?? 0) / Math.max(stats.emails, 1) * 100)}%`}
                   centerSub="routed"
                 />
-              ) : (
-                <p className="mt-6 text-[12px] text-muted-foreground">No email data yet.</p>
-              )}
+              </CardState>
             </div>
           </div>
 
@@ -269,12 +273,19 @@ export function OverviewPage() {
                   Opportunities by stage
                 </p>
               </div>
-              <ChartHBar data={stageBars} />
+              <CardState
+                query={pipelineQuery}
+                empty={stageBars.length === 0}
+                emptyText="No opportunities yet."
+              >
+                <ChartHBar data={stageBars} />
+              </CardState>
             </div>
             <ActivityPanel
               title="Needs routing"
               icon={<MailWarning className="size-4" />}
               empty="Inbox zero — every message is routed."
+              query={unroutedQuery}
               onView={() => navigate('/email')}
               items={recentUnrouted.map((e) => ({
                 id: e.id,
@@ -292,6 +303,7 @@ export function OverviewPage() {
               title="Recent meetings"
               icon={<CalendarDays className="size-4" />}
               empty="No meetings imported yet."
+              query={meetingsQuery}
               onView={() => navigate('/meetings')}
               items={recentMeetings.map((m) => ({
                 id: m.id,
@@ -305,6 +317,7 @@ export function OverviewPage() {
               title="Pending approvals"
               icon={<ShieldCheck className="size-4" />}
               empty="No pending approvals."
+              query={approvalsQuery}
               onView={() => navigate('/approvals')}
               items={pendingApprovals.map((a) => ({
                 id: a.id,
@@ -321,6 +334,39 @@ export function OverviewPage() {
   )
 }
 
+// Each Overview card owns its own loading/error/empty state now that the seven
+// aggregates load independently. Without this the page prints an affirmative
+// empty ("Inbox zero", "No email data yet") while a slower query is still in
+// flight, or forever during an email outage — a wrong answer dressed as a good
+// one, which is exactly what the failure isolation is supposed to prevent.
+type CardQuery = { isPending: boolean; isError: boolean; refetch: () => unknown }
+
+function CardState({
+  query,
+  empty,
+  emptyText,
+  children,
+}: {
+  query: CardQuery
+  empty: boolean
+  emptyText: string
+  children: React.ReactNode
+}) {
+  if (query.isPending) return <p className="mt-6 text-[12px] text-muted-foreground">Loading…</p>
+  if (query.isError) {
+    return (
+      <div className="mt-6 flex items-center gap-2 text-[12px] text-destructive">
+        <span>Could not load.</span>
+        <button onClick={() => void query.refetch()} className="font-[500] underline">
+          Retry
+        </button>
+      </div>
+    )
+  }
+  if (empty) return <p className="mt-6 text-[12px] text-muted-foreground">{emptyText}</p>
+  return <>{children}</>
+}
+
 interface ActivityItem {
   id: string
   primary: React.ReactNode
@@ -334,12 +380,14 @@ function ActivityPanel({
   icon,
   items,
   empty,
+  query,
   onView,
 }: {
   title: string
   icon: React.ReactNode
   items: ActivityItem[]
   empty: string
+  query: CardQuery
   onView: () => void
 }) {
   return (
@@ -356,7 +404,16 @@ function ActivityPanel({
           View all <ArrowRight className="size-[13px]" />
         </button>
       </div>
-      {items.length ? (
+      {query.isPending ? (
+        <p className="px-4 py-8 text-center text-[12px] text-muted-foreground">Loading…</p>
+      ) : query.isError ? (
+        <p className="px-4 py-8 text-center text-[12px] text-destructive">
+          Could not load.{' '}
+          <button onClick={() => void query.refetch()} className="font-[500] underline">
+            Retry
+          </button>
+        </p>
+      ) : items.length ? (
         <ul className="divide-y">
           {items.map((item) => (
             <li key={item.id}>
