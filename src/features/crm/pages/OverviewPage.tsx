@@ -339,7 +339,7 @@ export function OverviewPage() {
 // empty ("Inbox zero", "No email data yet") while a slower query is still in
 // flight, or forever during an email outage — a wrong answer dressed as a good
 // one, which is exactly what the failure isolation is supposed to prevent.
-type CardQuery = { isPending: boolean; isError: boolean; refetch: () => unknown }
+type CardQuery = { isPending: boolean; isError: boolean; data?: unknown; refetch: () => unknown }
 
 function CardState({
   query,
@@ -353,7 +353,11 @@ function CardState({
   children: React.ReactNode
 }) {
   if (query.isPending) return <p className="mt-6 text-[12px] text-muted-foreground">Loading…</p>
-  if (query.isError) {
+  // Charts prefer stale data over an error: react-query keeps `isError` true
+  // after a failed background refetch even when the last good result is still
+  // cached, and a 90-second-old chart beats "Could not load". The recent-row
+  // panels below deliberately do NOT do this — stale "recent" rows mislead.
+  if (query.isError && query.data === undefined) {
     return (
       <div className="mt-6 flex items-center gap-2 text-[12px] text-destructive">
         <span>Could not load.</span>
