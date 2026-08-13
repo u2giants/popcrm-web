@@ -1,5 +1,6 @@
-import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from 'react'
+import { createContext, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { supabase, signInWithMicrosoft } from '@/lib/supabase'
+import { createRefreshGate } from './refreshGate'
 import type { AdminUserSummary, AppUser } from '@/lib/types'
 
 interface AuthState {
@@ -95,45 +96,81 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const isAdmin = useMemo(() => (realUser?.roles ?? []).includes('administrator'), [realUser])
 
+  // See ./refreshGate.ts. Every refresh takes a token and may only apply its
+  // result if it is still the newest one AND the session user has not changed.
+  const gateRef = useRef(createRefreshGate())
+
   async function refresh() {
     const { data: sessionData } = await supabase.auth.getSession()
     const session = sessionData.session
+    const sessionUserId = session?.user.id ?? null
+    const gate = gateRef.current
+    const token = gate.begin(sessionUserId)
+
     if (!session) {
-      setRealUser(null)
+      if (gate.accepts(token, null)) setRealUser(null)
       return
     }
+
+    const fallback = { id: session.user.id, email: session.user.email ?? null }
     try {
       const { data, error } = await supabase.schema('api').rpc('current_user_profile')
       if (error) throw error
-      setRealUser(toAppUser((data as ProfileRow | null) ?? null, { id: session.user.id, email: session.user.email ?? null }))
-    } catch {
-      // Session is valid but the profile contract failed — keep the user signed in.
-      setRealUser(toAppUser(null, { id: session.user.id, email: session.user.email ?? null }))
+      if (!gate.accepts(token, sessionUserId)) return
+      setRealUser(toAppUser((data as ProfileRow | null) ?? null, fallback))
+    } catch (error) {
+      // Session is valid but the profile contract failed. Keep the user signed
+      // in on the auth identity alone — but never silently: a degraded profile
+      // means role-gated UI is missing and RLS will return empty data, which
+      // reads exactly like "there is no data".
+      console.error('auth: current_user_profile failed; rendering the degraded auth identity', error)
+      if (!gate.accepts(token, sessionUserId)) return
+      setRealUser(toAppUser(null, fallback))
     }
   }
 
   useEffect(() => {
+    const gate = gateRef.current
     let active = true
     const init = async () => {
       await refresh()
       if (active) setLoading(false)
     }
     void init()
-    const { data: sub } = supabase.auth.onAuthStateChange((event) => {
-      if (event === 'SIGNED_IN' || event === 'SIGNED_OUT' || event === 'TOKEN_REFRESHED' || event === 'USER_UPDATED') {
+    const { data: sub } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === 'SIGNED_OUT') {
+        // Reject every in-flight refresh synchronously, before any of them can
+        // resolve and restore the signed-out user, then clear state here rather
+        // than waiting for the refresh round trip.
+        gate.markSession(null)
+        gate.invalidate()
+        setRealUser(null)
+        stopImpersonation()
+        return
+      }
+      if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED' || event === 'USER_UPDATED') {
+        gate.markSession(session?.user.id ?? null)
         void refresh()
       }
     })
     return () => {
       active = false
+      // Nothing may set state after unmount, including a refresh already in
+      // flight at this moment.
+      gate.dispose()
       sub.subscription.unsubscribe()
     }
   }, [])
 
   // Impersonation is an admin-only capability: only an administrator's session
   // ever renders as an impersonated user. Any stored value is ignored for a
-  // non-admin and cleared on the next start/stop/logout.
+  // non-admin, and the effect below also erases it so a later re-grant of admin
+  // cannot silently resurrect an impersonation the user never restarted.
   const impersonating = isAdmin ? impersonatingState : null
+
+  useEffect(() => {
+    if (realUser && !isAdmin && impersonatingState) stopImpersonation()
+  }, [realUser, isAdmin, impersonatingState])
 
   function startImpersonation(target: AdminUserSummary) {
     if (!isAdmin) return
@@ -164,6 +201,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   async function logout() {
+    // Invalidate first: sign-out is the case where a stale in-flight profile is
+    // most damaging, and awaiting signOut leaves a window open.
+    gateRef.current.markSession(null)
+    gateRef.current.invalidate()
     try {
       await supabase.auth.signOut()
     } finally {
