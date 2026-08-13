@@ -55,6 +55,28 @@ and `scrollWidth`; on 2026-06-30 the live Data Admin table at `#61615cd`
 measured `704 / 1234` (overflow), while the local fixed source measured
 `1304 / 1304` with the same data.
 
+## Dependencies and advisories
+
+Checked 2026-08-13. `npm audit` and `npm audit --omit=dev` both report **0
+vulnerabilities**, so there is no documented residual advisory to review. Re-run
+both at the start of any dependency session; advisories are time-sensitive.
+
+What that pass changed, and why it matters if you touch these again:
+
+- **`shadcn` is a devDependency, not a runtime one, but it is NOT unused.**
+  `src/index.css` line 3 does `@import "shadcn/tailwind.css"`, so removing the
+  package breaks `npm run build` even though nothing imports it from TypeScript.
+  Grepping only for JS/TS imports will tell you it is dead code. It is not.
+  The Docker image runs a plain `npm ci` (dev dependencies included), so
+  devDependencies is the correct home for it.
+- **Recharts is on v3.** `src/components/ui/chart.tsx` was the shadcn chart
+  primitive; nothing in the app imported it, and its types no longer compile
+  against Recharts v3, so it was deleted rather than migrated. The charts the
+  app actually renders are `ChartAreaVolume`, `ChartDonut` and `ChartHBar` under
+  `src/components/app/`.
+- **React Router is on 7.18.2** and **Vitest on 4.x**, both of which closed
+  advisories rated high and critical respectively.
+
 ## Frontend Redesign
 
 Read `frontend_imp.md` before substantial UI work. The implemented direction is Tailwind Plus Application UI for app patterns and shadcn charts (Recharts) for analytics, themed by the shared design tokens in `src/index.css`, while keeping the Vite/React/Supabase architecture.
