@@ -33,6 +33,23 @@ The frontend has no database and stores no CRM data locally. It uses Supabase
 Auth in the browser, then loads the user's CRM profile with
 `api.current_user_profile()`.
 
+That profile load runs on mount, sign-in, sign-out, token refresh and user
+update, so several are routinely in flight at once and the network does not
+preserve their order. `src/auth/refreshGate.ts` decides which result may be
+applied: only the newest refresh, and only if the session user it was fetched
+for is still the current session user. Sign-out and provider unmount reject
+everything already in flight synchronously, so a slow response cannot restore a
+signed-out or previous user. The gate is a plain object with no React or
+Supabase dependency, so the ordering rules are tested directly in
+`src/auth/refreshGate.test.ts` rather than through a rendered provider.
+
+If `api.current_user_profile()` fails while the session is still valid, the user
+stays signed in on their auth identity alone. That is deliberate, but it is
+logged rather than swallowed: a degraded profile means role-gated UI disappears
+and RLS returns empty rows, which on screen is indistinguishable from having no
+data. Impersonation is admin-only, and is erased outright when the real account
+is not an administrator, so a later re-grant of admin cannot resurrect one.
+
 Opportunity Chat is hosted by the service-role worker, so it independently
 verifies the bearer token with Supabase Auth and resolves
 `api.current_user_profile()` using that user's JWT. The endpoint reaches
