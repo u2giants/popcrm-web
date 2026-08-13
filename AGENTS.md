@@ -900,7 +900,7 @@ now break-glass only (see `docs/deployment.md`).
 | blocked | Customer logos go live | Code deployed but inert until `LOGODEV_TOKEN` GitHub secret is set (publishable logo.dev key) — see HANDOFF.md. Falls back to initials until then |
 | open | Server-side pagination / Supabase aggregates | Currently client-side for CRM screens; revisit if record volumes grow |
 | open | Bump CI actions off Node 20 | GitHub deprecates Node-20 actions (~2026-06-16); update `actions/*` and `docker/*` versions in `deploy.yml` |
-| known | Pre-existing lint warnings in `src/auth/auth.tsx` | 3 warnings (`any`, setState-in-effect, unused disable) accepted; do not add new warnings elsewhere |
+| known | Lint baseline | **Zero.** `npm run lint` reports no errors and no warnings as of 2026-08-13; the last one (`set-state-in-effect` in the auth gate) was removed in Session 12. There is no accepted-warning list any more — do not reintroduce one, and do not merge a warning. |
 | unknown | `crm_licensor_approval_thread.stage` values | Free-form, 0 rows today; verify real values via backend when approval data exists |
 <!-- ansible-host-policy: managed rollout from u2giants/ansible -->
 ## Host / server changes — do NOT make them here
