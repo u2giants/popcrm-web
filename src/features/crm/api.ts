@@ -923,3 +923,159 @@ export async function searchCrm(query: string, limitPerGroup = 8): Promise<CrmSe
     emails: (emailRows as Row[]).map(toEmail),
   }
 }
+
+// ---------------------------------------------------------------------------
+// Overview + Sidebar server aggregates (Phase 7A/7B)
+//
+// These replace the seven unbounded list fetches that useCrmStatsQuery used to
+// run. Every number is now computed in the database by a purpose-built,
+// browser-safe contract (see docs/overview-aggregate-inventory.md and
+// shared-db migrations 20260812130000 / 20260812211000).
+//
+// The groups are deliberately separate calls: an email-domain outage must not
+// blank the people/pipeline/work KPIs, and each bounded panel is independently
+// callable. Every contract is hard-gated on app.has_app_access('crm') and
+// raises insufficient_privilege rather than returning an empty result, so a
+// permission failure surfaces loudly instead of reading as "zero".
+//
+// Email-derived contracts intentionally read the newest 500 messages, exactly
+// matching the window the browser used before. Widening it is separate work.
+// ---------------------------------------------------------------------------
+export interface CrmOverviewCounts {
+  customers: number
+  contacts: number
+  openOpportunities: number
+  meetings: number
+  openTasks: number
+  pendingApprovals: number
+}
+
+export interface CrmOverviewEmailCounts {
+  total: number
+  needsRouting: number
+  routed: number
+  skipped: number
+  companyOnly: number
+  companyDept: number
+  unrouted: number
+  noCompany: number
+  other: number
+}
+
+export interface CrmOverviewStageCount {
+  stage: string
+  count: number
+}
+
+export interface CrmOverviewVolumeWeek {
+  weekStart: string
+  ingested: number
+  routed: number
+}
+
+export interface CrmOverviewRecentEmail {
+  id: string
+  subject: string | null
+  sender: string | null
+  routing_status: string | null
+}
+
+export interface CrmOverviewRecentMeeting {
+  id: string
+  name: string | null
+  company: { id: string; name: string | null } | null
+  date: string | null
+}
+
+export interface CrmOverviewPendingApproval {
+  id: string
+  name: string | null
+  property_name: string | null
+  opportunity: { id: string; name: string | null } | null
+  stage: string | null
+}
+
+// bigint columns arrive as JSON numbers (or strings on very large values);
+// normalize once so no caller has to guess.
+function count(value: unknown): number {
+  const n = typeof value === 'string' ? Number(value) : (value as number)
+  return Number.isFinite(n) ? n : 0
+}
+
+async function overviewRows(fn: string, args?: Row): Promise<Row[]> {
+  const { data, error } = await anyDb.schema('api').rpc(fn, args ?? {})
+  if (error) throw error
+  return (Array.isArray(data) ? data : data ? [data] : []) as Row[]
+}
+
+export async function fetchOverviewCounts(): Promise<CrmOverviewCounts> {
+  const [row = {}] = await overviewRows('crm_overview_counts')
+  return {
+    customers: count(row.customers),
+    contacts: count(row.contacts),
+    openOpportunities: count(row.open_opportunities),
+    meetings: count(row.meetings),
+    openTasks: count(row.open_tasks),
+    pendingApprovals: count(row.pending_approvals),
+  }
+}
+
+export async function fetchOverviewEmailCounts(): Promise<CrmOverviewEmailCounts> {
+  const [row = {}] = await overviewRows('crm_overview_email_counts')
+  return {
+    total: count(row.total),
+    needsRouting: count(row.needs_routing),
+    routed: count(row.routed),
+    skipped: count(row.skipped),
+    companyOnly: count(row.company_only),
+    companyDept: count(row.company_dept),
+    unrouted: count(row.unrouted),
+    noCompany: count(row.no_company),
+    other: count(row.other),
+  }
+}
+
+export async function fetchOverviewPipelineStages(): Promise<CrmOverviewStageCount[]> {
+  const rows = await overviewRows('crm_overview_pipeline_stages')
+  return rows.map((r) => ({ stage: (r.stage ?? '') as string, count: count(r.count) }))
+}
+
+export async function fetchOverviewEmailVolume(weeks = 12): Promise<CrmOverviewVolumeWeek[]> {
+  const rows = await overviewRows('crm_overview_email_volume', { p_weeks: weeks })
+  return rows.map((r) => ({
+    weekStart: (r.week_start ?? '') as string,
+    ingested: count(r.ingested),
+    routed: count(r.routed),
+  }))
+}
+
+export async function fetchOverviewRecentUnrouted(limit = 6): Promise<CrmOverviewRecentEmail[]> {
+  const rows = await overviewRows('crm_overview_recent_unrouted', { p_limit: limit })
+  return rows.map((r) => ({
+    id: r.id as string,
+    subject: (r.subject ?? null) as string | null,
+    sender: (r.sender ?? null) as string | null,
+    routing_status: (r.routing_status ?? null) as string | null,
+  }))
+}
+
+export async function fetchOverviewRecentMeetings(limit = 6): Promise<CrmOverviewRecentMeeting[]> {
+  const rows = await overviewRows('crm_overview_recent_meetings', { p_limit: limit })
+  return rows.map((r) => ({
+    id: r.id as string,
+    name: (r.name ?? null) as string | null,
+    company: rel(r.company_id, r.company_name) as { id: string; name: string | null } | null,
+    date: (r.date ?? null) as string | null,
+  }))
+}
+
+export async function fetchOverviewPendingApprovals(limit = 6): Promise<CrmOverviewPendingApproval[]> {
+  const rows = await overviewRows('crm_overview_pending_approvals', { p_limit: limit })
+  return rows.map((r) => ({
+    id: r.id as string,
+    name: (r.name ?? null) as string | null,
+    property_name: (r.property_name ?? null) as string | null,
+    opportunity: rel(r.opportunity_id, r.opportunity_name) as { id: string; name: string | null } | null,
+    stage: (r.stage ?? null) as string | null,
+  }))
+}

@@ -1,8 +1,11 @@
 import { NavLink } from 'react-router-dom'
 import { Route } from 'lucide-react'
 import { NAV_SECTIONS } from '@/app/navigation'
-import { useCrmStatsQuery, useFirefliesHealth } from '@/features/crm/queries'
-import { isApprovalResolved, needsRouting } from '@/features/crm/constants'
+import {
+  useFirefliesHealth,
+  useOverviewCountsQuery,
+  useOverviewEmailCountsQuery,
+} from '@/features/crm/queries'
 import { cn } from '@/lib/utils'
 
 function SidebarContent({
@@ -12,20 +15,18 @@ function SidebarContent({
   onNavigate?: () => void
   variant?: 'desktop' | 'mobile'
 }) {
-  const statsQuery = useCrmStatsQuery()
+  // Server-computed badge counts. Email is a separate contract from the rest, so
+  // a degraded email query still leaves the task/approval badges correct.
+  const counts = useOverviewCountsQuery()
+  const emailCounts = useOverviewEmailCountsQuery()
   const fireflies = useFirefliesHealth()
-  const statsData = statsQuery.data
-  const stats = {
-    needsRouting: statsData?.emails.filter((e) => needsRouting(e.routing_status)).length ?? 0,
-    openTasks: statsData?.tasks.filter((t) => t.status !== 'DONE' && t.status !== 'CANCELED').length ?? 0,
-    pendingApprovals: statsData?.approvals.filter((a) => !isApprovalResolved(a.stage)).length ?? 0,
-  }
+  const needsRoutingCount = emailCounts.data?.needsRouting ?? 0
 
   const badges: Record<string, number> = {
-    '/email': stats.needsRouting,
-    '/triage': stats.needsRouting,
-    '/tasks': stats.openTasks,
-    '/approvals': stats.pendingApprovals,
+    '/email': needsRoutingCount,
+    '/triage': needsRoutingCount,
+    '/tasks': counts.data?.openTasks ?? 0,
+    '/approvals': counts.data?.pendingApprovals ?? 0,
   }
 
   const healthOk = fireflies.data !== false
