@@ -1,5 +1,22 @@
 # Overview + Sidebar aggregate inventory (Phase 7A gate 2)
 
+> **Status, 2026-08-12:** the shared-db half of Phase 7A is already built and
+> preview-proven. Migrations `20260812130000_crm_overview_server_contracts.sql`
+> and `20260812211000_crm_overview_exact_parity_corrections.sql` are merged on
+> `u2giants/shared-db` `main` (PR #848) and applied to preview
+> `rjyboqwcdzcocqgmsyel`. They are **not** applied to production
+> `qsllyeztdwjgirsysgai`; that owner approval is tracked on shared-db issue #851.
+> The seven contracts are `api.crm_overview_counts`, `_email_counts`,
+> `_pipeline_stages`, `_email_volume`, `_recent_unrouted`, `_recent_meetings`,
+> `_pending_approvals`.
+>
+> Two deliberate differences from this document, decided in shared-db for exact
+> display parity: the email contracts **keep** the newest-500-message window
+> (§1 defect 1 below is preserved on purpose so Phase 7B changes no displayed
+> number), while the 5000-customer cap (§1 defect 2) **is** removed, because the
+> new count is a true `count(*)`. Widening the email window is follow-up work
+> after Phase 7B, not part of it.
+
 Durable mapping of every value the CRM Overview page and the app sidebar display,
 with its source contract, source table, filter, failure boundary, and recent-row
 bound. This is the input to the shared-db `db-work` request for Phase 7A; it is
