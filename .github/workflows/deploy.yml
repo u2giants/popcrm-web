@@ -37,8 +37,17 @@ jobs:
           node-version: '20'
           cache: 'npm'
       - run: npm ci
+      # Catches an unmatched fi/done inside any run: block. Bash parses lazily,
+      # so a broken tail can sit in a workflow for months without a red run.
+      - name: Validate workflow shell blocks
+        run: ./scripts/check-workflow-shell.sh
       - name: Lint
         run: npm run lint
+      # The suite must run here, not just on a developer's machine. A Vitest
+      # major once landed on main with no CI test execution at all because this
+      # job only linted and built.
+      - name: Test
+        run: npm test
       - name: Typecheck and build
         run: npm run build
 
@@ -139,11 +148,4 @@ jobs:
           if html="$(curl -fsSL -H 'Cache-Control: no-cache' https://crm.designflow.app/ || true)"; then
             printf '%s\n' "$html" | sed -nE 's/.*src="([^"]*\/assets\/index-[^"]+\.js)".*/last seen bundle: \1/p' >&2
           fi
-          exit 1
-              exit 0
-            fi
-            echo "waiting for production... ($i/60)"
-            sleep 5
-          done
-          echo "production did not become healthy within 5 minutes" >&2
           exit 1

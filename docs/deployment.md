@@ -16,7 +16,8 @@ repository as part of the same documentation pass.
 push to main
   ↓
 GitHub Actions (.github/workflows/deploy.yml)
-  verify        – npm ci, npm run lint, npm run build (tsc -b && vite build)
+  verify        – npm ci, scripts/check-workflow-shell.sh, npm run lint,
+                   npm test, npm run build (tsc -b && vite build)
   build-and-push – Docker build (build-args: COMMIT_HASH/DATE,
                    VITE_SUPABASE_URL, VITE_SUPABASE_ANON_KEY,
                    VITE_LOGODEV_TOKEN),
@@ -29,6 +30,18 @@ Coolify (https://coolify.designflow.app)
   ↓
 crm.designflow.app  (runtime host only)
 ```
+
+Before touching `.github/workflows/*.yml`, run the shell gate locally:
+
+```bash
+./scripts/check-workflow-shell.sh
+```
+
+It extracts every multi-line `run:` block and parses it with `bash -n`. This
+exists because deploy.yml carried seven orphaned lines (an `exit 0`, an
+unmatched `fi`, an unmatched `done`) from a deleted loop for months without a
+single red run: bash parses lazily, so the step exited on its success path long
+before reaching the broken tail. Removed 2026-08-13; the gate now runs in CI too.
 
 Every release is traceable from: GitHub Actions run history → the `sha-<commit>`
 tag in GHCR → Coolify's deployment history → the repo commit. The running build's
