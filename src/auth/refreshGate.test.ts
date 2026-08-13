@@ -75,3 +75,20 @@ describe('auth refresh gate', () => {
     expect(gate.accepts(fresh, 'user-a')).toBe(true)
   })
 })
+
+// Documents a deliberate asymmetry: begin() also records the session user, so a
+// refresh started after a markSession() call overwrites it. That is safe only
+// because every identity change in the provider is accompanied by a generation
+// bump (a begin() or an invalidate()), which rejects the older result first.
+// If a future caller changes identity without bumping the generation, this
+// behaviour is the hole it would open.
+describe('begin() records identity as well as generation', () => {
+  it('lets the newest begin() define the current session user', () => {
+    const gate = createRefreshGate()
+    gate.begin('user-a')
+    gate.markSession('user-b')
+    const token = gate.begin('user-a')
+
+    expect(gate.accepts(token, 'user-a')).toBe(true)
+  })
+})
