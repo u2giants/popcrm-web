@@ -1,23 +1,9 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { AuthProvider, useAuth } from '@/auth/auth'
+import { readAuthCallbackError } from '@/auth/callbackError'
 import { LoginPage } from '@/pages/LoginPage'
 import { AppRoutes } from '@/app/routes'
 import { useCrmRealtimeInvalidation } from '@/features/crm/realtime'
-
-function readAuthCallbackError() {
-  const params = new URLSearchParams(window.location.search)
-  const hashParams = new URLSearchParams(window.location.hash.replace(/^#/, ''))
-  const authError = params.get('error_description') ?? hashParams.get('error_description')
-  const authErrorCode = params.get('error_code') ?? hashParams.get('error_code')
-
-  if (!authError) return null
-
-  if (authErrorCode === 'unexpected_failure' && /saving new user/i.test(authError)) {
-    return 'Microsoft sign-in reached POP CRM, but the account could not be provisioned. Please ask an administrator to check your CRM access.'
-  }
-
-  return authError
-}
 
 function AuthCallbackError({ message, onDismiss }: { message: string; onDismiss: () => void }) {
   return (
@@ -38,14 +24,21 @@ function AuthCallbackError({ message, onDismiss }: { message: string; onDismiss:
 
 function Gate() {
   const { user, loading } = useAuth()
-  const [authError, setAuthError] = useState<string | null>(null)
+  // Read the callback error during the first render rather than setting state
+  // from an effect: the effect version rendered once without the banner and
+  // then again with it, which is the flash the user sees and the reason
+  // react-hooks/set-state-in-effect flagged it.
+  const [authError, setAuthError] = useState<string | null>(readAuthCallbackError)
   useCrmRealtimeInvalidation(!!user)
 
-  useEffect(() => {
-    const message = readAuthCallbackError()
-    if (!message) return
+  // Whether this load arrived with error material in the URL, captured before
+  // Dismiss can clear the state.
+  const arrivedWithError = useRef(authError !== null)
 
-    setAuthError(message)
+  useEffect(() => {
+    // Strip the error material from the URL, but only when there was some —
+    // otherwise this rewrites every deep link on load.
+    if (!arrivedWithError.current) return
     window.history.replaceState({}, document.title, window.location.pathname || '/')
   }, [])
 
