@@ -77,6 +77,18 @@ What that pass changed, and why it matters if you touch these again:
 - **React Router is on 7.18.2** and **Vitest on 4.x**, both of which closed
   advisories rated high and critical respectively.
 
+### Verifying a charting-library upgrade
+
+Run `npm run dev` and open **`http://localhost:5173/__charts`**. That path
+renders `ChartAreaVolume`, `ChartDonut` and `ChartHBar` with fixture data and no
+Supabase session, so an upgrade can be checked in a real browser without
+credentials. It is gated on `import.meta.env.DEV` and never ships. Source:
+`src/dev/ChartProbe.tsx`, wired in `src/main.tsx`.
+
+Verified this way on 2026-08-13 for the Recharts 3 upgrade, at 1440px and 390px
+widths: gradient fill, dashed secondary series, axis labels, donut legend and
+centre label, and zero-value bars all render, with zero console errors.
+
 ## Frontend Redesign
 
 Read `frontend_imp.md` before substantial UI work. The implemented direction is Tailwind Plus Application UI for app patterns and shadcn charts (Recharts) for analytics, themed by the shared design tokens in `src/index.css`, while keeping the Vite/React/Supabase architecture.
