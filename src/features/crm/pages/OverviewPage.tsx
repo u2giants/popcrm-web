@@ -19,9 +19,18 @@ import { ChartHBar, type HBarItem } from '@/components/app/ChartHBar'
 import { ChartAreaVolume, type AreaSeries } from '@/components/app/ChartAreaVolume'
 import { CrmStatusBadge } from '@/features/crm/components/CrmStatusBadge'
 import { RelationLabel } from '@/features/crm/components/RelationLabel'
-import { OPPORTUNITY_STAGES, isApprovalResolved, needsRouting } from '@/features/crm/constants'
 import { formatDate, label } from '@/features/crm/format'
-import { listData, useCrmStatsQuery, useFirefliesHealth } from '@/features/crm/queries'
+import {
+  listData,
+  useFirefliesHealth,
+  useOverviewCountsQuery,
+  useOverviewEmailCountsQuery,
+  useOverviewEmailVolumeQuery,
+  useOverviewPendingApprovalsQuery,
+  useOverviewPipelineQuery,
+  useOverviewRecentMeetingsQuery,
+  useOverviewRecentUnroutedQuery,
+} from '@/features/crm/queries'
 
 const ROUTING_COLORS: Record<string, string> = {
   ROUTED: 'var(--chart-3)',
@@ -40,99 +49,91 @@ const ROUTING_NAMES: Record<string, string> = {
   SKIPPED: 'Skipped',
 }
 
-// Build a 12-week rolling volume series from an array of ISO date strings.
-function buildWeeklyVolume(
-  emails: { received_at: string | null; routing_status: string | null }[],
-): AreaSeries[] {
-  const now = Date.now()
-  const MS_WEEK = 7 * 24 * 3600 * 1000
-  const weeks: { label: string; ingested: number; routed: number }[] = []
-  for (let i = 11; i >= 0; i--) {
-    const weekStart = now - (i + 1) * MS_WEEK
-    const weekEnd = now - i * MS_WEEK
-    const inWeek = emails.filter((e) => {
-      if (!e.received_at) return false
-      const t = new Date(e.received_at).getTime()
-      return t >= weekStart && t < weekEnd
-    })
-    const d = new Date(weekEnd)
-    const label = `${d.getMonth() + 1}/${d.getDate()}`
-    weeks.push({ label, ingested: inWeek.length, routed: inWeek.filter((e) => e.routing_status === 'ROUTED').length })
-  }
-  return weeks
+// The server returns each bucket's START date as a plain YYYY-MM-DD string; the
+// chart labels every bucket by its END date (start + 7 days), which is what the
+// old client-side series did. Parse the parts by hand: `new Date('2026-05-21')`
+// is parsed as UTC midnight and then read back in local time, which shifts the
+// label a day for every user west of UTC.
+function volumeLabel(weekStart: string): string {
+  const [year, month, day] = weekStart.split('-').map(Number)
+  if (!year || !month || !day) return weekStart
+  const end = new Date(year, month - 1, day + 7)
+  return `${end.getMonth() + 1}/${end.getDate()}`
 }
 
 export function OverviewPage() {
   const navigate = useNavigate()
-  const statsQuery = useCrmStatsQuery()
+  // One query per failure group. A degraded email domain leaves the people,
+  // pipeline and work numbers intact instead of blanking the whole page.
+  const countsQuery = useOverviewCountsQuery()
+  const emailCountsQuery = useOverviewEmailCountsQuery()
+  const pipelineQuery = useOverviewPipelineQuery()
+  const volumeQuery = useOverviewEmailVolumeQuery(12)
+  const unroutedQuery = useOverviewRecentUnroutedQuery(6)
+  const meetingsQuery = useOverviewRecentMeetingsQuery(6)
+  const approvalsQuery = useOverviewPendingApprovalsQuery(6)
   const fireflies = useFirefliesHealth()
-  const emails = listData(statsQuery.data?.emails)
-  const opportunities = listData(statsQuery.data?.opportunities)
-  const meetings = listData(statsQuery.data?.meetings)
-  const approvals = listData(statsQuery.data?.approvals)
-  const tasks = listData(statsQuery.data?.tasks)
-  const retailers = listData(statsQuery.data?.retailers)
-  const buyers = listData(statsQuery.data?.buyers)
   const firefliesOk = fireflies.data ?? null
-  const stats = useMemo(() => {
-    const by = (status: string) => emails.filter((e) => e.routing_status === status).length
-    return {
-      customers: retailers.length,
-      contacts: buyers.length,
-      openOpportunities: opportunities.filter((o) => o.stage !== 'CLOSED').length,
-      emails: emails.length,
-      needsRouting: emails.filter((e) => needsRouting(e.routing_status)).length,
-      routed: by('ROUTED'),
-      skipped: by('SKIPPED'),
-      companyOnly: by('COMPANY_ONLY'),
-      companyDept: by('COMPANY_DEPT'),
-      meetings: meetings.length,
-      openTasks: tasks.filter((t) => t.status !== 'DONE' && t.status !== 'CANCELED').length,
-      pendingApprovals: approvals.filter((a) => !isApprovalResolved(a.stage)).length,
-    }
-  }, [retailers, buyers, opportunities, emails, meetings, tasks, approvals])
+
+  const counts = countsQuery.data
+  const emailCounts = emailCountsQuery.data
+  const recentUnrouted = listData(unroutedQuery.data)
+  const recentMeetings = listData(meetingsQuery.data)
+  const pendingApprovals = listData(approvalsQuery.data)
+
+  const stats = {
+    customers: counts?.customers ?? 0,
+    contacts: counts?.contacts ?? 0,
+    openOpportunities: counts?.openOpportunities ?? 0,
+    emails: emailCounts?.total ?? 0,
+    needsRouting: emailCounts?.needsRouting ?? 0,
+    meetings: counts?.meetings ?? 0,
+    openTasks: counts?.openTasks ?? 0,
+    pendingApprovals: counts?.pendingApprovals ?? 0,
+  }
 
   const routingSlices = useMemo<DonutSlice[]>(() => {
-    const counts = new Map<string, number>()
-    for (const e of emails) {
-      const key = e.routing_status || 'UNROUTED'
-      counts.set(key, (counts.get(key) ?? 0) + 1)
+    if (!emailCounts) return []
+    const byKey: Record<string, number> = {
+      ROUTED: emailCounts.routed,
+      COMPANY_ONLY: emailCounts.companyOnly,
+      COMPANY_DEPT: emailCounts.companyDept,
+      UNROUTED: emailCounts.unrouted,
+      CUSTOMER_EMAIL_NO_COMPANY: emailCounts.noCompany,
+      SKIPPED: emailCounts.skipped,
     }
     return Object.keys(ROUTING_COLORS)
       .map((key) => ({
         key,
         name: ROUTING_NAMES[key] ?? key,
-        value: counts.get(key) ?? 0,
+        value: byKey[key] ?? 0,
         color: ROUTING_COLORS[key],
       }))
       .filter((d) => d.value > 0)
-  }, [emails])
+  }, [emailCounts])
 
   const stageBars = useMemo<HBarItem[]>(
+    () => listData(pipelineQuery.data).map((row) => ({ label: label(row.stage), value: row.count })),
+    [pipelineQuery.data],
+  )
+
+  const emailVolume = useMemo<AreaSeries[]>(
     () =>
-      OPPORTUNITY_STAGES.map((stage) => ({
-        label: label(stage),
-        value: opportunities.filter((o) => (o.stage || OPPORTUNITY_STAGES[0]) === stage).length,
+      listData(volumeQuery.data).map((week) => ({
+        label: volumeLabel(week.weekStart),
+        ingested: week.ingested,
+        routed: week.routed,
       })),
-    [opportunities],
+    [volumeQuery.data],
   )
 
-  const emailVolume = useMemo(() => buildWeeklyVolume(emails), [emails])
-
-  const recentUnrouted = useMemo(
-    () => emails.filter((e) => needsRouting(e.routing_status)).slice(0, 6),
-    [emails],
-  )
-  const recentMeetings = useMemo(() => meetings.slice(0, 6), [meetings])
-  const pendingApprovals = useMemo(
-    () => approvals.filter((a) => !isApprovalResolved(a.stage)).slice(0, 6),
-    [approvals],
-  )
-
-  if (statsQuery.isError) {
+  // Only a failed KPI query is fatal for the page; the panels and charts each
+  // degrade on their own.
+  const isPending = countsQuery.isPending
+  if (countsQuery.isError) {
     return (
       <AppPage title="Overview" description="Operational snapshot of POP CRM.">
-        <ErrorState onRetry={() => void statsQuery.refetch()} />
+        <ErrorState onRetry={() => void countsQuery.refetch()} />
       </AppPage>
     )
   }
@@ -151,7 +152,7 @@ export function OverviewPage() {
         />
       }
     >
-      {statsQuery.isPending ? (
+      {isPending ? (
         <div className="space-y-4">
           <CardGridSkeleton count={7} />
           <CardGridSkeleton count={2} />
@@ -295,7 +296,7 @@ export function OverviewPage() {
               items={recentMeetings.map((m) => ({
                 id: m.id,
                 primary: m.name || 'Meeting',
-                secondary: <RelationLabel value={m.retailer} />,
+                secondary: <RelationLabel value={m.company} />,
                 trailing: <span className="text-[11px] text-muted-foreground">{formatDate(m.date)}</span>,
                 onClick: () => navigate(`/meetings?meeting=${m.id}`),
               }))}

@@ -1,21 +1,29 @@
 # Overview + Sidebar aggregate inventory (Phase 7A gate 2)
 
-> **Status, 2026-08-12:** the shared-db half of Phase 7A is already built and
-> preview-proven. Migrations `20260812130000_crm_overview_server_contracts.sql`
-> and `20260812211000_crm_overview_exact_parity_corrections.sql` are merged on
-> `u2giants/shared-db` `main` (PR #848) and applied to preview
-> `rjyboqwcdzcocqgmsyel`. They are **not** applied to production
-> `qsllyeztdwjgirsysgai`; that owner approval is tracked on shared-db issue #851.
+> **Status, 2026-08-13:** the shared-db half of Phase 7A is **applied to
+> production**. Migrations `20260812130000_crm_overview_server_contracts.sql`
+> and `20260812211000_crm_overview_exact_parity_corrections.sql` merged on
+> `u2giants/shared-db` `main` (PR #848), were preview-proven on
+> `rjyboqwcdzcocqgmsyel`, and were applied to production `qsllyeztdwjgirsysgai`
+> under the owner's explicit approval by run 31662233425. Tracking issue: #851.
 > The seven contracts are `api.crm_overview_counts`, `_email_counts`,
 > `_pipeline_stages`, `_email_volume`, `_recent_unrouted`, `_recent_meetings`,
 > `_pending_approvals`.
 >
-> Two deliberate differences from this document, decided in shared-db for exact
-> display parity: the email contracts **keep** the newest-500-message window
-> (§1 defect 1 below is preserved on purpose so Phase 7B changes no displayed
-> number), while the 5000-customer cap (§1 defect 2) **is** removed, because the
-> new count is a true `count(*)`. Widening the email window is follow-up work
-> after Phase 7B, not part of it.
+> **The §1 mandate below is deliberately NOT fully satisfied, and that is a
+> decision, not an oversight.** §1 argues both silent caps are correctness
+> defects. Phase 7A fixed one and preserved the other:
+>
+> - The 5000-customer cap **is gone**: `crm_overview_counts` does a true
+>   `count(*)`. At today's volume (~150 active/potential customers) this changes
+>   no displayed number, and it removes a future silent failure.
+> - The newest-500-email window **is preserved on purpose** in `_email_counts`,
+>   `_email_volume` and `_recent_unrouted`, so Phase 7B is a swap that changes no
+>   number on screen. The consequence is that the 12-week chart's older weeks
+>   keep reading low, and the donut subtitle "N messages" keeps reading at most
+>   500 rather than the true total. Widening the window is tracked as follow-up
+>   after Phase 7B, and must be done as its own visible change with its own
+>   before/after evidence.
 
 Durable mapping of every value the CRM Overview page and the app sidebar display,
 with its source contract, source table, filter, failure boundary, and recent-row
@@ -60,8 +68,10 @@ once the data grows past the caps above, and the caps are silent:
 - **Customer count is capped at 5000.** `crm_customer_segment_list` clamps its
   limit to 5000, so the "Customers" KPI silently stops growing at 5000.
 
-Phase 7A must therefore restore exact server-side counts, not merely move the
-existing arithmetic to the server.
+Phase 7A must therefore restore exact server-side counts wherever doing so
+changes no number today, and must state explicitly where it chooses parity over
+correctness instead. See the status note at the top for what was actually
+decided for each of these two caps.
 
 ## 2. Value-by-value inventory
 
@@ -73,7 +83,7 @@ one failing group does not blank the whole page.
 | Displayed value | Where | Source table | Exact filter | Failure group |
 |---|---|---|---|---|
 | Customers | Overview KPI | `core.customer` | `customer_status in ('ACTIVE_CUSTOMER','POTENTIAL_CUSTOMER')` | A |
-| Contacts | Overview KPI | `core.contact` joined to its company | company `customer_status in ('ACTIVE_CUSTOMER','POTENTIAL_CUSTOMER','OTHER','UNASSIGNED')` (`CUSTOMER_STATUSES`) | A |
+| Contacts | Overview KPI | `core.contact` joined to its primary company | company `customer_status in ('ACTIVE_CUSTOMER','POTENTIAL_CUSTOMER')` | A |
 | Open programs | Overview KPI | `crm.opportunity` | `stage <> 'CLOSED'` (null stage counts as open today) | A |
 | Needs routing | Overview KPI + sidebar `/email` + sidebar `/triage` | `crm.email_message` | `routing_status is not null and routing_status <> '' and routing_status not in ('ROUTED','SKIPPED')` | A |
 | Meetings | Overview KPI | `crm.meeting_note` | none, total row count | A |

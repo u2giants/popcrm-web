@@ -21,6 +21,13 @@ import {
   fetchMeetingNotes,
   fetchNotes,
   fetchOpportunities,
+  fetchOverviewCounts,
+  fetchOverviewEmailCounts,
+  fetchOverviewEmailVolume,
+  fetchOverviewPendingApprovals,
+  fetchOverviewPipelineStages,
+  fetchOverviewRecentMeetings,
+  fetchOverviewRecentUnrouted,
   fetchCustomerPickerList,
   fetchRetailers,
   fetchTasks,
@@ -60,7 +67,17 @@ import type {
 
 export const crmKeys = {
   all: ['crm'] as const,
+  // Every Overview/Sidebar aggregate lives under this prefix, so a mutation can
+  // invalidate the whole set with crmKeys.stats() exactly as it did when the
+  // aggregates were one combined query.
   stats: () => [...crmKeys.all, 'stats'] as const,
+  overviewCounts: () => [...crmKeys.stats(), 'counts'] as const,
+  overviewEmailCounts: () => [...crmKeys.stats(), 'emailCounts'] as const,
+  overviewPipeline: () => [...crmKeys.stats(), 'pipeline'] as const,
+  overviewEmailVolume: (weeks = 12) => [...crmKeys.stats(), 'emailVolume', { weeks }] as const,
+  overviewRecentUnrouted: (limit = 6) => [...crmKeys.stats(), 'recentUnrouted', { limit }] as const,
+  overviewRecentMeetings: (limit = 6) => [...crmKeys.stats(), 'recentMeetings', { limit }] as const,
+  overviewPendingApprovals: (limit = 6) => [...crmKeys.stats(), 'pendingApprovals', { limit }] as const,
   fireflies: () => [...crmKeys.all, 'fireflies'] as const,
   opportunities: (limit = -1) => [...crmKeys.all, 'opportunities', { limit }] as const,
   retailers: (limit = -1) => [...crmKeys.all, 'retailers', { limit }] as const,
@@ -270,24 +287,57 @@ export function useApprovalsQuery(limit = -1) {
   return useQuery({ queryKey: crmKeys.approvals(limit), queryFn: () => fetchApprovalThreads(limit), ...crmQueryDefaults })
 }
 
-export function useCrmStatsQuery() {
+// Overview + Sidebar aggregates. One hook per failure group, all on shared
+// cache keys so the sidebar and the Overview page reuse the same responses
+// instead of each issuing its own network call. See
+// docs/overview-aggregate-inventory.md.
+const overviewDefaults = {
+  ...crmQueryDefaults,
+  staleTime: 45_000,
+  refetchInterval: 90_000,
+} as const
+
+export function useOverviewCountsQuery() {
+  return useQuery({ queryKey: crmKeys.overviewCounts(), queryFn: fetchOverviewCounts, ...overviewDefaults })
+}
+
+export function useOverviewEmailCountsQuery() {
+  return useQuery({ queryKey: crmKeys.overviewEmailCounts(), queryFn: fetchOverviewEmailCounts, ...overviewDefaults })
+}
+
+export function useOverviewPipelineQuery() {
+  return useQuery({ queryKey: crmKeys.overviewPipeline(), queryFn: fetchOverviewPipelineStages, ...overviewDefaults })
+}
+
+export function useOverviewEmailVolumeQuery(weeks = 12) {
   return useQuery({
-    queryKey: crmKeys.stats(),
-    queryFn: async () => {
-      const [retailers, buyers, opportunities, emails, meetings, tasks, approvals] = await Promise.all([
-        fetchRetailers(-1),
-        fetchBuyers(-1),
-        fetchOpportunities(-1),
-        fetchEmailMessages(-1),
-        fetchMeetingNotes(-1),
-        fetchTasks(-1),
-        fetchApprovalThreads(-1),
-      ])
-      return { retailers, buyers, opportunities, emails, meetings, tasks, approvals }
-    },
-    ...crmQueryDefaults,
-    staleTime: 45_000,
-    refetchInterval: 90_000,
+    queryKey: crmKeys.overviewEmailVolume(weeks),
+    queryFn: () => fetchOverviewEmailVolume(weeks),
+    ...overviewDefaults,
+  })
+}
+
+export function useOverviewRecentUnroutedQuery(limit = 6) {
+  return useQuery({
+    queryKey: crmKeys.overviewRecentUnrouted(limit),
+    queryFn: () => fetchOverviewRecentUnrouted(limit),
+    ...overviewDefaults,
+  })
+}
+
+export function useOverviewRecentMeetingsQuery(limit = 6) {
+  return useQuery({
+    queryKey: crmKeys.overviewRecentMeetings(limit),
+    queryFn: () => fetchOverviewRecentMeetings(limit),
+    ...overviewDefaults,
+  })
+}
+
+export function useOverviewPendingApprovalsQuery(limit = 6) {
+  return useQuery({
+    queryKey: crmKeys.overviewPendingApprovals(limit),
+    queryFn: () => fetchOverviewPendingApprovals(limit),
+    ...overviewDefaults,
   })
 }
 
