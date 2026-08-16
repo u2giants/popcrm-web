@@ -136,7 +136,6 @@ export function CustomersPage() {
         r.status,
         r.last_sender,
         r.sample_subject,
-        r.promoted_company_name,
       ).includes(q)
     })
   }, [triageDomains, query])
@@ -264,8 +263,8 @@ export function CustomersPage() {
       sortValue: (r) => label(r.status),
       filterValue: (r) => label(r.status),
       cell: (r) => (
-        <StatusBadge tone={r.promoted_customer_id ? 'success' : 'info'} dot>
-          {r.promoted_customer_id ? 'Promoted' : label(r.status)}
+        <StatusBadge tone="info" dot>
+          {label(r.status)}
         </StatusBadge>
       ),
     },
@@ -274,12 +273,12 @@ export function CustomersPage() {
       header: '',
       className: 'text-right',
       headClassName: 'text-right',
-      cell: (r) => (
+      cell: () => (
         <Button
           size="xs"
           variant="outline"
           onClick={() => promoteDomain()}
-          disabled={!!r.promoted_customer_id}
+          disabled
           title="Ingested domains cannot be promoted to Customers"
         >
           <Upload className="size-3" />
