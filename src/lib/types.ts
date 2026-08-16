@@ -53,8 +53,6 @@ export interface CrmIngestedDomain {
   last_seen_at: string | null
   last_sender: string | null
   sample_subject: string | null
-  promoted_customer_id: string | null
-  promoted_company_name: string | null
   updated_at: string | null
 }
 

@@ -271,8 +271,6 @@ const toIngestedDomain = (r: Row): CrmIngestedDomain => ({
   last_seen_at: (r.last_seen_at ?? null) as string | null,
   last_sender: (r.last_sender ?? null) as string | null,
   sample_subject: (r.sample_subject ?? null) as string | null,
-  promoted_customer_id: (r.promoted_customer_id ?? null) as string | null,
-  promoted_company_name: (r.promoted_company_name ?? null) as string | null,
   updated_at: (r.updated_at ?? null) as string | null,
 })
 
@@ -469,7 +467,6 @@ export async function fetchIngestedDomains(limit = -1): Promise<CrmIngestedDomai
       .schema('api')
       .from('crm_ingested_domain_list')
       .select('*')
-      .is('promoted_customer_id', null)
       .order('last_seen_at', { ascending: false, nullsFirst: false })
       .range(from, cappedEnd)
     if (error) throw error
@@ -487,7 +484,6 @@ export async function fetchIngestedDomainCount(): Promise<number> {
     .schema('api')
     .from('crm_ingested_domain_list')
     .select('*', { count: 'exact', head: true })
-    .is('promoted_customer_id', null)
   if (error) throw error
   return count ?? 0
 }
