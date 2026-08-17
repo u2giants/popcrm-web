@@ -136,10 +136,10 @@ bucket: factories and licensors are companies too, and those live in
 
 The Customers page follows this split. **Customers** must read actual customer
 rows from customer-scoped API contracts; **Triage** reads
-`api.crm_ingested_domain_list` and shows domain evidence plus a promotion action.
-A domain becomes a shared `core.customer` row only when someone promotes it with
-`crm.promote_ingested_domain(...)`; that promoted row is potential until PLM/ERP
-confirms it. Use `is_potential` for the factual "have we done business with
+`api.crm_ingested_domain_list` and shows domain evidence only. A domain never
+becomes a `core.customer` row: shared-db migration `20260629034600` dropped
+`crm.promote_ingested_domain(...)` and the `promoted_customer_id` column, so the
+Triage Promote button is permanently disabled. Use `is_potential` for the factual "have we done business with
 them" signal, and keep `customer_status` as the CRM workflow/status axis.
 
 Naming rule: active CRM code should use `api.crm_customer_list`,
