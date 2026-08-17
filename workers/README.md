@@ -104,5 +104,6 @@ questions, email content, or CRM records.
 
 The worker records unknown email domains with
 `crm.record_ingested_domain(...)`. It must not insert random email domains into
-`core.customer`; only human promotion through `crm.promote_ingested_domain(...)`
-creates potential customers.
+`core.customer`. There is no promotion path: `crm.promote_ingested_domain(...)`
+was dropped by shared-db migration `20260629034600`, and ingested domains never
+become customers. Customers are created only through the curated customer path.

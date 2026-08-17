@@ -1156,6 +1156,13 @@ dead optimistic mutation for an operation that the architecture forbids.
    new promotion is forbidden. Keep them when existing data/contracts use them
    for history; remove them only after backend/data evidence proves they are
    obsolete and no migration is required.
+   > **SUPERSEDED 2026-08-16.** That evidence arrived: shared-db migration
+   > `20260629034600` dropped both `crm.promote_ingested_domain(...)` and the
+   > `crm.ingested_domain.promoted_customer_id` column, and
+   > `api.crm_ingested_domain_list` no longer exposes them. The app kept
+   > selecting `promoted_customer_id`, so every Triage load failed with
+   > "column ... does not exist" until commit `01c8f3c` removed the references.
+   > Do not reintroduce these fields.
 5. Update durable documentation so it consistently says ingested domains remain
    CRM-private triage evidence and customer creation uses the normal curated
    workflow. Do not create or restore a database promotion RPC.

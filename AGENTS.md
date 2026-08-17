@@ -220,7 +220,7 @@ generated database types are in `src/lib/database.types.ts`:
 | Entity/System | Identifier | Where defined | Notes |
 |---|---|---|---|
 | Customer | `core.customer` / `api.customer_list` (shared) plus CRM-specific `api.crm_customer_*` contracts | Supabase | shared customer hub. `is_potential = false` means PLM/ERP-confirmed active customer; `true` means tracked potential customer. `customer_status` remains the CRM workflow/status axis. Use `api.crm_customer_segment_list` / `api.crm_customer_segment_counts` for CRM customer page tabs and active pickers. Legacy `api.crm_account_list` / `api.crm_update_account` names are deprecated compatibility contracts only; do not add new callers. `api.crm_customer_list.logo_url` exposes PLM-imported full-width logo URLs when available |
-| Ingested domain | `crm.ingested_domain` / `api.crm_ingested_domain_list` | Supabase | CRM-only email-domain triage inbox. These rows are **not** customers and are not shared with PM/DAM/PLM. Promote with `crm.promote_ingested_domain(...)` to create a potential `core.customer` row |
+| Ingested domain | `crm.ingested_domain` / `api.crm_ingested_domain_list` | Supabase | CRM-only email-domain triage inbox. These rows are **not** customers, are not shared with PM/DAM/PLM, and can **never** be promoted into `core.customer` (promotion dropped by shared-db `20260629034600`) |
 | Contact | `core.contact` + `core.contact_company` / `api.crm_contact_list` | Supabase | contacts and customer/department relation rows migrated from the retired CRM stack |
 | Department | `crm.department` / `api.crm_department_list` | Supabase | retailer departments |
 | Opportunity | `crm.opportunity` / `api.crm_opportunity_list` | Supabase | pipeline; `stage` enum in `constants.ts:OPPORTUNITY_STAGES` |
@@ -352,9 +352,11 @@ status/chain edits or `CustomerDrawer`.
 
 Why:
 `core.customer` is the shared hub used by CRM, PM, DAM, and PLM. Random email
-domains must not become shared customer rows until a human promotes them with
-`crm.promote_ingested_domain(...)`, which creates a potential customer
-(`is_potential = true`).
+domains must never become shared customer rows. Promotion was removed entirely
+by shared-db migration `20260629034600` (it had polluted the customer list);
+ingested domains stay triage-only, and customers are created solely through the
+curated customer path. `is_potential = true` still marks a curated customer we
+have not yet done business with.
 
 Future sessions should:
 Keep customer lists and customer pickers on customer-scoped API contracts

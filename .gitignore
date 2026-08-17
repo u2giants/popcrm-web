@@ -36,3 +36,6 @@ dist-ssr
 # Playwright MCP / screenshot session artifacts
 .playwright-mcp/
 screenshot-*.png
+
+# AI agent worktrees and local session state
+.claude/
