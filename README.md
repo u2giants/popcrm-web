@@ -1,5 +1,9 @@
 # popcrm-web
 
+Companywide business rules are indexed by topic in
+[companywide application and task map](https://github.com/u2giants/shared-db/blob/main/docs/business-rules/application-map.md).
+Use its CRM row or task map to load only the relevant rules.
+
 CRM frontend for POP Creations — a React + Vite + TypeScript + Tailwind v4 + shadcn/ui SPA on the shared Supabase backend (`https://qsllyeztdwjgirsysgai.supabase.co`). It stores no data of its own.
 
 Target domain: **https://crm.designflow.app**. Preview alias: **https://crm-dev.designflow.app**. Sibling apps: `poppim-web` and `popdam-web`.
