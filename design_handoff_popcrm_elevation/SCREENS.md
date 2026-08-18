@@ -1,5 +1,10 @@
 # SCREENS — POP CRM elevation, screen-by-screen specs
 
+> **Historical UI design artifact:** Customer, Contact, Department, Factory/Vendor,
+> and ingested-domain meaning comes from the
+> [companywide organization topic](https://github.com/u2giants/shared-db/blob/main/docs/business-rules/customers-contacts-and-organizations.md).
+> Labels in this design do not redefine those business identities.
+
 Read `README.md` first. All colors reference the tokens defined there / in `prototype/theme.css`.
 Each screen below maps to an existing module in `src/features/crm/pages/`. Recreate the layout and
 density precisely using Tailwind + the existing shadcn/Radix components.

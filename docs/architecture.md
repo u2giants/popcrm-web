@@ -149,12 +149,14 @@ only until the production rollout is verified and the final drop migration can
 remove them. New shared customer reads should use `api.customer_list` or a
 CRM-specific `api.crm_customer_*` view, and no screen should use an "all accounts"
 path as a proxy for customers. Ingested domains must stay in
-`crm.ingested_domain` until promoted.
+`crm.ingested_domain`; they are never promoted or linked to a Customer.
 
 Lifecycle:
 
 ```txt
-crm.ingested_domain -> core.customer (potential) -> core.customer (active, same row)
+crm.ingested_domain (email evidence only; no Customer path)
+
+core.customer (potential) -> core.customer (active, same row after ERP confirmation)
 ```
 
 The shared hub was hard-renamed from `core.company` to `core.customer` without a
@@ -185,7 +187,7 @@ target.
 |---|---|---|
 | `OverviewPage` | `/` | KPI strip, email volume chart, routing donut, pipeline bar, activity panels |
 | `PipelinePage` | `/pipeline` | Board (kanban by stage) + List (DataTable) toggle |
-| `CustomersPage` | `/customers` | Customer tabs for real `core.customer` rows: **Customers** (default), **Not a customer**, **All**. **Triage** is a separate ingested-domain review table over `api.crm_ingested_domain_list`, with a promotion action that creates a potential customer. Customer tabs keep inline status/chain edits and `CustomerDrawer`; Triage does not render customer-only edits or drawers. `/accounts` remains a redirect-only legacy bookmark route |
+| `CustomersPage` | `/customers` | Customer tabs for real `core.customer` rows: **Customers** (default), **Not a customer**, **All**. **Triage** is a separate ingested-domain review table over `api.crm_ingested_domain_list` with no promotion path. Customer tabs keep inline status/chain edits and `CustomerDrawer`; Triage does not render customer-only edits or drawers. `/accounts` remains a redirect-only legacy bookmark route |
 | `DepartmentsPage` | `/departments` | DataTable grouped/sorted by customer. Department-name clicks open `DepartmentDrawer` with assigned contacts and programs |
 | `ProgramsPage` | `/programs` | DataTable over CRM opportunities/programs + OpportunityModal |
 | `ContactsPage` | `/contacts` | DataTable + ContactDrawer. Segmented tabs: **Cust Contacts** (linked to Active/Potential customer, no department), **Dept. Contacts** (linked to Active/Potential customer and department), **Triage** (not linked to a customer), **All**. Customer inline-edit choices are row-aware |

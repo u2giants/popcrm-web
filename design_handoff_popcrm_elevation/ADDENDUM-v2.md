@@ -1,5 +1,8 @@
 # ADDENDUM v2 — Record modal, AG-Grid tables, colorful iconography
 
+> **Historical UI design artifact:** Business identities and statuses follow the
+> [companywide Business Logic Library](https://github.com/u2giants/shared-db/blob/main/docs/business-rules/application-map.md).
+
 This addendum extends `README.md` / `SCREENS.md` with three capabilities added after the first round.
 Everything in the base docs still applies; this layers on top.
 
