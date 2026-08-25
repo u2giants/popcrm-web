@@ -25,7 +25,6 @@ import {
   useUpdateIngestedDomainMutation,
   useUpdateCustomerMutation,
 } from '@/features/crm/queries'
-import { isSelectableCustomer } from '@/features/crm/pages/_shared'
 import { logError } from '@/lib/errors'
 import { cn } from '@/lib/utils'
 import type { CrmIngestedDomain, Retailer } from '@/lib/types'
@@ -40,8 +39,25 @@ const DOMAIN_CLASSIFICATION_OPTIONS: EditOption[] = [
 
 type Segment = 'active' | 'unclassified' | 'triage' | 'dismissed' | 'all'
 
-// Normalize to the canonical bucket (empty/null == New Company / UNASSIGNED).
-const statusOf = (r: Retailer) => r.customer_status || 'UNASSIGNED'
+// Effective CRM classification for a company. The CRM's own `customer_status`
+// wins; when it is empty we fall back to the hub-wide entity status, so a
+// company the hub already tracks as a prospect reads "Potential Customer"
+// instead of contradicting itself with "New Company" + a "Potential" source.
+// Everything else with no CRM classification is UNASSIGNED ("New Company").
+const statusOf = (r: Retailer): string => {
+  if (r.customer_status) return r.customer_status
+  if ((r.status ?? '').toLowerCase() === 'potential' || r.is_potential === true) return 'POTENTIAL_CUSTOMER'
+  return 'UNASSIGNED'
+}
+
+// Single segment rule, used for both the rows and the tab counts so they can
+// never disagree. Every company falls in exactly one of these buckets.
+const segmentOf = (r: Retailer): Exclude<Segment, 'triage' | 'all'> => {
+  const s = statusOf(r)
+  if (s === 'OTHER') return 'dismissed'
+  if (s === 'UNASSIGNED') return 'unclassified'
+  return 'active'
+}
 const potentialLabel = (value: boolean | null | undefined) =>
   value === true ? 'Potential' : value === false ? 'ERP confirmed' : 'Unknown'
 const potentialTone = (value: boolean | null | undefined) =>
@@ -50,10 +66,9 @@ const potentialTone = (value: boolean | null | undefined) =>
 export function CustomersPage() {
   const [query, setQuery] = useState('')
   const [segment, setSegment] = useState<Segment>('active')
-  const activeCustomersQuery = useCustomerSegmentQuery('active')
+  // One fetch feeds every company segment, so counts and rows share a source.
+  const allCustomersQuery = useCustomerSegmentQuery('all')
   const triageDomainsQuery = useIngestedDomainsQuery(-1)
-  const dismissedCustomersQuery = useCustomerSegmentQuery('dismissed', -1, segment === 'dismissed')
-  const allCustomersQuery = useCustomerSegmentQuery('all', -1, segment === 'all' || segment === 'unclassified')
   const countsQuery = useCustomerSegmentCountsQuery()
   const buyersQuery = useIngestedContactsQuery(-1)
   const opportunitiesQuery = useOpportunitiesQuery(-1)
@@ -65,30 +80,15 @@ export function CustomersPage() {
   const [bulkClassification, setBulkClassification] = useState('')
   const buyers = listData(buyersQuery.data)
   const opportunities = listData(opportunitiesQuery.data)
-  const activeCustomers = listData(activeCustomersQuery.data)
   const triageDomains = listData(triageDomainsQuery.data)
-  const dismissedCustomers = listData(dismissedCustomersQuery.data)
   const allCustomers = listData(allCustomersQuery.data)
-  const unclassifiedCustomers = useMemo(
-    () => allCustomers.filter((r) => statusOf(r) === 'UNASSIGNED'),
-    [allCustomers],
-  )
-  const customerRows =
-    segment === 'all'
-      ? allCustomers
-      : segment === 'unclassified'
-        ? unclassifiedCustomers
-        : segment === 'dismissed'
-          ? dismissedCustomers
-          : activeCustomers
-  const visibleFetch =
-    segment === 'all' || segment === 'unclassified'
-      ? allCustomersQuery
-      : segment === 'dismissed'
-        ? dismissedCustomersQuery
-        : segment === 'triage'
-          ? triageDomainsQuery
-          : activeCustomersQuery
+  const buckets = useMemo(() => {
+    const out = { active: [] as Retailer[], unclassified: [] as Retailer[], dismissed: [] as Retailer[] }
+    for (const r of allCustomers) out[segmentOf(r)].push(r)
+    return out
+  }, [allCustomers])
+  const customerRows = segment === 'all' ? allCustomers : buckets[segment as keyof typeof buckets] ?? allCustomers
+  const visibleFetch = segment === 'triage' ? triageDomainsQuery : allCustomersQuery
   const [selected, select] = useRecordSelection<Retailer>('retailer', customerRows)
 
   // Inline edit / drag-copy for the Status and Chain columns.
@@ -136,28 +136,24 @@ export function CustomersPage() {
     return { contacts, opps }
   }, [buyers, opportunities])
 
-  // Segment counts. Customer counts come from crm_customer_list; Triage counts
-  // CRM-private ingested domains awaiting promotion/review.
-  const segCounts = countsQuery.data ?? {
-    active: activeCustomers.length,
-    triage: triageDomains.length,
-    dismissed: dismissedCustomers.length,
+  // Segment counts are the bucket sizes themselves, so a tab count is always
+  // exactly the number of rows that tab shows. Only the Triage count (email
+  // domains, not company records) comes from the server.
+  const segCounts = {
+    active: buckets.active.length,
+    unclassified: buckets.unclassified.length,
+    dismissed: buckets.dismissed.length,
     all: allCustomers.length,
+    triage: countsQuery.data?.triage ?? triageDomains.length,
   }
 
   const filteredCustomers = useMemo(() => {
     const q = query.trim().toLowerCase()
     return customerRows.filter((r) => {
-      const s = statusOf(r)
-      // Hub global status is authoritative: hide global-inactive from the
-      // Customers tab even if legacy CRM customer_status still says ACTIVE.
-      const hubOk = isSelectableCustomer(r.status)
-      if (segment === 'active' && (s === 'OTHER' || s === 'UNASSIGNED' || !hubOk)) return false
-      if (segment === 'dismissed' && s !== 'OTHER') return false
       if (q && !textOf(r.name, r.display_name, r.domain, r.routing_aliases, r.customer_status, r.chain_type, r.is_potential, r.status).includes(q)) return false
       return true
     })
-  }, [customerRows, query, segment])
+  }, [customerRows, query])
 
   const filteredDomains = useMemo(() => {
     const q = query.trim().toLowerCase()
@@ -221,13 +217,13 @@ export function CustomersPage() {
     {
       key: 'customer_status',
       header: 'Status',
-      sortValue: (r) => customerStatusLabel(r.customer_status),
-      filterValue: (r) => customerStatusLabel(r.customer_status),
+      sortValue: (r) => customerStatusLabel(statusOf(r)),
+      filterValue: (r) => customerStatusLabel(statusOf(r)),
       editOptions: STATUS_OPTIONS,
-      editValue: (r) => r.customer_status || 'UNASSIGNED',
+      editValue: (r) => statusOf(r),
       cell: (r) => (
-        <StatusBadge tone={customerStatusTone(r.customer_status)} dot>
-          {customerStatusLabel(r.customer_status)}
+        <StatusBadge tone={customerStatusTone(statusOf(r))} dot>
+          {customerStatusLabel(statusOf(r))}
         </StatusBadge>
       ),
     },
@@ -389,7 +385,7 @@ export function CustomersPage() {
                   {
                     id: 'unclassified',
                     label: 'Unclassified',
-                    count: Math.max(segCounts.all - segCounts.active - segCounts.dismissed, 0),
+                    count: segCounts.unclassified,
                     hint: 'Companies nobody has marked as a customer or not yet',
                   },
                   { id: 'dismissed', label: 'Not a customer', count: segCounts.dismissed, hint: 'Companies marked as not a customer' },
