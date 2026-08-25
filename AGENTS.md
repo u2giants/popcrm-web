@@ -804,7 +804,10 @@ logos come from `api.crm_customer_list.logo_url`, which prefers the CRM manual
 override stored at `core.customer.metadata.crm_logo_url` and falls back to the
 PLM-imported `plm.customer_import.logo_url`. The Data Admin → Logos tab can
 upload full logos to the `crm-customer-logos` Supabase Storage bucket, save a
-full logo URL, clear the override, or update the token-logo domain.
+full logo URL, clear the override, or update the token-logo domain. Since
+2026-08-25 the same upload / URL / remove actions also live in the customer
+drawer (`CustomerLogoField`), so a logo can be changed from any customer record
+without going through Data Admin.
 The publishable logo.dev token is stored in 1Password at
 `op://vibe_coding/logo.dev publishable token - popcrm-web/password` and mirrored
 to the GitHub Actions secret `LOGODEV_TOKEN`.
@@ -818,6 +821,41 @@ Don't go looking for legacy Twenty logo files — there weren't any. Preserve th
 two-layer contract: token domain on `core.customer.domain`; full logo URL from
 CRM override first, then PLM import. Do not write CRM uploads back into
 `plm.customer_import`.
+
+### The Customer column renders and sorts from an unfiltered brand map
+
+What changed:
+On 2026-08-25 every Customer column was made identical to the Customers page —
+logo plus the spelled-out name (`CustomerRelationLogo variant="token-name"`).
+Two things had to be fixed for that to actually work:
+
+- **Logos.** The row-level list views (`api.crm_contact_list`,
+  `crm_department_list`, `crm_email_routing_queue`, …) do **not** expose
+  `company_domain`, and `fetchCustomerPickerList` hard-codes `domain: null` /
+  `logo_url: null`. The segment feeds only carry curated active/potential
+  customers. So a row linked to an ERP-only customer (TRANSWORLD ENTERTAINMENT,
+  display name FYE, domain `fye.com`) drew an initials badge even though the
+  link and the domain were both correct. `CustomerRelationLogo` now resolves
+  domain/logo/display name through `useCustomerBrandMap()`
+  (`fetchCustomerBrands` → unfiltered `api.crm_customer_list`, ~800 rows).
+- **Sorting.** Columns sorted on the legal name, so FYE sorted under T. Retailer
+  `sortValue` / `filterValue` / search text now go through
+  `useCustomerDisplayName()`, and the Customers/Data Admin name columns use
+  `customerLabel`.
+
+Why:
+An initials badge on a linked row reads as "the link is broken" when the link is
+fine — the display layer simply could not see the domain.
+
+Future sessions should:
+- Resolve any customer relation's on-screen name with `useCustomerDisplayName()`
+  and never sort or filter on `name` directly; `display_name` is what the reader
+  sees.
+- Reach for `useCustomerBrandMap()` (not the picker or segment feeds) whenever a
+  screen needs a customer's domain or logo — those feeds are deliberately
+  filtered and drop `domain`.
+- Leave `customerById` props alone: they still supply names for rows the brand
+  map has not loaded yet.
 
 ### Supabase profile links control whether signed-in users see CRM rows
 
