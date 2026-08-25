@@ -1167,3 +1167,35 @@ export async function fetchOverviewPendingApprovals(limit = 6): Promise<CrmOverv
     stage: (r.stage ?? null) as string | null,
   }))
 }
+
+// ---------------------------------------------------------------------------
+// Customer brand marks (logo + domain) for every customer, not just the
+// active/potential segment. Rows on Contacts, Departments, Emails and so on can
+// point at customers outside the curated segment (e.g. an ERP-only company like
+// TRANSWORLD ENTERTAINMENT that a contact is filed under). Those rows still
+// deserve the real logo, so the Customer column resolves brand data from this
+// unfiltered map instead of the segment/picker lists, which omit domain
+// entirely. Read-only and small (hundreds of rows).
+// ---------------------------------------------------------------------------
+export interface CustomerBrand {
+  id: string
+  name: string | null
+  display_name: string | null
+  domain: string | null
+  logo_url: string | null
+}
+
+export async function fetchCustomerBrands(): Promise<CustomerBrand[]> {
+  const { data, error } = await anyDb
+    .schema('api')
+    .from('crm_customer_list')
+    .select('id,name,display_name,domain,logo_url')
+  if (error) throw error
+  return ((data ?? []) as Row[]).map((r) => ({
+    id: r.id as string,
+    name: (r.name ?? null) as string | null,
+    display_name: (r.display_name ?? null) as string | null,
+    domain: (r.domain ?? null) as string | null,
+    logo_url: (r.logo_url ?? null) as string | null,
+  }))
+}

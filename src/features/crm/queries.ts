@@ -1,8 +1,10 @@
+import { useMemo } from 'react'
 import { useMutation, useQuery, useQueryClient, type QueryClient } from '@tanstack/react-query'
 import {
   createIgnoreRule,
   createNote,
   createDepartment,
+  fetchCustomerBrands,
   fetchCustomerSegment,
   fetchCustomerSegmentCounts,
   fetchAiModelConfigs,
@@ -46,6 +48,7 @@ import {
   updateOpportunity,
   updateRetailer,
   updateTask,
+  type CustomerBrand,
   type CustomerSegment,
   type CustomerSegmentCounts,
   type ContactSegment,
@@ -156,6 +159,27 @@ export function useOpportunitiesQuery(limit = -1) {
 
 export function useRetailersQuery(limit = -1) {
   return useQuery({ queryKey: crmKeys.retailers(limit), queryFn: () => fetchRetailers(limit), ...crmQueryDefaults, staleTime: 2 * 60_000 })
+}
+
+/**
+ * Brand marks (logo + domain) for every customer, keyed by id. Kept separate
+ * from the segment/picker feeds because those either filter out non-curated
+ * customers or drop `domain`, which is what the Customer column needs to draw a
+ * real logo instead of an initials badge.
+ */
+export function useCustomerBrandsQuery() {
+  return useQuery({
+    queryKey: [...crmKeys.all, 'customerBrands'] as const,
+    queryFn: fetchCustomerBrands,
+    ...crmQueryDefaults,
+    staleTime: 5 * 60_000,
+  })
+}
+
+/** Same brand feed, keyed by customer id for per-row lookups. */
+export function useCustomerBrandMap(): Map<string, CustomerBrand> {
+  const brands = useCustomerBrandsQuery().data
+  return useMemo(() => new Map((brands ?? []).map((b) => [b.id, b])), [brands])
 }
 
 export function useCustomerSegmentQuery(segment: CustomerSegment, limit = -1, enabled = true) {
