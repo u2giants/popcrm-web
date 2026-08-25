@@ -8,5 +8,5 @@ Type=oneshot
 User=ai
 WorkingDirectory=/worksp/popcrm-web
 EnvironmentFile=/home/ai/.crm-worker.env
-TimeoutStartSec=30min
+TimeoutStartSec=3h
 ExecStart=/usr/bin/node /worksp/popcrm-web/workers/crm-worker-supabase.mjs reroute
