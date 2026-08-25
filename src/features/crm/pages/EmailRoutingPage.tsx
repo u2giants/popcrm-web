@@ -24,6 +24,7 @@ import {
   useCustomerPickerQuery,
   useOpportunitiesQuery,
   useUpdateEmailMutation,
+  useCustomerDisplayName,
 } from '@/features/crm/queries'
 import { logError } from '@/lib/errors'
 import type { CrmEmailMessage } from '@/lib/types'
@@ -47,6 +48,7 @@ function MethodChip({ method }: { method: string | null | undefined }) {
 }
 
 export function EmailRoutingPage() {
+  const customerName = useCustomerDisplayName()
   const emailsQuery = useEmailsQuery(EMAIL_ROUTE_LIMIT)
   const countsQuery = useEmailSegmentCountsQuery()
   const retailersQuery = useCustomerPickerQuery(-1)
@@ -135,14 +137,14 @@ export function EmailRoutingPage() {
           e.subject,
           e.sender,
           e.recipients,
-          relatedName(e.retailer),
+          customerName(e.retailer),
           relatedName(e.department),
           relatedName(e.opportunity),
         ).includes(q)
       ) return false
       return true
     })
-  }, [emails, segment, query])
+  }, [emails, segment, query, customerName])
 
   const columns: Column<CrmEmailMessage>[] = [
     {
@@ -172,8 +174,8 @@ export function EmailRoutingPage() {
       key: 'retailer',
       header: 'Customer',
       hideBelow: 'lg',
-      sortValue: (e) => relatedName(e.retailer),
-      filterValue: (e) => relatedName(e.retailer),
+      sortValue: (e) => customerName(e.retailer),
+      filterValue: (e) => customerName(e.retailer),
       editOptions: (e) => withCurrentCustomer(customerOptions, idOf(e.retailer), retailerById),
       editValue: (e) => idOf(e.retailer),
       cell: (e) => <CustomerRelationLogo value={e.retailer} customerById={retailerById} size={24} variant="token-name" />,

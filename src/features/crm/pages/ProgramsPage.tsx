@@ -9,7 +9,9 @@ import { useRecordSelection } from '@/features/crm/useRecordSelection'
 import { OpportunityModal } from '@/features/crm/components/OpportunityModal'
 import { StageBadge } from '@/features/crm/components/CrmStatusBadge'
 import { formatDate, label, relatedName, textOf } from '@/features/crm/format'
-import { listData, useCustomerPickerQuery, useOpportunitiesQuery } from '@/features/crm/queries'
+import { listData, useCustomerPickerQuery, useOpportunitiesQuery,
+  useCustomerDisplayName,
+} from '@/features/crm/queries'
 import { buildRetailerById } from '@/features/crm/pages/_shared'
 import type { CrmOpportunity } from '@/lib/types'
 
@@ -23,6 +25,7 @@ function fmtAmount(val: string | number | null | undefined): string | null {
 }
 
 export function ProgramsPage() {
+  const customerName = useCustomerDisplayName()
   const opportunitiesQuery = useOpportunitiesQuery(-1)
   const retailersQuery = useCustomerPickerQuery(-1)
   const opportunities = listData(opportunitiesQuery.data)
@@ -42,11 +45,11 @@ export function ProgramsPage() {
           o.division,
           o.production_po_number,
           o.sales_order_number,
-          relatedName(o.retailer),
+          customerName(o.retailer),
           relatedName(o.department),
         ).includes(q),
     )
-  }, [opportunities, query])
+  }, [opportunities, query, customerName])
 
   const columns: Column<CrmOpportunity>[] = [
     {
@@ -68,8 +71,8 @@ export function ProgramsPage() {
     {
       key: 'retailer',
       header: 'Customer',
-      sortValue: (o) => relatedName(o.retailer),
-      filterValue: (o) => relatedName(o.retailer),
+      sortValue: (o) => customerName(o.retailer),
+      filterValue: (o) => customerName(o.retailer),
       cell: (o) => <CustomerRelationLogo value={o.retailer} customerById={retailerById} size={24} variant="token-name" />,
     },
     {

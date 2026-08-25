@@ -23,7 +23,7 @@ import {
   updateRetailer,
   uploadRetailerLogo,
 } from '@/features/crm/api'
-import { idOf, label, relatedName } from '@/features/crm/format'
+import { customerLabel, idOf, label, relatedName } from '@/features/crm/format'
 import { uniqueValues, customerPickerOptions, isSelectableCustomer, buildRetailerById } from '@/features/crm/pages/_shared'
 import {
   crmKeys,
@@ -32,6 +32,7 @@ import {
   useIngestedContactsQuery,
   useCustomerPickerQuery,
   useOpportunitiesQuery,
+  useCustomerDisplayName,
 } from '@/features/crm/queries'
 import { logError } from '@/lib/errors'
 import type { Buyer, CrmDepartment, CrmOpportunity, Retailer } from '@/lib/types'
@@ -74,6 +75,7 @@ function sanitizeFileToken(value: string): string {
 }
 
 export function DataAdminPage() {
+  const customerName = useCustomerDisplayName()
   const queryClient = useQueryClient()
   const [tab, setTab] = useState<AdminTab>('departments')
   const buyersQuery = useIngestedContactsQuery(-1)
@@ -111,8 +113,8 @@ export function DataAdminPage() {
   // The Logos tab manages customers that appear in pickers — same active/potential set.
   const logoCustomers = useMemo(() => retailers.filter((r) => isSelectableCustomer(r.status)), [retailers])
   const contactOptions = useMemo<ComboOption[]>(
-    () => buyers.map((b) => ({ value: b.id, label: b.name, hint: relatedName(b.retailer) })),
-    [buyers],
+    () => buyers.map((b) => ({ value: b.id, label: b.name, hint: customerName(b.retailer) })),
+    [buyers, customerName],
   )
   const typeValues = useMemo(
     () => uniqueValues(buyers, (b) => b.contact_type).map((o) => o.value),
@@ -175,8 +177,8 @@ export function DataAdminPage() {
     {
       key: 'retailer',
       header: 'Customer',
-      sortValue: (d) => relatedName(d.retailer),
-      filterValue: (d) => relatedName(d.retailer),
+      sortValue: (d) => customerName(d.retailer),
+      filterValue: (d) => customerName(d.retailer),
       cell: (d) => <CustomerRelationLogo value={d.retailer} customerById={retailerById} size={24} variant="token-name" />,
     },
     {
@@ -201,8 +203,8 @@ export function DataAdminPage() {
     {
       key: 'name',
       header: 'Customer',
-      sortValue: (r) => r.name?.toLowerCase(),
-      filterValue: (r) => r.name,
+      sortValue: (r) => customerLabel(r).toLowerCase(),
+      filterValue: (r) => customerLabel(r),
       cell: (r) => <CustomerRelationLogo value={r} size={24} variant="token-name" />,
     },
     {
