@@ -9,6 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { ErrorState } from '@/components/app/states'
 import { useRecordSelection } from '@/features/crm/useRecordSelection'
+import { useRangeSelection } from '@/features/crm/useRangeSelection'
 import { CustomerDrawer } from '@/features/crm/components/CustomerDrawer'
 import { MergeCustomersDialog } from '@/features/crm/components/MergeCustomersDialog'
 import { CustomerRelationLogo } from '@/features/crm/components/CustomerRelationLogo'
@@ -74,8 +75,10 @@ export function CustomersPage() {
   const opportunitiesQuery = useOpportunitiesQuery(-1)
   const updateCustomerMutation = useUpdateCustomerMutation()
   const updateDomainMutation = useUpdateIngestedDomainMutation()
-  const [selectedDomains, setSelectedDomains] = useState<Set<string>>(() => new Set())
-  const [selectedCustomers, setSelectedCustomers] = useState<Set<string>>(() => new Set())
+  const domainSelection = useRangeSelection()
+  const customerSelection = useRangeSelection()
+  const selectedDomains = domainSelection.selected
+  const selectedCustomers = customerSelection.selected
   const [mergePair, setMergePair] = useState<[Retailer, Retailer] | null>(null)
   const [bulkClassification, setBulkClassification] = useState('')
   const buyers = listData(buyersQuery.data)
@@ -113,7 +116,7 @@ export function CustomersPage() {
     const rows = triageDomains.filter((row) => selectedDomains.has(row.id))
     try {
       await Promise.all(rows.map((row) => updateDomainMutation.mutateAsync({ id: row.id, values: { status: bulkClassification } })))
-      setSelectedDomains(new Set())
+      domainSelection.clear()
       toast.success(`${rows.length} domain${rows.length === 1 ? '' : 's'} classified`)
     } catch (error) {
       toast.error('Could not classify every selected domain', {
@@ -171,15 +174,6 @@ export function CustomersPage() {
 
   const count = segment === 'triage' ? filteredDomains.length : filteredCustomers.length
 
-  function toggleCustomer(id: string, checked: boolean) {
-    setSelectedCustomers((current) => {
-      const next = new Set(current)
-      if (checked) next.add(id)
-      else next.delete(id)
-      return next
-    })
-  }
-
   const customerColumns: Column<Retailer>[] = [
     {
       key: 'selected',
@@ -189,7 +183,7 @@ export function CustomersPage() {
           aria-label="Clear customer selection"
           checked={selectedCustomers.size > 0}
           ref={(el) => { if (el) el.indeterminate = selectedCustomers.size > 0 }}
-          onChange={() => setSelectedCustomers(new Set())}
+          onChange={() => customerSelection.clear()}
           onClick={(event) => event.stopPropagation()}
           className="size-4 accent-primary"
         />
@@ -200,8 +194,12 @@ export function CustomersPage() {
           type="checkbox"
           aria-label={`Select ${row.display_name || row.name}`}
           checked={selectedCustomers.has(row.id)}
-          onChange={(event) => toggleCustomer(row.id, event.target.checked)}
-          onClick={(event) => event.stopPropagation()}
+          // Toggling happens on click so shift-click can extend a range.
+          onChange={() => undefined}
+          onClick={(event) => {
+            event.stopPropagation()
+            customerSelection.toggle(row.id, event.shiftKey)
+          }}
           className="size-4 accent-primary"
         />
       ),
@@ -280,7 +278,8 @@ export function CustomersPage() {
           aria-label="Select all visible domains"
           checked={filteredDomains.length > 0 && filteredDomains.every((row) => selectedDomains.has(row.id))}
           onChange={(event) => {
-            setSelectedDomains(event.target.checked ? new Set(filteredDomains.map((row) => row.id)) : new Set())
+            if (event.target.checked) domainSelection.replace(filteredDomains.map((row) => row.id))
+            else domainSelection.clear()
           }}
           onClick={(event) => event.stopPropagation()}
           className="size-4 accent-primary"
@@ -292,15 +291,12 @@ export function CustomersPage() {
           type="checkbox"
           aria-label={`Select ${row.domain}`}
           checked={selectedDomains.has(row.id)}
-          onChange={(event) => {
-            setSelectedDomains((current) => {
-              const next = new Set(current)
-              if (event.target.checked) next.add(row.id)
-              else next.delete(row.id)
-              return next
-            })
+          // Toggling happens on click so shift-click can extend a range.
+          onChange={() => undefined}
+          onClick={(event) => {
+            event.stopPropagation()
+            domainSelection.toggle(row.id, event.shiftKey)
           }}
-          onClick={(event) => event.stopPropagation()}
           className="size-4 accent-primary"
         />
       ),
@@ -432,7 +428,7 @@ export function CustomersPage() {
               <Button size="sm" onClick={() => void classifySelectedDomains()} disabled={!bulkClassification || updateDomainMutation.isPending}>
                 Apply to selected
               </Button>
-              <Button size="sm" variant="ghost" onClick={() => setSelectedDomains(new Set())}>Clear selection</Button>
+              <Button size="sm" variant="ghost" onClick={() => domainSelection.clear()}>Clear selection</Button>
             </div>
           ) : null}
           <DataTable
@@ -441,6 +437,7 @@ export function CustomersPage() {
             columns={domainColumns}
             getRowId={(r) => r.id}
             onCellEdit={(row, _key, value) => classifyDomain(row, value)}
+            onVisibleRowsChange={(rows) => domainSelection.setVisibleIds(rows.map((r) => r.id))}
             loading={visibleFetch.isPending}
             emptyIcon={<Building2 className="size-5" />}
             emptyTitle="Triage queue is clear"
@@ -466,7 +463,7 @@ export function CustomersPage() {
               <span className="text-[11.5px] text-muted-foreground">
                 {selectedCustomers.size === 2 ? 'Ready to merge' : 'Select exactly two customers to merge'}
               </span>
-              <Button size="sm" variant="ghost" onClick={() => setSelectedCustomers(new Set())}>Clear selection</Button>
+              <Button size="sm" variant="ghost" onClick={() => customerSelection.clear()}>Clear selection</Button>
             </div>
           ) : null}
           <DataTable
@@ -476,6 +473,7 @@ export function CustomersPage() {
           getRowId={(r) => r.id}
           onRowClick={(r) => select(r)}
           onCellEdit={editCell}
+          onVisibleRowsChange={(rows) => customerSelection.setVisibleIds(rows.map((r) => r.id))}
           loading={visibleFetch.isPending}
           emptyIcon={<Building2 className="size-5" />}
           emptyTitle="No customers match"
@@ -489,7 +487,7 @@ export function CustomersPage() {
         key={mergePair ? `${mergePair[0].id}-${mergePair[1].id}` : 'no-merge'}
         pair={mergePair}
         onClose={() => setMergePair(null)}
-        onMerged={() => setSelectedCustomers(new Set())}
+        onMerged={() => customerSelection.clear()}
       />
     </AppPage>
   )

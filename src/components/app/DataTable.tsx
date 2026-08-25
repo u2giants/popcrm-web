@@ -73,6 +73,7 @@ export function DataTable<T>({
   getRowId,
   onRowClick,
   onCellEdit,
+  onVisibleRowsChange,
   loading,
   emptyTitle = 'No records found',
   emptyDescription,
@@ -94,6 +95,12 @@ export function DataTable<T>({
   pageSize?: number
   initialSort?: { key: string; dir: 'asc' | 'desc' }
   groupBy?: (row: T) => ReactNode
+  /**
+   * Rows in the order they are currently rendered (after column filters and
+   * sorting, across all pages). Lets the caller resolve shift-click ranges
+   * against what the user actually sees rather than the unsorted input.
+   */
+  onVisibleRowsChange?: (rows: T[]) => void
 }) {
   const [sort, setSort] = useState<{ key: string; dir: 'asc' | 'desc' } | null>(initialSort ?? null)
   const [filterSets, setFilterSets] = useState<Record<string, string[]>>({})
@@ -180,6 +187,10 @@ export function DataTable<T>({
   const pageCount = Math.max(1, Math.ceil(sorted.length / effectivePageSize))
   const safePage = Math.min(page, pageCount - 1)
   const pageRows = sorted.slice(safePage * effectivePageSize, safePage * effectivePageSize + effectivePageSize)
+  const visibleRowsCb = useRef(onVisibleRowsChange)
+  useEffect(() => { visibleRowsCb.current = onVisibleRowsChange }, [onVisibleRowsChange])
+  useEffect(() => { visibleRowsCb.current?.(sorted) }, [sorted])
+
   const pageRowIndex = useMemo(() => {
     const m = new Map<string, number>()
     pageRows.forEach((r, i) => m.set(getRowId(r), i))
