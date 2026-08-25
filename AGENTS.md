@@ -633,6 +633,17 @@ assigns contacts to whichever customer owns the domain outright, and logs and
 skips the domain if no one owns it. Adding a banner therefore never silently
 re-parents existing contacts.
 
+Merging two customers is a real button: tick two rows on the Customers grid and
+press Merge. It calls `api.db_data_admin_preview_customer_merge` to show what
+moves, then `api.db_data_admin_merge_customer` with that preview token, a fresh
+operation id, and a typed reason. The engine moves contacts, email, programs and
+ERP source references onto the survivor, keeps the loser's name as an alias, and
+writes an audit row. Two gates live outside this repo and are reported as result
+codes, not thrown errors: the caller needs the `administrator` role plus
+explicit `admin` app access (`app.require_db_data_admin_access`), and the
+`app.db_data_admin_feature_gate` row for `merge_execute` must be enabled. The
+dialog explains both in plain language rather than failing silently.
+
 Consolidating routing onto one customer does not require a database merge:
 `domain` holds one domain, and `routing_aliases` (editable in the customer
 drawer) holds any number more. Both are searched by `domainOrClause`, so a

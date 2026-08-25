@@ -532,6 +532,93 @@ export async function fetchCustomerSegmentCounts(): Promise<CustomerSegmentCount
   return { active, triage, dismissed, all }
 }
 
+/**
+ * Customer merge. The engine lives in the shared database
+ * (api.db_data_admin_preview_customer_merge / api.db_data_admin_merge_customer):
+ * it moves contacts, email, programs and ERP source references onto the
+ * survivor, keeps the loser's name as an alias so old references still resolve,
+ * and writes an audit row. Two gates apply, both outside this app: the caller
+ * needs the administrator role plus explicit `admin` app access, and the
+ * `merge_execute` feature gate must be enabled. Both surface as ordinary result
+ * codes, not thrown errors, so the UI can explain them.
+ */
+export type CustomerMergePreview = {
+  ok: boolean
+  code?: string
+  message?: string
+  previewToken?: string
+  survivorName?: string
+  loserName?: string
+  affectedCounts: Array<{ label: string; count: number }>
+  movingAliases: string[]
+  conflicts: Array<{ field: string; detail: string }>
+}
+
+function readMergeCounts(value: unknown): Array<{ label: string; count: number }> {
+  if (!value || typeof value !== 'object') return []
+  return Object.entries(value as Record<string, unknown>)
+    .map(([label, count]) => ({ label, count: Number(count ?? 0) }))
+    .filter((row) => row.count > 0)
+    .sort((a, b) => b.count - a.count)
+}
+
+export async function previewCustomerMerge(survivorId: string, loserId: string): Promise<CustomerMergePreview> {
+  const { data, error } = await anyDb.schema('api').rpc('db_data_admin_preview_customer_merge', {
+    p_survivor_id: survivorId,
+    p_loser_id: loserId,
+  })
+  if (error) {
+    if (String(error.message || '').includes('not authorized')) {
+      return { ok: false, code: 'not_authorized', affectedCounts: [], movingAliases: [], conflicts: [] }
+    }
+    throw error
+  }
+  const result = (data ?? {}) as Row
+  const preview = (result.preview ?? {}) as Row
+  const survivor = (preview.survivor ?? {}) as Row
+  const loser = (preview.loser ?? {}) as Row
+  return {
+    ok: Boolean(result.success),
+    code: (result.code as string) ?? undefined,
+    message: (result.message as string) ?? undefined,
+    previewToken: (result.preview_token as string) ?? undefined,
+    survivorName: (survivor.display_name || survivor.name) as string | undefined,
+    loserName: (loser.display_name || loser.name) as string | undefined,
+    affectedCounts: readMergeCounts(preview.affected_counts),
+    movingAliases: Array.isArray(preview.moving_aliases)
+      ? (preview.moving_aliases as Row[]).map((a) => String(a.alias ?? '')).filter(Boolean)
+      : [],
+    conflicts: Array.isArray(preview.conflicts)
+      ? (preview.conflicts as Row[]).map((c) => ({
+          field: String(c.field ?? c.column ?? 'field'),
+          detail: String(c.detail ?? c.message ?? JSON.stringify(c)),
+        }))
+      : [],
+  }
+}
+
+export async function mergeCustomers(args: {
+  survivorId: string
+  loserId: string
+  previewToken: string
+  operationId: string
+  reason: string
+}): Promise<{ ok: boolean; code?: string; message?: string }> {
+  const { data, error } = await anyDb.schema('api').rpc('db_data_admin_merge_customer', {
+    p_survivor_id: args.survivorId,
+    p_loser_id: args.loserId,
+    p_preview_token: args.previewToken,
+    p_operation_id: args.operationId,
+    p_reason: args.reason,
+  })
+  if (error) {
+    if (String(error.message || '').includes('not authorized')) return { ok: false, code: 'not_authorized' }
+    throw error
+  }
+  const result = (data ?? {}) as Row
+  return { ok: Boolean(result.success), code: (result.code as string) ?? undefined, message: (result.message as string) ?? undefined }
+}
+
 export async function updateRetailer(id: string, values: Partial<Retailer>) {
   const v = values as Row
   const { error } = await anyDb.schema('api').rpc('crm_update_customer', {

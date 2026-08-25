@@ -16,6 +16,8 @@ import {
   fetchEmailSegmentCounts,
   fetchIgnoreRules,
   fetchIngestedDomainCount,
+  mergeCustomers,
+  previewCustomerMerge,
   fetchIngestedContacts,
   fetchIngestedDomains,
   fetchMeetingNotes,
@@ -396,6 +398,27 @@ export function useUpdateEmailMutation() {
     onSettled: () => {
       void queryClient.invalidateQueries({ queryKey: [...crmKeys.all, 'emails'] })
       void queryClient.invalidateQueries({ queryKey: crmKeys.stats() })
+    },
+  })
+}
+
+export function useCustomerMergePreviewQuery(survivorId: string | null, loserId: string | null) {
+  return useQuery({
+    queryKey: [...crmKeys.all, 'customerMergePreview', survivorId, loserId] as const,
+    queryFn: () => previewCustomerMerge(survivorId!, loserId!),
+    enabled: Boolean(survivorId && loserId),
+    staleTime: 0,
+    gcTime: 0,
+    retry: false,
+  })
+}
+
+export function useMergeCustomersMutation() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: mergeCustomers,
+    onSettled: () => {
+      void queryClient.invalidateQueries({ queryKey: crmKeys.all })
     },
   })
 }
