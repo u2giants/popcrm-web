@@ -21,6 +21,7 @@ import {
   useCustomerPickerQuery,
   useMeetingsQuery,
   useUpdateMeetingMutation,
+  useCustomerDisplayName,
 } from '@/features/crm/queries'
 import { logError } from '@/lib/errors'
 import type { CrmMeetingNote, Retailer } from '@/lib/types'
@@ -36,6 +37,7 @@ function acctStatusOf(m: CrmMeetingNote): string {
 }
 
 export function MeetingsPage() {
+  const customerName = useCustomerDisplayName()
   const queryClient = useQueryClient()
   const meetingsQuery = useMeetingsQuery(-1)
   const retailersQuery = useCustomerPickerQuery(-1)
@@ -121,10 +123,10 @@ export function MeetingsPage() {
       if (segment === 'customers' && (s === 'OTHER' || s === 'UNASSIGNED')) return false
       if (segment === 'triage' && s !== 'UNASSIGNED') return false
       if (segment === 'dismissed' && s !== 'OTHER') return false
-      if (q && !textOf(m.name, m.participants, m.summary, relatedName(m.retailer), relatedName(m.contact)).includes(q)) return false
+      if (q && !textOf(m.name, m.participants, m.summary, customerName(m.retailer), relatedName(m.contact)).includes(q)) return false
       return true
     })
-  }, [meetings, query, segment])
+  }, [meetings, query, segment, customerName])
 
   const columns: Column<CrmMeetingNote>[] = [
     {
@@ -154,8 +156,8 @@ export function MeetingsPage() {
       key: 'retailer',
       header: 'Customer',
       hideBelow: 'md',
-      sortValue: (m) => relatedName(m.retailer),
-      filterValue: (m) => relatedName(m.retailer),
+      sortValue: (m) => customerName(m.retailer),
+      filterValue: (m) => customerName(m.retailer),
       editOptions: (m) => withCurrentCustomer(customerOptions, idOf(m.retailer), retailerById),
       editValue: (m) => idOf(m.retailer),
       cell: (m) => <CustomerRelationLogo value={m.retailer} customerById={retailerById} size={24} variant="token-name" />,

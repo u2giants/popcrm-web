@@ -26,21 +26,23 @@ import {
   useCreateDepartmentMutation,
   useDepartmentsQuery,
   useUpdateContactMutation,
+  useCustomerDisplayName,
 } from '@/features/crm/queries'
 import { describeError, errorCode, logError } from '@/lib/errors'
 import type { Buyer, CrmDepartment } from '@/lib/types'
 
-function contactSearchText(contact: Buyer) {
+function contactSearchText(contact: Buyer, customerName: (value: Buyer['retailer']) => string) {
   return [
     contact.name,
     contact.email,
     contact.job_title,
-    relatedName(contact.retailer),
+    customerName(contact.retailer),
     relatedName(contact.department),
   ].filter(Boolean).join(' ').toLowerCase()
 }
 
 export function TriagePage() {
+  const customerName = useCustomerDisplayName()
   const contactsQuery = useContactSegmentQuery('customer', -1)
   const departmentsQuery = useDepartmentsQuery(-1)
   const updateContact = useUpdateContactMutation()
@@ -62,9 +64,9 @@ export function TriagePage() {
     return contacts
       .filter((contact) => idOf(contact.retailer) && !idOf(contact.department))
       .filter((contact) => !completed.has(contact.id))
-      .filter((contact) => !q || contactSearchText(contact).includes(q))
+      .filter((contact) => !q || contactSearchText(contact, customerName).includes(q))
       .sort((a, b) => a.name.localeCompare(b.name))
-  }, [contacts, completed, query])
+  }, [contacts, completed, query, customerName])
 
   const activeIndex = Math.min(currentIndex, Math.max(0, queue.length - 1))
   const current = queue[activeIndex] ?? null

@@ -14,7 +14,7 @@ import { MergeCustomersDialog } from '@/features/crm/components/MergeCustomersDi
 import { CustomerRelationLogo } from '@/features/crm/components/CustomerRelationLogo'
 import { ChainBadge } from '@/features/crm/components/CrmStatusBadge'
 import { CHAIN_TYPES, CUSTOMER_STATUSES, customerStatusLabel, customerStatusTone } from '@/features/crm/constants'
-import { formatDateTime, idOf, label, textOf } from '@/features/crm/format'
+import { customerLabel, formatDateTime, idOf, label, textOf } from '@/features/crm/format'
 import {
   listData,
   useCustomerSegmentCountsQuery,
@@ -153,8 +153,8 @@ export function CustomersPage() {
       key: 'name',
       header: 'Customer',
       opensDetail: true,
-      sortValue: (r) => r.name?.toLowerCase(),
-      filterValue: (r) => r.name,
+      sortValue: (r) => customerLabel(r).toLowerCase(),
+      filterValue: (r) => customerLabel(r),
       cell: (r) => <CustomerRelationLogo value={r} size={24} variant="token-name" />,
     },
     {
