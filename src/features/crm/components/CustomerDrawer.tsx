@@ -18,6 +18,7 @@ import {
 import { isDomainShape, normalizeDomainInput, suggestDomainFromEmails } from '@/features/crm/domainSuggestion'
 import { logError } from '@/lib/errors'
 import { ChainBadge, StageBadge } from '@/features/crm/components/CrmStatusBadge'
+import { CustomerLogoField } from '@/features/crm/components/CustomerLogoField'
 import { customerStatusLabel, customerStatusTone } from '@/features/crm/constants'
 import { effectiveCustomerStatus } from '@/features/crm/pages/_shared'
 import { idOf } from '@/features/crm/format'
@@ -118,6 +119,11 @@ export function CustomerDrawer({ row, onClose }: { row: Retailer | null; onClose
                 />
               </DescriptionItem>
             </DescriptionList>
+          </DrawerSection>
+
+          {/* Brand logo */}
+          <DrawerSection title="Logo">
+            <CustomerLogoField key={row.id} customer={row} />
           </DrawerSection>
 
           {/* Routing aliases */}

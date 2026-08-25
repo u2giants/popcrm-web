@@ -1,5 +1,6 @@
 import { CustomerLogo } from '@/components/app/CustomerLogo'
 import { relatedName } from '@/features/crm/format'
+import { useCustomerBrandMap } from '@/features/crm/queries'
 import type { Retailer } from '@/lib/types'
 import { cn } from '@/lib/utils'
 
@@ -47,14 +48,20 @@ export function CustomerRelationLogo({
   height?: number
   className?: string
 }) {
-  const customer = customerById?.get(relationId(value))
-  const name = relatedName(customer ?? value)
+  const id = relationId(value)
+  const customer = customerById?.get(id)
+  // Brand marks come from the unfiltered customer list: the row's own relation
+  // never carries a domain, and the segment/picker feeds the pages load leave
+  // out non-curated customers (and drop domain entirely), which is why linked
+  // rows used to fall back to an initials badge.
+  const brand = useCustomerBrandMap().get(id) ?? null
+  const name = relatedName(customer ?? brand ?? value)
   if (name === '—') {
     return <span className={cn('text-muted-foreground', className)}>—</span>
   }
 
-  const domain = relationDomain(value) ?? customer?.domain ?? null
-  const logoUrl = relationLogoUrl(value) ?? customer?.logo_url ?? null
+  const domain = relationDomain(value) ?? customer?.domain ?? brand?.domain ?? null
+  const logoUrl = relationLogoUrl(value) ?? customer?.logo_url ?? brand?.logo_url ?? null
   const logoVariant = variant === 'full' && logoUrl ? 'full' : 'token'
 
   return (
