@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import { domainOfEmail, normalizeDomainInput, suggestDomainFromEmails } from './domainSuggestion'
+import { domainOfEmail, normalizeDomainInput, rootDomain, suggestDomainFromEmails } from './domainSuggestion'
 
 describe('domainOfEmail', () => {
   it('reads the domain and lowercases it', () => {
@@ -11,6 +11,18 @@ describe('domainOfEmail', () => {
     expect(domainOfEmail('mary.habib')).toBeNull()
     expect(domainOfEmail('mary@localhost')).toBeNull()
     expect(domainOfEmail(null)).toBeNull()
+  })
+})
+
+describe('rootDomain', () => {
+  it('collapses relay and campaign subdomains', () => {
+    expect(rootDomain('mpsend.walmart.com')).toBe('walmart.com')
+    expect(rootDomain('deals.zulily.com')).toBe('zulily.com')
+  })
+
+  it('keeps the registrable name on multi-part suffixes', () => {
+    expect(rootDomain('mail.tesco.co.uk')).toBe('tesco.co.uk')
+    expect(rootDomain('lidl.us')).toBe('lidl.us')
   })
 })
 
@@ -25,9 +37,18 @@ describe('suggestDomainFromEmails', () => {
     ).toBe('lidl.us')
   })
 
-  it('ignores our own domain and consumer mailboxes', () => {
+  it('counts relay subdomains toward the company', () => {
+    expect(suggestDomainFromEmails(['buyer@walmart.com', 'noreply@mpsend.walmart.com'])).toBe('walmart.com')
+  })
+
+  it('refuses to suggest on a single contact', () => {
+    expect(suggestDomainFromEmails(['mary@lidl.us'])).toBeNull()
+  })
+
+  it('ignores our own domain, consumer mailboxes, and ISP mailboxes', () => {
     expect(suggestDomainFromEmails(['adweck@popcre.com', 'buyer@gmail.com', 'buyer@gmail.com'])).toBeNull()
-    expect(suggestDomainFromEmails(['adweck@popcre.com', 'mary@lidl.us'])).toBe('lidl.us')
+    expect(suggestDomainFromEmails(['buyer@comcast.net', 'other@comcast.net'])).toBeNull()
+    expect(suggestDomainFromEmails(['adweck@popcre.com', 'mary@lidl.us', 'rachel@lidl.us'])).toBe('lidl.us')
   })
 
   it('returns null when there is nothing usable', () => {

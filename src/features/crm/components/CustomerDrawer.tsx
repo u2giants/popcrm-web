@@ -15,7 +15,7 @@ import {
   useOpportunitiesQuery,
   useUpdateCustomerMutation,
 } from '@/features/crm/queries'
-import { normalizeDomainInput, suggestDomainFromEmails } from '@/features/crm/domainSuggestion'
+import { isDomainShape, normalizeDomainInput, suggestDomainFromEmails } from '@/features/crm/domainSuggestion'
 import { logError } from '@/lib/errors'
 import { ChainBadge, StageBadge } from '@/features/crm/components/CrmStatusBadge'
 import { customerStatusLabel, customerStatusTone } from '@/features/crm/constants'
@@ -110,6 +110,7 @@ export function CustomerDrawer({ row, onClose }: { row: Retailer | null; onClose
               </DescriptionItem>
               <DescriptionItem term="Domain">
                 <DomainField
+                  key={row.id}
                   customerId={row.id}
                   domain={row.domain}
                   suggestion={related.suggestedDomain}
@@ -267,6 +268,10 @@ function DomainField({
 
   async function save(value: string) {
     const next = normalizeDomainInput(value)
+    if (next && !isDomainShape(next)) {
+      toast.error(`"${next}" is not a domain`, { description: 'Use a form like example.com.' })
+      return
+    }
     if (next === (domain ?? '')) {
       setEditing(false)
       return

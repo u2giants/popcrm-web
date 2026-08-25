@@ -98,15 +98,27 @@ const must = (res) => { if (res.error) throw new Error(res.error.message); retur
 
 // PostgREST enforces a server-side row ceiling (db-max-rows), so a single
 // .limit(100000) silently returns only the first page and the rest of the
-// table is never seen. Every full-table read pages explicitly with a stable
-// order instead. buildQuery must return a fresh builder on each call.
-const ROW_PAGE_SIZE = 1000
-async function fetchAllRows(buildQuery, { orderBy = 'id', pageSize = ROW_PAGE_SIZE } = {}) {
+// table is never seen. Every full-table read pages explicitly instead.
+//
+// Paging is keyset, not offset: reroute and applyIgnoreRules update the very
+// rows their own filter selects, and each committed update shifts every later
+// row up one offset, so offset paging would jump past exactly as many rows as
+// the job just changed. Seeking on the last id read is immune to that and to
+// concurrently ingested rows. buildQuery must return a fresh builder per call.
+//
+// ROW_PAGE_SIZE stays below the server ceiling so that a short page always
+// means "end of table" and never "the server truncated us".
+const ROW_PAGE_SIZE = 500
+async function fetchAllRows(buildQuery, { keyColumn = 'id', pageSize = ROW_PAGE_SIZE } = {}) {
   const rows = []
-  for (let from = 0; ; from += pageSize) {
-    const page = must(await buildQuery().order(orderBy, { ascending: true }).range(from, from + pageSize - 1))
+  let after = null
+  for (;;) {
+    let q = buildQuery().order(keyColumn, { ascending: true }).limit(pageSize)
+    if (after !== null) q = q.gt(keyColumn, after)
+    const page = must(await q)
     rows.push(...page)
     if (page.length < pageSize) return rows
+    after = page[page.length - 1][keyColumn]
   }
 }
 
