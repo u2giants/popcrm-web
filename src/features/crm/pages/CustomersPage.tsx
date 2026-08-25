@@ -49,8 +49,11 @@ const segmentOf = (r: Retailer): Exclude<Segment, 'triage' | 'all'> => {
   if (s === 'UNASSIGNED') return 'unclassified'
   return 'active'
 }
+// Hub prospect flag. "In ERP" says the company has an ERP record — a ship-to,
+// a 2006-era buyer and a live customer all look the same there — never that it
+// is a confirmed customer. Only customer_status carries that judgement.
 const potentialLabel = (value: boolean | null | undefined) =>
-  value === true ? 'Potential' : value === false ? 'ERP confirmed' : 'Unknown'
+  value === true ? 'Potential' : value === false ? 'In ERP' : 'Unknown'
 const potentialTone = (value: boolean | null | undefined) =>
   value === true ? 'warning' : value === false ? 'success' : 'neutral'
 
