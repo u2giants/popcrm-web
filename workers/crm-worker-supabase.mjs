@@ -122,6 +122,7 @@ async function fetchAllRows(buildQuery, { keyColumn = 'id', pageSize = ROW_PAGE_
   }
 }
 
+const AMBIGUOUS_DOMAIN = Symbol('ambiguous customer domain')
 const INTERNAL_DOMAIN = 'popcre.com'
 const GRAPH_BASE = 'https://graph.microsoft.com/v1.0'
 const LOGIN_BASE = 'https://login.microsoftonline.com'
@@ -247,7 +248,7 @@ function domainToCompanyName(domain) {
 function personNameFromEmail(email) {
   return String(email || '').split('@')[0].split(/[._-]/).filter(Boolean).map((p) => p[0]?.toUpperCase() + p.slice(1)).join(' ') || email
 }
-function applySharedDomainRule(domain, candidateRows, displayNames) {
+export function applySharedDomainRule(domain, candidateRows, displayNames) {
   const rule = SHARED_DOMAIN_RULES.find((r) => r.domain === domain)
   if (!rule || candidateRows.length < 2) return null
   const names = Object.values(displayNames || {}).join(' ').toUpperCase()
@@ -820,14 +821,24 @@ async function recordIngestedDomain(domain, sender = null, subject = null, displ
   }))
 }
 
+// A shared domain (a parent and its banner, e.g. ros.com for Ross Stores and
+// dd's) legitimately matches more than one customer. Routing disambiguates per
+// message with SHARED_DOMAIN_RULES, but contact sync has no message to judge by,
+// so it must never guess: it owns the domain to whichever customer carries it as
+// its own `domain`, and otherwise reports the ambiguity instead of picking one.
 async function customerForDomain(domain) {
   const candidates = domainCandidates(domain)
   const existing = must(await core('customer')
     .select('id,name,domain,routing_aliases,customer_status')
     .in('customer_status', CUSTOMERS)
     .or(domainOrClause(candidates))
-    .limit(2))
-  return existing[0]?.id || null
+    .limit(20))
+  if (!existing.length) return null
+  if (existing.length === 1) return existing[0].id
+  const owner = existing.find((r) => candidates.includes(String(r.domain || '').toLowerCase()))
+  if (owner) return owner.id
+  console.warn(`contact-sync: ${domain} matches ${existing.length} customers and none owns it as its domain (${existing.map((r) => r.name).join(', ')}); leaving its contacts alone`)
+  return AMBIGUOUS_DOMAIN
 }
 
 async function contactSync() {
@@ -854,6 +865,10 @@ async function contactSync() {
     const domain = domainOf(address)
     if (!retailerByDomain.has(domain)) {
       const customerId = await customerForDomain(domain)
+      if (customerId === AMBIGUOUS_DOMAIN) {
+        retailerByDomain.set(domain, null)
+        continue
+      }
       if (!customerId) {
         await recordIngestedDomain(domain, senderByDomain.get(domain) || address, subjectByDomain.get(domain) || null, domainToCompanyName(domain))
         retailersCreated += 1

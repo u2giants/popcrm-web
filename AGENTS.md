@@ -592,6 +592,50 @@ After changing worker code, run `node --check workers/crm-worker-supabase.mjs`
 and relevant one-shot systemd smoke tests. Unknown domains must continue to go
 through `crm.record_ingested_domain(...)`, not direct `core.customer` inserts.
 
+### A parent and its banner share one email domain but stay separate customers
+
+Looks like:
+Two customers on one email domain is a duplicate to be merged.
+
+Actually:
+Ross Stores and its dd's banner are one company commercially but must stay two
+customers in the CRM, and every dd's buyer writes from `@ros.com`. Same shape
+applies to any parent/banner pair. Three separate pieces make that work, and all
+three must be present or the pair silently mis-routes:
+
+1. **The parent owns the domain.** `core.customer.domain` holds `ros.com` on
+   ROSS STORES INC SUPPLIERS only. `domain` must stay unique across customers:
+   `core.match_customer` treats an exact domain hit as a confident ERP/PLM link,
+   so two customers holding one domain would make that link a coin toss.
+2. **The banner carries the domain as a routing alias.** dd's has `ros.com` in
+   `routing_aliases`, which makes it a *candidate* for the domain
+   (`domainOrClause` searches `domain` and `routing_aliases`) without claiming
+   ownership. An alias containing `.` or `@` is deliberately ignored by
+   `aliasMatchesSubject`, so a domain alias never leaks into subject matching.
+3. **A shared-domain rule picks between the candidates per message.**
+   `SHARED_DOMAIN_RULES` in `workers/crm-worker-supabase.mjs` maps
+   `ros.com` -> keywords (`DDS`, `DD'S`, `NYBO`) matched against the *sender
+   display names* on that message, and name fragments matched against the
+   candidate customers. A dd's-branded message routes to dd's; anything else
+   falls through to the parent. `matchingRetailersByDomain` returns null rather
+   than guessing when the rule does not fire and more than one candidate exists.
+
+Both customers must have `customer_status` of ACTIVE_CUSTOMER or
+POTENTIAL_CUSTOMER — every matcher filters on that, so a status-less customer is
+invisible to routing no matter how its domain and aliases are set.
+
+Contact sync has no message to judge by, so it never applies the rule: it
+assigns contacts to whichever customer owns the domain outright, and logs and
+skips the domain if no one owns it. Adding a banner therefore never silently
+re-parents existing contacts.
+
+Future sessions should:
+Add a new pair by setting the parent's `domain`, adding the same domain to the
+banner's `routing_aliases`, giving both a customer status, and adding a
+`SHARED_DOMAIN_RULES` entry keyed on how the banner's people actually sign their
+mail. Verify with `workers/shared-domain-rules.test.mjs`. Never solve it by
+putting the same `domain` on both customers, and never merge the two records.
+
 ### Full-table worker reads must page, and Customer domain is curated by hand
 
 Looks like:
