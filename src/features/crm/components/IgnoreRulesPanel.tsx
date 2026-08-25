@@ -20,13 +20,19 @@ export function IgnoreRulesPanel() {
   const ignoreRulesQuery = useIgnoreRulesQuery()
   const createIgnoreRuleMutation = useCreateIgnoreRuleMutation()
   const ignoreRules = listData(ignoreRulesQuery.data)
-  const [pattern, setPattern] = useState('')
-  const [ruleType, setRuleType] = useState<string>('EMAIL_ADDRESS')
+  const [emailAddress, setEmailAddress] = useState('')
+  const [domain, setDomain] = useState('')
+  const [subjectPattern, setSubjectPattern] = useState('')
   const [matchType, setMatchType] = useState<string>('CONTAINS')
   const [busy, setBusy] = useState(false)
 
-  async function add() {
-    const value = pattern.trim()
+  async function add(ruleType: 'EMAIL_ADDRESS' | 'DOMAIN' | 'SUBJECT', rawValue: string, clear: () => void) {
+    const trimmed = rawValue.trim()
+    const value = ruleType === 'SUBJECT'
+      ? trimmed
+      : ruleType === 'DOMAIN'
+        ? trimmed.toLowerCase().replace(/^@/, '')
+        : trimmed.toLowerCase()
     if (!value) return
     setBusy(true)
     try {
@@ -37,7 +43,7 @@ export function IgnoreRulesPanel() {
         match_type: ruleType === 'SUBJECT' ? matchType : 'EXACT',
         emails_skipped: 0,
       })
-      setPattern('')
+      clear()
       toast.success('Not-customer rule added')
     } catch (error) {
       toast.error('Could not add not-customer rule', { description: logError('IgnoreRulesPanel.add', error) })
@@ -52,22 +58,52 @@ export function IgnoreRulesPanel() {
         title="Not-customer rules"
         description="Automatically disregard known non-customer email addresses, domains, or subject patterns. Address and domain rules apply only when no Customer domain is present."
       />
-      <div className="mt-4 grid gap-3 sm:grid-cols-[180px_minmax(0,1fr)_auto_auto]">
-        <Select value={ruleType} onValueChange={setRuleType}>
-          <SelectTrigger><SelectValue /></SelectTrigger>
-          <SelectContent>
-            <SelectItem value="EMAIL_ADDRESS">Exact email address</SelectItem>
-            <SelectItem value="DOMAIN">Email domain</SelectItem>
-            <SelectItem value="SUBJECT">Subject pattern</SelectItem>
-          </SelectContent>
-        </Select>
-        <Input
-          value={pattern}
-          onChange={(event) => setPattern(event.target.value)}
-          placeholder={ruleType === 'DOMAIN' ? 'example.com' : ruleType === 'EMAIL_ADDRESS' ? 'person@example.com' : 'Subject pattern'}
-          onKeyDown={(event) => { if (event.key === 'Enter') void add() }}
-        />
-        {ruleType === 'SUBJECT' ? (
+      <div className="mt-4 grid gap-3 sm:grid-cols-2">
+        <div className="rounded-[10px] border p-4">
+          <label className="text-[12.5px] font-semibold" htmlFor="not-customer-email">Exact email address</label>
+          <p className="mt-0.5 text-[11.5px] text-muted-foreground">Ignore messages involving this specific address.</p>
+          <div className="mt-3 flex gap-2">
+            <Input
+              id="not-customer-email"
+              type="email"
+              value={emailAddress}
+              onChange={(event) => setEmailAddress(event.target.value)}
+              placeholder="person@example.com"
+              onKeyDown={(event) => { if (event.key === 'Enter') void add('EMAIL_ADDRESS', emailAddress, () => setEmailAddress('')) }}
+            />
+            <Button onClick={() => void add('EMAIL_ADDRESS', emailAddress, () => setEmailAddress(''))} disabled={busy || !emailAddress.trim()}>
+              <Plus className="size-4" /> Add
+            </Button>
+          </div>
+        </div>
+        <div className="rounded-[10px] border p-4">
+          <label className="text-[12.5px] font-semibold" htmlFor="not-customer-domain">Domain</label>
+          <p className="mt-0.5 text-[11.5px] text-muted-foreground">Ignore any address at this domain.</p>
+          <div className="mt-3 flex gap-2">
+            <Input
+              id="not-customer-domain"
+              value={domain}
+              onChange={(event) => setDomain(event.target.value)}
+              placeholder="example.com"
+              onKeyDown={(event) => { if (event.key === 'Enter') void add('DOMAIN', domain, () => setDomain('')) }}
+            />
+            <Button onClick={() => void add('DOMAIN', domain, () => setDomain(''))} disabled={busy || !domain.trim()}>
+              <Plus className="size-4" /> Add
+            </Button>
+          </div>
+        </div>
+      </div>
+      <div className="mt-3 rounded-[10px] border p-4">
+        <label className="text-[12.5px] font-semibold" htmlFor="not-customer-subject">Subject pattern</label>
+        <p className="mt-0.5 text-[11.5px] text-muted-foreground">Ignore recurring automated or non-customer email subjects.</p>
+        <div className="mt-3 grid gap-2 sm:grid-cols-[minmax(0,1fr)_140px_auto]">
+          <Input
+            id="not-customer-subject"
+            value={subjectPattern}
+            onChange={(event) => setSubjectPattern(event.target.value)}
+            placeholder="Subject pattern"
+            onKeyDown={(event) => { if (event.key === 'Enter') void add('SUBJECT', subjectPattern, () => setSubjectPattern('')) }}
+          />
           <Select value={matchType} onValueChange={setMatchType}>
             <SelectTrigger className="min-w-[130px]"><SelectValue /></SelectTrigger>
             <SelectContent>
@@ -76,10 +112,10 @@ export function IgnoreRulesPanel() {
               ))}
             </SelectContent>
           </Select>
-        ) : <span />}
-        <Button onClick={() => void add()} disabled={busy || !pattern.trim()}>
+        <Button onClick={() => void add('SUBJECT', subjectPattern, () => setSubjectPattern(''))} disabled={busy || !subjectPattern.trim()}>
           <Plus className="size-4" /> Add rule
         </Button>
+        </div>
       </div>
       <ul className="mt-4 grid gap-2 sm:grid-cols-2">
         {ignoreRules.map((rule) => (
