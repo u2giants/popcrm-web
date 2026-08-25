@@ -68,7 +68,7 @@ export function CustomersPage() {
   const opportunitiesQuery = useOpportunitiesQuery(-1)
   const updateCustomerMutation = useUpdateCustomerMutation()
   const updateDomainMutation = useUpdateIngestedDomainMutation()
-  const [mergePair, setMergePair] = useState<[Retailer, Retailer] | null>(null)
+  const [mergeSelection, setMergeSelection] = useState<Retailer[] | null>(null)
   const buyers = listData(buyersQuery.data)
   const opportunities = listData(opportunitiesQuery.data)
   const triageDomains = listData(triageDomainsQuery.data)
@@ -358,13 +358,13 @@ export function CustomersPage() {
                 size="sm"
                 className="h-[28px] px-[10px] text-[12px]"
                 variant="outline"
-                disabled={rows.length !== 2}
-                onClick={() => { if (rows.length === 2) setMergePair([rows[0], rows[1]]) }}
+                disabled={rows.length < 2}
+                onClick={() => { if (rows.length >= 2) setMergeSelection(rows) }}
               >
                 Merge…
               </Button>
-              {rows.length !== 2 ? (
-                <span className="text-[11.5px] text-muted-foreground">Select exactly two to merge</span>
+              {rows.length < 2 ? (
+                <span className="text-[11.5px] text-muted-foreground">Select at least two to merge</span>
               ) : null}
             </>
           )}
@@ -378,10 +378,10 @@ export function CustomersPage() {
       )}
       <CustomerDrawer row={selected} onClose={() => select(null)} />
       <MergeCustomersDialog
-        key={mergePair ? `${mergePair[0].id}-${mergePair[1].id}` : 'no-merge'}
-        pair={mergePair}
-        onClose={() => setMergePair(null)}
-        onMerged={() => setMergePair(null)}
+        key={mergeSelection ? mergeSelection.map((r) => r.id).join('-') : 'no-merge'}
+        records={mergeSelection}
+        onClose={() => setMergeSelection(null)}
+        onMerged={() => setMergeSelection(null)}
       />
     </AppPage>
   )

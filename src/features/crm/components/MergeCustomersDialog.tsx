@@ -11,7 +11,8 @@ import {
 } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { useCustomerMergePreviewQuery, useMergeCustomersMutation } from '@/features/crm/queries'
+import { previewCustomerMerge } from '@/features/crm/api'
+import { useCustomerMergePreviewsQuery, useMergeCustomersMutation } from '@/features/crm/queries'
 import { logError } from '@/lib/errors'
 import type { Retailer } from '@/lib/types'
 
@@ -30,71 +31,101 @@ const GATE_MESSAGE: Record<string, string> = {
 }
 
 export function MergeCustomersDialog({
-  pair,
+  records,
   onClose,
   onMerged,
 }: {
-  pair: [Retailer, Retailer] | null
+  records: Retailer[] | null
   onClose: () => void
   onMerged: () => void
 }) {
-  // The survivor defaults to the record already carrying the most weight, and
-  // the choice is only overridden once someone picks the other one. Deriving it
-  // keeps a stale pick from a previous pair from ever being applied.
+  // The survivor defaults to the record already carrying the most weight.
+  // Deriving it keeps a stale pick from a previous selection from being applied.
   const [pickedSurvivorId, setPickedSurvivorId] = useState<string | null>(null)
   const [reason, setReason] = useState('')
   const merge = useMergeCustomersMutation()
 
   const weight = (r: Retailer) => (r.domain ? 2 : 0) + (r.customer_status === 'ACTIVE_CUSTOMER' ? 1 : 0)
-  const defaultSurvivor = pair ? (weight(pair[1]) > weight(pair[0]) ? pair[1] : pair[0]) : null
-  const survivorId = pair?.some((r) => r.id === pickedSurvivorId) ? pickedSurvivorId : defaultSurvivor?.id ?? null
+  const defaultSurvivor = records?.reduce((best, row) => (weight(row) > weight(best) ? row : best)) ?? null
+  const survivorId = records?.some((r) => r.id === pickedSurvivorId) ? pickedSurvivorId : defaultSurvivor?.id ?? null
   const setSurvivorId = setPickedSurvivorId
 
-  const survivor = pair?.find((r) => r.id === survivorId) ?? null
-  const loser = pair?.find((r) => r.id !== survivorId) ?? null
-  const preview = useCustomerMergePreviewQuery(survivor?.id ?? null, loser?.id ?? null)
-  const data = preview.data
-  const gate = data && !data.ok ? (GATE_MESSAGE[data.code ?? ''] ?? data.message ?? 'This merge cannot run.') : null
+  const survivor = records?.find((r) => r.id === survivorId) ?? null
+  const losers = records?.filter((r) => r.id !== survivorId) ?? []
+  const preview = useCustomerMergePreviewsQuery(survivor?.id ?? null, losers.map((r) => r.id))
+  const previews = preview.data ?? []
+  const blocked = previews.find((item) => !item.ok)
+  const gate = blocked ? (GATE_MESSAGE[blocked.code ?? ''] ?? blocked.message ?? 'This merge cannot run.') : null
+  const conflicts = previews.flatMap((item) => item.conflicts)
+  const affectedCounts = Array.from(
+    previews.reduce((counts, item) => {
+      for (const row of item.affectedCounts) counts.set(row.label, (counts.get(row.label) ?? 0) + row.count)
+      return counts
+    }, new Map<string, number>()),
+    ([label, count]) => ({ label, count }),
+  ).sort((a, b) => b.count - a.count)
+  const movingAliases = Array.from(new Set(previews.flatMap((item) => item.movingAliases)))
 
   async function confirm() {
-    if (!survivor || !loser || !data?.previewToken) return
+    if (!survivor || !losers.length || previews.length !== losers.length) return
+    let completed = 0
     try {
-      const result = await merge.mutateAsync({
-        survivorId: survivor.id,
-        loserId: loser.id,
-        previewToken: data.previewToken,
-        operationId: crypto.randomUUID(),
-        reason: reason.trim(),
-      })
-      if (!result.ok) {
-        toast.error('Merge did not run', { description: GATE_MESSAGE[result.code ?? ''] ?? result.message ?? result.code })
-        return
+      for (const loser of losers) {
+        // Earlier merges change the survivor, so obtain a fresh token immediately
+        // before each operation instead of reusing the dialog's preflight token.
+        const fresh = await previewCustomerMerge(survivor.id, loser.id)
+        if (!fresh.ok || fresh.conflicts.length || !fresh.previewToken) {
+          throw new Error(
+            GATE_MESSAGE[fresh.code ?? ''] ?? fresh.message ??
+            `${label(loser)} now has a conflict that must be resolved before it can be merged.`,
+          )
+        }
+        const result = await merge.mutateAsync({
+          survivorId: survivor.id,
+          loserId: loser.id,
+          previewToken: fresh.previewToken,
+          operationId: crypto.randomUUID(),
+          reason: reason.trim(),
+        })
+        if (!result.ok) {
+          throw new Error(GATE_MESSAGE[result.code ?? ''] ?? result.message ?? result.code ?? 'Merge did not run.')
+        }
+        completed += 1
       }
-      toast.success(`${label(loser)} merged into ${label(survivor)}`)
+      toast.success(`${completed} customer record${completed === 1 ? '' : 's'} merged into ${label(survivor)}`)
       onMerged()
       onClose()
     } catch (error) {
-      toast.error('Could not merge these customers', { description: logError('MergeCustomersDialog.confirm', error) })
+      const description = logError('MergeCustomersDialog.confirm', error)
+      if (completed) {
+        toast.warning(`Merged ${completed} of ${losers.length} customer records`, {
+          description: `The remaining records were left unchanged. ${description}`,
+        })
+        onMerged()
+        onClose()
+      } else {
+        toast.error('Could not merge these customers', { description })
+      }
     }
   }
 
   return (
-    <Dialog open={!!pair} onOpenChange={(open) => { if (!open) onClose() }}>
-      <DialogContent className="sm:max-w-[560px]">
+    <Dialog open={!!records} onOpenChange={(open) => { if (!open) onClose() }}>
+      <DialogContent className="sm:max-w-[620px]">
         <DialogHeader>
           <DialogTitle>Merge customers</DialogTitle>
           <DialogDescription>
-            Everything on one record moves to the other: contacts, email, programs, routing and ERP references.
-            The merged name is kept as an alias so old references still resolve. This cannot be undone automatically.
+            Everything on the records being removed moves to the survivor: contacts, email, programs, routing and ERP references.
+            Their names are kept as aliases so old references still resolve. This cannot be undone automatically.
           </DialogDescription>
         </DialogHeader>
 
-        {pair ? (
+        {records ? (
           <div className="flex flex-col gap-[14px]">
             <div>
               <p className="mb-[6px] text-[12px] font-[600] text-foreground">Which record survives?</p>
-              <div className="grid grid-cols-2 gap-[8px]">
-                {pair.map((r) => (
+              <div className="grid max-h-[220px] grid-cols-2 gap-[8px] overflow-y-auto pr-[3px]">
+                {records.map((r) => (
                   <button
                     key={r.id}
                     type="button"
@@ -121,17 +152,17 @@ export function MergeCustomersDialog({
                 <TriangleAlert className="mt-[1px] size-[14px] shrink-0 text-warning" />
                 <p className="text-[12px] text-foreground">{gate}</p>
               </div>
-            ) : data ? (
+            ) : previews.length ? (
               <div className="rounded-[9px] border">
                 <div className="flex items-center gap-[8px] border-b px-[11px] py-[8px] text-[12px]">
-                  <span className="truncate font-[600]">{data.loserName}</span>
+                  <span className="truncate font-[600]">{losers.length} record{losers.length === 1 ? '' : 's'}</span>
                   <ArrowRight className="size-[13px] shrink-0 text-muted-foreground" />
-                  <span className="truncate font-[600]">{data.survivorName}</span>
+                  <span className="truncate font-[600]">{label(survivor!)}</span>
                 </div>
                 <div className="px-[11px] py-[9px]">
-                  {data.affectedCounts.length ? (
+                  {affectedCounts.length ? (
                     <ul className="flex flex-col gap-[3px] text-[12px] text-muted-foreground">
-                      {data.affectedCounts.map((row) => (
+                      {affectedCounts.map((row) => (
                         <li key={row.label}>
                           <span className="tabular-nums font-[600] text-foreground">{row.count}</span> {row.label.replace(/_/g, ' ')}
                         </li>
@@ -140,14 +171,14 @@ export function MergeCustomersDialog({
                   ) : (
                     <p className="text-[12px] text-muted-foreground">Nothing is attached to the record being merged away.</p>
                   )}
-                  {data.movingAliases.length ? (
+                  {movingAliases.length ? (
                     <p className="mt-[7px] text-[11.5px] text-muted-foreground">
-                      Aliases kept: {data.movingAliases.join(', ')}
+                      Aliases kept: {movingAliases.join(', ')}
                     </p>
                   ) : null}
-                  {data.conflicts.length ? (
+                  {conflicts.length ? (
                     <p className="mt-[7px] text-[11.5px] text-warning">
-                      {data.conflicts.length} field conflict{data.conflicts.length === 1 ? '' : 's'} to resolve first
+                      {conflicts.length} field conflict{conflicts.length === 1 ? '' : 's'} to resolve first
                     </p>
                   ) : null}
                 </div>
@@ -172,10 +203,10 @@ export function MergeCustomersDialog({
           <Button variant="outline" size="sm" onClick={onClose}>Cancel</Button>
           <Button
             size="sm"
-            disabled={!data?.ok || !reason.trim() || merge.isPending || !!data?.conflicts.length}
+            disabled={!previews.length || previews.length !== losers.length || !!gate || !reason.trim() || merge.isPending || !!conflicts.length}
             onClick={() => void confirm()}
           >
-            {merge.isPending ? 'Merging…' : 'Merge'}
+            {merge.isPending ? 'Merging…' : `Merge ${losers.length} record${losers.length === 1 ? '' : 's'}`}
           </Button>
         </DialogFooter>
       </DialogContent>
