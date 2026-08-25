@@ -609,7 +609,8 @@ Three unrelated systems have to agree, and missing one fails quietly:
    for this yet; it is a database change, and roles/apps are shared across CRM,
    PIM, DAM and PLM.
 3. **Their mail** — `OUTLOOK_MAILBOXES` in `/home/ai/.crm-worker.env`, a
-   comma-separated list read by `resolveOutlookMailboxes`. Each mailbox keeps
+   comma-separated list read by `resolveOutlookMailboxes` (live since
+   2026-08-25: `adweck@popcre.com,jsafdieh@popcre.com`). Each mailbox keeps
    its own Graph delta cursor and is ingested independently, so one failing
    mailbox neither blocks nor rewinds another. Graph also has to allow the app
    registration to read that mailbox. `OUTLOOK_MAILBOX` (singular) still works
