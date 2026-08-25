@@ -395,6 +395,41 @@ Keep Customers page tabs and active customer pickers on
 `useCustomerSegmentQuery` / `useCustomerSegmentCountsQuery`. Do not restore
 full browser paging or exact head counts against `api.crm_customer_list`.
 
+Amended 2026-08-25: the Customers page now issues ONE
+`useCustomerSegmentQuery('all')` read and buckets the rows in the browser
+(`segmentOf` in `CustomersPage.tsx`); the Customers / Unclassified / Not a
+customer tab counts are those bucket sizes. This is still a segment RPC read —
+not full paging of `api.crm_customer_list` — so the timeout rule above holds.
+Only the Triage count still comes from `crm_customer_segment_counts`. See
+"Customer tab counts must equal the rows the tab renders" below.
+
+### Customer tab counts must equal the rows the tab renders
+
+What changed:
+On 2026-08-25 the owner reported the Customers tab reading `73` while the table
+showed 27 rows, AT HOME STORES vanishing from Customers, and a row badged
+"New Company" (Status) and "Potential" (Source) at once. All three were the
+same defect: each tab was fetched by a different query, and the page then
+applied extra client-side filters — a hidden `isSelectableCustomer(r.status)`
+exclusion — that the server-side counts knew nothing about.
+
+Actually:
+There are TWO status axes on a customer row and they are not interchangeable.
+`customer_status` is the CRM classification axis (`ACTIVE_CUSTOMER`,
+`POTENTIAL_CUSTOMER`, `OTHER`, empty = New Company). `status` is the hub-wide
+entity lifecycle (`active` / `inactive` / `potential`) shared with PM, DAM, and
+PLM, and it tracks `is_potential`. A row can legitimately have an empty CRM
+classification while the hub already tracks it as a prospect — that is exactly
+what made AT HOME STORES read "New Company" + "Potential".
+
+Future sessions should:
+Keep one fetch feeding every company tab, derive both the rows and the counts
+from the same `segmentOf` predicate, and let `statusOf` fall back to the hub
+`status`/`is_potential` when `customer_status` is empty. Never filter rows out
+of a tab by a rule the tab count does not also apply — if ERP-inactive
+customers should be hidden again, make it a visible, user-controlled filter,
+not a silent one (the silent version hid 46 classified customers).
+
 ### Contacts page customer segmentation and customer edit choices
 
 What changed:
