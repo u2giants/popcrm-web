@@ -10,6 +10,7 @@ import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { ErrorState } from '@/components/app/states'
 import { useRecordSelection } from '@/features/crm/useRecordSelection'
 import { CustomerDrawer } from '@/features/crm/components/CustomerDrawer'
+import { MergeCustomersDialog } from '@/features/crm/components/MergeCustomersDialog'
 import { CustomerRelationLogo } from '@/features/crm/components/CustomerRelationLogo'
 import { ChainBadge } from '@/features/crm/components/CrmStatusBadge'
 import { CHAIN_TYPES, CUSTOMER_STATUSES, customerStatusLabel, customerStatusTone } from '@/features/crm/constants'
@@ -58,6 +59,8 @@ export function CustomersPage() {
   const updateCustomerMutation = useUpdateCustomerMutation()
   const updateDomainMutation = useUpdateIngestedDomainMutation()
   const [selectedDomains, setSelectedDomains] = useState<Set<string>>(() => new Set())
+  const [selectedCustomers, setSelectedCustomers] = useState<Set<string>>(() => new Set())
+  const [mergePair, setMergePair] = useState<[Retailer, Retailer] | null>(null)
   const [bulkClassification, setBulkClassification] = useState('')
   const buyers = listData(buyersQuery.data)
   const opportunities = listData(opportunitiesQuery.data)
@@ -165,7 +168,41 @@ export function CustomersPage() {
 
   const count = segment === 'triage' ? filteredDomains.length : filteredCustomers.length
 
+  function toggleCustomer(id: string, checked: boolean) {
+    setSelectedCustomers((current) => {
+      const next = new Set(current)
+      if (checked) next.add(id)
+      else next.delete(id)
+      return next
+    })
+  }
+
   const customerColumns: Column<Retailer>[] = [
+    {
+      key: 'selected',
+      header: (
+        <input
+          type="checkbox"
+          aria-label="Clear customer selection"
+          checked={selectedCustomers.size > 0}
+          ref={(el) => { if (el) el.indeterminate = selectedCustomers.size > 0 }}
+          onChange={() => setSelectedCustomers(new Set())}
+          onClick={(event) => event.stopPropagation()}
+          className="size-4 accent-primary"
+        />
+      ),
+      width: 44,
+      cell: (row) => (
+        <input
+          type="checkbox"
+          aria-label={`Select ${row.display_name || row.name}`}
+          checked={selectedCustomers.has(row.id)}
+          onChange={(event) => toggleCustomer(row.id, event.target.checked)}
+          onClick={(event) => event.stopPropagation()}
+          className="size-4 accent-primary"
+        />
+      ),
+    },
     {
       key: 'name',
       header: 'Customer',
@@ -394,7 +431,27 @@ export function CustomersPage() {
           />
         </div>
       ) : (
-        <DataTable
+        <div className="space-y-2">
+          {selectedCustomers.size > 0 ? (
+            <div className="flex flex-wrap items-center gap-2 rounded-[10px] border bg-card px-3 py-2">
+              <span className="text-[12.5px] font-[600]">{selectedCustomers.size} selected</span>
+              <Button
+                size="sm"
+                disabled={selectedCustomers.size !== 2}
+                onClick={() => {
+                  const picked = customerRows.filter((r) => selectedCustomers.has(r.id))
+                  if (picked.length === 2) setMergePair([picked[0], picked[1]])
+                }}
+              >
+                Merge…
+              </Button>
+              <span className="text-[11.5px] text-muted-foreground">
+                {selectedCustomers.size === 2 ? 'Ready to merge' : 'Select exactly two customers to merge'}
+              </span>
+              <Button size="sm" variant="ghost" onClick={() => setSelectedCustomers(new Set())}>Clear selection</Button>
+            </div>
+          ) : null}
+          <DataTable
           key="customer-list-table"
           rows={filteredCustomers}
           columns={customerColumns}
@@ -406,9 +463,16 @@ export function CustomersPage() {
           emptyTitle="No customers match"
           emptyDescription="Adjust your search or column filters."
           initialSort={{ key: 'name', dir: 'asc' }}
-        />
+          />
+        </div>
       )}
       <CustomerDrawer row={selected} onClose={() => select(null)} />
+      <MergeCustomersDialog
+        key={mergePair ? `${mergePair[0].id}-${mergePair[1].id}` : 'no-merge'}
+        pair={mergePair}
+        onClose={() => setMergePair(null)}
+        onMerged={() => setSelectedCustomers(new Set())}
+      />
     </AppPage>
   )
 }
