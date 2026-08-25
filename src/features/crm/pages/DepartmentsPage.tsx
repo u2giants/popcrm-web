@@ -76,7 +76,7 @@ export function DepartmentsPage() {
       filterValue: (d) => relatedName(d.retailer),
       editOptions: customerOptions,
       editValue: (d) => idOf(d.retailer),
-      cell: (d) => <CustomerRelationLogo value={d.retailer} customerById={retailerById} />,
+      cell: (d) => <CustomerRelationLogo value={d.retailer} customerById={retailerById} size={24} variant="token-name" />,
     },
     {
       key: 'name',
