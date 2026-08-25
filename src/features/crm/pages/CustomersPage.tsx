@@ -324,6 +324,7 @@ export function CustomersPage() {
         <ErrorState onRetry={() => void visibleFetch.refetch()} />
       ) : segment === 'triage' ? (
         <DataTable
+          key="customer-triage-table"
           rows={filteredDomains}
           columns={domainColumns}
           getRowId={(r) => r.id}
@@ -335,6 +336,7 @@ export function CustomersPage() {
         />
       ) : (
         <DataTable
+          key="customer-list-table"
           rows={filteredCustomers}
           columns={customerColumns}
           getRowId={(r) => r.id}
