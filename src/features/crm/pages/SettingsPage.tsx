@@ -18,6 +18,7 @@ import { listData, useAiConfigsQuery, useFirefliesHealth, useIgnoreRulesQuery, u
 import { SUPABASE_URL } from '@/lib/supabase'
 import { logError } from '@/lib/errors'
 import type { CrmAiModelConfig } from '@/lib/types'
+import { IgnoreRulesPanel } from '@/features/crm/components/IgnoreRulesPanel'
 
 export function SettingsPage() {
   const aiConfigsQuery = useAiConfigsQuery()
@@ -48,11 +49,13 @@ export function SettingsPage() {
       listBar={
         <ListBar
           title="Settings"
-          subtitle="AI models, automation health and integrations"
+          subtitle="Email rules, AI models, automation health and integrations"
         />
       }
     >
       <div className="mx-auto max-w-4xl space-y-5">
+        <IgnoreRulesPanel />
+
         {/* AI model config */}
         <section className="rounded-[12px] border bg-card p-5 shadow-[var(--shadow-xs)]">
           <SectionHeader

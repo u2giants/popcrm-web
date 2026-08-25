@@ -1,37 +1,26 @@
 import { useMemo, useState } from 'react'
 import { toast } from 'sonner'
-import { MailWarning, Plus } from 'lucide-react'
+import { MailWarning } from 'lucide-react'
 import { AppPage, ListBar, SectionHeader } from '@/components/app/AppPage'
 import { DataTable, type Column, type EditOption } from '@/components/app/DataTable'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Badge } from '@/components/ui/badge'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
 import { ErrorState } from '@/components/app/states'
 import { CrmStatusBadge } from '@/features/crm/components/CrmStatusBadge'
 import { CustomerRelationLogo } from '@/features/crm/components/CustomerRelationLogo'
 import { RelationLabel } from '@/features/crm/components/RelationLabel'
 import { useRecordSelection } from '@/features/crm/useRecordSelection'
 import { EmailDrawer } from '@/features/crm/components/EmailDrawer'
-import { MATCH_TYPES, ROUTING_STATUSES, WORKER_CADENCE, needsRouting } from '@/features/crm/constants'
+import { ROUTING_STATUSES, WORKER_CADENCE, needsRouting } from '@/features/crm/constants'
 import { formatDateTime, idOf, label, relatedName, textOf } from '@/features/crm/format'
 import { customerEditOptions, withCurrentCustomer, buildRetailerById } from '@/features/crm/pages/_shared'
 import { useAuth } from '@/auth/auth'
 import {
   listData,
-  useCreateIgnoreRuleMutation,
   useDepartmentsQuery,
   useEmailsQuery,
   useEmailSegmentCountsQuery,
   useFirefliesHealth,
-  useIgnoreRulesQuery,
   useCustomerPickerQuery,
   useOpportunitiesQuery,
   useUpdateEmailMutation,
@@ -60,15 +49,12 @@ function MethodChip({ method }: { method: string | null | undefined }) {
 export function EmailRoutingPage() {
   const emailsQuery = useEmailsQuery(EMAIL_ROUTE_LIMIT)
   const countsQuery = useEmailSegmentCountsQuery()
-  const ignoreRulesQuery = useIgnoreRulesQuery()
   const retailersQuery = useCustomerPickerQuery(-1)
   const departmentsQuery = useDepartmentsQuery(-1)
   const opportunitiesQuery = useOpportunitiesQuery(-1)
   const fireflies = useFirefliesHealth()
   const updateEmailMutation = useUpdateEmailMutation()
-  const createIgnoreRuleMutation = useCreateIgnoreRuleMutation()
   const emails = listData(emailsQuery.data)
-  const ignoreRules = listData(ignoreRulesQuery.data)
   const retailers = listData(retailersQuery.data)
   const departments = listData(departmentsQuery.data)
   const opportunities = listData(opportunitiesQuery.data)
@@ -326,93 +312,7 @@ export function EmailRoutingPage() {
             </div>
           </dl>
         </section>
-        <IgnoreRulesPanel />
       </aside>
-    )
-  }
-
-  function IgnoreRulesPanel() {
-    const [pattern, setPattern] = useState('')
-    const [ruleType, setRuleType] = useState<string>('SUBJECT')
-    const [matchType, setMatchType] = useState<string>('CONTAINS')
-    const [busy, setBusy] = useState(false)
-
-    async function add() {
-      const value = pattern.trim()
-      if (!value) return
-      setBusy(true)
-      try {
-        await createIgnoreRuleMutation.mutateAsync({
-          name: value,
-          pattern: value,
-          rule_type: ruleType,
-          match_type: ruleType === 'SUBJECT' ? matchType : 'EXACT',
-          emails_skipped: 0,
-        })
-        setPattern('')
-        toast.success('Ignore rule added')
-      } catch (error) {
-        toast.error('Could not add ignore rule', { description: logError('EmailRoutingPage.addIgnoreRule', error) })
-      } finally {
-        setBusy(false)
-      }
-    }
-
-    return (
-      <section className="rounded-[12px] border bg-card p-4 shadow-[var(--shadow-xs)]">
-        <SectionHeader
-          title="Not-customer rules"
-          description="Address rules skip only when no Customer domain is present"
-        />
-        <div className="mt-3 grid gap-2">
-          <Select value={ruleType} onValueChange={setRuleType}>
-            <SelectTrigger size="sm"><SelectValue /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="SUBJECT">Subject pattern</SelectItem>
-              <SelectItem value="DOMAIN">Email domain</SelectItem>
-              <SelectItem value="EMAIL_ADDRESS">Exact email address</SelectItem>
-            </SelectContent>
-          </Select>
-          <div className="flex gap-2">
-          <Input
-            value={pattern}
-            onChange={(e) => setPattern(e.target.value)}
-            placeholder={ruleType === 'DOMAIN' ? 'example.com' : ruleType === 'EMAIL_ADDRESS' ? 'person@example.com' : 'Subject pattern'}
-            onKeyDown={(e) => { if (e.key === 'Enter') add() }}
-          />
-          {ruleType === 'SUBJECT' ? <Select value={matchType} onValueChange={setMatchType}>
-            <SelectTrigger size="sm" className="shrink-0">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {MATCH_TYPES.map((m) => (
-                <SelectItem key={m} value={m}>
-                  {label(m)}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select> : null}
-          <Button size="icon-sm" onClick={add} disabled={busy} title="Add ignore rule">
-            <Plus className="size-4" />
-          </Button>
-          </div>
-        </div>
-        <ul className="mt-3 space-y-2">
-          {ignoreRules.slice(0, 12).map((rule) => (
-            <li key={rule.id} className="rounded-[8px] border bg-muted/30 p-2">
-              <div className="truncate text-[12.5px] font-medium">{rule.pattern}</div>
-              <div className="mt-0.5 text-[11.5px] text-muted-foreground">
-                {label(rule.rule_type || 'SUBJECT')} · {label(rule.match_type)} · {rule.emails_skipped || 0} skipped
-              </div>
-            </li>
-          ))}
-          {!ignoreRules.length ? (
-            <li className="rounded-[8px] border border-dashed p-3 text-center text-[11.5px] text-muted-foreground">
-              No ignore rules yet.
-            </li>
-          ) : null}
-        </ul>
-      </section>
     )
   }
 }
