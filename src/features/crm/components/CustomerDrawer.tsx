@@ -269,7 +269,7 @@ function DomainField({
   async function save(value: string) {
     const next = normalizeDomainInput(value)
     if (next && !isDomainShape(next)) {
-      toast.error(`"${next}" is not a domain`, { description: 'Use a form like example.com.' })
+      toast.error(`"${value.trim()}" is not a domain`, { description: 'Use a form like example.com.' })
       return
     }
     if (next === (domain ?? '')) {
