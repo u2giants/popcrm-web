@@ -158,7 +158,7 @@ export function MeetingsPage() {
       filterValue: (m) => relatedName(m.retailer),
       editOptions: (m) => withCurrentCustomer(customerOptions, idOf(m.retailer), retailerById),
       editValue: (m) => idOf(m.retailer),
-      cell: (m) => <CustomerRelationLogo value={m.retailer} customerById={retailerById} />,
+      cell: (m) => <CustomerRelationLogo value={m.retailer} customerById={retailerById} size={24} variant="token-name" />,
     },
     {
       key: 'contact',
