@@ -1,16 +1,18 @@
 import { useMemo, useState } from 'react'
 import { Building2 } from 'lucide-react'
+import { toast } from 'sonner'
 import { AppPage, ListBar } from '@/components/app/AppPage'
-import { DataTable, type Column } from '@/components/app/DataTable'
+import { DataTable, type Column, type EditOption } from '@/components/app/DataTable'
 import { ErrorState } from '@/components/app/states'
 import { RelationLabel } from '@/features/crm/components/RelationLabel'
 import { CustomerRelationLogo } from '@/features/crm/components/CustomerRelationLogo'
 import { useRecordSelection } from '@/features/crm/useRecordSelection'
 import { DepartmentDrawer } from '@/features/crm/components/DepartmentDrawer'
-import { label, relatedName, textOf } from '@/features/crm/format'
+import { idOf, label, relatedName, textOf } from '@/features/crm/format'
 import { StatusBadge } from '@/components/app/StatusBadge'
-import { listData, useCustomerPickerQuery, useDepartmentsQuery } from '@/features/crm/queries'
-import { buildRetailerById } from '@/features/crm/pages/_shared'
+import { listData, useCustomerPickerQuery, useDepartmentsQuery, useIngestedContactsQuery, useUpdateDepartmentMutation } from '@/features/crm/queries'
+import { buildRetailerById, customerEditOptions } from '@/features/crm/pages/_shared'
+import { logError } from '@/lib/errors'
 import type { CrmDepartment } from '@/lib/types'
 
 export function DepartmentsPage() {
@@ -18,9 +20,38 @@ export function DepartmentsPage() {
   const retailersQuery = useCustomerPickerQuery(-1)
   const departments = listData(departmentsQuery.data)
   const retailers = listData(retailersQuery.data)
+  const buyers = listData(useIngestedContactsQuery(-1).data)
+  const updateDepartment = useUpdateDepartmentMutation()
   const [query, setQuery] = useState('')
   const [selected, select] = useRecordSelection<CrmDepartment>('department', departments)
   const retailerById = useMemo(() => buildRetailerById(retailers), [retailers])
+  const customerOptions = useMemo<EditOption[]>(() => customerEditOptions(retailers), [retailers])
+  const categoryOptions = useMemo<EditOption[]>(() => distinctEditOptions(departments.map((d) => d.category)), [departments])
+  const divisionOptions = useMemo<EditOption[]>(() => distinctEditOptions(departments.map((d) => d.division)), [departments])
+
+  function contactOptionsFor(row: CrmDepartment): EditOption[] {
+    const customerId = idOf(row.retailer)
+    return [
+      { value: '', label: 'Unassigned' },
+      ...buyers
+        .filter((buyer) => idOf(buyer.retailer) === customerId)
+        .map((buyer) => ({ value: buyer.id, label: buyer.name || buyer.email || 'Unnamed contact' }))
+        .sort((a, b) => a.label.localeCompare(b.label)),
+    ]
+  }
+
+  async function editCell(row: CrmDepartment, key: string, value: string) {
+    const values: Partial<CrmDepartment> = { [key]: value || null }
+    if (key === 'retailer') {
+      const currentBuyer = buyers.find((buyer) => buyer.id === idOf(row.primary_buyer))
+      if (currentBuyer && idOf(currentBuyer.retailer) !== value) values.primary_buyer = null
+    }
+    try {
+      await updateDepartment.mutateAsync({ id: row.id, values })
+    } catch (error) {
+      toast.error('Could not update department', { description: logError('DepartmentsPage.editCell', error) })
+    }
+  }
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase()
@@ -43,6 +74,8 @@ export function DepartmentsPage() {
       header: 'Customer',
       sortValue: (d) => relatedName(d.retailer),
       filterValue: (d) => relatedName(d.retailer),
+      editOptions: customerOptions,
+      editValue: (d) => idOf(d.retailer),
       cell: (d) => <CustomerRelationLogo value={d.retailer} customerById={retailerById} />,
     },
     {
@@ -51,6 +84,10 @@ export function DepartmentsPage() {
       opensDetail: true,
       sortValue: (d) => d.name?.toLowerCase() ?? '',
       filterValue: (d) => d.name,
+      editOptions: [],
+      editValue: (d) => d.name,
+      allowCustomEditValue: true,
+      customEditLabel: 'Rename to',
       className: 'w-full max-w-0',
       cell: (d) => <span className="font-[500] text-foreground">{d.name || 'Untitled department'}</span>,
     },
@@ -60,6 +97,8 @@ export function DepartmentsPage() {
       hideBelow: 'lg',
       sortValue: (d) => relatedName(d.primary_buyer),
       filterValue: (d) => relatedName(d.primary_buyer),
+      editOptions: contactOptionsFor,
+      editValue: (d) => idOf(d.primary_buyer),
       cell: (d) => <RelationLabel value={d.primary_buyer} />,
     },
     {
@@ -68,6 +107,10 @@ export function DepartmentsPage() {
       hideBelow: 'lg',
       sortValue: (d) => d.category ?? '',
       filterValue: (d) => label(d.category),
+      editOptions: categoryOptions,
+      editValue: (d) => d.category ?? '',
+      allowCustomEditValue: true,
+      customEditLabel: 'Add category',
       cell: (d) => d.category ? <StatusBadge tone="neutral" dot={false}>{label(d.category)}</StatusBadge> : '—',
     },
     {
@@ -76,6 +119,10 @@ export function DepartmentsPage() {
       hideBelow: 'xl',
       sortValue: (d) => d.division ?? '',
       filterValue: (d) => label(d.division),
+      editOptions: divisionOptions,
+      editValue: (d) => d.division ?? '',
+      allowCustomEditValue: true,
+      customEditLabel: 'Add division',
       cell: (d) => d.division ? label(d.division) : '—',
     },
   ]
@@ -101,6 +148,7 @@ export function DepartmentsPage() {
           columns={columns}
           getRowId={(d) => d.id}
           onRowClick={(d) => select(d)}
+          onCellEdit={editCell}
           loading={departmentsQuery.isPending}
           groupBy={(d) => relatedName(d.retailer)}
           emptyIcon={<Building2 className="size-5" />}
@@ -112,4 +160,11 @@ export function DepartmentsPage() {
       <DepartmentDrawer row={selected} departments={departments} onClose={() => select(null)} />
     </AppPage>
   )
+}
+
+function distinctEditOptions(values: (string | null)[]): EditOption[] {
+  const valuesOnly = Array.from(new Set(values.map((value) => value?.trim()).filter(Boolean) as string[]))
+    .sort((a, b) => label(a).localeCompare(label(b)))
+    .map((value) => ({ value, label: label(value) }))
+  return [{ value: '', label: 'Unassigned' }, ...valuesOnly]
 }

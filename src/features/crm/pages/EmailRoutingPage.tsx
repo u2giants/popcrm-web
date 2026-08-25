@@ -333,6 +333,7 @@ export function EmailRoutingPage() {
 
   function IgnoreRulesPanel() {
     const [pattern, setPattern] = useState('')
+    const [ruleType, setRuleType] = useState<string>('SUBJECT')
     const [matchType, setMatchType] = useState<string>('CONTAINS')
     const [busy, setBusy] = useState(false)
 
@@ -341,7 +342,13 @@ export function EmailRoutingPage() {
       if (!value) return
       setBusy(true)
       try {
-        await createIgnoreRuleMutation.mutateAsync({ name: value, pattern: value, match_type: matchType, emails_skipped: 0 })
+        await createIgnoreRuleMutation.mutateAsync({
+          name: value,
+          pattern: value,
+          rule_type: ruleType,
+          match_type: ruleType === 'SUBJECT' ? matchType : 'EXACT',
+          emails_skipped: 0,
+        })
         setPattern('')
         toast.success('Ignore rule added')
       } catch (error) {
@@ -353,15 +360,27 @@ export function EmailRoutingPage() {
 
     return (
       <section className="rounded-[12px] border bg-card p-4 shadow-[var(--shadow-xs)]">
-        <SectionHeader title="Ignore rules" description={`${ignoreRules.length} active`} />
-        <div className="mt-3 flex gap-2">
+        <SectionHeader
+          title="Not-customer rules"
+          description="Address rules skip only when no Customer domain is present"
+        />
+        <div className="mt-3 grid gap-2">
+          <Select value={ruleType} onValueChange={setRuleType}>
+            <SelectTrigger size="sm"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="SUBJECT">Subject pattern</SelectItem>
+              <SelectItem value="DOMAIN">Email domain</SelectItem>
+              <SelectItem value="EMAIL_ADDRESS">Exact email address</SelectItem>
+            </SelectContent>
+          </Select>
+          <div className="flex gap-2">
           <Input
             value={pattern}
             onChange={(e) => setPattern(e.target.value)}
-            placeholder="Subject pattern"
+            placeholder={ruleType === 'DOMAIN' ? 'example.com' : ruleType === 'EMAIL_ADDRESS' ? 'person@example.com' : 'Subject pattern'}
             onKeyDown={(e) => { if (e.key === 'Enter') add() }}
           />
-          <Select value={matchType} onValueChange={setMatchType}>
+          {ruleType === 'SUBJECT' ? <Select value={matchType} onValueChange={setMatchType}>
             <SelectTrigger size="sm" className="shrink-0">
               <SelectValue />
             </SelectTrigger>
@@ -372,17 +391,18 @@ export function EmailRoutingPage() {
                 </SelectItem>
               ))}
             </SelectContent>
-          </Select>
+          </Select> : null}
           <Button size="icon-sm" onClick={add} disabled={busy} title="Add ignore rule">
             <Plus className="size-4" />
           </Button>
+          </div>
         </div>
         <ul className="mt-3 space-y-2">
           {ignoreRules.slice(0, 12).map((rule) => (
             <li key={rule.id} className="rounded-[8px] border bg-muted/30 p-2">
               <div className="truncate text-[12.5px] font-medium">{rule.pattern}</div>
               <div className="mt-0.5 text-[11.5px] text-muted-foreground">
-                {label(rule.match_type)} · {rule.emails_skipped || 0} skipped
+                {label(rule.rule_type || 'SUBJECT')} · {label(rule.match_type)} · {rule.emails_skipped || 0} skipped
               </div>
             </li>
           ))}

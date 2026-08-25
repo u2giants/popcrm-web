@@ -285,8 +285,14 @@ export function DataTable<T>({
   function onResizeDown(e: React.MouseEvent, key: string) {
     e.preventDefault()
     e.stopPropagation()
-    const th = (e.currentTarget as HTMLElement).closest('th')
-    resizing.current = { key, startX: e.clientX, startW: th?.offsetWidth ?? colWidths[key] ?? 160 }
+    const th = (e.currentTarget as HTMLElement).closest('th') as HTMLTableCellElement | null
+    const table = th?.closest('table')
+    const measured = Object.fromEntries(
+      Array.from(table?.querySelectorAll<HTMLTableCellElement>('thead th[data-column-key]') ?? [])
+        .map((cell) => [cell.dataset.columnKey!, Math.round(cell.getBoundingClientRect().width)]),
+    )
+    setColWidths((prev) => ({ ...prev, ...measured }))
+    resizing.current = { key, startX: e.clientX, startW: measured[key] ?? th?.offsetWidth ?? colWidths[key] ?? 160 }
     function onMove(ev: MouseEvent) {
       const r = resizing.current
       if (!r) return
@@ -460,7 +466,7 @@ export function DataTable<T>({
       </div>
 
       {/* Scrollable table */}
-      <div className="overflow-auto">
+      <div className="overflow-auto pb-px pr-px">
         <table
           className="min-w-full border-collapse"
           style={{
@@ -489,6 +495,7 @@ export function DataTable<T>({
                 return (
                   <th
                     key={col.key}
+                    data-column-key={col.key}
                     className={cn(
                       'group relative select-none border-b-0 border-r border-r-border/60 last:border-r-0 px-[14px] py-[7px] text-left text-[11px] font-[600] uppercase tracking-[0.04em] whitespace-nowrap text-muted-foreground',
                       col.numeric && 'text-right',

@@ -38,6 +38,7 @@ import {
   updateBuyer,
   updateDepartment,
   updateEmailMessage,
+  updateIngestedDomain,
   updateMeetingNote,
   updateNote,
   updateOpportunity,
@@ -191,6 +192,24 @@ export function useBuyersQuery(limit = -1) {
 
 export function useIngestedDomainsQuery(limit = -1) {
   return useQuery({ queryKey: crmKeys.ingestedDomains(limit), queryFn: () => fetchIngestedDomains(limit), ...crmQueryDefaults })
+}
+
+export function useUpdateIngestedDomainMutation() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: ({ id, values }: { id: string; values: Partial<CrmIngestedDomain> }) =>
+      updateIngestedDomain(id, values),
+    onMutate: async ({ id, values }) => {
+      await queryClient.cancelQueries({ queryKey: [...crmKeys.all, 'ingestedDomains'] })
+      const previous = queryClient.getQueriesData<CrmIngestedDomain[]>({ queryKey: [...crmKeys.all, 'ingestedDomains'] })
+      updateMatchingLists<CrmIngestedDomain>(queryClient, [...crmKeys.all, 'ingestedDomains'], id, values)
+      return { previous }
+    },
+    onError: (_error, _vars, context) => {
+      context?.previous.forEach(([key, data]) => queryClient.setQueryData(key, data))
+    },
+    onSettled: () => void queryClient.invalidateQueries({ queryKey: [...crmKeys.all, 'ingestedDomains'] }),
+  })
 }
 
 export function useIngestedDomainCountQuery() {

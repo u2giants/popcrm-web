@@ -153,6 +153,7 @@ export interface CrmIgnoreRule {
   pattern: string | null
   match_type: string | null
   emails_skipped: number | null
+  rule_type?: string | null
 }
 
 export interface CrmAiModelConfig {

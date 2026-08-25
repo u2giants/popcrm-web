@@ -1,10 +1,11 @@
 import { useMemo, useState } from 'react'
 import { toast } from 'sonner'
-import { Building2, Upload } from 'lucide-react'
+import { Building2 } from 'lucide-react'
 import { AppPage, ListBar } from '@/components/app/AppPage'
 import { DataTable, type Column, type EditOption } from '@/components/app/DataTable'
 import { StatusBadge } from '@/components/app/StatusBadge'
 import { Button } from '@/components/ui/button'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { ErrorState } from '@/components/app/states'
 import { useRecordSelection } from '@/features/crm/useRecordSelection'
@@ -20,6 +21,7 @@ import {
   useIngestedDomainsQuery,
   useIngestedContactsQuery,
   useOpportunitiesQuery,
+  useUpdateIngestedDomainMutation,
   useUpdateCustomerMutation,
 } from '@/features/crm/queries'
 import { isSelectableCustomer } from '@/features/crm/pages/_shared'
@@ -28,6 +30,11 @@ import type { CrmIngestedDomain, Retailer } from '@/lib/types'
 
 const STATUS_OPTIONS: EditOption[] = CUSTOMER_STATUSES.map((v) => ({ value: v, label: customerStatusLabel(v) }))
 const CHAIN_OPTIONS: EditOption[] = CHAIN_TYPES.map((v) => ({ value: v, label: label(v) }))
+const DOMAIN_CLASSIFICATION_OPTIONS: EditOption[] = [
+  { value: 'ACTIVE_CUSTOMER', label: 'Active Customer' },
+  { value: 'POTENTIAL_CUSTOMER', label: 'Potential Customer' },
+  { value: 'OTHER', label: 'Not a Customer' },
+]
 
 type Segment = 'active' | 'triage' | 'dismissed' | 'all'
 
@@ -49,6 +56,9 @@ export function CustomersPage() {
   const buyersQuery = useIngestedContactsQuery(-1)
   const opportunitiesQuery = useOpportunitiesQuery(-1)
   const updateCustomerMutation = useUpdateCustomerMutation()
+  const updateDomainMutation = useUpdateIngestedDomainMutation()
+  const [selectedDomains, setSelectedDomains] = useState<Set<string>>(() => new Set())
+  const [bulkClassification, setBulkClassification] = useState('')
   const buyers = listData(buyersQuery.data)
   const opportunities = listData(opportunitiesQuery.data)
   const activeCustomers = listData(activeCustomersQuery.data)
@@ -80,13 +90,26 @@ export function CustomersPage() {
     }
   }
 
-  function promoteDomain() {
-    // Forbidden architecture: ingested domains must not create/link core.customer.
-    // The RPC was dropped in 20260629034600; fail loudly instead of a silent 404.
-    toast.error('Promote is unavailable', {
-      description:
-        'Email domains stay in CRM triage only. They are never converted into Customers. Create a Customer through the curated customer path if you need one.',
-    })
+  async function classifyDomain(row: CrmIngestedDomain, value: string) {
+    try {
+      await updateDomainMutation.mutateAsync({ id: row.id, values: { status: value } })
+    } catch (error) {
+      toast.error('Could not classify domain', { description: logError('CustomersPage.classifyDomain', error) })
+    }
+  }
+
+  async function classifySelectedDomains() {
+    if (!bulkClassification || !selectedDomains.size) return
+    const rows = triageDomains.filter((row) => selectedDomains.has(row.id))
+    try {
+      await Promise.all(rows.map((row) => updateDomainMutation.mutateAsync({ id: row.id, values: { status: bulkClassification } })))
+      setSelectedDomains(new Set())
+      toast.success(`${rows.length} domain${rows.length === 1 ? '' : 's'} classified`)
+    } catch (error) {
+      toast.error('Could not classify every selected domain', {
+        description: logError('CustomersPage.classifySelectedDomains', error),
+      })
+    }
   }
 
   const counts = useMemo(() => {
@@ -210,6 +233,39 @@ export function CustomersPage() {
 
   const domainColumns: Column<CrmIngestedDomain>[] = [
     {
+      key: 'selected',
+      header: (
+        <input
+          type="checkbox"
+          aria-label="Select all visible domains"
+          checked={filteredDomains.length > 0 && filteredDomains.every((row) => selectedDomains.has(row.id))}
+          onChange={(event) => {
+            setSelectedDomains(event.target.checked ? new Set(filteredDomains.map((row) => row.id)) : new Set())
+          }}
+          onClick={(event) => event.stopPropagation()}
+          className="size-4 accent-primary"
+        />
+      ),
+      width: 44,
+      cell: (row) => (
+        <input
+          type="checkbox"
+          aria-label={`Select ${row.domain}`}
+          checked={selectedDomains.has(row.id)}
+          onChange={(event) => {
+            setSelectedDomains((current) => {
+              const next = new Set(current)
+              if (event.target.checked) next.add(row.id)
+              else next.delete(row.id)
+              return next
+            })
+          }}
+          onClick={(event) => event.stopPropagation()}
+          className="size-4 accent-primary"
+        />
+      ),
+    },
+    {
       key: 'domain',
       header: 'Domain',
       sortValue: (r) => r.domain,
@@ -258,32 +314,15 @@ export function CustomersPage() {
     },
     {
       key: 'status',
-      header: 'Status',
-      hideBelow: 'lg',
-      sortValue: (r) => label(r.status),
-      filterValue: (r) => label(r.status),
+      header: 'Classification',
+      sortValue: (r) => customerStatusLabel(r.status),
+      filterValue: (r) => customerStatusLabel(r.status),
+      editOptions: DOMAIN_CLASSIFICATION_OPTIONS,
+      editValue: (r) => r.status ?? 'new',
       cell: (r) => (
-        <StatusBadge tone="info" dot>
-          {label(r.status)}
+        <StatusBadge tone={customerStatusTone(r.status)} dot>
+          {customerStatusLabel(r.status)}
         </StatusBadge>
-      ),
-    },
-    {
-      key: 'promote',
-      header: '',
-      className: 'text-right',
-      headClassName: 'text-right',
-      cell: () => (
-        <Button
-          size="xs"
-          variant="outline"
-          onClick={() => promoteDomain()}
-          disabled
-          title="Ingested domains cannot be promoted to Customers"
-        >
-          <Upload className="size-3" />
-          Promote
-        </Button>
       ),
     },
   ]
@@ -323,17 +362,37 @@ export function CustomersPage() {
       {visibleFetch.isError ? (
         <ErrorState onRetry={() => void visibleFetch.refetch()} />
       ) : segment === 'triage' ? (
-        <DataTable
-          key="customer-triage-table"
-          rows={filteredDomains}
-          columns={domainColumns}
-          getRowId={(r) => r.id}
-          loading={visibleFetch.isPending}
-          emptyIcon={<Building2 className="size-5" />}
-          emptyTitle="Triage queue is clear"
-          emptyDescription="No ingested domains awaiting review."
-          initialSort={{ key: 'last_seen_at', dir: 'desc' }}
-        />
+        <div className="space-y-2">
+          {selectedDomains.size > 0 ? (
+            <div className="flex flex-wrap items-center gap-2 rounded-[10px] border bg-card px-3 py-2">
+              <span className="text-[12.5px] font-[600]">{selectedDomains.size} selected</span>
+              <Select value={bulkClassification} onValueChange={setBulkClassification}>
+                <SelectTrigger size="sm" className="w-48"><SelectValue placeholder="Choose classification" /></SelectTrigger>
+                <SelectContent>
+                  {DOMAIN_CLASSIFICATION_OPTIONS.map((option) => (
+                    <SelectItem key={option.value} value={option.value}>{option.label}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Button size="sm" onClick={() => void classifySelectedDomains()} disabled={!bulkClassification || updateDomainMutation.isPending}>
+                Apply to selected
+              </Button>
+              <Button size="sm" variant="ghost" onClick={() => setSelectedDomains(new Set())}>Clear selection</Button>
+            </div>
+          ) : null}
+          <DataTable
+            key="customer-triage-table"
+            rows={filteredDomains}
+            columns={domainColumns}
+            getRowId={(r) => r.id}
+            onCellEdit={(row, _key, value) => classifyDomain(row, value)}
+            loading={visibleFetch.isPending}
+            emptyIcon={<Building2 className="size-5" />}
+            emptyTitle="Triage queue is clear"
+            emptyDescription="No ingested domains awaiting review."
+            initialSort={{ key: 'last_seen_at', dir: 'desc' }}
+          />
+        </div>
       ) : (
         <DataTable
           key="customer-list-table"
