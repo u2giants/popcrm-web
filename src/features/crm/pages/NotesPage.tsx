@@ -67,7 +67,7 @@ export function NotesPage() {
       hideBelow: 'md',
       sortValue: (n) => relatedName(n.retailer),
       filterValue: (n) => relatedName(n.retailer),
-      cell: (n) => <CustomerRelationLogo value={n.retailer} customerById={retailerById} />,
+      cell: (n) => <CustomerRelationLogo value={n.retailer} customerById={retailerById} size={24} variant="token-name" />,
     },
     {
       key: 'opportunity',

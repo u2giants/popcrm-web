@@ -221,7 +221,7 @@ export function ContactsPage() {
       filterValue: (b) => relatedName(b.retailer),
       editOptions: (b) => withCurrentCustomer(isCustomerContact(b) ? customerOptions : triageCustomerOptions, idOf(b.retailer), retailerById),
       editValue: (b) => idOf(b.retailer),
-      cell: (b) => <CustomerRelationLogo value={b.retailer} customerById={retailerById} />,
+      cell: (b) => <CustomerRelationLogo value={b.retailer} customerById={retailerById} size={24} variant="token-name" />,
     },
     {
       key: 'department',

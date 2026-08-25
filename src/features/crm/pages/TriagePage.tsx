@@ -291,7 +291,7 @@ export function TriagePage() {
                     <Building2 className="size-3.5" />
                     Company
                   </div>
-                  <CustomerRelationLogo value={current.retailer} />
+                  <CustomerRelationLogo value={current.retailer} size={24} variant="token-name" />
                 </div>
 
                 <div className="mt-4 space-y-2">

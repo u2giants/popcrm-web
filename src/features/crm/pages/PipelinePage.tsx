@@ -83,7 +83,7 @@ export function PipelinePage() {
       hideBelow: 'md',
       sortValue: (o) => relatedName(o.retailer),
       filterValue: (o) => relatedName(o.retailer),
-      cell: (o) => <CustomerRelationLogo value={o.retailer} customerById={retailerById} />,
+      cell: (o) => <CustomerRelationLogo value={o.retailer} customerById={retailerById} size={24} variant="token-name" />,
     },
     {
       key: 'stage',

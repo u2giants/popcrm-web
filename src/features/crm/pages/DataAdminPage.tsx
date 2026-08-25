@@ -177,7 +177,7 @@ export function DataAdminPage() {
       header: 'Customer',
       sortValue: (d) => relatedName(d.retailer),
       filterValue: (d) => relatedName(d.retailer),
-      cell: (d) => <CustomerRelationLogo value={d.retailer} customerById={retailerById} />,
+      cell: (d) => <CustomerRelationLogo value={d.retailer} customerById={retailerById} size={24} variant="token-name" />,
     },
     {
       key: 'primary_buyer',
