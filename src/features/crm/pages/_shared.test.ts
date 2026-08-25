@@ -65,9 +65,10 @@ describe('effectiveCustomerStatus', () => {
     expect(effectiveCustomerStatus({ ...base, customer_status: 'OTHER', status: 'active' })).toBe('OTHER')
   })
 
-  it('reads an ERP-confirmed active company as an active customer', () => {
-    // Burlington: no CRM status, hub says active and ERP-confirmed.
-    expect(effectiveCustomerStatus({ ...base, status: 'active', is_potential: false })).toBe('ACTIVE_CUSTOMER')
+  it('never infers customer-ness from an active ERP account record', () => {
+    // The 2026-07-15 ERP import marked vendors and licensors active too, so
+    // hub-active alone must stay untriaged rather than claim to be a customer.
+    expect(effectiveCustomerStatus({ ...base, status: 'active', is_potential: false })).toBe('UNASSIGNED')
   })
 
   it('reads a hub prospect as a potential customer', () => {
