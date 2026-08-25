@@ -120,17 +120,9 @@ export function CustomerDrawer({ row, onClose }: { row: Retailer | null; onClose
           </DrawerSection>
 
           {/* Routing aliases */}
-          {aliases.length ? (
-            <DrawerSection title="Routing aliases">
-              <div className="flex flex-wrap gap-[6px]">
-                {aliases.map((a) => (
-                  <span key={a} className="rounded-[5px] border bg-muted/50 px-[7px] py-[2px] font-mono text-[11px] text-muted-foreground">
-                    {a}
-                  </span>
-                ))}
-              </div>
-            </DrawerSection>
-          ) : null}
+          <DrawerSection title="Routing aliases">
+            <RoutingAliasesField key={row.id} customerId={row.id} aliases={aliases} />
+          </DrawerSection>
 
           {/* Contacts list with avatars */}
           <DrawerSection title={`Contacts (${related.contacts.length})`}>
@@ -336,6 +328,87 @@ function DomainField({
           <Check className="size-[11px]" /> Use {suggestion}
         </Button>
       ) : null}
+    </div>
+  )
+}
+
+/**
+ * Routing aliases are the second half of how email finds a customer. A domain
+ * alias (anything containing a dot or @) is matched against sender/recipient
+ * domains alongside the Domain field, so a second domain can be consolidated
+ * onto one customer record without merging anything. A plain word is matched
+ * against email subjects instead.
+ */
+function RoutingAliasesField({ customerId, aliases }: { customerId: string; aliases: string[] }) {
+  const updateCustomer = useUpdateCustomerMutation()
+  const [draft, setDraft] = useState('')
+
+  async function write(next: string[], done: string) {
+    try {
+      await updateCustomer.mutateAsync({ id: customerId, values: { routing_aliases: next.join(', ') } })
+      setDraft('')
+      toast.success(done)
+    } catch (error) {
+      toast.error('Could not save routing aliases', { description: logError('RoutingAliasesField.write', error) })
+    }
+  }
+
+  function add() {
+    const raw = draft.trim()
+    if (!raw) return
+    // A domain-ish alias gets the same cleanup as the Domain box; a subject word is kept as typed.
+    const value = /[@.]/.test(raw) ? normalizeDomainInput(raw) : raw
+    if (!value) return
+    if (aliases.some((a) => a.toLowerCase() === value.toLowerCase())) {
+      toast.error(`"${value}" is already a routing alias`)
+      return
+    }
+    void write([...aliases, value], `Routing alias ${value} added`)
+  }
+
+  return (
+    <div className="flex flex-col gap-[8px]">
+      {aliases.length ? (
+        <div className="flex flex-wrap gap-[6px]">
+          {aliases.map((a) => (
+            <span
+              key={a}
+              className="flex items-center gap-[5px] rounded-[5px] border bg-muted/50 py-[2px] pl-[7px] pr-[3px] font-mono text-[11px] text-muted-foreground"
+            >
+              {a}
+              <button
+                type="button"
+                aria-label={`Remove routing alias ${a}`}
+                className="rounded-[3px] p-[2px] hover:bg-accent hover:text-foreground"
+                disabled={updateCustomer.isPending}
+                onClick={() => void write(aliases.filter((x) => x !== a), `Routing alias ${a} removed`)}
+              >
+                <X className="size-[10px]" />
+              </button>
+            </span>
+          ))}
+        </div>
+      ) : (
+        <p className="text-[12px] text-muted-foreground">
+          No aliases. Add another domain here to route its email to this customer too.
+        </p>
+      )}
+      <div className="flex items-center gap-[6px]">
+        <Input
+          value={draft}
+          onChange={(e) => setDraft(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') add()
+            if (e.key === 'Escape') setDraft('')
+          }}
+          placeholder="another-domain.com or a subject word"
+          aria-label="Add routing alias"
+          className="h-[26px] flex-1 font-mono text-[11.5px]"
+        />
+        <Button size="sm" variant="outline" className="h-[26px]" disabled={!draft.trim() || updateCustomer.isPending} onClick={add}>
+          Add
+        </Button>
+      </div>
     </div>
   )
 }

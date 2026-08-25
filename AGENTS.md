@@ -633,6 +633,14 @@ assigns contacts to whichever customer owns the domain outright, and logs and
 skips the domain if no one owns it. Adding a banner therefore never silently
 re-parents existing contacts.
 
+Consolidating routing onto one customer does not require a database merge:
+`domain` holds one domain, and `routing_aliases` (editable in the customer
+drawer) holds any number more. Both are searched by `domainOrClause`, so a
+second domain added as an alias routes its email to that customer. An alias
+containing `.` or `@` is domain matching only; a plain word is subject matching
+only. `api.db_data_admin_merge_customer` exists for a true record merge but has
+no UI in any app and is not the tool for routing consolidation.
+
 Future sessions should:
 Add a new pair by setting the parent's `domain`, adding the same domain to the
 banner's `routing_aliases`, giving both a customer status, and adding a

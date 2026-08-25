@@ -46,6 +46,27 @@ export interface Column<T> {
   minWidth?: number
 }
 
+// Overlays (edit dropdown, filter popover, header autocomplete) are position:fixed
+// off the anchor cell's rect. Near the bottom of the window that ran straight off
+// the screen and the list became unreachable, so every overlay flips above its
+// anchor when there is not enough room below, and is clamped to the viewport.
+const OVERLAY_MARGIN = 8
+const OVERLAY_MIN_HEIGHT = 140
+type OverlayPlacement = { top?: number; bottom?: number; left: number; maxHeight: number }
+function placeOverlay(
+  anchorRect: { top: number; bottom: number; left: number },
+  width: number,
+  preferredHeight: number,
+): OverlayPlacement {
+  const below = window.innerHeight - anchorRect.bottom - OVERLAY_MARGIN
+  const above = anchorRect.top - OVERLAY_MARGIN
+  const left = Math.max(OVERLAY_MARGIN, Math.min(anchorRect.left, window.innerWidth - width - OVERLAY_MARGIN))
+  const flip = below < Math.min(preferredHeight, OVERLAY_MIN_HEIGHT) && above > below
+  return flip
+    ? { bottom: window.innerHeight - anchorRect.top + 2, left, maxHeight: Math.min(preferredHeight, above) }
+    : { top: anchorRect.bottom + 2, left, maxHeight: Math.min(preferredHeight, below) }
+}
+
 export function DataTable<T>({
   rows,
   columns,
@@ -79,8 +100,8 @@ export function DataTable<T>({
   const [searchText, setSearchText] = useState<Record<string, string>>({})
   const [openFilter, setOpenFilter] = useState<string | null>(null)
   const [filterSearch, setFilterSearch] = useState('')
-  const [filterPos, setFilterPos] = useState<{ top: number; left: number } | null>(null)
-  const [autocomplete, setAutocomplete] = useState<{ key: string; top: number; left: number; width: number } | null>(null)
+  const [filterPos, setFilterPos] = useState<OverlayPlacement | null>(null)
+  const [autocomplete, setAutocomplete] = useState<({ key: string; width: number } & OverlayPlacement) | null>(null)
   const [colOrder, setColOrder] = useState<string[]>(() => columns.map((c) => c.key))
   const [colHidden, setColHidden] = useState<Record<string, boolean>>({})
   const [colWidths, setColWidths] = useState<Record<string, number>>(() =>
@@ -95,7 +116,7 @@ export function DataTable<T>({
   const editDropdownRef = useRef<HTMLDivElement | null>(null)
 
   // Inline editing + drag-to-copy state
-  const [editCell, setEditCell] = useState<{ rowId: string; key: string; top: number; left: number } | null>(null)
+  const [editCell, setEditCell] = useState<({ rowId: string; key: string } & OverlayPlacement) | null>(null)
   const [editQuery, setEditQuery] = useState('')
   const [fill, setFill] = useState<{ key: string; sourceRowId: string; value: string; throughIndex: number } | null>(null)
   const fillRef = useRef(fill)
@@ -245,9 +266,7 @@ export function DataTable<T>({
     if (openFilter === key) { setOpenFilter(null); return }
     setFilterSearch('')
     const rect = btn.getBoundingClientRect()
-    const popW = 228
-    const left = Math.min(rect.left, window.innerWidth - popW - 8)
-    setFilterPos({ top: rect.bottom + 4, left })
+    setFilterPos(placeOverlay(rect, 228, 320))
     setOpenFilter(key)
   }
 
@@ -278,7 +297,7 @@ export function DataTable<T>({
       return { ...prev, [key]: value }
     })
     const rect = input.getBoundingClientRect()
-    setAutocomplete(value ? { key, top: rect.bottom + 2, left: rect.left, width: rect.width } : null)
+    setAutocomplete(value ? { key, width: rect.width, ...placeOverlay(rect, rect.width, 220) } : null)
   }
 
   // Column resize via mouse drag
@@ -548,7 +567,7 @@ export function DataTable<T>({
                             onFocus={(e) => {
                               if (e.currentTarget.value) {
                                 const r = e.currentTarget.getBoundingClientRect()
-                                setAutocomplete({ key: col.key, top: r.bottom + 2, left: r.left, width: r.width })
+                                setAutocomplete({ key: col.key, width: r.width, ...placeOverlay(r, r.width, 220) })
                               }
                             }}
                             onKeyDown={(e) => { if (e.key === 'Escape') { setColSearch(col.key, '', e.currentTarget); (e.currentTarget as HTMLInputElement).blur() } }}
@@ -632,7 +651,7 @@ export function DataTable<T>({
                                     e.stopPropagation()
                                     const r = (e.currentTarget as HTMLElement).getBoundingClientRect()
                                     setEditQuery('')
-                                    setEditCell({ rowId, key: col.key, top: r.bottom + 2, left: r.left })
+                                    setEditCell({ rowId, key: col.key, ...placeOverlay(r, 220, 280) })
                                   }
                                 : opensDetail
                                   ? () => onRowClick(row)
@@ -735,8 +754,15 @@ export function DataTable<T>({
       {/* Header search autocomplete */}
       {autocomplete && acSuggestions.length > 0 && (
         <div
-          className="fixed z-50 max-h-[220px] overflow-y-auto rounded-[9px] border bg-popover p-[4px]"
-          style={{ top: autocomplete.top, left: autocomplete.left, minWidth: Math.max(autocomplete.width, 140), boxShadow: 'var(--shadow-lg)' }}
+          className="fixed z-50 overflow-y-auto rounded-[9px] border bg-popover p-[4px]"
+          style={{
+            top: autocomplete.top,
+            bottom: autocomplete.bottom,
+            left: autocomplete.left,
+            maxHeight: autocomplete.maxHeight,
+            minWidth: Math.max(autocomplete.width, 140),
+            boxShadow: 'var(--shadow-lg)',
+          }}
           onPointerDown={(e) => e.preventDefault()}
         >
           {acSuggestions.map((s) => (
@@ -774,8 +800,14 @@ export function DataTable<T>({
         return (
           <div
             ref={editDropdownRef}
-            className="fixed z-50 max-h-[280px] w-[220px] overflow-hidden rounded-[10px] border bg-popover p-[5px]"
-            style={{ top: editCell.top, left: editCell.left, boxShadow: 'var(--shadow-lg)' }}
+            className="fixed z-50 flex w-[220px] flex-col overflow-hidden rounded-[10px] border bg-popover p-[5px]"
+            style={{
+              top: editCell.top,
+              bottom: editCell.bottom,
+              left: editCell.left,
+              maxHeight: editCell.maxHeight,
+              boxShadow: 'var(--shadow-lg)',
+            }}
             onClick={(e) => e.stopPropagation()}
           >
             {showSearch && (
@@ -794,7 +826,7 @@ export function DataTable<T>({
                 className="mb-1 w-full rounded-[7px] border bg-background px-[8px] py-[6px] text-[12.5px] outline-none focus:border-ring"
               />
             )}
-            <div className="max-h-[230px] overflow-y-auto">
+            <div className="min-h-0 flex-1 overflow-y-auto">
               {col.allowCustomEditValue && customValue && !hasExactOption ? (
                 <button
                   className="flex w-full items-center rounded-[7px] px-[8px] py-[6px] text-left text-[12.5px] font-[600] text-primary hover:bg-accent"
@@ -847,7 +879,7 @@ function FilterPopover({
 }: {
   ref: React.Ref<HTMLDivElement>
   col: { filterLabel?: (value: string) => string } | undefined
-  pos: { top: number; left: number }
+  pos: OverlayPlacement
   values: string[]
   allValues: string[]
   selected: string[]
@@ -868,7 +900,13 @@ function FilterPopover({
     <div
       ref={ref}
       className="fixed z-50 flex w-[228px] flex-col overflow-hidden rounded-[11px] border bg-popover"
-      style={{ top: pos.top, left: pos.left, boxShadow: 'var(--shadow-lg, 0 8px 24px oklch(0 0 0 / 0.14))' }}
+      style={{
+        top: pos.top,
+        bottom: pos.bottom,
+        left: pos.left,
+        maxHeight: pos.maxHeight,
+        boxShadow: 'var(--shadow-lg, 0 8px 24px oklch(0 0 0 / 0.14))',
+      }}
       onClick={(e) => e.stopPropagation()}
       onPointerDown={(e) => e.stopPropagation()}
     >
@@ -910,7 +948,7 @@ function FilterPopover({
           {allValues.length === 0 ? 'No values in column.' : 'No values match.'}
         </p>
       ) : (
-        <ul className="max-h-[240px] overflow-y-auto p-[5px]">
+        <ul className="min-h-0 flex-1 overflow-y-auto p-[5px]">
           {values.map((v) => {
             const checked = selected.includes(v)
             const display = col?.filterLabel ? col.filterLabel(v) : v
