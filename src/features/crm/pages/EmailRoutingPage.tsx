@@ -268,6 +268,7 @@ export function EmailRoutingPage() {
             getRowId={(e) => e.id}
             onRowClick={(e) => select(e)}
             onCellEdit={editCell}
+            selectable
             loading={loading}
             emptyIcon={<MailWarning className="size-5" />}
             emptyTitle={segment === 'triage' ? 'Inbox zero on routing' : 'No messages match'}

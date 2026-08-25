@@ -149,6 +149,7 @@ export function DepartmentsPage() {
           getRowId={(d) => d.id}
           onRowClick={(d) => select(d)}
           onCellEdit={editCell}
+          selectable
           loading={departmentsQuery.isPending}
           groupBy={(d) => relatedName(d.retailer)}
           emptyIcon={<Building2 className="size-5" />}

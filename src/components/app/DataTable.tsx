@@ -1,4 +1,4 @@
-import { Fragment, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
+import { Fragment, useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { ChevronDown, ChevronUp, ChevronsUpDown, Columns3, GripVertical, ListFilter, Search, X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { LoadingState, EmptyState } from '@/components/app/states'
@@ -74,6 +74,8 @@ export function DataTable<T>({
   onRowClick,
   onCellEdit,
   onVisibleRowsChange,
+  selectable,
+  selectionActions,
   loading,
   emptyTitle = 'No records found',
   emptyDescription,
@@ -101,6 +103,13 @@ export function DataTable<T>({
    * against what the user actually sees rather than the unsorted input.
    */
   onVisibleRowsChange?: (rows: T[]) => void
+  /**
+   * Show a checkbox column plus a bulk bar. With `onCellEdit` set, the bar can
+   * apply one value (status, stage, …) to every selected row at once.
+   */
+  selectable?: boolean
+  /** Extra buttons for the bulk bar, e.g. Merge. Gets the selected rows. */
+  selectionActions?: (rows: T[], clearSelection: () => void) => ReactNode
 }) {
   const [sort, setSort] = useState<{ key: string; dir: 'asc' | 'desc' } | null>(initialSort ?? null)
   const [filterSets, setFilterSets] = useState<Record<string, string[]>>({})
@@ -124,6 +133,15 @@ export function DataTable<T>({
   const editDropdownRef = useRef<HTMLDivElement | null>(null)
 
   // Inline editing + drag-to-copy state
+  // Row selection (checkbox column + bulk bar)
+  const [rawSelectedIds, setSelectedIds] = useState<Set<string>>(() => new Set())
+  // Anchor row for shift-click ranges. State (not a ref) so it can be reset
+  // from callbacks handed to the caller's bulk-bar actions.
+  const [selectAnchor, setSelectAnchor] = useState<string | null>(null)
+  const [bulkKey, setBulkKey] = useState('')
+  const [bulkValue, setBulkValue] = useState('')
+  const [bulkBusy, setBulkBusy] = useState(false)
+
   const [editCell, setEditCell] = useState<({ rowId: string; key: string } & OverlayPlacement) | null>(null)
   const [editQuery, setEditQuery] = useState('')
   const [fill, setFill] = useState<{ key: string; sourceRowId: string; value: string; throughIndex: number } | null>(null)
@@ -196,6 +214,109 @@ export function DataTable<T>({
     pageRows.forEach((r, i) => m.set(getRowId(r), i))
     return m
   }, [pageRows, getRowId])
+
+  const sortedIds = useMemo(() => sorted.map(getRowId), [sorted, getRowId])
+  // Ignore ids that have left the table (search, refetch) so the count is honest.
+  const selectedIds = useMemo(
+    () => new Set(sortedIds.filter((id) => rawSelectedIds.has(id))),
+    [sortedIds, rawSelectedIds],
+  )
+  const selectedRows = useMemo(
+    () => sorted.filter((r) => selectedIds.has(getRowId(r))),
+    [sorted, selectedIds, getRowId],
+  )
+
+  const clearSelection = useCallback(() => {
+    setSelectAnchor(null)
+    setSelectedIds(new Set())
+  }, [])
+
+  /** Plain click toggles one row; shift-click applies that row's new state across the span. */
+  function toggleSelection(id: string, shiftKey: boolean) {
+    if (!shiftKey || selectAnchor === null) setSelectAnchor(id)
+    setSelectedIds((current) => {
+      const next = new Set(current)
+      const from = selectAnchor === null ? -1 : sortedIds.indexOf(selectAnchor)
+      const to = sortedIds.indexOf(id)
+      if (shiftKey && from >= 0 && to >= 0 && from !== to) {
+        const select = !current.has(id)
+        for (let i = Math.min(from, to); i <= Math.max(from, to); i += 1) {
+          if (select) next.add(sortedIds[i])
+          else next.delete(sortedIds[i])
+        }
+        return next
+      }
+      if (next.has(id)) next.delete(id)
+      else next.add(id)
+      return next
+    })
+  }
+
+  // Columns a bulk edit can write to: the same ones that are inline-editable.
+  const bulkColumns = onCellEdit ? allVisibleCols.filter((c) => !!c.editOptions) : []
+  const bulkCol = bulkColumns.find((c) => c.key === bulkKey) ?? bulkColumns[0]
+  const bulkOptions: EditOption[] = useMemo(() => {
+    if (!bulkCol) return []
+    if (typeof bulkCol.editOptions !== 'function') return bulkCol.editOptions ?? []
+    // Row-dependent option lists: offer the values every selected row allows.
+    const lists = selectedRows.map((r) => editOptionsFor(bulkCol, r))
+    if (!lists.length) return []
+    const [first, ...rest] = lists
+    return first.filter((o) => rest.every((l) => l.some((x) => x.value === o.value)))
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [bulkCol, selectedRows])
+
+  async function applyBulkValue() {
+    if (!bulkCol || !bulkValue || !onCellEdit) return
+    setBulkBusy(true)
+    try {
+      for (const row of selectedRows) {
+        const current = bulkCol.editValue ? String(bulkCol.editValue(row) ?? '') : ''
+        if (current === bulkValue) continue
+        await onCellEdit(row, bulkCol.key, bulkValue)
+      }
+      setBulkValue('')
+    } finally {
+      setBulkBusy(false)
+    }
+  }
+
+  const SELECT_KEY = '__select'
+  const selectColumn: Column<T> = {
+    key: SELECT_KEY,
+    width: 44,
+    header: (
+      <input
+        type="checkbox"
+        aria-label="Select all rows"
+        checked={sorted.length > 0 && selectedIds.size >= sorted.length}
+        ref={(el) => {
+          if (el) el.indeterminate = selectedIds.size > 0 && selectedIds.size < sorted.length
+        }}
+        onChange={(event) => {
+          setSelectAnchor(null)
+          setSelectedIds(event.target.checked ? new Set(sortedIds) : new Set())
+        }}
+        onClick={(event) => event.stopPropagation()}
+        className="size-4 accent-primary"
+      />
+    ),
+    cell: (row) => (
+      <input
+        type="checkbox"
+        aria-label="Select row"
+        checked={selectedIds.has(getRowId(row))}
+        // Toggling happens on click so shift-click can extend a range.
+        onChange={() => undefined}
+        onClick={(event) => {
+          event.stopPropagation()
+          toggleSelection(getRowId(row), event.shiftKey)
+        }}
+        className="size-4 accent-primary"
+      />
+    ),
+  }
+  const renderCols = selectable ? [selectColumn, ...allVisibleCols] : allVisibleCols
 
   // Distinct values per column (for popover + autocomplete), from ALL rows.
   function distinctValues(key: string): string[] {
@@ -409,9 +530,9 @@ export function DataTable<T>({
     return <EmptyState title={emptyTitle} description={emptyDescription} icon={emptyIcon} />
   }
 
-  const hasWidths = allVisibleCols.some((c) => colWidths[c.key] > 0)
+  const hasWidths = renderCols.some((c) => colWidths[c.key] > 0)
   const tableWidth = hasWidths
-    ? allVisibleCols.reduce((sum, col) => sum + (colWidths[col.key] || col.width || col.minWidth || 120), 0)
+    ? renderCols.reduce((sum, col) => sum + (colWidths[col.key] || col.width || col.minWidth || 120), 0)
     : undefined
 
   return (
@@ -467,7 +588,7 @@ export function DataTable<T>({
                   <button
                     key={col.key}
                     className="flex w-full cursor-grab items-center gap-[9px] rounded-[7px] px-[8px] py-[6px] text-[12.5px] hover:bg-accent"
-                    draggable
+                    draggable={col.key !== SELECT_KEY}
                     onDragStart={() => { dragKey.current = col.key }}
                     onDragOver={(e) => e.preventDefault()}
                     onDrop={() => onDrop(col.key)}
@@ -497,6 +618,59 @@ export function DataTable<T>({
         </div>
       </div>
 
+      {/* Bulk bar for the current selection */}
+      {selectable && selectedIds.size > 0 && (
+        <div
+          className="flex flex-wrap items-center gap-2 border-b bg-primary/5 px-[10px] py-[7px]"
+          onClick={(e) => e.stopPropagation()}
+        >
+          <span className="text-[12.5px] font-[600]">{selectedIds.size.toLocaleString()} selected</span>
+          {bulkCol && (
+            <>
+              <span className="text-[12px] text-muted-foreground">Set</span>
+              <select
+                aria-label="Field to set"
+                className="rounded-[7px] border bg-background px-[7px] py-[4px] text-[12px] outline-none focus:border-ring"
+                value={bulkCol.key}
+                onChange={(e) => { setBulkKey(e.target.value); setBulkValue('') }}
+              >
+                {bulkColumns.map((c) => (
+                  <option key={c.key} value={c.key}>{String(c.header)}</option>
+                ))}
+              </select>
+              <select
+                aria-label="Value to apply"
+                className="min-w-[150px] rounded-[7px] border bg-background px-[7px] py-[4px] text-[12px] outline-none focus:border-ring"
+                value={bulkValue}
+                onChange={(e) => setBulkValue(e.target.value)}
+              >
+                <option value="">Choose value…</option>
+                {bulkOptions.map((o) => (
+                  <option key={o.value} value={o.value}>{o.label}</option>
+                ))}
+              </select>
+              <Button
+                size="sm"
+                className="h-[28px] px-[10px] text-[12px]"
+                disabled={!bulkValue || bulkBusy}
+                onClick={() => void applyBulkValue()}
+              >
+                {bulkBusy ? 'Applying…' : 'Apply to selected'}
+              </Button>
+            </>
+          )}
+          {selectionActions?.(selectedRows, clearSelection)}
+          <Button
+            variant="ghost"
+            size="sm"
+            className="ml-auto h-[28px] px-[10px] text-[12px]"
+            onClick={clearSelection}
+          >
+            Clear selection
+          </Button>
+        </div>
+      )}
+
       {/* Scrollable table */}
       <div className="overflow-auto pb-px pr-px">
         <table
@@ -508,7 +682,7 @@ export function DataTable<T>({
         >
           {hasWidths && (
             <colgroup>
-              {allVisibleCols.map((col) => (
+              {renderCols.map((col) => (
                 <col key={col.key} style={colWidths[col.key] ? { width: colWidths[col.key] } : undefined} />
               ))}
             </colgroup>
@@ -516,7 +690,7 @@ export function DataTable<T>({
 
           <thead>
             <tr className="border-b bg-muted">
-              {allVisibleCols.map((col) => {
+              {renderCols.map((col) => {
                 const sortable = !!col.sortValue
                 const filterable = !!(col.filterValue ?? col.sortValue)
                 const showSearch = (col.headerSearch ?? (filterable && !col.numeric))
@@ -636,7 +810,7 @@ export function DataTable<T>({
                     {showGroup ? (
                       <tr className="border-b bg-muted/70">
                         <td
-                          colSpan={allVisibleCols.length}
+                          colSpan={renderCols.length}
                           className="h-8 px-[14px] text-[11px] font-[650] uppercase tracking-[0.04em] text-muted-foreground"
                         >
                           {group}
@@ -649,9 +823,12 @@ export function DataTable<T>({
                         onRowClick && 'hover:bg-accent/55',
                       )}
                     >
-                      {allVisibleCols.map((col) => {
+                      {renderCols.map((col) => {
                         const editable = !!col.editOptions && !!onCellEdit
-                        const opensDetail = !!onRowClick && (col.opensDetail || (!hasExplicitDetailCols && !editable))
+                        const opensDetail =
+                          col.key !== SELECT_KEY &&
+                          !!onRowClick &&
+                          (col.opensDetail || (!hasExplicitDetailCols && !editable))
                         const inFill = fillRangeHas(rowId, col.key)
                         const isEditing = editCell?.rowId === rowId && editCell.key === col.key
                         return (
@@ -704,7 +881,7 @@ export function DataTable<T>({
             ) : (
               <tr>
                 <td
-                  colSpan={allVisibleCols.length}
+                  colSpan={renderCols.length}
                   className="h-20 text-center text-[12.5px] text-muted-foreground"
                 >
                   No rows match the filters.

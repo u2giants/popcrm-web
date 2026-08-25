@@ -286,6 +286,7 @@ export function ContactsPage() {
           getRowId={(b) => b.id}
           onRowClick={(b) => select(b)}
           onCellEdit={editCell}
+          selectable
           loading={activeContactsQuery.isPending || retailersQuery.isPending || departmentsQuery.isPending}
           emptyIcon={<Contact className="size-5" />}
           emptyTitle={segment === 'triage' ? 'Triage queue is clear' : 'No contacts match'}
