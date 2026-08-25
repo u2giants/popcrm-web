@@ -606,9 +606,14 @@ Triage. `reroute`, `summarize`, and `apply-ignore-rules` read the same way.
 
 Future sessions should:
 Use `fetchAllRows(() => crm('table').select(...))` in
-`workers/crm-worker-supabase.mjs` for every full-table read; it pages by `id`
-with `.range()`. Never reintroduce a bare high `.limit()` as a way to "get
-everything". After a change, run one-shot `systemctl start popcrm-<job>` and
+`workers/crm-worker-supabase.mjs` for every full-table read. It pages by
+**keyset** (`.order(id).gt(id, last).limit(n)`), not offset: `reroute` and
+`applyIgnoreRules` update the very rows their own filter selects, and under
+offset paging each committed update shifts later rows up one offset, so the job
+skips exactly as many rows as it just changed. `ROW_PAGE_SIZE` stays below the
+server ceiling so a short page always means end-of-table, never a silent
+server-side truncation. Never reintroduce a bare high `.limit()` as a way to
+"get everything". After a change, run one-shot `systemctl start popcrm-<job>` and
 check the job's own counter line in `journalctl` against a `count(*)` in the
 database — a suspiciously round or small evaluated count means the cap is back.
 
