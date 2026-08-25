@@ -95,3 +95,24 @@ export function buildRetailerById(
   }
   return map
 }
+
+/**
+ * Effective CRM classification for a company, across the two status axes.
+ *
+ * The CRM's own `customer_status` always wins. When it is empty we read the
+ * shared hub axis instead of calling the company untriaged: a hub prospect
+ * (`status = 'potential'` / `is_potential = true`) is a Potential Customer,
+ * and an ERP-confirmed active company (`status = 'active'`, which by then is
+ * not a prospect) is an Active Customer — the hub already answered
+ * the question, so the CRM must not contradict it with "New Company".
+ * Everything else (hub-inactive legacy rows) stays UNASSIGNED.
+ */
+export function effectiveCustomerStatus(
+  r: Pick<Retailer, 'customer_status' | 'status' | 'is_potential'>,
+): string {
+  if (r.customer_status) return r.customer_status
+  const hub = (r.status ?? '').toLowerCase()
+  if (hub === 'potential' || r.is_potential === true) return 'POTENTIAL_CUSTOMER'
+  if (hub === 'active') return 'ACTIVE_CUSTOMER'
+  return 'UNASSIGNED'
+}

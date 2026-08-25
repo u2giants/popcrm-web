@@ -7,6 +7,7 @@ import { StatusBadge } from '@/components/app/StatusBadge'
 import { Button } from '@/components/ui/button'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { ErrorState } from '@/components/app/states'
+import { effectiveCustomerStatus } from '@/features/crm/pages/_shared'
 import { useRecordSelection } from '@/features/crm/useRecordSelection'
 import { CustomerDrawer } from '@/features/crm/components/CustomerDrawer'
 import { MergeCustomersDialog } from '@/features/crm/components/MergeCustomersDialog'
@@ -38,16 +39,7 @@ const DOMAIN_CLASSIFICATION_OPTIONS: EditOption[] = [
 
 type Segment = 'active' | 'unclassified' | 'triage' | 'dismissed' | 'all'
 
-// Effective CRM classification for a company. The CRM's own `customer_status`
-// wins; when it is empty we fall back to the hub-wide entity status, so a
-// company the hub already tracks as a prospect reads "Potential Customer"
-// instead of contradicting itself with "New Company" + a "Potential" source.
-// Everything else with no CRM classification is UNASSIGNED ("New Company").
-const statusOf = (r: Retailer): string => {
-  if (r.customer_status) return r.customer_status
-  if ((r.status ?? '').toLowerCase() === 'potential' || r.is_potential === true) return 'POTENTIAL_CUSTOMER'
-  return 'UNASSIGNED'
-}
+const statusOf = (r: Retailer): string => effectiveCustomerStatus(r)
 
 // Single segment rule, used for both the rows and the tab counts so they can
 // never disagree. Every company falls in exactly one of these buckets.

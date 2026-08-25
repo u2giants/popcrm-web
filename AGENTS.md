@@ -422,10 +422,19 @@ PLM, and it tracks `is_potential`. A row can legitimately have an empty CRM
 classification while the hub already tracks it as a prospect — that is exactly
 what made AT HOME STORES read "New Company" + "Potential".
 
+The hub fallback runs in BOTH directions. `effectiveCustomerStatus`
+(`pages/_shared.ts`) is the single rule: CRM `customer_status` wins; with it
+empty, hub `potential`/`is_potential` reads Potential Customer and hub `active`
+reads Active Customer (ERP-confirmed — 101 companies, e.g. Burlington, have no
+CRM classification but are real active customers); only hub-`inactive` rows stay
+"New Company". Reading just the prospect half made Burlington read
+"New Company" + "ERP confirmed" at the same time.
+
 Future sessions should:
 Keep one fetch feeding every company tab, derive both the rows and the counts
-from the same `segmentOf` predicate, and let `statusOf` fall back to the hub
-`status`/`is_potential` when `customer_status` is empty. Never filter rows out
+from the same `segmentOf` predicate, and route every customer-status badge —
+table, drawer, anything new — through `effectiveCustomerStatus` rather than
+reading `customer_status` raw. Never filter rows out
 of a tab by a rule the tab count does not also apply — if ERP-inactive
 customers should be hidden again, make it a visible, user-controlled filter,
 not a silent one (the silent version hid 46 classified customers).
