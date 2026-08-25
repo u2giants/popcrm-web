@@ -533,6 +533,24 @@ restore `useEmailsQuery(-1)` for Email Routing or use full queue paging to
 compute counts. Small explicit-limit global search against
 `api.crm_email_routing_queue` is still acceptable.
 
+### Not-customer rules are administrative settings
+
+What changed:
+The rule editor lives in Settings, not in the Email Routing work queue. Settings
+shows separate, always-visible inputs for an exact email address and an entire
+domain, plus a separate subject-pattern control. Domain input accepts either
+`example.com` or `@example.com` and stores the normalized domain.
+
+Why:
+These rules change automated routing behavior for everyone, so they are
+administrative configuration rather than a per-message routing action.
+
+Future sessions should:
+Keep the editor in `SettingsPage` via `IgnoreRulesPanel`. Address and domain
+rules must continue to apply only when an email contains no recognized Customer
+domain; a known Customer participant must take precedence over a not-customer
+rule.
+
 ### Fireflies health does not prove meeting ingestion
 
 What changed:
