@@ -1,11 +1,22 @@
-import { useMemo } from 'react'
-import { Building2, Mail, Route, X } from 'lucide-react'
+import { useMemo, useState } from 'react'
+import { Building2, Check, Mail, Pencil, Route, X } from 'lucide-react'
+import { toast } from 'sonner'
 import { DetailDrawer, DescriptionItem, DescriptionList, DrawerSection } from '@/components/app/DetailDrawer'
 import { StatusBadge } from '@/components/app/StatusBadge'
 import { NameAvatar } from '@/components/app/NameAvatar'
 import { CustomerLogo } from '@/components/app/CustomerLogo'
 import { Button } from '@/components/ui/button'
-import { listData, useDepartmentsQuery, useEmailsQuery, useIngestedContactsQuery, useOpportunitiesQuery } from '@/features/crm/queries'
+import { Input } from '@/components/ui/input'
+import {
+  listData,
+  useDepartmentsQuery,
+  useEmailsQuery,
+  useIngestedContactsQuery,
+  useOpportunitiesQuery,
+  useUpdateCustomerMutation,
+} from '@/features/crm/queries'
+import { normalizeDomainInput, suggestDomainFromEmails } from '@/features/crm/domainSuggestion'
+import { logError } from '@/lib/errors'
 import { ChainBadge, StageBadge } from '@/features/crm/components/CrmStatusBadge'
 import { customerStatusLabel, customerStatusTone } from '@/features/crm/constants'
 import { idOf } from '@/features/crm/format'
@@ -27,9 +38,11 @@ export function CustomerDrawer({ row, onClose }: { row: Retailer | null; onClose
   const emails = listData(useEmailsQuery(-1).data)
 
   const related = useMemo(() => {
-    if (!row) return { contacts: [], depts: [], opps: [], recentEmails: [] }
+    if (!row) return { contacts: [], depts: [], opps: [], recentEmails: [], suggestedDomain: null }
+    const contacts = buyers.filter((b) => idOf(b.retailer) === row.id)
     return {
-      contacts: buyers.filter((b) => idOf(b.retailer) === row.id),
+      contacts,
+      suggestedDomain: suggestDomainFromEmails(contacts.map((c) => c.email)),
       depts: departments.filter((d) => idOf(d.retailer) === row.id),
       opps: opportunities.filter((o) => idOf(o.retailer) === row.id),
       recentEmails: emails.filter((e) => idOf(e.retailer) === row.id).slice(0, 6),
@@ -96,9 +109,11 @@ export function CustomerDrawer({ row, onClose }: { row: Retailer | null; onClose
                 {row.chain_type ? <ChainBadge chain={row.chain_type} /> : '—'}
               </DescriptionItem>
               <DescriptionItem term="Domain">
-                {row.domain ? (
-                  <span className="font-mono text-[11.5px]">{row.domain}</span>
-                ) : '—'}
+                <DomainField
+                  customerId={row.id}
+                  domain={row.domain}
+                  suggestion={related.suggestedDomain}
+                />
               </DescriptionItem>
             </DescriptionList>
           </DrawerSection>
@@ -228,6 +243,94 @@ function StatCard({
         <div className="text-[18px] font-[700] tabular-nums leading-none text-foreground">{value}</div>
         <div className="mt-[2px] text-[11px] text-muted-foreground">{label}</div>
       </div>
+    </div>
+  )
+}
+
+/**
+ * Curated Customer domain: shown read-only, editable in place, with a
+ * suggestion taken from this customer's own contact addresses. Nothing is
+ * written until a human presses Save or accepts the suggestion.
+ */
+function DomainField({
+  customerId,
+  domain,
+  suggestion,
+}: {
+  customerId: string
+  domain: string | null
+  suggestion: string | null
+}) {
+  const updateCustomer = useUpdateCustomerMutation()
+  const [editing, setEditing] = useState(false)
+  const [draft, setDraft] = useState('')
+
+  async function save(value: string) {
+    const next = normalizeDomainInput(value)
+    if (next === (domain ?? '')) {
+      setEditing(false)
+      return
+    }
+    try {
+      await updateCustomer.mutateAsync({ id: customerId, values: { domain: next } })
+      setEditing(false)
+      toast.success(next ? `Domain set to ${next}` : 'Domain cleared')
+    } catch (error) {
+      toast.error('Could not save the domain', { description: logError('DomainField.save', error) })
+    }
+  }
+
+  if (editing) {
+    return (
+      <div className="flex items-center gap-[6px]">
+        <Input
+          autoFocus
+          value={draft}
+          onChange={(e) => setDraft(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') void save(draft)
+            if (e.key === 'Escape') setEditing(false)
+          }}
+          placeholder="example.com"
+          aria-label="Customer domain"
+          className="h-[26px] w-[180px] font-mono text-[11.5px]"
+        />
+        <Button size="sm" variant="outline" className="h-[26px]" disabled={updateCustomer.isPending} onClick={() => void save(draft)}>
+          Save
+        </Button>
+        <Button size="sm" variant="ghost" className="h-[26px]" onClick={() => setEditing(false)}>
+          Cancel
+        </Button>
+      </div>
+    )
+  }
+
+  return (
+    <div className="flex flex-wrap items-center gap-[6px]">
+      {domain ? <span className="font-mono text-[11.5px]">{domain}</span> : <span>—</span>}
+      <Button
+        size="sm"
+        variant="ghost"
+        className="h-[22px] px-[6px] text-[11px] text-muted-foreground"
+        onClick={() => {
+          setDraft(domain ?? '')
+          setEditing(true)
+        }}
+      >
+        <Pencil className="size-[11px]" /> Edit
+      </Button>
+      {!domain && suggestion ? (
+        <Button
+          size="sm"
+          variant="outline"
+          className="h-[22px] px-[7px] text-[11px]"
+          disabled={updateCustomer.isPending}
+          onClick={() => void save(suggestion)}
+          title="Taken from this customer's contact email addresses"
+        >
+          <Check className="size-[11px]" /> Use {suggestion}
+        </Button>
+      ) : null}
     </div>
   )
 }

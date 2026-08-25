@@ -96,6 +96,20 @@ function upstreamFetch(operation, url, init, { timeoutMs, retryTransient = false
 
 const must = (res) => { if (res.error) throw new Error(res.error.message); return res.data }
 
+// PostgREST enforces a server-side row ceiling (db-max-rows), so a single
+// .limit(100000) silently returns only the first page and the rest of the
+// table is never seen. Every full-table read pages explicitly with a stable
+// order instead. buildQuery must return a fresh builder on each call.
+const ROW_PAGE_SIZE = 1000
+async function fetchAllRows(buildQuery, { orderBy = 'id', pageSize = ROW_PAGE_SIZE } = {}) {
+  const rows = []
+  for (let from = 0; ; from += pageSize) {
+    const page = must(await buildQuery().order(orderBy, { ascending: true }).range(from, from + pageSize - 1))
+    rows.push(...page)
+    if (page.length < pageSize) return rows
+  }
+}
+
 const INTERNAL_DOMAIN = 'popcre.com'
 const GRAPH_BASE = 'https://graph.microsoft.com/v1.0'
 const LOGIN_BASE = 'https://login.microsoftonline.com'
@@ -764,7 +778,7 @@ async function outlookIngest() {
 }
 
 async function reroute() {
-  const rows = must(await crm('email_message').select('id,subject,body_preview,sender,recipients,routing_status,company_id').in('routing_status', ROUTABLE_STATUSES).limit(100000))
+  const rows = await fetchAllRows(() => crm('email_message').select('id,subject,body_preview,sender,recipients,routing_status,company_id').in('routing_status', ROUTABLE_STATUSES))
   let updated = 0
   let evaluated = 0
   for (const row of rows) {
@@ -805,7 +819,7 @@ async function customerForDomain(domain) {
 }
 
 async function contactSync() {
-  const rows = must(await crm('email_message').select('id,subject,sender,recipients').limit(100000))
+  const rows = await fetchAllRows(() => crm('email_message').select('id,subject,sender,recipients'))
   const subjectByDomain = new Map()
   const senderByDomain = new Map()
   for (const row of rows) {
@@ -867,7 +881,7 @@ async function recordUnknownDomainsFromAddresses(addresses, subject = null, disp
 }
 
 async function summarize() {
-  const rows = must(await crm('email_message').select('opportunity_id').not('opportunity_id', 'is', null).limit(100000))
+  const rows = await fetchAllRows(() => crm('email_message').select('id,opportunity_id').not('opportunity_id', 'is', null))
   const ids = [...new Set(rows.map((r) => r.opportunity_id).filter(Boolean))]
   let updated = 0
   for (const id of ids) if (await summarizeOpportunity(id)) updated += 1
@@ -909,7 +923,7 @@ export function matchingAddressRule(rules, addresses, customerDomainPresent) {
 async function applyIgnoreRules() {
   const [rules, emails] = await Promise.all([
     crm('ignore_rule').select('id,pattern,match_type,rule_type,emails_skipped').limit(5000).then(must),
-    crm('email_message').select('id,subject').eq('routing_status', 'UNROUTED').limit(100000).then(must),
+    fetchAllRows(() => crm('email_message').select('id,subject').eq('routing_status', 'UNROUTED')),
   ])
   let skipped = 0
   const counts = new Map()
