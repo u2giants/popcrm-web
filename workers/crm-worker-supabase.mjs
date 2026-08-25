@@ -697,6 +697,13 @@ async function saveOutlookCursor({ cursorKey, mailbox, deltaLink, expectedVersio
   return boundaries.graphCursorStore.save({ cursorKey, mailbox, deltaLink, expectedVersion })
 }
 
+// `gated` keeps purely internal mail out of the CRM. This is an INTERIM rule:
+// per shared-db docs/business-rules/email-capture-and-program-linkage.md, once a
+// message can be linked to a program by subject-line data that linkage decides
+// capture and overrides this test, because internal-only mail belonging to a
+// program is worth keeping. When that lands, evaluate program linkage BEFORE
+// this check — filtering here first would discard exactly the mail it is meant
+// to keep.
 async function processOutlookMessage(message, { gated }) {
   if (message['@removed']) return 'tombstone'
   if (!message.id) throw new Error('Microsoft Graph returned a mail change without an id')

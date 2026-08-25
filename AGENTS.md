@@ -619,6 +619,18 @@ Three unrelated systems have to agree, and missing one fails quietly:
 Ingesting a second mailbox multiplies the routing work: every message is routed
 once, so watch the reroute runtime after adding one.
 
+`OUTLOOK_GATED=true` keeps purely internal mail out: a message is stored only if
+at least one participant is outside `popcre.com`. **That switch is an interim
+stand-in, not the business rule.** The settled rule is in shared-db's business
+rule library, `docs/business-rules/email-capture-and-program-linkage.md`: once a
+message can be linked to a program (e.g. by subject-line data), that linkage
+decides capture and *overrides* the external-participant test — internal-only
+mail belonging to a program is valuable and must be ingested. When that is
+built, evaluate program linkage FIRST; filtering on external participants first
+would discard program-linked internal mail before linkage is ever considered.
+Do not read `OUTLOOK_GATED` as a decision that internal email does not belong in
+the CRM.
+
 ### A parent and its banner share one email domain but stay separate customers
 
 Looks like:
