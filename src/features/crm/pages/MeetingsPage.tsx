@@ -233,6 +233,7 @@ export function MeetingsPage() {
           getRowId={(m) => m.id}
           onRowClick={(m) => select(m)}
           onCellEdit={editCell}
+          selectable
           loading={meetingsQuery.isPending || retailersQuery.isPending || departmentsQuery.isPending || buyersQuery.isPending}
           emptyIcon={<CalendarDays className="size-5" />}
           emptyTitle={segment === 'triage' ? 'Triage queue is clear' : 'No meetings match'}

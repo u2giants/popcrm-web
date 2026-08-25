@@ -5,11 +5,9 @@ import { AppPage, ListBar } from '@/components/app/AppPage'
 import { DataTable, type Column, type EditOption } from '@/components/app/DataTable'
 import { StatusBadge } from '@/components/app/StatusBadge'
 import { Button } from '@/components/ui/button'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { ErrorState } from '@/components/app/states'
 import { useRecordSelection } from '@/features/crm/useRecordSelection'
-import { useRangeSelection } from '@/features/crm/useRangeSelection'
 import { CustomerDrawer } from '@/features/crm/components/CustomerDrawer'
 import { MergeCustomersDialog } from '@/features/crm/components/MergeCustomersDialog'
 import { CustomerRelationLogo } from '@/features/crm/components/CustomerRelationLogo'
@@ -75,12 +73,7 @@ export function CustomersPage() {
   const opportunitiesQuery = useOpportunitiesQuery(-1)
   const updateCustomerMutation = useUpdateCustomerMutation()
   const updateDomainMutation = useUpdateIngestedDomainMutation()
-  const domainSelection = useRangeSelection()
-  const customerSelection = useRangeSelection()
-  const selectedDomains = domainSelection.selected
-  const selectedCustomers = customerSelection.selected
   const [mergePair, setMergePair] = useState<[Retailer, Retailer] | null>(null)
-  const [bulkClassification, setBulkClassification] = useState('')
   const buyers = listData(buyersQuery.data)
   const opportunities = listData(opportunitiesQuery.data)
   const triageDomains = listData(triageDomainsQuery.data)
@@ -108,20 +101,6 @@ export function CustomersPage() {
       await updateDomainMutation.mutateAsync({ id: row.id, values: { status: value } })
     } catch (error) {
       toast.error('Could not classify domain', { description: logError('CustomersPage.classifyDomain', error) })
-    }
-  }
-
-  async function classifySelectedDomains() {
-    if (!bulkClassification || !selectedDomains.size) return
-    const rows = triageDomains.filter((row) => selectedDomains.has(row.id))
-    try {
-      await Promise.all(rows.map((row) => updateDomainMutation.mutateAsync({ id: row.id, values: { status: bulkClassification } })))
-      domainSelection.clear()
-      toast.success(`${rows.length} domain${rows.length === 1 ? '' : 's'} classified`)
-    } catch (error) {
-      toast.error('Could not classify every selected domain', {
-        description: logError('CustomersPage.classifySelectedDomains', error),
-      })
     }
   }
 
@@ -175,35 +154,6 @@ export function CustomersPage() {
   const count = segment === 'triage' ? filteredDomains.length : filteredCustomers.length
 
   const customerColumns: Column<Retailer>[] = [
-    {
-      key: 'selected',
-      header: (
-        <input
-          type="checkbox"
-          aria-label="Clear customer selection"
-          checked={selectedCustomers.size > 0}
-          ref={(el) => { if (el) el.indeterminate = selectedCustomers.size > 0 }}
-          onChange={() => customerSelection.clear()}
-          onClick={(event) => event.stopPropagation()}
-          className="size-4 accent-primary"
-        />
-      ),
-      width: 44,
-      cell: (row) => (
-        <input
-          type="checkbox"
-          aria-label={`Select ${row.display_name || row.name}`}
-          checked={selectedCustomers.has(row.id)}
-          // Toggling happens on click so shift-click can extend a range.
-          onChange={() => undefined}
-          onClick={(event) => {
-            event.stopPropagation()
-            customerSelection.toggle(row.id, event.shiftKey)
-          }}
-          className="size-4 accent-primary"
-        />
-      ),
-    },
     {
       key: 'name',
       header: 'Customer',
@@ -270,37 +220,6 @@ export function CustomersPage() {
   ]
 
   const domainColumns: Column<CrmIngestedDomain>[] = [
-    {
-      key: 'selected',
-      header: (
-        <input
-          type="checkbox"
-          aria-label="Select all visible domains"
-          checked={filteredDomains.length > 0 && filteredDomains.every((row) => selectedDomains.has(row.id))}
-          onChange={(event) => {
-            if (event.target.checked) domainSelection.replace(filteredDomains.map((row) => row.id))
-            else domainSelection.clear()
-          }}
-          onClick={(event) => event.stopPropagation()}
-          className="size-4 accent-primary"
-        />
-      ),
-      width: 44,
-      cell: (row) => (
-        <input
-          type="checkbox"
-          aria-label={`Select ${row.domain}`}
-          checked={selectedDomains.has(row.id)}
-          // Toggling happens on click so shift-click can extend a range.
-          onChange={() => undefined}
-          onClick={(event) => {
-            event.stopPropagation()
-            domainSelection.toggle(row.id, event.shiftKey)
-          }}
-          className="size-4 accent-primary"
-        />
-      ),
-    },
     {
       key: 'domain',
       header: 'Domain',
@@ -414,30 +333,13 @@ export function CustomersPage() {
             Email domains seen in the inbox that belong to no company yet. These are not company records —
             classifying one here only says how to treat its mail.
           </p>
-          {selectedDomains.size > 0 ? (
-            <div className="flex flex-wrap items-center gap-2 rounded-[10px] border bg-card px-3 py-2">
-              <span className="text-[12.5px] font-[600]">{selectedDomains.size} selected</span>
-              <Select value={bulkClassification} onValueChange={setBulkClassification}>
-                <SelectTrigger size="sm" className="w-48"><SelectValue placeholder="Choose classification" /></SelectTrigger>
-                <SelectContent>
-                  {DOMAIN_CLASSIFICATION_OPTIONS.map((option) => (
-                    <SelectItem key={option.value} value={option.value}>{option.label}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <Button size="sm" onClick={() => void classifySelectedDomains()} disabled={!bulkClassification || updateDomainMutation.isPending}>
-                Apply to selected
-              </Button>
-              <Button size="sm" variant="ghost" onClick={() => domainSelection.clear()}>Clear selection</Button>
-            </div>
-          ) : null}
           <DataTable
             key="customer-triage-table"
             rows={filteredDomains}
             columns={domainColumns}
             getRowId={(r) => r.id}
             onCellEdit={(row, _key, value) => classifyDomain(row, value)}
-            onVisibleRowsChange={(rows) => domainSelection.setVisibleIds(rows.map((r) => r.id))}
+            selectable
             loading={visibleFetch.isPending}
             emptyIcon={<Building2 className="size-5" />}
             emptyTitle="Triage queue is clear"
@@ -447,25 +349,6 @@ export function CustomersPage() {
         </div>
       ) : (
         <div className="space-y-2">
-          {selectedCustomers.size > 0 ? (
-            <div className="flex flex-wrap items-center gap-2 rounded-[10px] border bg-card px-3 py-2">
-              <span className="text-[12.5px] font-[600]">{selectedCustomers.size} selected</span>
-              <Button
-                size="sm"
-                disabled={selectedCustomers.size !== 2}
-                onClick={() => {
-                  const picked = customerRows.filter((r) => selectedCustomers.has(r.id))
-                  if (picked.length === 2) setMergePair([picked[0], picked[1]])
-                }}
-              >
-                Merge…
-              </Button>
-              <span className="text-[11.5px] text-muted-foreground">
-                {selectedCustomers.size === 2 ? 'Ready to merge' : 'Select exactly two customers to merge'}
-              </span>
-              <Button size="sm" variant="ghost" onClick={() => customerSelection.clear()}>Clear selection</Button>
-            </div>
-          ) : null}
           <DataTable
           key="customer-list-table"
           rows={filteredCustomers}
@@ -473,7 +356,23 @@ export function CustomersPage() {
           getRowId={(r) => r.id}
           onRowClick={(r) => select(r)}
           onCellEdit={editCell}
-          onVisibleRowsChange={(rows) => customerSelection.setVisibleIds(rows.map((r) => r.id))}
+          selectable
+          selectionActions={(rows) => (
+            <>
+              <Button
+                size="sm"
+                className="h-[28px] px-[10px] text-[12px]"
+                variant="outline"
+                disabled={rows.length !== 2}
+                onClick={() => { if (rows.length === 2) setMergePair([rows[0], rows[1]]) }}
+              >
+                Merge…
+              </Button>
+              {rows.length !== 2 ? (
+                <span className="text-[11.5px] text-muted-foreground">Select exactly two to merge</span>
+              ) : null}
+            </>
+          )}
           loading={visibleFetch.isPending}
           emptyIcon={<Building2 className="size-5" />}
           emptyTitle="No customers match"
@@ -487,7 +386,7 @@ export function CustomersPage() {
         key={mergePair ? `${mergePair[0].id}-${mergePair[1].id}` : 'no-merge'}
         pair={mergePair}
         onClose={() => setMergePair(null)}
-        onMerged={() => customerSelection.clear()}
+        onMerged={() => setMergePair(null)}
       />
     </AppPage>
   )
