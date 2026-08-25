@@ -485,8 +485,8 @@ async function routeEmail({ subject, bodyText, addresses, displayNames = {}, tas
   const bodyAddresses = extractAddresses(bodyText)
   const allAddresses = [...new Set([...addresses, ...bodyAddresses])].map((x) => x.toLowerCase())
 
-  const ignoreRules = must(await crm('ignore_rule').select('id,pattern,match_type').limit(5000))
-  for (const rule of ignoreRules) {
+  const ignoreRules = must(await crm('ignore_rule').select('id,pattern,match_type,rule_type').limit(5000))
+  for (const rule of ignoreRules.filter((candidate) => ruleTypeOf(candidate) === 'SUBJECT')) {
     const pattern = String(rule.pattern || '').toLowerCase()
     if (!pattern) continue
     const matchType = rule.match_type || 'CONTAINS'
@@ -499,14 +499,17 @@ async function routeEmail({ subject, bodyText, addresses, displayNames = {}, tas
 
   let retailer = null
   let routingMethod = 'EMAIL_DOMAIN'
+  let customerDomainPresent = false
 
   const aliasRetailer = await matchRetailerByAlias(normalizedSubject)
   if (aliasRetailer) { retailer = aliasRetailer.id; routingMethod = 'SUBJECT_ALIAS' }
 
   for (const domain of nonNoiseDomains) {
-    if (retailer) break
     const row = await matchingRetailersByDomain(domain, displayNames)
-    if (row) { retailer = row.id; routingMethod = 'EMAIL_DOMAIN'; break }
+    if (row) {
+      customerDomainPresent = true
+      if (!retailer) { retailer = row.id; routingMethod = 'EMAIL_DOMAIN' }
+    }
   }
 
   if (!retailer && bodyText) {
@@ -523,6 +526,9 @@ async function routeEmail({ subject, bodyText, addresses, displayNames = {}, tas
     const subjectHistory = await matchRetailerBySubjectHistory(normalizedSubject)
     if (subjectHistory) { retailer = subjectHistory.id; routingMethod = 'SUBJECT_HISTORY' }
   }
+
+  const addressRule = matchingAddressRule(ignoreRules, addresses, customerDomainPresent)
+  if (addressRule) return { routing_status: 'SKIPPED', routing_method: 'AUTO_SKIP' }
 
   if (!retailer) {
     const companyName = await matchRetailerByCompanyName(subject)
@@ -541,8 +547,7 @@ async function routeEmail({ subject, bodyText, addresses, displayNames = {}, tas
     }
   }
 
-  const customerDomain = retailer && domains.some((d) => !isNoiseDomain(d))
-  if (!retailer && addresses.some((a) => isNoiseSender(a, customerDomain))) return { routing_status: 'SKIPPED', routing_method: 'AUTO_SKIP' }
+  if (!retailer && addresses.some((a) => isNoiseSender(a, customerDomainPresent))) return { routing_status: 'SKIPPED', routing_method: 'AUTO_SKIP' }
   if (!retailer && !nonNoiseDomains.length) return { routing_status: 'SKIPPED', routing_method: 'AUTO_SKIP' }
 
   if (retailer && department) return { routing_status: 'COMPANY_DEPT', routing_method: routingMethod, retailer, department }
@@ -881,15 +886,35 @@ function subjectMatchesRule(subject, rule) {
   )
 }
 
+export function ruleTypeOf(rule) {
+  const value = String(rule?.rule_type || '').trim().toUpperCase()
+  return value === 'DOMAIN' || value === 'EMAIL_ADDRESS' || value === 'SUBJECT' ? value : 'SUBJECT'
+}
+
+export function addressRuleMatches(rule, addresses) {
+  const type = ruleTypeOf(rule)
+  if (type === 'SUBJECT') return false
+  const pattern = String(rule?.pattern || '').trim().toLowerCase().replace(/^@/, '')
+  if (!pattern) return false
+  const normalized = addresses.map((address) => String(address || '').trim().toLowerCase())
+  if (type === 'EMAIL_ADDRESS') return normalized.includes(pattern)
+  return normalized.some((address) => domainOf(address) === pattern)
+}
+
+export function matchingAddressRule(rules, addresses, customerDomainPresent) {
+  if (customerDomainPresent) return null
+  return rules.find((rule) => addressRuleMatches(rule, addresses)) || null
+}
+
 async function applyIgnoreRules() {
   const [rules, emails] = await Promise.all([
-    crm('ignore_rule').select('id,pattern,match_type,emails_skipped').limit(5000).then(must),
+    crm('ignore_rule').select('id,pattern,match_type,rule_type,emails_skipped').limit(5000).then(must),
     crm('email_message').select('id,subject').eq('routing_status', 'UNROUTED').limit(100000).then(must),
   ])
   let skipped = 0
   const counts = new Map()
   for (const email of emails) {
-    const rule = rules.find((r) => subjectMatchesRule(email.subject, r))
+    const rule = rules.find((r) => ruleTypeOf(r) === 'SUBJECT' && subjectMatchesRule(email.subject, r))
     if (!rule) continue
     must(await crm('email_message').update({ routing_status: 'SKIPPED', routing_method: 'AUTO_SKIP' }).eq('id', email.id))
     counts.set(rule.id, (counts.get(rule.id) || 0) + 1)

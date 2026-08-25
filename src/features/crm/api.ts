@@ -381,6 +381,7 @@ const toIgnoreRule = (r: Row): CrmIgnoreRule => ({
   pattern: (r.pattern ?? null) as string | null,
   match_type: (r.match_type ?? null) as string | null,
   emails_skipped: (r.emails_skipped ?? null) as number | null,
+  rule_type: (r.rule_type ?? null) as string | null,
 })
 
 // ---------------------------------------------------------------------------
@@ -477,6 +478,10 @@ export async function fetchIngestedDomains(limit = -1): Promise<CrmIngestedDomai
   }
   const rows = limit >= 0 ? out.slice(0, limit) : out
   return rows.map(toIngestedDomain)
+}
+
+export async function updateIngestedDomain(id: string, values: Partial<CrmIngestedDomain>) {
+  await updateRow('ingested_domain', id, values as Row)
 }
 
 export async function fetchIngestedDomainCount(): Promise<number> {

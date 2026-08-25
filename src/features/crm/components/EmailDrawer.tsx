@@ -150,7 +150,7 @@ function EmailDrawerForm({ row, onClose }: { row: CrmEmailMessage; onClose: () =
     }
     setIgnoring(true)
     try {
-      await createIgnoreRuleMutation.mutateAsync({ name: pattern, pattern, match_type: 'CONTAINS', emails_skipped: 0 })
+      await createIgnoreRuleMutation.mutateAsync({ name: pattern, pattern, rule_type: 'SUBJECT', match_type: 'CONTAINS', emails_skipped: 0 })
       toast.success('Ignore rule created from subject')
     } catch (error) {
       toast.error('Could not create ignore rule', { description: logError('EmailDrawer.ignoreSubject', error) })
