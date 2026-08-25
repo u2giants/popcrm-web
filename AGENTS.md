@@ -592,6 +592,32 @@ After changing worker code, run `node --check workers/crm-worker-supabase.mjs`
 and relevant one-shot systemd smoke tests. Unknown domains must continue to go
 through `crm.record_ingested_domain(...)`, not direct `core.customer` inserts.
 
+### Full-table worker reads must page, and Customer domain is curated by hand
+
+Looks like:
+`crm('email_message').select(...).limit(100000)` reads the whole table.
+
+Actually:
+PostgREST caps any single response at its `db-max-rows` ceiling, so that call
+silently returned only the first ~1000 of 16999 messages. `contact-sync` had
+been evaluating 271 of 1453 addresses every night, and hundreds of sender
+domains (including `lidl.us`, a real customer with 104 emails) never reached
+Triage. `reroute`, `summarize`, and `apply-ignore-rules` read the same way.
+
+Future sessions should:
+Use `fetchAllRows(() => crm('table').select(...))` in
+`workers/crm-worker-supabase.mjs` for every full-table read; it pages by `id`
+with `.range()`. Never reintroduce a bare high `.limit()` as a way to "get
+everything". After a change, run one-shot `systemctl start popcrm-<job>` and
+check the job's own counter line in `journalctl` against a `count(*)` in the
+database — a suspiciously round or small evaluated count means the cap is back.
+
+`core.customer.domain` stays human-curated: it is editable in the customer
+drawer (`DomainField`), and `suggestDomainFromEmails` proposes the most common
+domain among that customer's own contacts as a one-click accept. The suggestion
+never writes on its own, and ingested domains still never write to
+`core.customer`.
+
 ### Customer logos use token domains plus optional full-logo overrides
 
 Looks like:
