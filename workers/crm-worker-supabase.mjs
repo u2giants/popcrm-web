@@ -122,6 +122,21 @@ async function fetchAllRows(buildQuery, { keyColumn = 'id', pageSize = ROW_PAGE_
   }
 }
 
+// Routing reads the same reference data (ignore rules, the customer list) for
+// every single message. That was invisible while a run only ever saw ~1000
+// messages; now that paging is fixed, reroute walks 12k+ and the repeat reads
+// dominate its runtime. Cache them briefly: long enough to make a batch run
+// cheap, short enough that live ingest still picks up an edit made minutes ago.
+const REFERENCE_TTL_MS = 60_000
+const referenceCache = new Map()
+async function cachedReference(key, load) {
+  const hit = referenceCache.get(key)
+  if (hit && Date.now() - hit.at < REFERENCE_TTL_MS) return hit.value
+  const value = await load()
+  referenceCache.set(key, { at: Date.now(), value })
+  return value
+}
+
 const AMBIGUOUS_DOMAIN = Symbol('ambiguous customer domain')
 const INTERNAL_DOMAIN = 'popcre.com'
 const GRAPH_BASE = 'https://graph.microsoft.com/v1.0'
@@ -293,17 +308,18 @@ async function matchingRetailersByDomain(domain, displayNames = {}) {
 }
 
 async function matchRetailerByAlias(normalizedSubject) {
-  const rows = must(await core('customer')
+  const rows = await cachedReference('customers:aliases', async () => must(await core('customer')
     .select('id,name,routing_aliases')
     .in('customer_status', CUSTOMERS)
     .not('routing_aliases', 'is', null)
-    .limit(5000))
+    .limit(5000)))
   const matches = rows.filter((r) => splitAliases(r.routing_aliases).some((a) => aliasMatchesSubject(a, normalizedSubject)))
   return matches.length === 1 ? matches[0] : null
 }
 
 async function matchRetailerByCompanyName(subject) {
-  const rows = must(await core('customer').select('id,name').in('customer_status', CUSTOMERS).limit(5000))
+  const rows = await cachedReference('customers:names', async () =>
+    must(await core('customer').select('id,name').in('customer_status', CUSTOMERS).limit(5000)))
   return pickUniqueBest(rows.map((r) => ({ row: r, score: companyNameScore(subject, r.name) })), 0.7)
 }
 
@@ -519,7 +535,8 @@ async function routeEmail({ subject, bodyText, addresses, displayNames = {}, tas
   const bodyAddresses = extractAddresses(bodyText)
   const allAddresses = [...new Set([...addresses, ...bodyAddresses])].map((x) => x.toLowerCase())
 
-  const ignoreRules = must(await crm('ignore_rule').select('id,pattern,match_type,rule_type').limit(5000))
+  const ignoreRules = await cachedReference('ignore_rules', async () =>
+    must(await crm('ignore_rule').select('id,pattern,match_type,rule_type').limit(5000)))
   for (const rule of ignoreRules.filter((candidate) => ruleTypeOf(candidate) === 'SUBJECT')) {
     const pattern = String(rule.pattern || '').toLowerCase()
     if (!pattern) continue

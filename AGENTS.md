@@ -679,7 +679,15 @@ Use `fetchAllRows(() => crm('table').select(...))` in
 offset paging each committed update shifts later rows up one offset, so the job
 skips exactly as many rows as it just changed. `ROW_PAGE_SIZE` stays below the
 server ceiling so a short page always means end-of-table, never a silent
-server-side truncation. Never reintroduce a bare high `.limit()` as a way to
+server-side truncation.
+
+Fixing the cap made the batch jobs much bigger, and two things had to follow.
+`reroute` now walks ~12.8k messages instead of ~1k and blew through its 30-minute
+`TimeoutStartSec` mid-run (`systemd/popcrm-reroute.service`, now 3h). And
+`routeEmail` re-read the ignore rules and the whole customer list *per message*,
+which was invisible at 1k messages and dominant at 12.8k, so reference reads go
+through `cachedReference` with a 60-second TTL. When changing a job's coverage,
+re-check its unit timeout and its per-row query count. Never reintroduce a bare high `.limit()` as a way to
 "get everything". After a change, run one-shot `systemctl start popcrm-<job>` and
 check the job's own counter line in `journalctl` against a `count(*)` in the
 database — a suspiciously round or small evaluated count means the cap is back.
