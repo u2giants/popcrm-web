@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import {
   buildRetailerById,
   customerPickerOptions,
+  effectiveCustomerStatus,
   isSelectableCustomer,
   withCurrentCustomer,
 } from './_shared'
@@ -54,5 +55,26 @@ describe('CRM customer picker helpers', () => {
       map,
     )
     expect(opts.some((o) => o.value === 'i1' && o.label === 'Inactive')).toBe(true)
+  })
+})
+
+describe('effectiveCustomerStatus', () => {
+  const base = { customer_status: null as string | null, status: null as string | null, is_potential: null as boolean | null }
+
+  it('uses the CRM status when it is set', () => {
+    expect(effectiveCustomerStatus({ ...base, customer_status: 'OTHER', status: 'active' })).toBe('OTHER')
+  })
+
+  it('reads an ERP-confirmed active company as an active customer', () => {
+    // Burlington: no CRM status, hub says active and ERP-confirmed.
+    expect(effectiveCustomerStatus({ ...base, status: 'active', is_potential: false })).toBe('ACTIVE_CUSTOMER')
+  })
+
+  it('reads a hub prospect as a potential customer', () => {
+    expect(effectiveCustomerStatus({ ...base, status: 'potential', is_potential: true })).toBe('POTENTIAL_CUSTOMER')
+  })
+
+  it('leaves hub-inactive companies untriaged', () => {
+    expect(effectiveCustomerStatus({ ...base, status: 'inactive', is_potential: false })).toBe('UNASSIGNED')
   })
 })
