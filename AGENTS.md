@@ -617,6 +617,13 @@ server-side truncation. Never reintroduce a bare high `.limit()` as a way to
 check the job's own counter line in `journalctl` against a `count(*)` in the
 database — a suspiciously round or small evaluated count means the cap is back.
 
+`core.customer.domain` is stored bare (`target.com`), never scheme-prefixed.
+64 legacy rows held `https://target.com`, which still matched the workers'
+contains-ilike routing but could never match `core.match_customer`'s exact
+domain compare, so ERP/PLM auto-linking silently failed for every one of them.
+The Domain input normalizes scheme, `www.`, path, and a pasted address away,
+and rejects anything that is not domain-shaped.
+
 `core.customer.domain` stays human-curated: it is editable in the customer
 drawer (`DomainField`), and `suggestDomainFromEmails` proposes the most common
 domain among that customer's own contacts as a one-click accept. The suggestion
