@@ -176,7 +176,7 @@ export function EmailRoutingPage() {
       filterValue: (e) => relatedName(e.retailer),
       editOptions: (e) => withCurrentCustomer(customerOptions, idOf(e.retailer), retailerById),
       editValue: (e) => idOf(e.retailer),
-      cell: (e) => <CustomerRelationLogo value={e.retailer} customerById={retailerById} />,
+      cell: (e) => <CustomerRelationLogo value={e.retailer} customerById={retailerById} size={24} variant="token-name" />,
     },
     {
       key: 'department',
