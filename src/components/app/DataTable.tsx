@@ -102,6 +102,7 @@ export function DataTable<T>({
   const [filterSearch, setFilterSearch] = useState('')
   const [filterPos, setFilterPos] = useState<OverlayPlacement | null>(null)
   const [autocomplete, setAutocomplete] = useState<({ key: string; width: number } & OverlayPlacement) | null>(null)
+  const [rowsPerPage, setRowsPerPage] = useState<number | 'all'>(pageSize)
   const [colOrder, setColOrder] = useState<string[]>(() => columns.map((c) => c.key))
   const [colHidden, setColHidden] = useState<Record<string, boolean>>({})
   const [colWidths, setColWidths] = useState<Record<string, number>>(() =>
@@ -175,9 +176,10 @@ export function DataTable<T>({
     })
   }, [filtered, sort, byKey])
 
-  const pageCount = Math.max(1, Math.ceil(sorted.length / pageSize))
+  const effectivePageSize = rowsPerPage === 'all' ? Math.max(sorted.length, 1) : rowsPerPage
+  const pageCount = Math.max(1, Math.ceil(sorted.length / effectivePageSize))
   const safePage = Math.min(page, pageCount - 1)
-  const pageRows = sorted.slice(safePage * pageSize, safePage * pageSize + pageSize)
+  const pageRows = sorted.slice(safePage * effectivePageSize, safePage * effectivePageSize + effectivePageSize)
   const pageRowIndex = useMemo(() => {
     const m = new Map<string, number>()
     pageRows.forEach((r, i) => m.set(getRowId(r), i))
@@ -658,7 +660,7 @@ export function DataTable<T>({
                                   : undefined
                             }
                             className={cn(
-                              'group/cell relative h-10 px-[14px] py-0 text-[12.5px] align-middle',
+                              'group/cell relative h-10 overflow-hidden px-[14px] py-0 text-[12.5px] align-middle',
                               col.numeric && 'text-right font-[650] tabular-nums',
                               (opensDetail || editable) && 'cursor-pointer',
                               isEditing && 'bg-primary/10 ring-1 ring-inset ring-primary/40',
@@ -703,13 +705,30 @@ export function DataTable<T>({
       </div>
 
       {/* Pagination */}
-      {pageCount > 1 && (
-        <div className="flex items-center justify-between border-t px-3 py-2 text-xs text-muted-foreground">
+      {sorted.length > 0 && (
+        <div className="flex items-center justify-between gap-3 border-t px-3 py-2 text-xs text-muted-foreground">
           <span>
-            {safePage * pageSize + 1}–{Math.min((safePage + 1) * pageSize, sorted.length)} of{' '}
+            {safePage * effectivePageSize + 1}–{Math.min((safePage + 1) * effectivePageSize, sorted.length)} of{' '}
             {sorted.length.toLocaleString()}
           </span>
           <div className="flex items-center gap-1">
+            <label className="mr-1 flex items-center gap-1">
+              <span className="sr-only">Rows per page</span>
+              <select
+                aria-label="Rows per page"
+                value={String(rowsPerPage)}
+                onChange={(e) => {
+                  setRowsPerPage(e.target.value === 'all' ? 'all' : Number(e.target.value))
+                  setPage(0)
+                }}
+                className="rounded-[7px] border bg-background px-[7px] py-[3px] text-xs outline-none focus:border-ring"
+              >
+                {[50, 100, 250, 500].map((n) => (
+                  <option key={n} value={n}>{n} per page</option>
+                ))}
+                <option value="all">Show all{sorted.length > 500 ? ` (${sorted.length.toLocaleString()})` : ''}</option>
+              </select>
+            </label>
             <Button
               variant="outline"
               size="sm"

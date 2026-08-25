@@ -27,6 +27,7 @@ import {
 } from '@/features/crm/queries'
 import { isSelectableCustomer } from '@/features/crm/pages/_shared'
 import { logError } from '@/lib/errors'
+import { cn } from '@/lib/utils'
 import type { CrmIngestedDomain, Retailer } from '@/lib/types'
 
 const STATUS_OPTIONS: EditOption[] = CUSTOMER_STATUSES.map((v) => ({ value: v, label: customerStatusLabel(v) }))
@@ -37,7 +38,7 @@ const DOMAIN_CLASSIFICATION_OPTIONS: EditOption[] = [
   { value: 'OTHER', label: 'Not a Customer' },
 ]
 
-type Segment = 'active' | 'triage' | 'dismissed' | 'all'
+type Segment = 'active' | 'unclassified' | 'triage' | 'dismissed' | 'all'
 
 // Normalize to the canonical bucket (empty/null == New Company / UNASSIGNED).
 const statusOf = (r: Retailer) => r.customer_status || 'UNASSIGNED'
@@ -52,7 +53,7 @@ export function CustomersPage() {
   const activeCustomersQuery = useCustomerSegmentQuery('active')
   const triageDomainsQuery = useIngestedDomainsQuery(-1)
   const dismissedCustomersQuery = useCustomerSegmentQuery('dismissed', -1, segment === 'dismissed')
-  const allCustomersQuery = useCustomerSegmentQuery('all', -1, segment === 'all')
+  const allCustomersQuery = useCustomerSegmentQuery('all', -1, segment === 'all' || segment === 'unclassified')
   const countsQuery = useCustomerSegmentCountsQuery()
   const buyersQuery = useIngestedContactsQuery(-1)
   const opportunitiesQuery = useOpportunitiesQuery(-1)
@@ -68,14 +69,20 @@ export function CustomersPage() {
   const triageDomains = listData(triageDomainsQuery.data)
   const dismissedCustomers = listData(dismissedCustomersQuery.data)
   const allCustomers = listData(allCustomersQuery.data)
+  const unclassifiedCustomers = useMemo(
+    () => allCustomers.filter((r) => statusOf(r) === 'UNASSIGNED'),
+    [allCustomers],
+  )
   const customerRows =
     segment === 'all'
       ? allCustomers
-      : segment === 'dismissed'
-        ? dismissedCustomers
-        : activeCustomers
+      : segment === 'unclassified'
+        ? unclassifiedCustomers
+        : segment === 'dismissed'
+          ? dismissedCustomers
+          : activeCustomers
   const visibleFetch =
-    segment === 'all'
+    segment === 'all' || segment === 'unclassified'
       ? allCustomersQuery
       : segment === 'dismissed'
         ? dismissedCustomersQuery
@@ -347,7 +354,7 @@ export function CustomersPage() {
       hideBelow: 'xl',
       sortValue: (r) => r.sample_subject ?? '',
       filterValue: (r) => r.sample_subject ?? '',
-      cell: (r) => <span className="truncate text-muted-foreground">{r.sample_subject || '—'}</span>,
+      cell: (r) => <span className="block truncate text-muted-foreground">{r.sample_subject || '—'}</span>,
     },
     {
       key: 'status',
@@ -378,12 +385,23 @@ export function CustomersPage() {
             <Tabs value={segment} onValueChange={(v) => setSegment(v as Segment)}>
               <TabsList>
                 {([
-                  { id: 'active', label: 'Customers', count: segCounts.active },
-                  { id: 'triage', label: 'Triage', count: segCounts.triage },
-                  { id: 'dismissed', label: 'Not a customer', count: segCounts.dismissed },
-                  { id: 'all', label: 'All', count: segCounts.all },
-                ] as { id: Segment; label: string; count: number }[]).map((s) => (
-                  <TabsTrigger key={s.id} value={s.id} className="gap-1.5">
+                  { id: 'active', label: 'Customers', count: segCounts.active, hint: 'Active and potential customers' },
+                  {
+                    id: 'unclassified',
+                    label: 'Unclassified',
+                    count: Math.max(segCounts.all - segCounts.active - segCounts.dismissed, 0),
+                    hint: 'Companies nobody has marked as a customer or not yet',
+                  },
+                  { id: 'dismissed', label: 'Not a customer', count: segCounts.dismissed, hint: 'Companies marked as not a customer' },
+                  { id: 'all', label: 'All companies', count: segCounts.all, hint: 'Every company record' },
+                  {
+                    id: 'triage',
+                    label: 'New email domains',
+                    count: segCounts.triage,
+                    hint: 'Email domains seen in the inbox that belong to no company yet — not company records',
+                  },
+                ] as { id: Segment; label: string; count: number; hint: string }[]).map((s) => (
+                  <TabsTrigger key={s.id} value={s.id} title={s.hint} className={cn('gap-1.5', s.id === 'triage' && 'ml-2 border-l pl-3')}>
                     {s.label}
                     <span className="rounded-full bg-muted-foreground/15 px-1.5 text-[11px] tabular-nums">
                       {s.count.toLocaleString()}
@@ -400,6 +418,10 @@ export function CustomersPage() {
         <ErrorState onRetry={() => void visibleFetch.refetch()} />
       ) : segment === 'triage' ? (
         <div className="space-y-2">
+          <p className="px-1 text-[12px] text-muted-foreground">
+            Email domains seen in the inbox that belong to no company yet. These are not company records —
+            classifying one here only says how to treat its mail.
+          </p>
           {selectedDomains.size > 0 ? (
             <div className="flex flex-wrap items-center gap-2 rounded-[10px] border bg-card px-3 py-2">
               <span className="text-[12.5px] font-[600]">{selectedDomains.size} selected</span>
