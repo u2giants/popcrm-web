@@ -617,8 +617,12 @@ three must be present or the pair silently mis-routes:
    `ros.com` -> keywords (`DDS`, `DD'S`, `NYBO`) matched against the *sender
    display names* on that message, and name fragments matched against the
    candidate customers. A dd's-branded message routes to dd's; anything else
-   falls through to the parent. `matchingRetailersByDomain` returns null rather
-   than guessing when the rule does not fire and more than one candidate exists.
+   falls through to the parent: when the rule does not fire,
+   `matchingRetailersByDomain` returns the candidate that owns the domain, and
+   null only if nobody owns it. That fallback matters because `reroute` replays
+   stored messages, which no longer carry sender display names — without it,
+   every historical message on a shared domain would go unrouted the moment a
+   banner is added.
 
 Both customers must have `customer_status` of ACTIVE_CUSTOMER or
 POTENTIAL_CUSTOMER — every matcher filters on that, so a status-less customer is

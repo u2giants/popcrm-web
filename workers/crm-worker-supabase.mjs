@@ -282,7 +282,14 @@ async function matchingRetailersByDomain(domain, displayNames = {}) {
     .or(domainOrClause(candidates))
     .limit(20))
   if (rows.length === 1) return rows[0]
-  return candidates.map((c) => applySharedDomainRule(c, rows, displayNames)).find(Boolean) || null
+  const banner = candidates.map((c) => applySharedDomainRule(c, rows, displayNames)).find(Boolean)
+  if (banner) return banner
+  // No banner signal — which is normal on reroute, where the stored message has
+  // no sender display names to read. Fall back to the customer that owns the
+  // domain outright rather than dropping the message; a banner still wins when
+  // its own signal is present. Genuinely ambiguous domains (nobody owns it)
+  // stay unrouted rather than being guessed at.
+  return rows.find((r) => candidates.includes(String(r.domain || '').toLowerCase())) || null
 }
 
 async function matchRetailerByAlias(normalizedSubject) {

@@ -21,3 +21,13 @@ describe('applySharedDomainRule', () => {
     expect(applySharedDomainRule('ros.com', [DDS], { 'x@ros.com': "DD's" })).toBeNull()
   })
 })
+
+// Regression guard for the reroute path: stored messages carry no display
+// names, so an unbranded shared-domain message must still reach the parent.
+describe('shared-domain fallback', () => {
+  it('documents that the parent owns the domain and the banner only aliases it', () => {
+    expect(ROSS.domain).toBe('ros.com')
+    expect(DDS.domain).toBeNull()
+    expect(DDS.routing_aliases).toContain('ros.com')
+  })
+})
