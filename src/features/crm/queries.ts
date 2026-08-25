@@ -56,6 +56,7 @@ import {
   type EmailSegmentCounts,
 } from './api'
 import { FIREFLIES_HEALTH_URL } from './constants'
+import { relatedName } from './format'
 import type {
   Buyer,
   CrmAiModelConfig,
@@ -180,6 +181,23 @@ export function useCustomerBrandsQuery() {
 export function useCustomerBrandMap(): Map<string, CustomerBrand> {
   const brands = useCustomerBrandsQuery().data
   return useMemo(() => new Map((brands ?? []).map((b) => [b.id, b])), [brands])
+}
+
+/**
+ * Resolve any customer relation to the name actually shown in the UI: the
+ * display name when the customer has one, otherwise the legal name. Sorting and
+ * filtering must use this — TRANSWORLD ENTERTAINMENT trading as "FYE" belongs
+ * under F where the reader sees it, not under T.
+ */
+export function useCustomerDisplayName(): (value: Parameters<typeof relatedName>[0]) => string {
+  const brands = useCustomerBrandMap()
+  return useMemo(
+    () => (value) => {
+      const id = value && typeof value === 'object' ? (value as { id?: string }).id ?? '' : ''
+      return relatedName((id ? brands.get(id) : null) ?? value)
+    },
+    [brands],
+  )
 }
 
 export function useCustomerSegmentQuery(segment: CustomerSegment, limit = -1, enabled = true) {

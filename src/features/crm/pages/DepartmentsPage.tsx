@@ -10,12 +10,15 @@ import { useRecordSelection } from '@/features/crm/useRecordSelection'
 import { DepartmentDrawer } from '@/features/crm/components/DepartmentDrawer'
 import { idOf, label, relatedName, textOf } from '@/features/crm/format'
 import { StatusBadge } from '@/components/app/StatusBadge'
-import { listData, useCustomerPickerQuery, useDepartmentsQuery, useIngestedContactsQuery, useUpdateDepartmentMutation } from '@/features/crm/queries'
+import { listData, useCustomerPickerQuery, useDepartmentsQuery, useIngestedContactsQuery, useUpdateDepartmentMutation,
+  useCustomerDisplayName,
+} from '@/features/crm/queries'
 import { buildRetailerById, customerEditOptions } from '@/features/crm/pages/_shared'
 import { logError } from '@/lib/errors'
 import type { CrmDepartment } from '@/lib/types'
 
 export function DepartmentsPage() {
+  const customerName = useCustomerDisplayName()
   const departmentsQuery = useDepartmentsQuery(-1)
   const retailersQuery = useCustomerPickerQuery(-1)
   const departments = listData(departmentsQuery.data)
@@ -59,21 +62,21 @@ export function DepartmentsPage() {
       .filter(
         (d) =>
           !q ||
-          textOf(d.name, d.category, d.division, relatedName(d.retailer), relatedName(d.primary_buyer)).includes(q),
+          textOf(d.name, d.category, d.division, customerName(d.retailer), relatedName(d.primary_buyer)).includes(q),
       )
       .sort((a, b) => {
-        const customer = relatedName(a.retailer).localeCompare(relatedName(b.retailer))
+        const customer = customerName(a.retailer).localeCompare(customerName(b.retailer))
         if (customer) return customer
         return (a.name || '').localeCompare(b.name || '')
       })
-  }, [departments, query])
+  }, [departments, query, customerName])
 
   const columns: Column<CrmDepartment>[] = [
     {
       key: 'retailer',
       header: 'Customer',
-      sortValue: (d) => relatedName(d.retailer),
-      filterValue: (d) => relatedName(d.retailer),
+      sortValue: (d) => customerName(d.retailer),
+      filterValue: (d) => customerName(d.retailer),
       editOptions: customerOptions,
       editValue: (d) => idOf(d.retailer),
       cell: (d) => <CustomerRelationLogo value={d.retailer} customerById={retailerById} size={24} variant="token-name" />,
@@ -151,7 +154,7 @@ export function DepartmentsPage() {
           onCellEdit={editCell}
           selectable
           loading={departmentsQuery.isPending}
-          groupBy={(d) => relatedName(d.retailer)}
+          groupBy={(d) => customerName(d.retailer)}
           emptyIcon={<Building2 className="size-5" />}
           emptyTitle="No departments match"
           emptyDescription="Adjust your search or column filters."

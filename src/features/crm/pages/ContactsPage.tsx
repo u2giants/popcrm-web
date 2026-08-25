@@ -22,6 +22,7 @@ import {
   useDepartmentsQuery,
   useCustomerPickerQuery,
   useUpdateContactMutation,
+  useCustomerDisplayName,
 } from '@/features/crm/queries'
 import { logError } from '@/lib/errors'
 import type { Buyer } from '@/lib/types'
@@ -33,6 +34,7 @@ function isCustomerStatus(status: string | null | undefined) {
 }
 
 export function ContactsPage() {
+  const customerName = useCustomerDisplayName()
   const queryClient = useQueryClient()
   const [query, setQuery] = useState('')
   const [segment, setSegment] = useState<Segment>('customer')
@@ -178,10 +180,10 @@ export function ContactsPage() {
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase()
     return buyers.filter((b) => {
-      if (q && !textOf(b.name, b.email, b.job_title, relatedName(b.retailer), relatedName(b.department)).includes(q)) return false
+      if (q && !textOf(b.name, b.email, b.job_title, customerName(b.retailer), relatedName(b.department)).includes(q)) return false
       return true
     })
-  }, [buyers, query])
+  }, [buyers, query, customerName])
 
   const columns: Column<Buyer>[] = [
     {
@@ -217,8 +219,8 @@ export function ContactsPage() {
     {
       key: 'retailer',
       header: 'Customer',
-      sortValue: (b) => relatedName(b.retailer),
-      filterValue: (b) => relatedName(b.retailer),
+      sortValue: (b) => customerName(b.retailer),
+      filterValue: (b) => customerName(b.retailer),
       editOptions: (b) => withCurrentCustomer(isCustomerContact(b) ? customerOptions : triageCustomerOptions, idOf(b.retailer), retailerById),
       editValue: (b) => idOf(b.retailer),
       cell: (b) => <CustomerRelationLogo value={b.retailer} customerById={retailerById} size={24} variant="token-name" />,
