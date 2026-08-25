@@ -187,7 +187,7 @@ target.
 |---|---|---|
 | `OverviewPage` | `/` | KPI strip, email volume chart, routing donut, pipeline bar, activity panels |
 | `PipelinePage` | `/pipeline` | Board (kanban by stage) + List (DataTable) toggle |
-| `CustomersPage` | `/customers` | Customer tabs for real `core.customer` rows: **Customers** (default), **Not a customer**, **All**. **Triage** is a separate ingested-domain review table over `api.crm_ingested_domain_list` with no promotion path. Customer tabs keep inline status/chain edits and `CustomerDrawer`; Triage does not render customer-only edits or drawers. `/accounts` remains a redirect-only legacy bookmark route |
+| `CustomersPage` | `/customers` | Customer tabs for real `core.customer` rows: **Customers** (default), **Unclassified**, **Not a customer**, **All**, fed by a single `useCustomerSegmentQuery('all')` read and bucketed in the browser by `segmentOf`, so every tab count equals the rows it renders. `statusOf` falls back to the hub `status`/`is_potential` when the CRM `customer_status` is empty. **Triage** is a separate ingested-domain review table over `api.crm_ingested_domain_list` with no promotion path. Customer tabs keep inline status/chain edits and `CustomerDrawer`; Triage does not render customer-only edits or drawers. `/accounts` remains a redirect-only legacy bookmark route |
 | `DepartmentsPage` | `/departments` | DataTable grouped/sorted by customer. Department-name clicks open `DepartmentDrawer` with assigned contacts and programs |
 | `ProgramsPage` | `/programs` | DataTable over CRM opportunities/programs + OpportunityModal |
 | `ContactsPage` | `/contacts` | DataTable + ContactDrawer. Segmented tabs: **Cust Contacts** (linked to Active/Potential customer, no department), **Dept. Contacts** (linked to Active/Potential customer and department), **Triage** (not linked to a customer), **All**. Customer inline-edit choices are row-aware |
@@ -204,7 +204,7 @@ target.
 |---|---|
 | `AppPage` | Page wrapper with scroll container; `listBar` slot for the top toolbar |
 | `ListBar` | One-row page header: title · count · optional inline segments · spacer · search · filters · actions; `extra` remains a deliberate second row |
-| `DataTable` | Sortable table with column visibility, resize (visible separator), reorder, and optional `groupBy` row group headers. Per-column tools in the header: a persistent filter icon → checkbox **value popover** (set filter), and a quick-**search box with value autocomplete**. Optional inline editing: columns with `editOptions` render click-to-edit dropdowns and a spreadsheet **drag-to-copy** fill handle; `editOptions` may be a static array or row-aware function. Edits persist via the `onCellEdit` prop. Columns with `opensDetail` are the only detail-drawer triggers once any column opts in. Popovers/autocomplete use fixed positioning to escape `overflow:hidden` |
+| `DataTable` | Sortable table with column visibility, resize (visible separator), reorder, and optional `groupBy` row group headers. Per-column tools in the header: a persistent filter icon → checkbox **value popover** (set filter), and a quick-**search box with value autocomplete**. Optional inline editing: columns with `editOptions` render click-to-edit dropdowns and a spreadsheet **drag-to-copy** fill handle; `editOptions` may be a static array or row-aware function. Edits persist via the `onCellEdit` prop. `onVisibleRowsChange` reports the rendered row order (post filter/sort, all pages) so callers can resolve shift-click selection ranges against what the user actually sees — see `useRangeSelection`. Columns with `opensDetail` are the only detail-drawer triggers once any column opts in. Popovers/autocomplete use fixed positioning to escape `overflow:hidden` |
 | `CustomerLogo` | Brand logo from logo.dev keyed on `retailer.domain` (token `VITE_LOGODEV_TOKEN`) for compact tokens, stored `logo_url` for full-width logos. `logo_url` can be a CRM manual override or the PLM-imported logo, falling back to `NameAvatar` initials when no usable image exists |
 | `DetailDrawer` | Side-sheet shell used by all record drawers |
 | `MetricCard` | KPI tile with icon, value, label, optional tone/color, onClick |
@@ -214,6 +214,7 @@ target.
 | `ChartAreaVolume` | Area chart for email ingest vs. routed volume (12-week rolling) |
 | `CommandSearch` | Global ⌘K search palette |
 | `FilterSelect` | Dropdown multi-select for column filters in DataTable |
+| `useRangeSelection` (`features/crm/`) | Checkbox selection with spreadsheet-style shift-click ranges: a plain click toggles one row and sets the anchor, shift-click applies the clicked row's new state across the span (selecting or deselecting). Pair it with `DataTable`'s `onVisibleRowsChange`. Row checkboxes must toggle on `onClick` (which carries `shiftKey`), not `onChange` |
 | `NameAvatar` | Name-hue-derived circular avatar (no image dependency) |
 
 ## Domain drawers (`src/features/crm/components/`)
