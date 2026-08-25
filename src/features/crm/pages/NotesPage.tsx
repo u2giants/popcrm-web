@@ -24,11 +24,14 @@ import { NoteDrawer } from '@/features/crm/components/NoteDrawer'
 import { label, relatedName, textOf } from '@/features/crm/format'
 import { customerPickerOptions, buildRetailerById } from '@/features/crm/pages/_shared'
 import { StatusBadge } from '@/components/app/StatusBadge'
-import { listData, useCreateNoteMutation, useNotesQuery, useOpportunitiesQuery, useCustomerPickerQuery } from '@/features/crm/queries'
+import { listData, useCreateNoteMutation, useNotesQuery, useOpportunitiesQuery, useCustomerPickerQuery,
+  useCustomerDisplayName,
+} from '@/features/crm/queries'
 import { logError } from '@/lib/errors'
 import type { CrmNote } from '@/lib/types'
 
 export function NotesPage() {
+  const customerName = useCustomerDisplayName()
   const notesQuery = useNotesQuery(-1)
   const retailersQuery = useCustomerPickerQuery(-1)
   const opportunitiesQuery = useOpportunitiesQuery(-1)
@@ -43,9 +46,9 @@ export function NotesPage() {
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase()
     return notes.filter(
-      (n) => !q || textOf(n.title, n.body, n.action_items, relatedName(n.retailer), relatedName(n.opportunity)).includes(q),
+      (n) => !q || textOf(n.title, n.body, n.action_items, customerName(n.retailer), relatedName(n.opportunity)).includes(q),
     )
-  }, [notes, query])
+  }, [notes, query, customerName])
 
   const columns: Column<CrmNote>[] = [
     {
@@ -65,8 +68,8 @@ export function NotesPage() {
       key: 'retailer',
       header: 'Customer',
       hideBelow: 'md',
-      sortValue: (n) => relatedName(n.retailer),
-      filterValue: (n) => relatedName(n.retailer),
+      sortValue: (n) => customerName(n.retailer),
+      filterValue: (n) => customerName(n.retailer),
       cell: (n) => <CustomerRelationLogo value={n.retailer} customerById={retailerById} size={24} variant="token-name" />,
     },
     {
@@ -125,7 +128,7 @@ export function NotesPage() {
         open={creating}
         onClose={() => setCreating(false)}
         retailerOptions={customerPickerOptions(retailers)}
-        opportunityOptions={opportunities.map((o) => ({ value: o.id, label: o.name || 'Untitled program', hint: relatedName(o.retailer) }))}
+        opportunityOptions={opportunities.map((o) => ({ value: o.id, label: o.name || 'Untitled program', hint: customerName(o.retailer) }))}
       />
     </AppPage>
   )

@@ -16,7 +16,9 @@ import { ErrorState } from '@/components/app/states'
 import { RelationLabel } from '@/features/crm/components/RelationLabel'
 import { useRecordSelection } from '@/features/crm/useRecordSelection'
 import { TaskDrawer } from '@/features/crm/components/TaskDrawer'
-import { listData, useTasksQuery, useUpdateTaskMutation } from '@/features/crm/queries'
+import { listData, useTasksQuery, useUpdateTaskMutation,
+  useCustomerDisplayName,
+} from '@/features/crm/queries'
 import { TASK_STATUSES, taskTone } from '@/features/crm/constants'
 import { formatDateTime, label, relatedName, textOf } from '@/features/crm/format'
 import { cn } from '@/lib/utils'
@@ -29,6 +31,7 @@ function isOverdue(dueAt: string | null | undefined, status: string | null | und
 }
 
 export function TasksPage() {
+  const customerName = useCustomerDisplayName()
   const tasksQuery = useTasksQuery(-1)
   const updateTaskMutation = useUpdateTaskMutation()
   const tasks = listData(tasksQuery.data)
@@ -39,9 +42,9 @@ export function TasksPage() {
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase()
     return tasks.filter(
-      (t) => !q || textOf(t.title, t.body, relatedName(t.retailer), relatedName(t.opportunity), relatedName(t.assignee)).includes(q),
+      (t) => !q || textOf(t.title, t.body, customerName(t.retailer), relatedName(t.opportunity), relatedName(t.assignee)).includes(q),
     )
-  }, [tasks, query])
+  }, [tasks, query, customerName])
 
   async function quickStatus(task: CrmTask, next: string) {
     try {

@@ -13,7 +13,9 @@ import { OPPORTUNITY_STAGES, stageChipClass } from '@/features/crm/constants'
 import { idOf, label, relatedName, textOf, formatDate } from '@/features/crm/format'
 import { uniqueValues, customerPickerOptions, buildRetailerById } from '@/features/crm/pages/_shared'
 import { cn } from '@/lib/utils'
-import { listData, useOpportunitiesQuery, useCustomerPickerQuery } from '@/features/crm/queries'
+import { listData, useOpportunitiesQuery, useCustomerPickerQuery,
+  useCustomerDisplayName,
+} from '@/features/crm/queries'
 import type { CrmOpportunity } from '@/lib/types'
 
 function fmtAmount(val: string | number | null | undefined): string | null {
@@ -26,6 +28,7 @@ function fmtAmount(val: string | number | null | undefined): string | null {
 }
 
 export function PipelinePage() {
+  const customerName = useCustomerDisplayName()
   const opportunitiesQuery = useOpportunitiesQuery(-1)
   const retailersQuery = useCustomerPickerQuery(-1)
   const opportunities = listData(opportunitiesQuery.data)
@@ -42,12 +45,12 @@ export function PipelinePage() {
     const q = query.trim().toLowerCase()
     return opportunities.filter(
       (o) =>
-        (!q || textOf(o.name, relatedName(o.retailer), relatedName(o.department), o.production_po_number, o.sales_order_number).includes(q)) &&
+        (!q || textOf(o.name, customerName(o.retailer), relatedName(o.department), o.production_po_number, o.sales_order_number).includes(q)) &&
         (!retailer || idOf(o.retailer) === retailer) &&
         (!program || o.program_type === program) &&
         (!division || o.division === division),
     )
-  }, [opportunities, query, retailer, program, division])
+  }, [opportunities, query, retailer, program, division, customerName])
 
   const grouped = useMemo(
     () =>
@@ -81,8 +84,8 @@ export function PipelinePage() {
       key: 'retailer',
       header: 'Customer',
       hideBelow: 'md',
-      sortValue: (o) => relatedName(o.retailer),
-      filterValue: (o) => relatedName(o.retailer),
+      sortValue: (o) => customerName(o.retailer),
+      filterValue: (o) => customerName(o.retailer),
       cell: (o) => <CustomerRelationLogo value={o.retailer} customerById={retailerById} size={24} variant="token-name" />,
     },
     {
@@ -239,6 +242,7 @@ export function PipelinePage() {
 }
 
 function OppCard({ opp, onClick }: { opp: CrmOpportunity; onClick: () => void }) {
+  const customerName = useCustomerDisplayName()
   const amount = fmtAmount(opp.amount)
   const closeDate = formatDate(opp.close_date)
   const hasFooter = !!(amount || closeDate)
@@ -258,7 +262,7 @@ function OppCard({ opp, onClick }: { opp: CrmOpportunity; onClick: () => void })
           ) : null}
         </div>
         <div className="mt-[7px] space-y-[3px] text-[11.5px] text-muted-foreground">
-          <div className="truncate">{relatedName(opp.retailer)}</div>
+          <div className="truncate">{customerName(opp.retailer)}</div>
           {relatedName(opp.department) !== '—' ? (
             <div className="truncate">{relatedName(opp.department)}</div>
           ) : null}
