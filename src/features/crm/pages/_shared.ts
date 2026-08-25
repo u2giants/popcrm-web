@@ -97,22 +97,26 @@ export function buildRetailerById(
 }
 
 /**
- * Effective CRM classification for a company, across the two status axes.
+ * Effective CRM classification for a company.
  *
- * The CRM's own `customer_status` always wins. When it is empty we read the
- * shared hub axis instead of calling the company untriaged: a hub prospect
- * (`status = 'potential'` / `is_potential = true`) is a Potential Customer,
- * and an ERP-confirmed active company (`status = 'active'`, which by then is
- * not a prospect) is an Active Customer — the hub already answered
- * the question, so the CRM must not contradict it with "New Company".
- * Everything else (hub-inactive legacy rows) stays UNASSIGNED.
+ * The CRM's own `customer_status` is the ONLY axis that says whether a company
+ * is a customer — it is curated by people. The hub axis is not a substitute:
+ * `status = 'active'` merely means the ERP account record is active, and the
+ * 2026-07-15 ERP import created 779 companies (vendors, licensors, freight
+ * carriers) with `company_type = 'customer'`, `status = 'active'`. Inferring
+ * "Active Customer" from that wrongly promoted the likes of COLD LION
+ * TECHNOLOGIES and Charles M Schulz Creative Associates. Do not re-add it.
+ *
+ * The one narrow fallback that stays: a company the hub explicitly flags as a
+ * prospect (`is_potential = true` / `status = 'potential'`) reads as Potential
+ * Customer, because that flag is a deliberate mark, not an import default.
+ * Everything else with no CRM classification is UNASSIGNED ("New Company") and
+ * belongs in the Unclassified tab until somebody classifies it.
  */
 export function effectiveCustomerStatus(
   r: Pick<Retailer, 'customer_status' | 'status' | 'is_potential'>,
 ): string {
   if (r.customer_status) return r.customer_status
-  const hub = (r.status ?? '').toLowerCase()
-  if (hub === 'potential' || r.is_potential === true) return 'POTENTIAL_CUSTOMER'
-  if (hub === 'active') return 'ACTIVE_CUSTOMER'
+  if ((r.status ?? '').toLowerCase() === 'potential' || r.is_potential === true) return 'POTENTIAL_CUSTOMER'
   return 'UNASSIGNED'
 }
