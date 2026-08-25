@@ -413,6 +413,17 @@ export function useCustomerMergePreviewQuery(survivorId: string | null, loserId:
   })
 }
 
+export function useCustomerMergePreviewsQuery(survivorId: string | null, loserIds: string[]) {
+  return useQuery({
+    queryKey: [...crmKeys.all, 'customerMergePreviews', survivorId, loserIds] as const,
+    queryFn: () => Promise.all(loserIds.map((loserId) => previewCustomerMerge(survivorId!, loserId))),
+    enabled: Boolean(survivorId && loserIds.length),
+    staleTime: 0,
+    gcTime: 0,
+    retry: false,
+  })
+}
+
 export function useMergeCustomersMutation() {
   const queryClient = useQueryClient()
   return useMutation({
