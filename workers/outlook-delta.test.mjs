@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest'
-import { createGraphCursorStore, resolveOutlookDeltaSettings, runOutlookDeltaSync, validateGraphDeltaLink } from './crm-worker-supabase.mjs'
+import { createGraphCursorStore, resolveOutlookDeltaSettings, resolveOutlookMailboxes, runOutlookDeltaSync, validateGraphDeltaLink } from './crm-worker-supabase.mjs'
 
 const graph = (path) => `https://graph.microsoft.com/v1.0/${path}`
 const message = (id) => ({ id })
@@ -188,5 +188,22 @@ describe('Outlook cursor database wiring', () => {
     expect(resolveOutlookDeltaSettings({ OUTLOOK_DELTA_EXPIRED_RESYNC_MAX: '0' })).toEqual({ maxExpiredTokenResyncs: 0 })
     expect(() => resolveOutlookDeltaSettings({ OUTLOOK_DELTA_EXPIRED_RESYNC_MAX: ' 1' })).toThrow('must be an integer')
     expect(() => resolveOutlookDeltaSettings({ OUTLOOK_DELTA_EXPIRED_RESYNC_MAX: '4' })).toThrow('must be an integer')
+  })
+})
+
+describe('resolveOutlookMailboxes', () => {
+  it('defaults to the original single mailbox', () => {
+    expect(resolveOutlookMailboxes({})).toEqual(['adweck@popcre.com'])
+    expect(resolveOutlookMailboxes({ OUTLOOK_MAILBOX: 'One@popcre.com' })).toEqual(['one@popcre.com'])
+  })
+
+  it('reads a comma-separated list, trimmed and de-duplicated', () => {
+    expect(resolveOutlookMailboxes({ OUTLOOK_MAILBOXES: 'a@popcre.com, b@popcre.com , A@popcre.com' }))
+      .toEqual(['a@popcre.com', 'b@popcre.com'])
+  })
+
+  it('prefers the list over the single-mailbox variable', () => {
+    expect(resolveOutlookMailboxes({ OUTLOOK_MAILBOXES: 'new@popcre.com', OUTLOOK_MAILBOX: 'old@popcre.com' }))
+      .toEqual(['new@popcre.com'])
   })
 })

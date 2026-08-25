@@ -592,6 +592,32 @@ After changing worker code, run `node --check workers/crm-worker-supabase.mjs`
 and relevant one-shot systemd smoke tests. Unknown domains must continue to go
 through `crm.record_ingested_domain(...)`, not direct `core.customer` inserts.
 
+### Adding a salesperson takes three separate grants
+
+Looks like:
+Adding a person to the CRM is one action.
+
+Actually:
+Three unrelated systems have to agree, and missing one fails quietly:
+
+1. **Sign-in** — Microsoft SSO. The person must exist in the Azure tenant; no
+   app-side signup exists.
+2. **App access** — rows in the shared database: `app.profile` for the person,
+   `app.user_role` for what they can do, and `app.app_access` granting `crm`.
+   Without the `app_access` row every CRM RPC raises `crm: not authorized`,
+   because they all check `app.has_app_access('crm')`. There is no admin screen
+   for this yet; it is a database change, and roles/apps are shared across CRM,
+   PIM, DAM and PLM.
+3. **Their mail** — `OUTLOOK_MAILBOXES` in `/home/ai/.crm-worker.env`, a
+   comma-separated list read by `resolveOutlookMailboxes`. Each mailbox keeps
+   its own Graph delta cursor and is ingested independently, so one failing
+   mailbox neither blocks nor rewinds another. Graph also has to allow the app
+   registration to read that mailbox. `OUTLOOK_MAILBOX` (singular) still works
+   for the original single-mailbox setup.
+
+Ingesting a second mailbox multiplies the routing work: every message is routed
+once, so watch the reroute runtime after adding one.
+
 ### A parent and its banner share one email domain but stay separate customers
 
 Looks like:

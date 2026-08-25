@@ -794,8 +794,35 @@ export async function runOutlookDeltaSync({
   }
 }
 
+// Mailboxes to ingest. OUTLOOK_MAILBOXES takes a comma-separated list so a new
+// salesperson is an env change, not a code change; OUTLOOK_MAILBOX stays
+// supported for the original single-mailbox setup. Each mailbox keeps its own
+// delta cursor, so one failing mailbox cannot rewind another.
+export function resolveOutlookMailboxes(env = {}) {
+  const raw = env.OUTLOOK_MAILBOXES || env.OUTLOOK_MAILBOX || 'adweck@popcre.com'
+  const seen = new Set()
+  for (const entry of String(raw).split(',')) {
+    const mailbox = entry.trim().toLowerCase()
+    if (mailbox) seen.add(mailbox)
+  }
+  return [...seen]
+}
+
 async function outlookIngest() {
-  const mailbox = runtimeEnv.OUTLOOK_MAILBOX || 'adweck@popcre.com'
+  const mailboxes = resolveOutlookMailboxes(runtimeEnv)
+  let failures = 0
+  for (const mailbox of mailboxes) {
+    try {
+      await outlookIngestMailbox(mailbox)
+    } catch (error) {
+      failures += 1
+      console.error(`outlook-ingest: ${mailbox} failed: ${error.message}`)
+    }
+  }
+  if (failures) throw new Error(`outlook-ingest: ${failures}/${mailboxes.length} mailboxes failed`)
+}
+
+async function outlookIngestMailbox(mailbox) {
   const gated = runtimeEnv.OUTLOOK_GATED === 'true'
   const { maxExpiredTokenResyncs } = resolveOutlookDeltaSettings(runtimeEnv)
   const token = await graphToken()
@@ -811,7 +838,7 @@ async function outlookIngest() {
     reloadCursor: () => loadOutlookCursor(cursorKey),
     maxExpiredTokenResyncs,
   })
-  console.log(`outlook-ingest: ${result.created} created, ${result.duplicate} duplicates, ${result.tombstone} tombstones, ${result.gated} gated, ${result.fetched} fetched across ${result.pages} pages; cursor saved`)
+  console.log(`outlook-ingest: ${mailbox}: ${result.created} created, ${result.duplicate} duplicates, ${result.tombstone} tombstones, ${result.gated} gated, ${result.fetched} fetched across ${result.pages} pages; cursor saved`)
 }
 
 async function reroute() {
