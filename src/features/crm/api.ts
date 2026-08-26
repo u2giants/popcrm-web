@@ -480,8 +480,19 @@ export async function fetchIngestedDomains(limit = -1): Promise<CrmIngestedDomai
   return rows.map(toIngestedDomain)
 }
 
+/**
+ * Triage classification. Writes through api.crm_update_ingested_domain, which
+ * enforces app.has_app_access('crm') and constrains the status — the browser
+ * holds no grants on crm.ingested_domain and must not be given any. Status is
+ * the only classifiable field; anything else in `values` is ignored on purpose.
+ */
 export async function updateIngestedDomain(id: string, values: Partial<CrmIngestedDomain>) {
-  await updateRow('ingested_domain', id, values as Row)
+  if (values.status === undefined) return
+  const { error } = await anyDb.schema('api').rpc('crm_update_ingested_domain', {
+    p_ingested_domain_id: id,
+    p_status: values.status,
+  })
+  if (error) throw error
 }
 
 export async function fetchIngestedDomainCount(): Promise<number> {
