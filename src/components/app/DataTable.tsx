@@ -149,7 +149,18 @@ export function DataTable<T>({
   useEffect(() => { fillRef.current = fill }, [fill])
 
   const byKey = useMemo(() => Object.fromEntries(columns.map((c) => [c.key, c])), [columns])
-  const orderedCols = colOrder.map((k) => byKey[k]).filter(Boolean)
+
+  // colOrder holds the user's drag-reorder preference, not the column set, so
+  // reconcile it against the current columns at render: keys the caller no
+  // longer passes are ignored, and newly-added ones append at the end. Without
+  // this a caller that changes its column list would have the new columns
+  // silently dropped, because rendering filters strictly by colOrder.
+  const orderedCols = useMemo(() => {
+    const keys = columns.map((c) => c.key)
+    const kept = colOrder.filter((k) => keys.includes(k))
+    const added = keys.filter((k) => !kept.includes(k))
+    return [...kept, ...added].map((k) => byKey[k]).filter(Boolean)
+  }, [colOrder, columns, byKey])
   const allVisibleCols = orderedCols.filter((c) => !colHidden[c.key])
   const hasExplicitDetailCols = columns.some((c) => c.opensDetail)
 
@@ -179,7 +190,16 @@ export function DataTable<T>({
       for (const [key, text] of activeSearchEntries) {
         const col = byKey[key]
         const valueOf = col?.filterValue ?? col?.sortValue
-        if (valueOf && !String(valueOf(row) ?? '').toLowerCase().includes(text.trim().toLowerCase())) return false
+        if (!valueOf) continue
+        // Match the raw value AND the displayed label. The autocomplete below
+        // suggests labels (filterLabel), and the filter popover lists labels
+        // too, so matching only the raw value made picking a suggestion on a
+        // labelled column (Email Routing's Method / Status) return no rows.
+        const raw = String(valueOf(row) ?? '')
+        const needle = text.trim().toLowerCase()
+        if (raw.toLowerCase().includes(needle)) continue
+        const display = col?.filterLabel ? col.filterLabel(raw) : raw
+        if (!display.toLowerCase().includes(needle)) return false
       }
       return true
     })

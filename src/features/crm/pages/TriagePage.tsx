@@ -65,7 +65,9 @@ export function TriagePage() {
       .filter((contact) => idOf(contact.retailer) && !idOf(contact.department))
       .filter((contact) => !completed.has(contact.id))
       .filter((contact) => !q || contactSearchText(contact, customerName).includes(q))
-      .sort((a, b) => a.name.localeCompare(b.name))
+      // Buyer.name is typed string but the api view can return null for a
+      // contact with no name, and an unguarded localeCompare crashes the page.
+      .sort((a, b) => String(a.name ?? '').localeCompare(String(b.name ?? '')))
   }, [contacts, completed, query, customerName])
 
   const activeIndex = Math.min(currentIndex, Math.max(0, queue.length - 1))
