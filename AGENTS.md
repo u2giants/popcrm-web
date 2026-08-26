@@ -843,8 +843,13 @@ Logos might have been migrated from Twenty as uploaded files.
 Actually:
 Twenty's `company` table has **no logo/avatar/image column** — Twenty rendered
 logos live from each company's domain via its `twenty-favicon` service. There was
-nothing to migrate from Twenty. Compact token logos still come from
-`img.logo.dev` keyed on `retailer.domain` (token `VITE_LOGODEV_TOKEN`). Full-width
+nothing to migrate from Twenty. Compact token logos prefer the stored
+`logo_url` when one exists (an upload is an explicit human override) and
+otherwise come from `img.logo.dev` keyed on `retailer.domain` (token
+`VITE_LOGODEV_TOKEN`); a stored logo is `object-fit: contain` inside the round
+mark so wordmarks are not cropped. Until 2026-08-26 the round mark ignored
+`logo_url` entirely, so brands logo.dev does not know (Ross / `ros.com`) kept
+showing the initials placeholder after a successful upload. Full-width
 logos come from `api.crm_customer_list.logo_url`, which prefers the CRM manual
 override stored at `core.customer.metadata.crm_logo_url` and falls back to the
 PLM-imported `plm.customer_import.logo_url`. The Data Admin → Logos tab can
