@@ -822,6 +822,16 @@ re-check its unit timeout and its per-row query count. Never reintroduce a bare 
 check the job's own counter line in `journalctl` against a `count(*)` in the
 database — a suspiciously round or small evaluated count means the cap is back.
 
+Clearing a Customer domain writes an **empty string**, not `null`:
+`api.crm_update_customer` coalesces every argument, so `null` means "leave
+unchanged" and there is no way to express "clear it". Verified harmless inside
+this app — `core.match_customer` uses `nullif(...)` on the probe, the worker's
+contains-ilike never matches an empty stored value, and every frontend check is
+falsy-based — but unverifiable for PM/DAM/PLM, which share `core.customer`.
+Tracked as shared-db issue #1615 (add `p_clear_domain`, following the
+`p_clear_*` precedent from `20260623024500`); until it lands, do not write code
+that treats `domain is not null` as "has a domain".
+
 `core.customer.domain` is stored bare (`target.com`), never scheme-prefixed.
 64 legacy rows held `https://target.com`, which still matched the workers'
 contains-ilike routing but could never match `core.match_customer`'s exact
