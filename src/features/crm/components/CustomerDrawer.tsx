@@ -21,7 +21,7 @@ import { ChainBadge, StageBadge } from '@/features/crm/components/CrmStatusBadge
 import { CustomerLogoField } from '@/features/crm/components/CustomerLogoField'
 import { customerStatusLabel, customerStatusTone } from '@/features/crm/constants'
 import { effectiveCustomerStatus } from '@/features/crm/pages/_shared'
-import { idOf } from '@/features/crm/format'
+import { customerLabel, idOf } from '@/features/crm/format'
 import type { Retailer } from '@/lib/types'
 
 function fmtAmount(val: string | number | null | undefined): string {
@@ -60,9 +60,9 @@ export function CustomerDrawer({ row, onClose }: { row: Retailer | null; onClose
     <DetailDrawer
       open={!!row}
       onClose={onClose}
-      title={row?.name || 'Customer'}
+      title={row ? customerLabel(row) : 'Customer'}
       subtitle={row?.domain ?? undefined}
-      avatar={row ? <CustomerLogo name={row.name} domain={row.domain} logoUrl={row.logo_url} size={36} /> : undefined}
+      avatar={row ? <CustomerLogo name={customerLabel(row)} domain={row.domain} logoUrl={row.logo_url} size={36} /> : undefined}
       status={
         row ? (
           <>
@@ -102,6 +102,13 @@ export function CustomerDrawer({ row, onClose }: { row: Retailer | null; onClose
           {/* Core details */}
           <DrawerSection>
             <DescriptionList>
+              <DescriptionItem term="Name">
+                <CustomerNameField
+                  key={row.id}
+                  customerId={row.id}
+                  name={customerLabel(row)}
+                />
+              </DescriptionItem>
               <DescriptionItem term="Status">
                 <StatusBadge tone={customerStatusTone(effectiveCustomerStatus(row))} dot>
                   {customerStatusLabel(effectiveCustomerStatus(row))}
@@ -243,6 +250,78 @@ function StatCard({
         <div className="text-[18px] font-[700] tabular-nums leading-none text-foreground">{value}</div>
         <div className="mt-[2px] text-[11px] text-muted-foreground">{label}</div>
       </div>
+    </div>
+  )
+}
+
+export function CustomerNameField({ customerId, name }: { customerId: string; name: string }) {
+  const updateCustomer = useUpdateCustomerMutation()
+  const [editing, setEditing] = useState(false)
+  const [draft, setDraft] = useState('')
+
+  async function save() {
+    const next = draft.trim()
+    if (!next) {
+      toast.error('Customer name cannot be blank')
+      return
+    }
+    if (next === name) {
+      setEditing(false)
+      return
+    }
+    try {
+      await updateCustomer.mutateAsync({ id: customerId, values: { display_name: next } })
+      setEditing(false)
+      toast.success(`Customer renamed to ${next}`)
+    } catch (error) {
+      toast.error('Could not rename the customer', { description: logError('CustomerNameField.save', error) })
+    }
+  }
+
+  if (editing) {
+    return (
+      <div className="flex items-center gap-[6px]">
+        <Input
+          autoFocus
+          value={draft}
+          onChange={(e) => setDraft(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') void save()
+            if (e.key === 'Escape') setEditing(false)
+          }}
+          aria-label="Customer name"
+          className="h-[26px] w-[210px] text-[12px]"
+        />
+        <Button
+          size="sm"
+          variant="outline"
+          className="h-[26px]"
+          disabled={!draft.trim() || updateCustomer.isPending}
+          onClick={() => void save()}
+        >
+          Save
+        </Button>
+        <Button size="sm" variant="ghost" className="h-[26px]" onClick={() => setEditing(false)}>
+          Cancel
+        </Button>
+      </div>
+    )
+  }
+
+  return (
+    <div className="flex items-center gap-[6px]">
+      <span>{name}</span>
+      <Button
+        size="sm"
+        variant="ghost"
+        className="h-[22px] px-[6px] text-[11px] text-muted-foreground"
+        onClick={() => {
+          setDraft(name)
+          setEditing(true)
+        }}
+      >
+        <Pencil className="size-[11px]" /> Rename
+      </Button>
     </div>
   )
 }
