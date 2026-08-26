@@ -62,7 +62,7 @@ export function CustomerDrawer({ row, onClose }: { row: Retailer | null; onClose
       onClose={onClose}
       title={row?.name || 'Customer'}
       subtitle={row?.domain ?? undefined}
-      avatar={row ? <CustomerLogo name={row.name} domain={row.domain} size={36} /> : undefined}
+      avatar={row ? <CustomerLogo name={row.name} domain={row.domain} logoUrl={row.logo_url} size={36} /> : undefined}
       status={
         row ? (
           <>

@@ -103,11 +103,13 @@ export function CustomerLogo({
     )
   }
 
-  if (!LOGODEV_TOKEN || !host || failed) {
-    return <NameAvatar name={name} size={size} className={className} />
-  }
-
-  const src = logoDevImageUrl(host, { size: size * 2, format: 'png', fallback: '404' })
+  // An uploaded logo is an explicit human override, so it wins over whatever
+  // logo.dev returns for the domain (and covers brands logo.dev doesn't know).
+  const src = !failed
+    ? storedLogo || (LOGODEV_TOKEN && host
+        ? logoDevImageUrl(host, { size: size * 2, format: 'png', fallback: '404' })
+        : null)
+    : null
   if (!src) {
     return <NameAvatar name={name} size={size} className={className} />
   }
@@ -125,7 +127,8 @@ export function CustomerLogo({
         width: size,
         height: size,
         borderRadius: '50%',
-        objectFit: 'cover',
+        // Stored logos are wordmarks: contain them so they aren't cropped.
+        objectFit: storedLogo ? 'contain' : 'cover',
         flexShrink: 0,
         background: 'var(--muted)',
         // Hairline ring so white logos stay visible on white cards.
