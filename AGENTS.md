@@ -556,6 +556,25 @@ Future sessions should:
   (`factory_name`; adapters already pass through `factory_display_name` /
   `factory_status` for when the views expose them).
 
+### Customer Rename edits the visible label, not the canonical name
+
+What changed:
+The Customer drawer exposes **Name → Rename**. It writes
+`core.customer.display_name` through the guarded
+`api.crm_update_customer(..., p_display_name)` contract added by shared-db
+migration `20260826001704`. Blank names are rejected in the UI.
+
+Why:
+CRM lists and pickers deliberately render `display_name ?? name`. Updating only
+`name` would appear to do nothing whenever a short display name exists, and the
+underlying name may carry canonical ERP wording that a CRM label edit must not
+silently replace.
+
+Future sessions should:
+Use `customerLabel` / `relatedName` everywhere a customer is displayed. A normal
+CRM rename changes `display_name` only; do not rewrite `name`, customer identity,
+classification, aliases, or ERP links as a side effect.
+
 ### Email Routing uses a recent feed plus server counts
 
 What changed:
@@ -718,14 +737,17 @@ assigns contacts to whichever customer owns the domain outright, and logs and
 skips the domain if no one owns it. Adding a banner therefore never silently
 re-parents existing contacts.
 
-Merging two customers is a real button: tick two rows on the Customers grid and
-press Merge. It calls `api.db_data_admin_preview_customer_merge` to show what
-moves, then `api.db_data_admin_merge_customer` with that preview token, a fresh
-operation id, and a typed reason. The engine moves contacts, email, programs and
-ERP source references onto the survivor, keeps the loser's name as an alias, and
-writes an audit row. Two gates live outside this repo and are reported as result
-codes, not thrown errors: the caller needs the `administrator` role plus
-explicit `admin` app access (`app.require_db_data_admin_access`), and the
+Merging customers is a real button: tick two or more rows on the Customers grid
+and press Merge. Pick one survivor; every other selected row is preflighted and
+then merged into it through `api.db_data_admin_preview_customer_merge` and
+`api.db_data_admin_merge_customer`, with a fresh preview token and operation id
+for each pair plus one typed reason. The engine moves contacts, email, programs
+and ERP source references onto the survivor, keeps discarded names as aliases,
+and writes audit rows. If a later merge fails, completed merges remain complete
+and the dialog explicitly reports how many succeeded; untouched rows remain.
+Two gates live outside this repo and are reported as result codes, not thrown
+errors: the caller needs the `administrator` role plus explicit `admin` app
+access (`app.require_db_data_admin_access`), and the
 `app.db_data_admin_feature_gate` row for `merge_execute` must be enabled. The
 dialog explains both in plain language rather than failing silently.
 
@@ -734,8 +756,7 @@ Consolidating routing onto one customer does not require a database merge:
 drawer) holds any number more. Both are searched by `domainOrClause`, so a
 second domain added as an alias routes its email to that customer. An alias
 containing `.` or `@` is domain matching only; a plain word is subject matching
-only. `api.db_data_admin_merge_customer` exists for a true record merge but has
-no UI in any app and is not the tool for routing consolidation.
+only. The merge UI is for true duplicate records, not routing consolidation.
 
 Future sessions should:
 Add a new pair by setting the parent's `domain`, adding the same domain to the
