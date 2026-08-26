@@ -2245,6 +2245,19 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      crm_update_ingested_domain: {
+        Args: {
+          p_ingested_domain_id: string
+          p_status?: string
+        }
+        Returns: Database["crm"]["Tables"]["ingested_domain"]["Row"]
+        SetofOptions: {
+          from: "*"
+          to: "ingested_domain"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       current_user_profile: { Args: never; Returns: Json }
       db_data_admin_audit_list: {
         Args: {

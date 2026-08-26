@@ -657,6 +657,30 @@ After changing worker code, run `node --check workers/crm-worker-supabase.mjs`
 and relevant one-shot systemd smoke tests. Unknown domains must continue to go
 through `crm.record_ingested_domain(...)`, not direct `core.customer` inserts.
 
+### Triage classification writes through an RPC, never the table
+
+Looks like:
+`crm.ingested_domain` just needs `GRANT UPDATE ... TO authenticated`, as the
+Postgres error message helpfully suggests.
+
+Actually:
+Classifying a triage domain failed in production with `permission denied for
+table ingested_domain (42501)` because the app updated the table directly.
+`ingested_domain` was the ONLY table the app writes that `authenticated` cannot
+update — checked with `has_table_privilege`, which unlike
+`information_schema.role_table_grants` accounts for inherited and PUBLIC grants;
+that view shows zero rows for every `crm` table and is misleading. Taking the
+error's advice would have made it the first browser-writable `crm` table and
+skipped the `app.has_app_access('crm')` check every other CRM write enforces.
+
+Future sessions should:
+Write it through `api.crm_update_ingested_domain(p_ingested_domain_id, p_status)`
+(shared-db issue #1516, in production 2026-08-25), which enforces app access and
+rejects any status outside `new` / `ACTIVE_CUSTOMER` / `POTENTIAL_CUSTOMER` /
+`OTHER`. Status is the only classifiable field. When a browser write fails on
+permissions, check `has_table_privilege` before believing the hint, and add an
+`api` RPC rather than a table grant.
+
 ### Adding a salesperson takes three separate grants
 
 Looks like:
