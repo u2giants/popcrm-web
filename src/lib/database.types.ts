@@ -2188,6 +2188,7 @@ export type Database = {
           p_company_id: string
           p_customer_status?: string
           p_domain?: string
+          p_display_name?: string
           p_name?: string
           p_routing_aliases?: string
           p_so_patterns?: string

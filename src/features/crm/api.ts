@@ -628,6 +628,7 @@ export async function updateRetailer(id: string, values: Partial<Retailer>) {
     p_customer_status: arg(v.customer_status),
     p_chain_type: arg(v.chain_type),
     p_routing_aliases: arg(v.routing_aliases),
+    p_display_name: arg(v.display_name),
   })
   if (error) throw error
 }
