@@ -130,8 +130,12 @@ async function fetchAllRows(buildQuery, { keyColumn = 'id', pageSize = ROW_PAGE_
 const REFERENCE_TTL_MS = 60_000
 const referenceCache = new Map()
 async function cachedReference(key, load) {
+  const now = Date.now()
   const hit = referenceCache.get(key)
-  if (hit && Date.now() - hit.at < REFERENCE_TTL_MS) return hit.value
+  if (hit && now - hit.at < REFERENCE_TTL_MS) return hit.value
+  // Per-domain keys make this map unbounded in the long-running
+  // fireflies-server, so drop expired entries whenever we miss.
+  for (const [k, entry] of referenceCache) if (now - entry.at >= REFERENCE_TTL_MS) referenceCache.delete(k)
   const value = await load()
   referenceCache.set(key, { at: Date.now(), value })
   return value
@@ -291,11 +295,15 @@ function domainOrClause(candidates) {
 async function matchingRetailersByDomain(domain, displayNames = {}) {
   const candidates = domainCandidates(domain)
   if (!candidates.length) return null
-  const rows = must(await core('customer')
+  // The candidate rows depend only on the domain, so they are cacheable; only
+  // the banner choice below depends on this message's display names. Without
+  // this, reroute issued one customer query per message (12k+ per run) and
+  // ingest re-queried the same handful of domains all day.
+  const rows = await cachedReference(`customers:domain:${domain}`, async () => must(await core('customer')
     .select('id,name,domain,routing_aliases,customer_status')
     .in('customer_status', CUSTOMERS)
     .or(domainOrClause(candidates))
-    .limit(20))
+    .limit(20)))
   if (rows.length === 1) return rows[0]
   const banner = candidates.map((c) => applySharedDomainRule(c, rows, displayNames)).find(Boolean)
   if (banner) return banner

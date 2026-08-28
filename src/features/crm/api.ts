@@ -106,6 +106,26 @@ async function fetchAllRows(view: string, order: Order[] = []): Promise<Row[]> {
   return out
 }
 
+// Same explicit paging as fetchAllRows, but for a narrowed column list.
+// PostgREST enforces a server-side row ceiling (db-max-rows): a select with no
+// range silently returns only the first page, so an unbounded read MUST page.
+async function fetchAllColumns(view: string, columns: string, order: Order[] = []): Promise<Row[]> {
+  const PAGE = 1000
+  const out: Row[] = []
+  let from = 0
+  for (;;) {
+    let q = anyDb.schema('api').from(view).select(columns).range(from, from + PAGE - 1)
+    for (const o of order) q = q.order(o.col, { ascending: o.asc ?? true, nullsFirst: false })
+    const { data, error } = await q
+    if (error) throw error
+    const rows = (data ?? []) as Row[]
+    out.push(...rows)
+    if (rows.length < PAGE) break
+    from += PAGE
+  }
+  return out
+}
+
 async function fetchRows(view: string, order: Order[] = [], limit?: number): Promise<Row[]> {
   if (limit === undefined || limit < 0) return fetchAllRows(view, order)
   let q = anyDb.schema("api").from(view).select('*').limit(limit)
@@ -435,16 +455,22 @@ export async function fetchRetailers(limit = -1): Promise<Retailer[]> {
  * includes inactive hub rows and ignores CRM-local inactivation.
  */
 export async function fetchCustomerPickerList(limit = -1): Promise<Retailer[]> {
-  let q = anyDb
-    .schema('api')
-    .from('crm_customer_picker_list')
-    .select('id,name,display_name,core_status,crm_status,updated_at')
-    .order('display_name', { ascending: true, nullsFirst: false })
-    .order('name')
-  if (limit >= 0) q = q.limit(limit)
-  const { data, error } = await q
-  if (error) throw error
-  return ((data ?? []) as Row[]).map((r) => ({
+  const columns = 'id,name,display_name,core_status,crm_status,updated_at'
+  const order: Order[] = [{ col: 'display_name' }, { col: 'name' }]
+  let data: Row[]
+  if (limit >= 0) {
+    let q = anyDb.schema('api').from('crm_customer_picker_list').select(columns).limit(limit)
+    for (const o of order) q = q.order(o.col, { ascending: true, nullsFirst: false })
+    const res = await q
+    if (res.error) throw res.error
+    data = (res.data ?? []) as Row[]
+  } else {
+    // Unbounded: page it. Every combobox on the app reads this feed, and a
+    // silent server-side truncation would make customers simply disappear from
+    // every picker while relation labels fell back to raw ids.
+    data = await fetchAllColumns('crm_customer_picker_list', columns, order)
+  }
+  return data.map((r) => ({
     id: r.id as string,
     name: (r.name ?? '') as string,
     display_name: (r.display_name ?? null) as string | null,
@@ -1198,12 +1224,8 @@ export interface CustomerBrand {
 }
 
 export async function fetchCustomerBrands(): Promise<CustomerBrand[]> {
-  const { data, error } = await anyDb
-    .schema('api')
-    .from('crm_customer_list')
-    .select('id,name,display_name,domain,logo_url')
-  if (error) throw error
-  return ((data ?? []) as Row[]).map((r) => ({
+  const rows = await fetchAllColumns('crm_customer_list', 'id,name,display_name,domain,logo_url')
+  return rows.map((r) => ({
     id: r.id as string,
     name: (r.name ?? null) as string | null,
     display_name: (r.display_name ?? null) as string | null,
