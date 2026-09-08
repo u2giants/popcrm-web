@@ -102,10 +102,11 @@ Before starting or restarting the Fireflies container, confirm its environment
 contains non-blank `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`,
 `FIREFLIES_API_KEY`, `FIREFLIES_WEBHOOK_SECRET`, and `OPENROUTER_API_KEY`
 without printing their values. `fireflies-server` validates these before
-binding its port and exits non-zero if any are absent. A healthy response is
-therefore evidence that required startup configuration was present, but it is
-still only a liveness check and does not prove Fireflies delivered or ingested
-a recent meeting.
+binding its port and exits non-zero if any are absent. A healthy response also
+proves a bounded read of the active CRM email workload returned at least one
+row, so connection, schema, and unexpectedly empty workload failures
+report unhealthy. It still does not prove Fireflies delivered or ingested a
+recent meeting.
 
 Production readiness check on 2026-07-27 found all required values present and
 non-blank in `/home/ai/.crm-worker.env`, including
