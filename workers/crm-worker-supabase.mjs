@@ -1152,12 +1152,26 @@ async function resolveCrmProfile(token) {
   return boundaries.resolveCrmProfile(userClient)
 }
 
+export async function verifyDatabaseHealth(query = () => (
+  crm('email_message')
+    .select('id')
+    .limit(1)
+    .abortSignal(AbortSignal.timeout(5_000))
+)) {
+  const rows = must(await query())
+  if (!Array.isArray(rows) || rows.length === 0) {
+    throw new Error('database_health_empty')
+  }
+  return true
+}
+
 export function createWorkerHttpHandler({
   bodyLimits = httpBodyLimits,
   readBody = boundaries.readJsonBody,
   validateSignature = isValidFirefliesSignature,
   verifyToken = verifySupabaseUser,
   loadProfile = resolveCrmProfile,
+  checkHealth = verifyDatabaseHealth,
   chat = chatOpportunity,
   processFireflies = handleFirefliesPayload,
   logWarn = console.warn,
@@ -1174,7 +1188,21 @@ export function createWorkerHttpHandler({
     }
     try {
       if (req.method === 'OPTIONS') { res.writeHead(204, jsonHeaders); res.end(); return }
-      if (req.method === 'GET' && req.url === '/health') { res.writeHead(200, jsonHeaders); res.end(JSON.stringify({ ok: true })); return }
+      if (req.method === 'GET' && req.url === '/health') {
+        try {
+          await checkHealth()
+          res.writeHead(200, jsonHeaders)
+          res.end(JSON.stringify({ ok: true }))
+        } catch (error) {
+          logError('database health check failed', {
+            name: typeof error?.name === 'string' ? error.name : 'Error',
+            code: typeof error?.code === 'string' ? error.code : undefined,
+          })
+          res.writeHead(503, jsonHeaders)
+          res.end(JSON.stringify({ ok: false }))
+        }
+        return
+      }
       if (req.method === 'POST' && req.url === '/s/opportunity-chat') {
         const { rawBody } = await readBody(req, { maxBytes: bodyLimits.opportunityChat })
         await respondToOpportunityChatRequest({

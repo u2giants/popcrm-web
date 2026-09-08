@@ -61,6 +61,10 @@ malformed JSON returns HTTP 400 `invalid_json`. Rejected requests do not reach
 CRM reads, Fireflies processing, or paid AI calls. Fireflies HMAC verification
 runs over the exact raw bytes before JSON parsing.
 
+`GET /health` performs a bounded read of the active CRM email workload.
+It returns HTTP 200 only when Supabase is reachable, the expected table exists,
+and at least one configuration row is present; otherwise it returns HTTP 503.
+
 Focused worker tests run as part of `npm test`. Injectable boundaries for
 service authentication, HTTP body reads, Fireflies signatures, upstream fetch,
 Graph cursor storage, and current time live in `workers/lib/worker-foundation.mjs`.

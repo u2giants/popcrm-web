@@ -2,7 +2,7 @@ import { createServer } from 'node:http'
 import { EventEmitter } from 'node:events'
 import { Readable } from 'node:stream'
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { createWorkerHttpHandler } from './crm-worker-supabase.mjs'
+import { createWorkerHttpHandler, verifyDatabaseHealth } from './crm-worker-supabase.mjs'
 import {
   readJsonBody,
   resolveHttpBodyLimits,
@@ -128,6 +128,7 @@ describe('public worker routes', () => {
         crm_access: true,
         roles: [],
       })),
+      checkHealth: vi.fn(async () => true),
       chat: vi.fn(async () => 'answer'),
       processFireflies: vi.fn(async () => ({ success: true })),
       logWarn: vi.fn(),
@@ -135,6 +136,35 @@ describe('public worker routes', () => {
       ...overrides,
     }
   }
+
+  it('reports healthy only after the database check succeeds', async () => {
+    const deps = dependencies()
+    const local = await listen(createWorkerHttpHandler(deps))
+    try {
+      const response = await fetch(`${local.url}/health`)
+      expect(response.status).toBe(200)
+      await expect(response.json()).resolves.toEqual({ ok: true })
+      expect(deps.checkHealth).toHaveBeenCalledOnce()
+    } finally {
+      await local.close()
+    }
+  })
+
+  it('returns 503 when the database check fails', async () => {
+    const deps = dependencies({ checkHealth: vi.fn(async () => { throw new Error('database unavailable') }) })
+    const local = await listen(createWorkerHttpHandler(deps))
+    try {
+      const response = await fetch(`${local.url}/health`)
+      expect(response.status).toBe(503)
+      await expect(response.json()).resolves.toEqual({ ok: false })
+      expect(deps.logError).toHaveBeenCalledWith('database health check failed', {
+        name: 'Error',
+        code: undefined,
+      })
+    } finally {
+      await local.close()
+    }
+  })
 
   it.each([
     ['/s/opportunity-chat', 'chat'],
@@ -215,5 +245,19 @@ describe('public worker routes', () => {
     } finally {
       await local.close()
     }
+  })
+})
+
+describe('database health probe', () => {
+  it('accepts a non-empty CRM email result', async () => {
+    await expect(verifyDatabaseHealth(async () => ({ data: [{ id: 'email-1' }], error: null })))
+      .resolves.toBe(true)
+  })
+
+  it('rejects database errors and unexpectedly empty results', async () => {
+    await expect(verifyDatabaseHealth(async () => ({ data: null, error: { message: 'relation missing' } })))
+      .rejects.toThrow('relation missing')
+    await expect(verifyDatabaseHealth(async () => ({ data: [], error: null })))
+      .rejects.toThrow('database_health_empty')
   })
 })
