@@ -1,0 +1,37 @@
+{
+  "schema_version": 1,
+  "_comment": "POP CRM strengthens identity, shared-data, worker, deployment, and repository-policy paths while preserving its direct-main production release contract.",
+  "paths": [
+    { "glob": "AGENTS.md", "class": "reviewer-safety" },
+    { "glob": "HANDOFF.md", "class": "reviewer-safety" },
+    { "glob": "HANDOFF.d/**", "class": "reviewer-safety" },
+    { "glob": "plan_*.md", "class": "reviewer-safety" },
+    { "glob": ".ai-devops/**", "class": "reviewer-safety" },
+    { "glob": "scripts/test-task-gates.sh", "class": "reviewer-safety" },
+    { "glob": "src/**", "class": "ui-live-workflow" },
+    { "glob": "src/auth/**", "class": "reviewer-safety" },
+    { "glob": "src/lib/supabase.ts", "class": "reviewer-safety" },
+    { "glob": "workers/**", "class": "reviewer-safety" },
+    { "glob": ".github/workflows/**", "class": "deployment" },
+    { "glob": "Dockerfile", "class": "deployment" },
+    { "glob": "nginx.conf", "class": "deployment" },
+    { "glob": "package.json", "class": "deployment" },
+    { "glob": "package-lock.json", "class": "deployment" },
+    { "glob": "vite.config.ts", "class": "deployment" },
+    { "glob": "systemd/**", "class": "deployment" },
+    { "glob": ".env.example", "class": "deployment" },
+    { "glob": "shared-db/**", "class": "shared-db" },
+    { "glob": "supabase/**", "class": "shared-db" },
+    { "glob": "migrations/**", "class": "shared-db" },
+    { "glob": "src/lib/database.types.ts", "class": "shared-db" },
+    { "glob": "src/lib/types.ts", "class": "shared-db" }
+  ],
+  "gates": {
+    "prose": { "required": ["direct-main-reconciliation"], "forbidden_actions": [] },
+    "code": { "required": ["direct-main-reconciliation", "local-tests"], "forbidden_actions": [] },
+    "ui-live-workflow": { "required": ["direct-main-reconciliation", "local-tests", "authenticated-workflow-proof", "visual-proof"], "forbidden_actions": [] },
+    "reviewer-safety": { "required": ["direct-main-reconciliation", "local-tests", "repository-rulebook-full-treatment"], "forbidden_actions": [] },
+    "deployment": { "required": ["direct-main-reconciliation", "local-tests", "production-release-review", "owner-authorization"], "forbidden_actions": [] },
+    "shared-db": { "required": ["stop-and-route-to-u2giants-shared-db", "governed-shared-db-branch-and-pr", "no-app-owned-schema"], "forbidden_actions": ["database"] }
+  }
+}
