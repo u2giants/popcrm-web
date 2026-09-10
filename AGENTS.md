@@ -67,6 +67,11 @@ Notes:
 
 ## Shared DB Gatekeeper
 
+Repository-local task routing is declared in `.ai-devops/task-gates.json` and
+verified by `scripts/test-task-gates.sh`. Protected authorization, worker,
+deployment, and shared-database paths require their full declared treatment;
+acknowledgement never bypasses a database-route refusal.
+
 This repo shares the Supabase backend project `qsllyeztdwjgirsysgai` with the
 other POP apps. All database/schema changes for that shared backend must be
 authored in the canonical repo
