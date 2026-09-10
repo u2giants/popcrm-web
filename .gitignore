@@ -39,3 +39,4 @@ screenshot-*.png
 
 # AI agent worktrees and local session state
 .claude/
+.ai/reviews/
