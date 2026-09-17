@@ -23,6 +23,7 @@
 //   SUPABASE_SERVICE_ROLE_KEY=<server-only>                 (NEVER expose to the browser)
 //   MS_TENANT_ID/MS_CLIENT_ID/MS_CLIENT_SECRET or AZURE_* ; OUTLOOK_MAILBOX ; OUTLOOK_GATED
 //   FIREFLIES_API_KEY, FIREFLIES_WEBHOOK_SECRET, OPENROUTER_API_KEY, PORT=8787
+//   TYPESAFE_API_KEY, JEV_ROUTING_MIN_CONFIDENCE (email routing fallback)
 import { readFileSync } from 'node:fs'
 import { pathToFileURL } from 'node:url'
 import { createClient } from '@supabase/supabase-js'
@@ -42,6 +43,13 @@ import {
   routingImproves,
   validateCommandEnvironment,
 } from './lib/worker-foundation.mjs'
+import {
+  JEV_URL,
+  buildJevRoutingRequest,
+  pickJevRetailer,
+  resolveJevMinConfidence,
+  retailerOptions,
+} from './lib/jev-router.mjs'
 
 let SUPABASE_URL
 let SERVICE_ROLE_KEY
@@ -50,6 +58,7 @@ let crm
 let core
 let httpBodyLimits
 let upstreamSettings
+let jevMinConfidence
 let runtimeEnv = process.env
 let boundaries = createWorkerBoundaries()
 
@@ -78,6 +87,7 @@ function initializeRuntime(env = process.env, overrides = {}) {
   crm = (table) => sb.schema('crm').from(table)
   core = (table) => sb.schema('core').from(table)
   upstreamSettings = resolveUpstreamSettings(env)
+  jevMinConfidence = resolveJevMinConfidence(env.JEV_ROUTING_MIN_CONFIDENCE)
   if (!overrides.graphCursorStore) {
     boundaries.graphCursorStore = createGraphCursorStore(sb)
   }
@@ -434,40 +444,35 @@ async function normalizeRoute(route) {
   return out
 }
 
-async function aiRouteFallback({ subject, bodyText, addresses, task = 'email_routing_model' }) {
-  if (!runtimeEnv.OPENROUTER_API_KEY) return null
-  const [retailers, opportunities] = await Promise.all([
-    core('customer').select('id,name,domain').in('customer_status', CUSTOMERS).order('name').limit(120).then(must),
-    crm('opportunity').select('id,name,company_id,department_id,production_po_number,sales_order_number').not('stage', 'in', '(CLOSED,SHIPPED)').order('created_at', { ascending: false }).limit(120).then(must),
-  ])
-  const model = await routingModel(task)
-  const res = await upstreamFetch('OpenRouter email routing', 'https://openrouter.ai/api/v1/chat/completions', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${runtimeEnv.OPENROUTER_API_KEY}`, 'HTTP-Referer': SUPABASE_URL, 'X-Title': 'POP CRM Supabase Router' },
-    body: JSON.stringify({
-      model,
-      messages: [
-        { role: 'system', content: 'Route one CRM email. Return strict JSON only with retailerId, departmentId, opportunityId, confidence, and reason. Use null when uncertain.' },
-        { role: 'user', content: JSON.stringify({ subject, bodyPreview: String(bodyText || '').slice(0, 3000), addresses, retailers, opportunities }) },
-      ],
-      temperature: 0.1,
-      response_format: { type: 'json_object' },
-    }),
-  }, { timeoutMs: upstreamSettings.OPENROUTER_FETCH_TIMEOUT_MS })
-  if (!res.ok) return null
-  const json = await res.json()
-  const content = json.choices?.[0]?.message?.content
-  if (!content) return null
-  let parsed
-  try { parsed = JSON.parse(content) } catch { return null }
-  if (Number(parsed.confidence || 0) < 0.72) return null
-  return {
-    routing_status: parsed.opportunityId ? 'ROUTED' : parsed.departmentId ? 'COMPANY_DEPT' : parsed.retailerId ? 'COMPANY_ONLY' : 'UNROUTED',
-    routing_method: 'AI_ROUTER',
-    retailer: parsed.retailerId || null,
-    department: parsed.departmentId || null,
-    opportunity: parsed.opportunityId || null,
+let jevKeyMissingLogged = false
+
+// Picks a retailer with TypeSafe Jev when the deterministic rules found none.
+// Returns a retailer id or null; below-cutoff answers are discarded.
+async function jevRetailerFallback({ subject, bodyText, addresses }) {
+  if (!runtimeEnv.TYPESAFE_API_KEY?.trim()) {
+    if (!jevKeyMissingLogged) console.warn('email AI routing disabled: TYPESAFE_API_KEY is not set')
+    jevKeyMissingLogged = true
+    return null
   }
+  const retailers = must(await core('customer').select('id,name,domain').in('customer_status', CUSTOMERS).order('name').limit(1000))
+  if (!retailers.length) return null
+  const options = retailerOptions(retailers)
+  let res
+  try {
+    res = await upstreamFetch('TypeSafe Jev email routing', JEV_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${runtimeEnv.TYPESAFE_API_KEY}` },
+      body: JSON.stringify(buildJevRoutingRequest({ subject, bodyText, addresses, options })),
+    }, { timeoutMs: upstreamSettings.JEV_FETCH_TIMEOUT_MS })
+  } catch (error) {
+    console.warn(`email AI routing skipped: ${error.message}`)
+    return null
+  }
+  if (!res.ok) {
+    console.warn(`email AI routing skipped: TypeSafe Jev HTTP ${res.status}`)
+    return null
+  }
+  return pickJevRetailer(await res.json(), options, jevMinConfidence)
 }
 
 async function summarizeOpportunity(opportunityId) {
@@ -612,8 +617,14 @@ async function routeEmail({ subject, bodyText, addresses, displayNames = {}, tas
   if (retailer && department) return { routing_status: 'COMPANY_DEPT', routing_method: routingMethod, retailer, department }
   if (retailer) return { routing_status: 'COMPANY_ONLY', routing_method: routingMethod, retailer }
 
-  const aiRoute = allowAi ? await aiRouteFallback({ subject, bodyText, addresses: allAddresses, task }) : null
-  if (aiRoute?.routing_status && aiRoute.routing_status !== 'UNROUTED') return aiRoute
+  const aiRetailer = allowAi ? await jevRetailerFallback({ subject, bodyText, addresses: allAddresses }) : null
+  if (aiRetailer) {
+    const aiDepartment = await findDepartment(aiRetailer, allAddresses)
+    const aiOpportunity = await matchOpportunity({ retailer: aiRetailer, department: aiDepartment, searchText })
+    if (aiOpportunity) return { routing_status: 'ROUTED', routing_method: 'AI_ROUTER', opportunity: aiOpportunity.row.id, retailer: aiOpportunity.row.retailer || aiRetailer, department: aiOpportunity.row.department || null }
+    if (aiDepartment) return { routing_status: 'COMPANY_DEPT', routing_method: 'AI_ROUTER', retailer: aiRetailer, department: aiDepartment }
+    return { routing_status: 'COMPANY_ONLY', routing_method: 'AI_ROUTER', retailer: aiRetailer }
+  }
 
   return { routing_status: 'UNROUTED' }
 }
