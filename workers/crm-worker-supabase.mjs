@@ -472,7 +472,14 @@ async function jevRetailerFallback({ subject, bodyText, addresses }) {
     console.warn(`email AI routing skipped: TypeSafe Jev HTTP ${res.status}`)
     return null
   }
-  return pickJevRetailer(await res.json(), options, jevMinConfidence)
+  let body
+  try {
+    body = await res.json()
+  } catch (error) {
+    console.warn(`email AI routing skipped: TypeSafe Jev returned invalid JSON (${error.message})`)
+    return null
+  }
+  return pickJevRetailer(body, options, jevMinConfidence)
 }
 
 async function summarizeOpportunity(opportunityId) {

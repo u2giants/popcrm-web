@@ -5,6 +5,7 @@ export const JEV_URL = 'https://api.typesafe.ai/v1/systemone'
 export const JEV_MODEL = 'jev-latest'
 export const JEV_DEFAULT_MIN_CONFIDENCE = 0.91
 export const JEV_STATE_MAX_CHARS = 3000
+export const JEV_NONE_OPTION = 'None of these retailers'
 
 export function resolveJevMinConfidence(value) {
   if (value === undefined || value === '') return JEV_DEFAULT_MIN_CONFIDENCE
@@ -22,7 +23,7 @@ export function retailerOptions(retailers) {
   const options = new Map()
   for (const r of retailers) {
     let key = counts.get(r.name) > 1 ? `${r.name} (${r.domain || r.id})` : r.name
-    while (options.has(key)) key = `${key} [${r.id}]`
+    while (options.has(key) || key === JEV_NONE_OPTION) key = `${key} [${r.id}]`
     options.set(key, r)
   }
   return options
@@ -33,6 +34,7 @@ export function buildJevRoutingRequest({ subject, bodyText, addresses, options }
   for (const [key, retailer] of options) {
     criteria[key] = retailer.domain ? `Retailer ${retailer.name}, email domain ${retailer.domain}` : `Retailer ${retailer.name}`
   }
+  criteria[JEV_NONE_OPTION] = 'The email is not about or from any retailer listed here'
   const state = [
     `Subject: ${subject || ''}`,
     addresses?.length ? `Addresses: ${addresses.join(', ')}` : '',

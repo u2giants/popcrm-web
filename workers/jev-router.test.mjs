@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { buildJevRoutingRequest, pickJevRetailer, resolveJevMinConfidence, retailerOptions } from './lib/jev-router.mjs'
+import { JEV_NONE_OPTION, buildJevRoutingRequest, pickJevRetailer, resolveJevMinConfidence, retailerOptions } from './lib/jev-router.mjs'
 
 const retailers = [
   { id: 'a', name: 'Target', domain: 'target.com' },
@@ -24,6 +24,7 @@ describe('jev router', () => {
     expect(req.state.length).toBe(3000)
     expect(req.questions.retailer.type).toBe('choice')
     expect(req.questions.retailer.criteria.Target).toContain('target.com')
+    expect(req.questions.retailer.criteria[JEV_NONE_OPTION]).toBeTruthy()
   })
 
   it('accepts only confident known choices', () => {
@@ -33,5 +34,6 @@ describe('jev router', () => {
     expect(pickJevRetailer(res('Target', 0.9), options, 0.91)).toBeNull()
     expect(pickJevRetailer(res('Walmart', 0.99), options, 0.91)).toBeNull()
     expect(pickJevRetailer({}, options, 0.91)).toBeNull()
+    expect(pickJevRetailer(res(JEV_NONE_OPTION, 0.99), options, 0.91)).toBeNull()
   })
 })
