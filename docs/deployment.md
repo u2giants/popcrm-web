@@ -100,7 +100,7 @@ The active workers must not reference any retired backend.
 
 Before starting or restarting the Fireflies container, confirm its environment
 contains non-blank `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`,
-`FIREFLIES_API_KEY`, `FIREFLIES_WEBHOOK_SECRET`, and `OPENROUTER_API_KEY`
+`FIREFLIES_API_KEY`, `FIREFLIES_WEBHOOK_SECRET`, and `OPENROUTER_API_KEY`, `TYPESAFE_API_KEY`
 without printing their values. `fireflies-server` validates these before
 binding its port and exits non-zero if any are absent. A healthy response also
 proves a bounded read of the active CRM email workload returned at least one

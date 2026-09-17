@@ -107,6 +107,8 @@ requires:
 - `FIREFLIES_WEBHOOK_SECRET` to authenticate webhook bodies;
 - `FIREFLIES_API_KEY` to retrieve Fireflies transcripts; and
 - `OPENROUTER_API_KEY` for the enabled Opportunity Chat endpoint.
+- `TYPESAFE_API_KEY` for the email routing fallback (TypeSafe Jev). Without it the fallback is skipped with a logged warning.
+- `JEV_ROUTING_MIN_CONFIDENCE` optional, default `0.91`; Jev retailer picks below it are ignored.
 
 These requirements are checked before the HTTP server opens its listening
 port. A missing or whitespace-only value therefore stops startup with a
@@ -132,6 +134,7 @@ deadlines. Optional worker overrides are:
 
 - `GRAPH_FETCH_TIMEOUT_MS` defaults to `30000`.
 - `OPENROUTER_FETCH_TIMEOUT_MS` defaults to `60000`.
+- `JEV_FETCH_TIMEOUT_MS` defaults to `15000`.
 - `FIREFLIES_FETCH_TIMEOUT_MS` defaults to `30000`.
 - `UPSTREAM_MAX_ATTEMPTS` defaults to `3` for safe transient retries.
 - `UPSTREAM_RETRY_BASE_DELAY_MS` defaults to `250`.
