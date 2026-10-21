@@ -733,8 +733,11 @@ async function saveOutlookCursor({ cursorKey, mailbox, deltaLink, expectedVersio
 async function processOutlookMessage(message, { gated }) {
   if (message['@removed']) return 'tombstone'
   if (!message.id) throw new Error('Microsoft Graph returned a mail change without an id')
+  // The unique key is (external_source, external_id); older rows may lack outlook_message_id.
   const existing = must(await crm('email_message').select('id').eq('outlook_message_id', message.id).limit(1))
   if (existing.length) return 'duplicate'
+  const existingExternal = must(await crm('email_message').select('id').eq('external_source', 'outlook').eq('external_id', message.id).limit(1))
+  if (existingExternal.length) return 'duplicate'
   const addresses = participantAddresses(message)
   if (gated && !addresses.some((addr) => !addr.endsWith(`@${INTERNAL_DOMAIN}`))) return 'gated'
   const bodyText = message.body?.content || message.bodyPreview || ''
