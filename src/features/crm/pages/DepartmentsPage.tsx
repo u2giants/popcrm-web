@@ -1,5 +1,7 @@
-import { useMemo, useState } from 'react'
-import { Building2 } from 'lucide-react'
+import { useMemo, useRef, useState } from 'react'
+import { Building2, Upload } from 'lucide-react'
+import { Button } from '@/components/ui/button'
+import { planDepartmentImport } from '@/features/crm/departmentImport'
 import { toast } from 'sonner'
 import { AppPage, ListBar } from '@/components/app/AppPage'
 import { DataTable, type Column, type EditOption } from '@/components/app/DataTable'
@@ -10,7 +12,7 @@ import { useRecordSelection } from '@/features/crm/useRecordSelection'
 import { DepartmentDrawer } from '@/features/crm/components/DepartmentDrawer'
 import { idOf, label, relatedName, textOf } from '@/features/crm/format'
 import { StatusBadge } from '@/components/app/StatusBadge'
-import { listData, useCustomerPickerQuery, useDepartmentsQuery, useIngestedContactsQuery, useUpdateDepartmentMutation,
+import { listData, useCustomerPickerQuery, useDepartmentsQuery, useIngestedContactsQuery, useUpdateDepartmentMutation, useCreateDepartmentMutation,
   useCustomerDisplayName,
 } from '@/features/crm/queries'
 import { buildRetailerById, customerEditOptions } from '@/features/crm/pages/_shared'
@@ -25,6 +27,9 @@ export function DepartmentsPage() {
   const retailers = listData(retailersQuery.data)
   const buyers = listData(useIngestedContactsQuery(-1).data)
   const updateDepartment = useUpdateDepartmentMutation()
+  const createDepartment = useCreateDepartmentMutation()
+  const fileInput = useRef<HTMLInputElement>(null)
+  const [importing, setImporting] = useState(false)
   const [query, setQuery] = useState('')
   const [selected, select] = useRecordSelection<CrmDepartment>('department', departments)
   const retailerById = useMemo(() => buildRetailerById(retailers), [retailers])
@@ -53,6 +58,27 @@ export function DepartmentsPage() {
       await updateDepartment.mutateAsync({ id: row.id, values })
     } catch (error) {
       toast.error('Could not update department', { description: logError('DepartmentsPage.editCell', error) })
+    }
+  }
+
+  async function importCsv(file: File) {
+    setImporting(true)
+    try {
+      const plan = planDepartmentImport(
+        await file.text(),
+        retailers.map((r) => ({ id: r.id, name: r.name, display_name: r.display_name })),
+        departments.map((d) => ({ customerId: idOf(d.retailer) || null, name: d.name })),
+      )
+      for (const item of plan.toCreate) {
+        await createDepartment.mutateAsync({ name: item.name, retailer: item.customerId, active: true } as Partial<CrmDepartment>)
+      }
+      const skipped = plan.unmatchedCustomers.length ? `Customers not found: ${plan.unmatchedCustomers.join(', ')}` : undefined
+      toast.success(`Added ${plan.toCreate.length} departments (${plan.existing} already existed)`, { description: skipped, duration: skipped ? 20_000 : undefined })
+    } catch (error) {
+      toast.error('Department import failed', { description: logError('DepartmentsPage.importCsv', error) })
+    } finally {
+      setImporting(false)
+      if (fileInput.current) fileInput.current.value = ''
     }
   }
 
@@ -140,6 +166,14 @@ export function DepartmentsPage() {
           search={query}
           onSearch={setQuery}
           searchPlaceholder="Search department, customer, contact…"
+          actions={
+            <>
+              <input ref={fileInput} type="file" accept=".csv,text/csv" className="hidden" onChange={(e) => { const f = e.target.files?.[0]; if (f) void importCsv(f) }} />
+              <Button variant="outline" size="sm" disabled={importing || departmentsQuery.isPending || retailersQuery.isPending} onClick={() => fileInput.current?.click()}>
+                <Upload className="size-4" /> {importing ? 'Importing…' : 'Import CSV'}
+              </Button>
+            </>
+          }
         />
       }
     >
