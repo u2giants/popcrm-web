@@ -6,8 +6,8 @@ import tseslint from 'typescript-eslint'
 import { defineConfig, globalIgnores } from 'eslint/config'
 
 export default defineConfig([
-  // dist = build artifact; src/components/ui = generated shadcn (don't lint vendored primitives)
-  globalIgnores(['dist', 'src/components/ui/**']),
+  // dist = build artifact; src/components/ui = generated shadcn; shared-db = synced copy of the shared-db repo (don't lint vendored code)
+  globalIgnores(['dist', 'src/components/ui/**', 'shared-db/**']),
   {
     files: ['**/*.{ts,tsx}'],
     extends: [
