@@ -19,8 +19,65 @@ import { SUPABASE_URL } from '@/lib/supabase'
 import { logError } from '@/lib/errors'
 import type { CrmAiModelConfig } from '@/lib/types'
 import { IgnoreRulesPanel } from '@/features/crm/components/IgnoreRulesPanel'
+import { useSearchParams } from 'react-router-dom'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { useAuth } from '@/auth/auth'
+import { PeoplePanel } from '@/features/admin/PeoplePanel'
+import { AssignmentsPanel } from '@/features/admin/AssignmentsPanel'
+import { AccessHistoryPanel } from '@/features/admin/AccessHistoryPanel'
+
+const ADMIN_TABS = ['people', 'assignments', 'history'] as const
 
 export function SettingsPage() {
+  const { isAdmin } = useAuth()
+  const [params, setParams] = useSearchParams()
+  const requested = params.get('tab') ?? 'general'
+  const tab = isAdmin || !(ADMIN_TABS as readonly string[]).includes(requested) ? requested : 'general'
+
+  return (
+    <AppPage
+      listBar={
+        <ListBar
+          title="Settings"
+          subtitle={isAdmin ? 'People, permissions, assignments, email rules and integrations' : 'Email rules, AI models, automation health and integrations'}
+        />
+      }
+    >
+      <Tabs value={tab} onValueChange={(v) => setParams(v === 'general' ? {} : { tab: v }, { replace: true })}>
+        <div className="mx-auto mb-4 max-w-6xl">
+          <TabsList>
+            <TabsTrigger value="general">General</TabsTrigger>
+            {isAdmin ? (
+              <>
+                <TabsTrigger value="people">People & permissions</TabsTrigger>
+                <TabsTrigger value="assignments">Customer assignments</TabsTrigger>
+                <TabsTrigger value="history">Access history</TabsTrigger>
+              </>
+            ) : null}
+          </TabsList>
+        </div>
+        <TabsContent value="general">
+          <GeneralSettings />
+        </TabsContent>
+        {isAdmin ? (
+          <>
+            <TabsContent value="people" className="mx-auto max-w-6xl">
+              <PeoplePanel />
+            </TabsContent>
+            <TabsContent value="assignments" className="mx-auto max-w-6xl">
+              <AssignmentsPanel />
+            </TabsContent>
+            <TabsContent value="history" className="mx-auto max-w-6xl">
+              <AccessHistoryPanel />
+            </TabsContent>
+          </>
+        ) : null}
+      </Tabs>
+    </AppPage>
+  )
+}
+
+function GeneralSettings() {
   const aiConfigsQuery = useAiConfigsQuery()
   const ignoreRulesQuery = useIgnoreRulesQuery()
   const fireflies = useFirefliesHealth()
@@ -45,114 +102,105 @@ export function SettingsPage() {
   ]
 
   return (
-    <AppPage
-      listBar={
-        <ListBar
-          title="Settings"
-          subtitle="Email rules, AI models, automation health and integrations"
+    <div className="mx-auto max-w-4xl space-y-5">
+      <IgnoreRulesPanel />
+
+      {/* AI model config */}
+      <section className="rounded-[12px] border bg-card p-5 shadow-[var(--shadow-xs)]">
+        <SectionHeader
+          title="AI model configuration"
+          description="Models used for routing, transcript splitting and summaries."
         />
-      }
-    >
-      <div className="mx-auto max-w-4xl space-y-5">
-        <IgnoreRulesPanel />
-
-        {/* AI model config */}
-        <section className="rounded-[12px] border bg-card p-5 shadow-[var(--shadow-xs)]">
-          <SectionHeader
-            title="AI model configuration"
-            description="Models used for routing, transcript splitting and summaries."
+        {aiConfigs.length ? (
+          <div className="mt-4 space-y-6">
+            {aiConfigs.map((config) => (
+              <div key={config.id}>
+                <div className="mb-3 flex items-center gap-[7px] text-[12.5px] font-[600] text-foreground">
+                  <Bot className="size-4 text-muted-foreground" />
+                  {config.name || 'AI routing config'}
+                </div>
+                <div className="grid gap-4 sm:grid-cols-2">
+                  {AI_MODEL_FIELDS.map((field) => (
+                    <div key={field} className="grid gap-1.5">
+                      <Label className="text-[11.5px] text-muted-foreground">{label(field)}</Label>
+                      <Select
+                        value={config[field] || ''}
+                        onValueChange={(v) => saveField(config, field, v)}
+                      >
+                        <SelectTrigger className="w-full">
+                          <SelectValue placeholder="Select model" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {AI_MODELS.map((m) => (
+                            <SelectItem key={m} value={m}>
+                              {label(m)}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <EmptyState
+            className="mt-4"
+            icon={<Bot className="size-5" />}
+            title="No AI model config"
+            description="No crm_ai_model_config rows were found."
           />
-          {aiConfigs.length ? (
-            <div className="mt-4 space-y-6">
-              {aiConfigs.map((config) => (
-                <div key={config.id}>
-                  <div className="mb-3 flex items-center gap-[7px] text-[12.5px] font-[600] text-foreground">
-                    <Bot className="size-4 text-muted-foreground" />
-                    {config.name || 'AI routing config'}
-                  </div>
-                  <div className="grid gap-4 sm:grid-cols-2">
-                    {AI_MODEL_FIELDS.map((field) => (
-                      <div key={field} className="grid gap-1.5">
-                        <Label className="text-[11.5px] text-muted-foreground">{label(field)}</Label>
-                        <Select
-                          value={config[field] || ''}
-                          onValueChange={(v) => saveField(config, field, v)}
-                        >
-                          <SelectTrigger className="w-full">
-                            <SelectValue placeholder="Select model" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {AI_MODELS.map((m) => (
-                              <SelectItem key={m} value={m}>
-                                {label(m)}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <EmptyState
-              className="mt-4"
-              icon={<Bot className="size-5" />}
-              title="No AI model config"
-              description="No crm_ai_model_config rows were found."
-            />
-          )}
-        </section>
+        )}
+      </section>
 
-        {/* Worker / system health */}
-        <section className="rounded-[12px] border bg-card p-5 shadow-[var(--shadow-xs)]">
-          <SectionHeader title="Automation & health" description="Backend worker cadence and integration status." />
-          <div className="mt-4 grid gap-3 sm:grid-cols-2">
-            {WORKER_CADENCE.map((w) => (
-              <div key={w.label} className="flex items-center justify-between gap-2 rounded-[8px] border px-3 py-[10px]">
-                <div className="flex items-center gap-[7px] text-[12.5px]">
-                  <Activity className="size-[14px] text-muted-foreground" />
-                  {w.label}
-                </div>
-                <Badge variant="outline">{w.cadence}</Badge>
-              </div>
-            ))}
-            <div className="flex items-center justify-between gap-2 rounded-[8px] border px-3 py-[10px]">
+      {/* Worker / system health */}
+      <section className="rounded-[12px] border bg-card p-5 shadow-[var(--shadow-xs)]">
+        <SectionHeader title="Automation & health" description="Backend worker cadence and integration status." />
+        <div className="mt-4 grid gap-3 sm:grid-cols-2">
+          {WORKER_CADENCE.map((w) => (
+            <div key={w.label} className="flex items-center justify-between gap-2 rounded-[8px] border px-3 py-[10px]">
               <div className="flex items-center gap-[7px] text-[12.5px]">
                 <Activity className="size-[14px] text-muted-foreground" />
-                Fireflies webhook
+                {w.label}
               </div>
-              <StatusBadge tone={firefliesOk === false ? 'danger' : firefliesOk ? 'success' : 'neutral'}>
-                {firefliesOk === null ? 'Checking…' : firefliesOk ? 'Online' : 'Offline'}
-              </StatusBadge>
+              <Badge variant="outline">{w.cadence}</Badge>
             </div>
-            <div className="flex items-center justify-between gap-2 rounded-[8px] border px-3 py-[10px]">
-              <div className="flex items-center gap-[7px] text-[12.5px]">
-                <Activity className="size-[14px] text-muted-foreground" />
-                Active ignore rules
-              </div>
-              <Badge variant="outline">{ignoreRules.length}</Badge>
+          ))}
+          <div className="flex items-center justify-between gap-2 rounded-[8px] border px-3 py-[10px]">
+            <div className="flex items-center gap-[7px] text-[12.5px]">
+              <Activity className="size-[14px] text-muted-foreground" />
+              Fireflies webhook
             </div>
+            <StatusBadge tone={firefliesOk === false ? 'danger' : firefliesOk ? 'success' : 'neutral'}>
+              {firefliesOk === null ? 'Checking…' : firefliesOk ? 'Online' : 'Offline'}
+            </StatusBadge>
           </div>
-        </section>
+          <div className="flex items-center justify-between gap-2 rounded-[8px] border px-3 py-[10px]">
+            <div className="flex items-center gap-[7px] text-[12.5px]">
+              <Activity className="size-[14px] text-muted-foreground" />
+              Active ignore rules
+            </div>
+            <Badge variant="outline">{ignoreRules.length}</Badge>
+          </div>
+        </div>
+      </section>
 
-        {/* Integration endpoints */}
-        <section className="rounded-[12px] border bg-card p-5 shadow-[var(--shadow-xs)]">
-          <SectionHeader title="Integrations" description="Service endpoints (no secrets are stored in the browser)." />
-          <div className="mt-4 space-y-2">
-            {endpoints.map((e) => (
-              <div key={e.label} className="flex items-center justify-between gap-2 rounded-[8px] border px-3 py-[10px] text-[12.5px]">
-                <div className="flex items-center gap-[7px]">
-                  <Plug className="size-[14px] text-muted-foreground" />
-                  {e.label}
-                </div>
-                <code className="truncate font-mono text-[11px] text-muted-foreground">{e.url}</code>
+      {/* Integration endpoints */}
+      <section className="rounded-[12px] border bg-card p-5 shadow-[var(--shadow-xs)]">
+        <SectionHeader title="Integrations" description="Service endpoints (no secrets are stored in the browser)." />
+        <div className="mt-4 space-y-2">
+          {endpoints.map((e) => (
+            <div key={e.label} className="flex items-center justify-between gap-2 rounded-[8px] border px-3 py-[10px] text-[12.5px]">
+              <div className="flex items-center gap-[7px]">
+                <Plug className="size-[14px] text-muted-foreground" />
+                {e.label}
               </div>
-            ))}
-          </div>
-        </section>
-      </div>
-    </AppPage>
+              <code className="truncate font-mono text-[11px] text-muted-foreground">{e.url}</code>
+            </div>
+          ))}
+        </div>
+      </section>
+    </div>
   )
 }

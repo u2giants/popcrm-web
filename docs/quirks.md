@@ -418,9 +418,12 @@ Three unrelated systems have to agree, and missing one fails quietly:
 2. **App access** — rows in the shared database: `app.profile` for the person,
    `app.user_role` for what they can do, and `app.app_access` granting `crm`.
    Without the `app_access` row every CRM RPC raises `crm: not authorized`,
-   because they all check `app.has_app_access('crm')`. There is no admin screen
-   for this yet; it is a database change, and roles/apps are shared across CRM,
-   PIM, DAM and PLM.
+   because they all check `app.has_app_access('crm')`. Administrators manage
+   roles, app access, active/inactive status and customer salesperson/owner
+   assignment in Settings → People & permissions / Customer assignments
+   (`src/features/admin/`, backed by the admin-gated `api.crm_admin_*`
+   functions). The person must have signed in once before they appear there.
+   Roles/apps are shared across CRM, PIM, DAM and PLM.
 3. **Their mail** — `OUTLOOK_MAILBOXES` in `/home/ai/.crm-worker.env`, a
    comma-separated list read by `resolveOutlookMailboxes` (live since
    2026-08-25: `adweck@popcre.com,jsafdieh@popcre.com`). Each mailbox keeps
