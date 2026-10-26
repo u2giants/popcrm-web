@@ -119,7 +119,7 @@ export function PeoplePanel() {
                 <th className="py-2 pr-3 font-medium">Roles</th>
                 <th className="py-2 pr-3 font-medium">CRM access</th>
                 <th className="py-2 pr-3 font-medium">Other apps</th>
-                <th className="py-2 pr-3 font-medium">Customers</th>
+                <th className="py-2 pr-3 font-medium">Departments</th>
                 <th className="py-2 pr-3 font-medium">Last sign-in</th>
                 <th className="py-2 font-medium">Status</th>
               </tr>
@@ -216,9 +216,7 @@ export function PeoplePanel() {
                       </div>
                     </td>
                     <td className="py-2.5 pr-3 tabular-nums text-muted-foreground">
-                      {u.salesperson_customer_count || u.owner_customer_count
-                        ? `${u.salesperson_customer_count} as salesperson · ${u.owner_customer_count} as owner`
-                        : '—'}
+                      {u.department_count || '—'}
                     </td>
                     <td className="py-2.5 pr-3 text-muted-foreground">{formatDate(u.last_sign_in_at) || 'Never'}</td>
                     <td className="py-2.5">

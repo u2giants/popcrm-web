@@ -419,8 +419,9 @@ Three unrelated systems have to agree, and missing one fails quietly:
    `app.user_role` for what they can do, and `app.app_access` granting `crm`.
    Without the `app_access` row every CRM RPC raises `crm: not authorized`,
    because they all check `app.has_app_access('crm')`. Administrators manage
-   roles, app access, active/inactive status and customer salesperson/owner
-   assignment in Settings → People & permissions / Customer assignments
+   roles, app access, active/inactive status and per-department salesperson
+   assignment (salespeople own departments at a customer, not whole customers)
+   in Settings → People & permissions / Salesperson assignments
    (`src/features/admin/`, backed by the admin-gated `api.crm_admin_*`
    functions). The person must have signed in once before they appear there.
    Roles/apps are shared across CRM, PIM, DAM and PLM.

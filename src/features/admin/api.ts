@@ -27,8 +27,7 @@ export interface AdminUser {
   roles: string[]
   apps: string[]
   crm_access: boolean
-  salesperson_customer_count: number
-  owner_customer_count: number
+  department_count: number
 }
 
 export interface AccessEvent {
@@ -41,16 +40,21 @@ export interface AccessEvent {
   actor_name: string | null
 }
 
-export interface AssignableCustomer {
+// A department at a customer. Salespeople are assigned per department, not
+// per customer (owner rule, 2026-10-26).
+export interface AssignableDepartment {
   id: string
   name: string
-  display_name: string | null
+  division: string | null
+  category: string | null
   status: string | null
-  primary_salesperson_profile_id: string | null
-  account_owner_profile_id: string | null
+  is_active: boolean
+  customer_id: string
+  customer_name: string
+  customer_display_name: string | null
+  customer_status: string | null
+  salesperson_profile_id: string | null
 }
-
-export type AssignmentField = 'salesperson' | 'account_owner'
 
 function strings(value: unknown): string[] {
   return Array.isArray(value) ? (value as string[]) : []
@@ -68,8 +72,7 @@ export function toAdminUser(r: Row): AdminUser {
     roles: strings(r.roles),
     apps: strings(r.apps),
     crm_access: Boolean(r.crm_access),
-    salesperson_customer_count: Number(r.salesperson_customer_count ?? 0),
-    owner_customer_count: Number(r.owner_customer_count ?? 0),
+    department_count: Number(r.department_count ?? 0),
   }
 }
 
@@ -107,14 +110,8 @@ export async function setUserStatus(profileId: string, status: 'active' | 'inact
   return toAdminUser((await rpc('crm_admin_set_user_status', { p_profile_id: profileId, p_status: status })) as Row)
 }
 
-export async function assignCustomers(
-  customerIds: string[],
-  profileId: string | null,
-  field: AssignmentField,
-): Promise<number> {
-  return Number(
-    await rpc('crm_admin_assign_customers', { p_customer_ids: customerIds, p_profile_id: profileId, p_field: field }),
-  )
+export async function assignDepartments(departmentIds: string[], profileId: string | null): Promise<number> {
+  return Number(await rpc('crm_admin_assign_departments', { p_department_ids: departmentIds, p_profile_id: profileId }))
 }
 
 export async function fetchAccessHistory(limit = 200): Promise<AccessEvent[]> {
@@ -122,21 +119,7 @@ export async function fetchAccessHistory(limit = 200): Promise<AccessEvent[]> {
   return (rows ?? []) as unknown as AccessEvent[]
 }
 
-// Customers for the assignment grid. Reads the same caller-gated list view the
-// Customers page uses, paging past PostgREST's 1000-row cap.
-export async function fetchAssignableCustomers(): Promise<AssignableCustomer[]> {
-  const PAGE = 1000
-  const out: AssignableCustomer[] = []
-  for (let from = 0; ; from += PAGE) {
-    const { data, error } = await anyDb
-      .schema('api')
-      .from('crm_customer_list')
-      .select('id,name,display_name,status,primary_salesperson_profile_id,account_owner_profile_id')
-      .order('name')
-      .range(from, from + PAGE - 1)
-    if (error) throw error
-    const rows = (data ?? []) as AssignableCustomer[]
-    out.push(...rows)
-    if (rows.length < PAGE) return out
-  }
+export async function fetchDepartmentAssignments(): Promise<AssignableDepartment[]> {
+  const rows = (await rpc('crm_admin_department_assignments')) as AssignableDepartment[] | null
+  return rows ?? []
 }

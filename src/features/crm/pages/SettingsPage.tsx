@@ -50,7 +50,7 @@ export function SettingsPage() {
             {isAdmin ? (
               <>
                 <TabsTrigger value="people">People & permissions</TabsTrigger>
-                <TabsTrigger value="assignments">Customer assignments</TabsTrigger>
+                <TabsTrigger value="assignments">Salesperson assignments</TabsTrigger>
                 <TabsTrigger value="history">Access history</TabsTrigger>
               </>
             ) : null}

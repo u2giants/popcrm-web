@@ -12,7 +12,7 @@ export const ROLE_LABEL: Record<string, string> = {
 
 export const ROLE_HELP: Record<string, string> = {
   administrator: 'Full access, including Settings and viewing as other people',
-  sales: 'Can be assigned customers as their salesperson',
+  sales: 'Can be assigned customer departments',
   licensing: 'Licensing team member',
   designer: 'Design team member',
   viewer: 'Read-only access',

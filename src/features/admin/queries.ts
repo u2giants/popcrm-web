@@ -1,15 +1,14 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import {
-  assignCustomers,
+  assignDepartments,
   fetchAccessHistory,
   fetchAdminRoles,
   fetchAdminUsers,
-  fetchAssignableCustomers,
+  fetchDepartmentAssignments,
   setUserAppAccess,
   setUserRoles,
   setUserStatus,
   type AdminUser,
-  type AssignmentField,
 } from './api'
 
 export const adminKeys = {
@@ -17,7 +16,7 @@ export const adminKeys = {
   roles: () => [...adminKeys.all, 'roles'] as const,
   users: () => [...adminKeys.all, 'users'] as const,
   history: () => [...adminKeys.all, 'history'] as const,
-  customers: () => [...adminKeys.all, 'customers'] as const,
+  departments: () => [...adminKeys.all, 'departments'] as const,
 }
 
 export function useAdminRolesQuery(enabled = true) {
@@ -32,8 +31,8 @@ export function useAccessHistoryQuery(enabled = true) {
   return useQuery({ queryKey: adminKeys.history(), queryFn: () => fetchAccessHistory(), enabled })
 }
 
-export function useAssignableCustomersQuery(enabled = true) {
-  return useQuery({ queryKey: adminKeys.customers(), queryFn: fetchAssignableCustomers, enabled })
+export function useDepartmentAssignmentsQuery(enabled = true) {
+  return useQuery({ queryKey: adminKeys.departments(), queryFn: fetchDepartmentAssignments, enabled })
 }
 
 type UserChange =
@@ -63,15 +62,14 @@ export function useUpdateAdminUserMutation() {
   })
 }
 
-export function useAssignCustomersMutation() {
+export function useAssignDepartmentsMutation() {
   const queryClient = useQueryClient()
   return useMutation({
-    mutationFn: ({ ids, profileId, field }: { ids: string[]; profileId: string | null; field: AssignmentField }) =>
-      assignCustomers(ids, profileId, field),
+    mutationFn: ({ ids, profileId }: { ids: string[]; profileId: string | null }) => assignDepartments(ids, profileId),
     onSettled: () => {
-      void queryClient.invalidateQueries({ queryKey: adminKeys.customers() })
+      void queryClient.invalidateQueries({ queryKey: adminKeys.departments() })
       void queryClient.invalidateQueries({ queryKey: adminKeys.users() })
-      // Customer lists elsewhere in the app carry the same columns.
+      // Department lists elsewhere in the app carry the same rows.
       void queryClient.invalidateQueries({ queryKey: ['crm'] })
     },
   })
