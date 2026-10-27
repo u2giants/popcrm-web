@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button'
 import { planDepartmentImport } from '@/features/crm/departmentImport'
 import { toast } from 'sonner'
 import { AppPage, ListBar } from '@/components/app/AppPage'
-import { DataTable, type Column, type EditOption } from '@/components/app/DataTable'
+import { DataTable, type Column, type EditOption, type CellEditContext } from '@/components/app/DataTable'
 import { ErrorState } from '@/components/app/states'
 import { RelationLabel } from '@/features/crm/components/RelationLabel'
 import { CustomerRelationLogo } from '@/features/crm/components/CustomerRelationLogo'
@@ -48,7 +48,7 @@ export function DepartmentsPage() {
     ]
   }
 
-  async function editCell(row: CrmDepartment, key: string, value: string) {
+  async function editCell(row: CrmDepartment, key: string, value: string, edit?: CellEditContext) {
     const values: Partial<CrmDepartment> = { [key]: value || null }
     if (key === 'retailer') {
       const currentBuyer = buyers.find((buyer) => buyer.id === idOf(row.primary_buyer))
@@ -57,6 +57,8 @@ export function DepartmentsPage() {
     try {
       await updateDepartment.mutateAsync({ id: row.id, values })
     } catch (error) {
+      // A bulk edit reports failures once, as a summary, so let the table count them.
+      if (edit?.bulk) throw error
       toast.error('Could not update department', { description: logError('DepartmentsPage.editCell', error) })
     }
   }

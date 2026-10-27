@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react'
 import { toast } from 'sonner'
 import { Building2 } from 'lucide-react'
 import { AppPage, ListBar } from '@/components/app/AppPage'
-import { DataTable, type Column, type EditOption } from '@/components/app/DataTable'
+import { DataTable, type Column, type EditOption, type CellEditContext } from '@/components/app/DataTable'
 import { StatusBadge } from '@/components/app/StatusBadge'
 import { Button } from '@/components/ui/button'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
@@ -83,18 +83,22 @@ export function CustomersPage() {
   const [selected, select] = useRecordSelection<Retailer>('retailer', customerRows)
 
   // Inline edit / drag-copy for the Status and Chain columns.
-  async function editCell(row: Retailer, key: string, value: string) {
+  async function editCell(row: Retailer, key: string, value: string, edit?: CellEditContext) {
     try {
       await updateCustomerMutation.mutateAsync({ id: row.id, values: { [key]: value } as Partial<Retailer> })
     } catch (error) {
+      // A bulk edit reports failures once, as a summary, so let the table count them.
+      if (edit?.bulk) throw error
       toast.error('Could not save change', { description: logError('CustomersPage.editCell', error) })
     }
   }
 
-  async function classifyDomain(row: CrmIngestedDomain, value: string) {
+  async function classifyDomain(row: CrmIngestedDomain, value: string, edit?: CellEditContext) {
     try {
       await updateDomainMutation.mutateAsync({ id: row.id, values: { status: value } })
     } catch (error) {
+      // A bulk edit reports failures once, as a summary, so let the table count them.
+      if (edit?.bulk) throw error
       toast.error('Could not classify domain', { description: logError('CustomersPage.classifyDomain', error) })
     }
   }
@@ -333,7 +337,7 @@ export function CustomersPage() {
             rows={filteredDomains}
             columns={domainColumns}
             getRowId={(r) => r.id}
-            onCellEdit={(row, _key, value) => classifyDomain(row, value)}
+            onCellEdit={(row, _key, value, edit) => classifyDomain(row, value, edit)}
             selectable
             loading={visibleFetch.isPending}
             emptyIcon={<Building2 className="size-5" />}

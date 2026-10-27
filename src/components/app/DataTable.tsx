@@ -4,6 +4,8 @@ import { Button } from '@/components/ui/button'
 import { LoadingState, EmptyState } from '@/components/app/states'
 import { columnDistinctValues } from '@/components/app/columnFilters'
 import { cn } from '@/lib/utils'
+import { toast } from 'sonner'
+import { logError } from '@/lib/errors'
 
 type Breakpoint = 'sm' | 'md' | 'lg' | 'xl'
 
@@ -13,6 +15,17 @@ const HIDE_CLASS: Record<Breakpoint, string> = {
   lg: 'hidden lg:table-cell',
   xl: 'hidden xl:table-cell',
 }
+
+/**
+ * Passed as the 4th onCellEdit argument. When `bulk` is true the caller must
+ * throw on failure instead of toasting, so the table can report one summary.
+ */
+export interface CellEditContext {
+  bulk: boolean
+}
+
+/** Rows written at once by a bulk edit: fast, without flooding the API. */
+const BULK_CONCURRENCY = 6
 
 export interface EditOption {
   value: string
@@ -89,7 +102,7 @@ export function DataTable<T>({
   getRowId: (row: T) => string
   onRowClick?: (row: T) => void
   /** Persist an inline edit / drag-copy. Called once per affected row. */
-  onCellEdit?: (row: T, columnKey: string, value: string) => void | Promise<void>
+  onCellEdit?: (row: T, columnKey: string, value: string, edit?: CellEditContext) => void | Promise<void>
   loading?: boolean
   emptyTitle?: string
   emptyDescription?: string
@@ -141,6 +154,7 @@ export function DataTable<T>({
   const [bulkKey, setBulkKey] = useState('')
   const [bulkValue, setBulkValue] = useState('')
   const [bulkBusy, setBulkBusy] = useState(false)
+  const [bulkProgress, setBulkProgress] = useState<{ done: number; total: number } | null>(null)
 
   const [editCell, setEditCell] = useState<({ rowId: string; key: string } & OverlayPlacement) | null>(null)
   const [editQuery, setEditQuery] = useState('')
@@ -288,16 +302,54 @@ export function DataTable<T>({
 
   async function applyBulkValue() {
     if (!bulkCol || !bulkValue || !onCellEdit) return
+    const col = bulkCol
+    const value = bulkValue
+    const label = bulkOptions.find((o) => o.value === value)?.label ?? value
+    // Snapshot now: the rows refetch while we write, which must not shrink the job.
+    const targets = selectedRows.filter((row) => {
+      const current = col.editValue ? String(col.editValue(row) ?? '') : ''
+      return current !== value
+    })
+    if (targets.length === 0) {
+      toast.info(`Already ${label}`, { description: 'Every selected row already has that value.' })
+      return
+    }
     setBulkBusy(true)
-    try {
-      for (const row of selectedRows) {
-        const current = bulkCol.editValue ? String(bulkCol.editValue(row) ?? '') : ''
-        if (current === bulkValue) continue
-        await onCellEdit(row, bulkCol.key, bulkValue)
+    setBulkProgress({ done: 0, total: targets.length })
+    const failed: T[] = []
+    let firstError: unknown = null
+    let done = 0
+    let next = 0
+    async function worker() {
+      while (next < targets.length) {
+        const row = targets[next++]
+        try {
+          await onCellEdit!(row, col.key, value, { bulk: true })
+        } catch (error) {
+          failed.push(row)
+          firstError ??= error
+        }
+        done++
+        setBulkProgress({ done, total: targets.length })
       }
-      setBulkValue('')
+    }
+    try {
+      await Promise.all(Array.from({ length: Math.min(BULK_CONCURRENCY, targets.length) }, worker))
     } finally {
       setBulkBusy(false)
+      setBulkProgress(null)
+    }
+    const saved = targets.length - failed.length
+    if (failed.length === 0) {
+      toast.success(`Set ${saved.toLocaleString()} ${saved === 1 ? 'row' : 'rows'} to ${label}`)
+      setBulkValue('')
+      clearSelection()
+    } else {
+      toast.error(`${failed.length.toLocaleString()} of ${targets.length.toLocaleString()} rows were not saved`, {
+        description: `${saved.toLocaleString()} saved. The failed rows stay selected so you can retry. ${logError('DataTable.applyBulkValue', firstError)}`,
+        duration: 15_000,
+      })
+      setSelectedIds(new Set(failed.map(getRowId)))
     }
   }
 
@@ -639,7 +691,7 @@ export function DataTable<T>({
       </div>
 
       {/* Bulk bar for the current selection */}
-      {selectable && selectedIds.size > 0 && (
+      {selectable && (selectedIds.size > 0 || bulkBusy) && (
         <div
           className="flex flex-wrap items-center gap-2 border-b bg-primary/5 px-[10px] py-[7px]"
           onClick={(e) => e.stopPropagation()}
@@ -675,7 +727,9 @@ export function DataTable<T>({
                 disabled={!bulkValue || bulkBusy}
                 onClick={() => void applyBulkValue()}
               >
-                {bulkBusy ? 'Applying…' : 'Apply to selected'}
+                {bulkBusy
+                  ? `Applying ${bulkProgress?.done.toLocaleString() ?? 0} of ${bulkProgress?.total.toLocaleString() ?? 0}…`
+                  : 'Apply to selected'}
               </Button>
             </>
           )}
