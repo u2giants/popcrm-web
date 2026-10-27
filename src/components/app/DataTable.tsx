@@ -360,14 +360,26 @@ export function DataTable<T>({
     header: (
       <input
         type="checkbox"
-        aria-label="Select all rows"
-        checked={sorted.length > 0 && selectedIds.size >= sorted.length}
+        // Only the rows on screen: a bulk action must never reach rows on other pages.
+        aria-label="Select all rows on this page"
+        checked={pageRows.length > 0 && pageRows.every((r) => selectedIds.has(getRowId(r)))}
         ref={(el) => {
-          if (el) el.indeterminate = selectedIds.size > 0 && selectedIds.size < sorted.length
+          if (el) {
+            const onPage = pageRows.filter((r) => selectedIds.has(getRowId(r))).length
+            el.indeterminate = onPage > 0 && onPage < pageRows.length
+          }
         }}
         onChange={(event) => {
           setSelectAnchor(null)
-          setSelectedIds(event.target.checked ? new Set(sortedIds) : new Set())
+          const ids = pageRows.map(getRowId)
+          setSelectedIds((current) => {
+            const next = new Set(current)
+            for (const id of ids) {
+              if (event.target.checked) next.add(id)
+              else next.delete(id)
+            }
+            return next
+          })
         }}
         onClick={(event) => event.stopPropagation()}
         className="size-4 accent-primary"
