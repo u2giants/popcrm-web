@@ -36,7 +36,7 @@ import type { CrmEmailMessage } from '@/lib/types'
 // Counts and pages come from the server over every message.
 type Stage = EmailStage
 type Segment = Stage | 'all'
-const PAGE_SIZE = 200
+const PAGE_SIZE = 50
 
 const STAGES: { id: Stage; label: string; hint: string; empty: string }[] = [
   { id: 'needs_company', label: 'Needs company', hint: 'Step 1 — pick the customer', empty: 'Every message has a company.' },
@@ -313,6 +313,7 @@ export function EmailRoutingPage() {
             emptyTitle={query ? 'No messages match your search' : 'Nothing here'}
             emptyDescription={query ? 'Adjust your search.' : activeStage?.empty ?? 'No messages yet.'}
             initialSort={{ key: 'received_at', dir: 'desc' }}
+            pageSize={PAGE_SIZE}
           />
           {stageTotal && stageTotal > PAGE_SIZE ? (
             <div className="flex items-center justify-end gap-2 text-sm text-muted-foreground">
