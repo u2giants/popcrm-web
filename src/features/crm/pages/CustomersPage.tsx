@@ -117,16 +117,6 @@ export function CustomersPage() {
     return { contacts, opps }
   }, [buyers, opportunities])
 
-  // Segment counts are the bucket sizes themselves, so a tab count is always
-  // exactly the number of rows that tab shows. Only the Triage count (email
-  // domains, not company records) comes from the server.
-  const segCounts = {
-    active: buckets.active.length,
-    unclassified: buckets.unclassified.length,
-    dismissed: buckets.dismissed.length,
-    all: allCustomers.length,
-    triage: countsQuery.data?.triage ?? triageDomains.length,
-  }
 
   const filteredCustomers = useMemo(() => {
     const q = query.trim().toLowerCase()
@@ -136,9 +126,31 @@ export function CustomersPage() {
     })
   }, [customerRows, query])
 
+  // Domains a customer record already owns (its domain or a routing alias).
+  const customerDomains = useMemo(() => {
+    const out = new Set<string>()
+    for (const c of allCustomers) {
+      for (const d of [c.domain, ...(c.routing_aliases ?? '').split(/[\s,;]+/)]) {
+        const v = (d ?? '').trim().toLowerCase().replace(/^@/, '')
+        if (v) out.add(v)
+      }
+    }
+    return out
+  }, [allCustomers])
+
+  // "New email domains" means not classified yet: still 'new', and not a
+  // domain that already belongs to a customer record.
+  const unclassifiedDomains = useMemo(
+    () =>
+      triageDomains.filter(
+        (r) => (r.status ?? 'new') === 'new' && !customerDomains.has((r.domain ?? '').trim().toLowerCase()),
+      ),
+    [triageDomains, customerDomains],
+  )
+
   const filteredDomains = useMemo(() => {
     const q = query.trim().toLowerCase()
-    return triageDomains.filter((r) => {
+    return unclassifiedDomains.filter((r) => {
       if (!q) return true
       return textOf(
         r.domain,
@@ -148,7 +160,18 @@ export function CustomersPage() {
         r.sample_subject,
       ).includes(q)
     })
-  }, [triageDomains, query])
+  }, [unclassifiedDomains, query])
+
+  // Segment counts are the bucket sizes themselves, so a tab count is always
+  // exactly the number of rows that tab shows. The Triage count is the
+  // unclassified-domain list once loaded, the server count until then.
+  const segCounts = {
+    active: buckets.active.length,
+    unclassified: buckets.unclassified.length,
+    dismissed: buckets.dismissed.length,
+    all: allCustomers.length,
+    triage: allCustomersQuery.isSuccess && triageDomainsQuery.isSuccess ? unclassifiedDomains.length : countsQuery.data?.triage ?? 0,
+  }
 
   const count = segment === 'triage' ? filteredDomains.length : filteredCustomers.length
 

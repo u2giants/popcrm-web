@@ -82,7 +82,7 @@ describe('DataTable selection + bulk edit', () => {
   it('select-all covers every row and clearing empties the bar', () => {
     renderTable()
 
-    fireEvent.click(screen.getByLabelText('Select all rows'))
+    fireEvent.click(screen.getByLabelText('Select all rows on this page'))
     expect(screen.getByText('4 selected')).toBeTruthy()
 
     fireEvent.click(screen.getByRole('button', { name: /clear selection/i }))
@@ -94,7 +94,7 @@ describe('DataTable selection + bulk edit', () => {
     })
     renderTable(onCellEdit)
 
-    fireEvent.click(screen.getByLabelText('Select all rows'))
+    fireEvent.click(screen.getByLabelText('Select all rows on this page'))
     fireEvent.change(screen.getByLabelText('Value to apply'), { target: { value: 'ACTIVE' } })
     fireEvent.click(screen.getByRole('button', { name: /apply to selected/i }))
 
@@ -105,11 +105,26 @@ describe('DataTable selection + bulk edit', () => {
   it('clears the selection once every row saved', async () => {
     const onCellEdit = renderTable(vi.fn(async () => {}))
 
-    fireEvent.click(screen.getByLabelText('Select all rows'))
+    fireEvent.click(screen.getByLabelText('Select all rows on this page'))
     fireEvent.change(screen.getByLabelText('Value to apply'), { target: { value: 'ACTIVE' } })
     fireEvent.click(screen.getByRole('button', { name: /apply to selected/i }))
 
     await waitFor(() => expect(screen.queryByText(/selected$/)).toBeNull())
     expect(onCellEdit).toHaveBeenCalledTimes(3)
+  })
+  it('select-all only picks the rows on the current page', () => {
+    render(
+      <DataTable
+        rows={ROWS}
+        columns={COLUMNS}
+        getRowId={(r) => r.id}
+        onCellEdit={vi.fn()}
+        selectable
+        pageSize={2}
+        initialSort={{ key: 'name', dir: 'asc' }}
+      />,
+    )
+    fireEvent.click(screen.getByLabelText('Select all rows on this page'))
+    expect(screen.getByText('2 selected')).toBeTruthy()
   })
 })
