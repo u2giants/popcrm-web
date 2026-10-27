@@ -27,6 +27,10 @@ def load(path):
     with open(path, "rb") as f:
         raw = f.read()
     rows = json.loads(raw)
+    for r in rows:
+        missing = {"id", "domain", "status"} - set(r)
+        if missing:
+            raise KeyError(f"{path}: row missing {sorted(missing)}")
     ids = [str(uuid.UUID(r["id"])) for r in rows]
     if len(ids) != len(set(ids)):
         fail(f"duplicate ids in {path}")
@@ -59,15 +63,13 @@ def main(argv):
         newer = {i for i, r in live_all.items()
                  if datetime.fromisoformat(r["first_seen_at"].replace("Z", "+00:00")) > end}
     except (KeyError, ValueError, TypeError, AttributeError) as e:
-        fail(f"live rows need first_seen_at: {e!r}")
+        fail(f"live rows need a timezone-qualified first_seen_at: {e!r}")
     if set(live_all) - set(intended) - newer != set(targets):
         fail("live table minus the intended 50 (and post-incident rows) is not exactly the target list")
     if any(live_all[i]["status"] != "OTHER" for i in intended if i in live_all) or not set(intended) <= set(live_all):
         fail("an intended-50 row is missing from live or no longer OTHER")
     if set(clone) != set(targets):
         fail(f"clone is missing {len(set(targets) - set(clone))} target ids or has extras: resolve by hand, never guess")
-    if not set(clone) <= set(targets):
-        fail("clone has ids outside the target list")
     live = {i: live_all[i] for i in targets}
     for i, r in clone.items():
         if r.get("status") not in VOCAB:
@@ -111,8 +113,9 @@ end $$;
 {'commit' if mode == 'apply' else 'rollback'};""")
     skipped = sorted(clone[i]["domain"] for i in clone if live[i]["status"] != "OTHER")
     missing = sorted(targets[i]["domain"] for i in targets if i not in clone)
+    write_list = {clone[i]["domain"]: clone[i]["status"] for i in writes}
     already = sorted(clone[i]["domain"] for i in clone if clone[i]["status"] == "OTHER")
-    print(json.dumps({"E": e, "already_other_in_clone": already, "post_incident_rows": sorted(live_all[i]["domain"] for i in newer), "skipped_retriaged": skipped, "missing_in_clone": missing,
+    print(json.dumps({"E": e, "writes": write_list, "already_other_in_clone": already, "post_incident_rows": sorted(live_all[i]["domain"] for i in newer), "skipped_retriaged": skipped, "missing_in_clone": missing,
                       "sha256": {"clone": h_clone, "live_before": h_live, "targets": h_targets, "intended": h_intended}}), file=sys.stderr)
 
 

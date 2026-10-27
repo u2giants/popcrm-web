@@ -1,6 +1,10 @@
 #!/usr/bin/env python3
-"""Fixture tests for build_restore_sql.py: python3 -I .ai/scripts/test_build_restore_sql.py"""
-import json, os, subprocess, sys, tempfile, uuid
+"""Fixture tests for build_restore_sql.py: python3 -I .ai/scripts/test_build_restore_sql.py
+
+These check the generator only. The generated SQL is proven by the mandatory
+clone rehearsal (plan step 4a), not here.
+"""
+import json, os, shutil, subprocess, sys, tempfile, uuid
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 OLD = "2026-10-01T00:00:00Z"
@@ -16,8 +20,11 @@ def run(mode, clone, live_all, targets, intended):
         with open(p, "w") as f:
             json.dump(rows, f)
         paths.append(p)
-    return subprocess.run([sys.executable, "-I", os.path.join(HERE, "build_restore_sql.py"), mode, *paths],
-                          capture_output=True, text=True)
+    try:
+        return subprocess.run([sys.executable, "-I", os.path.join(HERE, "build_restore_sql.py"), mode, *paths],
+                              capture_output=True, text=True)
+    finally:
+        shutil.rmtree(d)
 
 
 def rows(idl, status_of, seen=OLD):
@@ -33,6 +40,7 @@ fresh = [{"id": str(uuid.uuid4()), "domain": "fresh.com", "status": "new", "firs
 ok = run("apply", clone, live_all, targets, intended)
 assert ok.returncode == 0, ok.stderr
 summary = json.loads(ok.stderr)
+assert len(summary["writes"]) == 222 and ok.stdout.count("::uuid") == 222
 assert summary["E"] == 222 and summary["skipped_retriaged"] == ["d1.com"], summary
 assert "commit;" in ok.stdout and "primary key" in ok.stdout
 
@@ -57,6 +65,8 @@ fails = {
     "unknown vocab": (rows(ids, lambda n: "Other "), live_all, targets, intended),
     "wrong target count": (clone, live_all, targets[:-1], intended),
     "intended overlaps targets": (clone, live_all, targets, intended[:49] + targets[:1]),
+    "row missing domain": (clone, live_all, [{"id": r["id"], "status": "OTHER"} for r in targets], intended),
+    "naive timestamp": (clone, [dict(r, first_seen_at="2026-10-01T00:00:00") for r in live_all], targets, intended),
     "malformed": (clone, [{"id": "x"}], targets, intended),
     "missing first_seen_at": (clone, [{k: v for k, v in r.items() if k != "first_seen_at"} for r in live_all], targets, intended),
 }
