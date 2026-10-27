@@ -111,7 +111,8 @@ end $$;
 {'commit' if mode == 'apply' else 'rollback'};""")
     skipped = sorted(clone[i]["domain"] for i in clone if live[i]["status"] != "OTHER")
     missing = sorted(targets[i]["domain"] for i in targets if i not in clone)
-    print(json.dumps({"E": e, "post_incident_rows": sorted(live_all[i]["domain"] for i in newer), "skipped_retriaged": skipped, "missing_in_clone": missing,
+    already = sorted(clone[i]["domain"] for i in clone if clone[i]["status"] == "OTHER")
+    print(json.dumps({"E": e, "already_other_in_clone": already, "post_incident_rows": sorted(live_all[i]["domain"] for i in newer), "skipped_retriaged": skipped, "missing_in_clone": missing,
                       "sha256": {"clone": h_clone, "live_before": h_live, "targets": h_targets, "intended": h_intended}}), file=sys.stderr)
 
 
