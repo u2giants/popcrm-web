@@ -3,6 +3,38 @@
 Moved out of AGENTS.md. Load when investigating a regression or deploy failure.
 
 
+### 2026-10-27 Select-all bulk action overwrote 447 email-domain classifications
+
+What happened:
+On the Customers triage list ("New email domains"), Albert selected the first 50
+rows and applied "Not a Customer". The select-all control selected every row in
+the list, so a second batch at 1:06-1:07 PM EDT set all 497 domains to `OTHER`
+(Not a Customer). Only 50 were intended.
+
+Impact:
+447 domains that were still unreviewed (`new`) disappeared from triage and were
+counted as Not a Customer for about 3 hours 20 minutes. No other table or column
+was changed. There is no change history for `crm.ingested_domain.status`.
+
+Root cause:
+Select-all picked every loaded row, not just the visible page, and the bulk
+"Apply to selected" wrote the whole selection with no count confirmation.
+
+Recovery:
+PR #19 fixed select-all to pick only the visible page. The old values were read
+from a temporary Supabase point-in-time copy at 1:03 PM EDT (all 447 were
+`new`). They were written back at 4:23 PM EDT in one guarded transaction:
+447 rows restored, the intended 50 left as `OTHER`, and every other row
+unchanged. The copy was then deleted. Plan, scripts and reviews are on branch
+`claude/recursing-goodall-397ff6` (reviewed and approved by GLM).
+
+Rule added to prevent recurrence:
+A bulk action applies only to the rows the user can see, and must show the
+exact count before a mass write. When data is overwritten without history,
+recover from a separate point-in-time copy, never by guessing and never by
+rolling back the live database.
+
+
 ### 2026-06-22 Live-query refactor capped CRM screens
 
 What happened:
