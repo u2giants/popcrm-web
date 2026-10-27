@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react'
 import { toast } from 'sonner'
 import { useQueryClient } from '@tanstack/react-query'
-import { Database, Image, Link2, Plus, RotateCcw, Save, Search, Trash2, Upload, Wand2, X } from 'lucide-react'
+import { Database, Image, Link2, Plus, RotateCcw, Save, Search, Trash2, Upload, X } from 'lucide-react'
 import { AppPage, ListBar, SectionHeader } from '@/components/app/AppPage'
 import { Combobox, type ComboOption } from '@/components/app/Combobox'
 import { DataTable, type Column } from '@/components/app/DataTable'
@@ -17,7 +17,6 @@ import {
   createDepartment,
   deleteDepartment,
   setRetailerLogo,
-  updateBuyer,
   updateDepartment,
   updateOpportunity,
   updateRetailer,
@@ -35,7 +34,7 @@ import {
   useCustomerDisplayName,
 } from '@/features/crm/queries'
 import { logError } from '@/lib/errors'
-import type { Buyer, CrmDepartment, CrmOpportunity, Retailer } from '@/lib/types'
+import type { CrmDepartment, CrmOpportunity, Retailer } from '@/lib/types'
 
 type AdminTab = 'departments' | 'logos' | 'contact-values' | 'division-values'
 type LogoCandidate = {
@@ -96,7 +95,6 @@ export function DataAdminPage() {
   }
   const [departmentDraft, setDepartmentDraft] = useState<DepartmentForm>(() => departmentForm())
   const [selectedDepartmentId, setSelectedDepartmentId] = useState('')
-  const [typeToMove, setTypeToMove] = useState('')
   const [divisionFrom, setDivisionFrom] = useState('')
   const [divisionTo, setDivisionTo] = useState('')
   const [busy, setBusy] = useState(false)
@@ -116,10 +114,6 @@ export function DataAdminPage() {
     () => buyers.map((b) => ({ value: b.id, label: b.name, hint: customerName(b.retailer) })),
     [buyers, customerName],
   )
-  const typeValues = useMemo(
-    () => uniqueValues(buyers, (b) => b.contact_type).map((o) => o.value),
-    [buyers],
-  )
   const titleValues = useMemo(
     () => uniqueValues(buyers, (b) => b.job_title).map((o) => o.value),
     [buyers],
@@ -134,8 +128,6 @@ export function DataAdminPage() {
 
   const selectedDepartment = departments.find((d) => d.id === selectedDepartmentId)
   const selectedLogoCustomer = logoCustomers.find((r) => r.id === selectedLogoCustomerId)
-  const moveCandidates = buyers.filter((b) => b.contact_type && (!typeToMove || b.contact_type === typeToMove))
-  const moveOverwriteCount = moveCandidates.filter((b) => b.job_title).length
   const divisionDepartmentCount = departments.filter((d) => d.division === divisionFrom).length
   const divisionProgramCount = opportunities.filter((o) => o.division === divisionFrom).length
 
@@ -417,36 +409,6 @@ export function DataAdminPage() {
       toast.success('Department deleted')
     } catch (error) {
       toast.error('Could not delete department', { description: logError('DataAdminPage.removeDepartment', error) })
-    } finally {
-      setBusy(false)
-    }
-  }
-
-  async function moveTypeToTitle() {
-    if (!moveCandidates.length) return
-    setBusy(true)
-    const previous = buyers
-    const next = buyers.map((b) =>
-      b.contact_type && (!typeToMove || b.contact_type === typeToMove)
-        ? { ...b, job_title: b.job_title || b.contact_type, contact_type: null }
-        : b,
-    )
-    queryClient.setQueryData<Buyer[]>(crmKeys.ingestedContacts(-1), next)
-    try {
-      await Promise.all(
-        moveCandidates.map((b) =>
-          updateBuyer(b.id, {
-            job_title: b.job_title || b.contact_type,
-            contact_type: null,
-            retailer: b.retailer,
-          } as Partial<Buyer>),
-        ),
-      )
-      toast.success(`Updated ${moveCandidates.length.toLocaleString()} contacts`)
-      setTypeToMove('')
-    } catch (error) {
-      queryClient.setQueryData<Buyer[]>(crmKeys.ingestedContacts(-1), previous)
-      toast.error('Could not move Type values', { description: logError('DataAdminPage.moveTypeToTitle', error) })
     } finally {
       setBusy(false)
     }
@@ -761,45 +723,11 @@ export function DataAdminPage() {
             <div className="grid gap-5 lg:grid-cols-2">
               <section className="rounded-[8px] border bg-card p-4 shadow-[var(--shadow-xs)]">
                 <SectionHeader
-                  title="Move Type Into Title"
-                  description="Fill empty contact titles from Type, then clear Type."
-                />
-                <div className="mt-4 grid gap-3">
-                  <div className="grid gap-1.5">
-                    <Label>Type value</Label>
-                    <Combobox
-                      options={valueOptions(typeValues)}
-                      value={typeToMove}
-                      onChange={setTypeToMove}
-                      placeholder="All Type values"
-                      clearLabel="All Type values"
-                    />
-                  </div>
-                  <div className="grid gap-2 rounded-[8px] border bg-muted/25 p-3 text-[12.5px] text-muted-foreground">
-                    <div className="flex justify-between gap-2">
-                      <span>Contacts affected</span>
-                      <Badge variant="outline">{moveCandidates.length.toLocaleString()}</Badge>
-                    </div>
-                    <div className="flex justify-between gap-2">
-                      <span>Already have Title</span>
-                      <Badge variant="outline">{moveOverwriteCount.toLocaleString()}</Badge>
-                    </div>
-                  </div>
-                  <Button onClick={moveTypeToTitle} disabled={busy || !moveCandidates.length}>
-                    <Wand2 className="size-4" />
-                    Move and Clear Type
-                  </Button>
-                </div>
-              </section>
-
-              <section className="rounded-[8px] border bg-card p-4 shadow-[var(--shadow-xs)]">
-                <SectionHeader
                   title="Current Contact Values"
                   description="Values currently present in contact records."
                 />
                 <div className="mt-4 grid gap-4 sm:grid-cols-2">
                   <ValueList title="Titles" values={titleValues} />
-                  <ValueList title="Types" values={typeValues} />
                 </div>
               </section>
             </div>
