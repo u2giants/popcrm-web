@@ -11,7 +11,7 @@ import { CustomerRelationLogo } from '@/features/crm/components/CustomerRelation
 import { RelationLabel } from '@/features/crm/components/RelationLabel'
 import { useRecordSelection } from '@/features/crm/useRecordSelection'
 import { EmailDrawer } from '@/features/crm/components/EmailDrawer'
-import { ROUTING_STATUSES, WORKER_CADENCE, needsRouting } from '@/features/crm/constants'
+import { ROUTING_STATUSES, WORKER_CADENCE } from '@/features/crm/constants'
 import { formatDateTime, idOf, label, relatedName, textOf } from '@/features/crm/format'
 import { customerEditOptions, withCurrentCustomer, buildRetailerById } from '@/features/crm/pages/_shared'
 import { useAuth } from '@/auth/auth'
@@ -29,8 +29,38 @@ import {
 import { logError } from '@/lib/errors'
 import type { CrmEmailMessage } from '@/lib/types'
 
-type Segment = 'company' | 'department' | 'program' | 'triage' | 'all'
-const EMAIL_ROUTE_LIMIT = 500
+// Every message is routed in three levels: company -> department -> program.
+// A message's stage is the first level it is still missing.
+type Stage = 'needs_company' | 'needs_department' | 'needs_program' | 'routed' | 'skipped'
+type Segment = Stage | 'all'
+// Largest window the server's fast recent-messages feed returns. Counts and
+// lists are both computed from this same window so they always agree.
+const EMAIL_ROUTE_LIMIT = 1000
+
+const STAGES: { id: Stage; label: string; hint: string; empty: string }[] = [
+  { id: 'needs_company', label: 'Needs company', hint: 'Step 1 — pick the customer', empty: 'Every message has a company.' },
+  { id: 'needs_department', label: 'Needs department', hint: 'Step 2 — pick the department', empty: 'Every message with a company has a department.' },
+  { id: 'needs_program', label: 'Needs program', hint: 'Step 3 — pick the program', empty: 'Every message with a department has a program.' },
+  { id: 'routed', label: 'Fully routed', hint: 'Company, department and program set', empty: 'No fully routed messages yet.' },
+  { id: 'skipped', label: 'Skipped', hint: 'Not customer business', empty: 'No skipped messages.' },
+]
+
+function stageOf(e: Pick<CrmEmailMessage, 'routing_status' | 'retailer' | 'department' | 'opportunity'>): Stage {
+  if (idOf(e.opportunity)) return 'routed'
+  if (e.routing_status === 'SKIPPED') return 'skipped'
+  if (!idOf(e.retailer)) return 'needs_company'
+  if (!idOf(e.department)) return 'needs_department'
+  return 'needs_program'
+}
+
+// Status that matches what has been assigned, so the backend label never
+// contradicts the routing levels shown on screen.
+function statusFor(company: string | null, department: string | null, program: string | null) {
+  if (program) return 'ROUTED'
+  if (department) return 'COMPANY_DEPT'
+  if (company) return 'COMPANY_ONLY'
+  return 'UNROUTED'
+}
 
 const METHOD_LABEL: Record<string, string> = {
   DETERMINISTIC: 'Rule match',
@@ -66,7 +96,7 @@ export function EmailRoutingPage() {
   const { user } = useAuth()
   const roleText = `${user?.role?.name ?? ''} ${user?.role?.id ?? ''}`.toLowerCase()
   const canSeeAll = /admin/.test(roleText)
-  const [segment, setSegment] = useState<Segment>('triage')
+  const [segment, setSegment] = useState<Segment>('needs_company')
   const [query, setQuery] = useState('')
   const [selected, select] = useRecordSelection<CrmEmailMessage>('message', emails)
   const retailerById = useMemo(
@@ -79,42 +109,48 @@ export function EmailRoutingPage() {
     () => customerEditOptions(retailers),
     [retailers],
   )
-  const departmentOptions = useMemo<EditOption[]>(
-    () => [{ value: '', label: 'Unassigned' }, ...departments.map((d) => ({ value: d.id, label: d.name }))],
-    [departments],
-  )
-  const programOptions = useMemo<EditOption[]>(
-    () => [
-      { value: '', label: 'Unassigned' },
-      ...opportunities.map((o) => ({ value: o.id, label: o.name || 'Untitled program' })),
-    ],
-    [opportunities],
-  )
+  // Each level only offers choices that belong to the level above it.
+  function departmentOptionsFor(e: CrmEmailMessage): EditOption[] {
+    const company = idOf(e.retailer)
+    const pool = company ? departments.filter((d) => idOf(d.retailer) === company) : []
+    return [{ value: '', label: company ? 'Unassigned' : 'Pick a company first' }, ...pool.map((d) => ({ value: d.id, label: d.name }))]
+  }
+  function programOptionsFor(e: CrmEmailMessage): EditOption[] {
+    const dept = idOf(e.department)
+    const pool = dept ? opportunities.filter((o) => idOf(o.department) === dept) : []
+    return [
+      { value: '', label: dept ? 'Unassigned' : 'Pick a department first' },
+      ...pool.map((o) => ({ value: o.id, label: o.name || 'Untitled program' })),
+    ]
+  }
   const statusOptions = useMemo<EditOption[]>(
     () => ROUTING_STATUSES.map((v) => ({ value: v, label: label(v) })),
     [],
   )
 
-  function emailBucket(e: CrmEmailMessage): Exclude<Segment, 'all'> {
-    if (needsRouting(e.routing_status)) return 'triage'
-    if (idOf(e.opportunity)) return 'program'
-    if (idOf(e.department)) return 'department'
-    if (idOf(e.retailer)) return 'company'
-    return 'triage'
-  }
-
   async function editCell(row: CrmEmailMessage, key: string, value: string, edit?: CellEditContext) {
-    const nextValue = value || null
-    const expanded =
-      key === 'retailer'
-        ? retailerById.get(value) ?? null
-        : key === 'department'
-          ? departmentById.get(value) ?? null
-          : key === 'opportunity'
-            ? opportunityById.get(value) ?? null
-            : nextValue
+    const v = value || null
+    let values: Partial<CrmEmailMessage>
+    if (key === 'retailer' || key === 'department' || key === 'opportunity') {
+      // Changing a level clears the levels below it (they belonged to the old choice).
+      let company = idOf(row.retailer) || null
+      let dept = idOf(row.department) || null
+      let program = idOf(row.opportunity) || null
+      if (key === 'retailer') { company = v; dept = null; program = null }
+      if (key === 'department') { dept = v; program = null }
+      if (key === 'opportunity') program = v
+      values = {
+        retailer: company ? retailerById.get(company) ?? company : null,
+        department: dept ? departmentById.get(dept) ?? dept : null,
+        opportunity: program ? opportunityById.get(program) ?? program : null,
+        routing_status: statusFor(company, dept, program),
+        routing_method: 'MANUAL',
+      } as Partial<CrmEmailMessage>
+    } else {
+      values = { [key]: v } as Partial<CrmEmailMessage>
+    }
     try {
-      await updateEmailMutation.mutateAsync({ id: row.id, values: { [key]: expanded ?? nextValue } as Partial<CrmEmailMessage> })
+      await updateEmailMutation.mutateAsync({ id: row.id, values })
     } catch (error) {
       // A bulk edit reports failures once, as a summary, so let the table count them.
       if (edit?.bulk) throw error
@@ -122,17 +158,18 @@ export function EmailRoutingPage() {
     }
   }
 
-  const localSegCounts = useMemo(() => {
-    const counts = { company: 0, department: 0, program: 0, triage: 0, all: emails.length }
-    for (const e of emails) counts[emailBucket(e)]++
+  const stageCounts = useMemo(() => {
+    const counts: Record<Segment, number> = { needs_company: 0, needs_department: 0, needs_program: 0, routed: 0, skipped: 0, all: emails.length }
+    for (const e of emails) counts[stageOf(e)]++
     return counts
   }, [emails])
-  const segCounts = countsQuery.data ?? localSegCounts
+  const totalMessages = countsQuery.data?.all ?? null
+  const oldest = emails.reduce<string | null>((min, e) => (e.received_at && (!min || e.received_at < min) ? e.received_at : min), null)
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase()
     return emails.filter((e) => {
-      if (segment !== 'all' && emailBucket(e) !== segment) return false
+      if (segment !== 'all' && stageOf(e) !== segment) return false
       if (
         q &&
         !textOf(
@@ -184,11 +221,11 @@ export function EmailRoutingPage() {
     },
     {
       key: 'department',
-      header: 'Dept.',
+      header: 'Department',
       hideBelow: 'lg',
       sortValue: (e) => relatedName(e.department),
       filterValue: (e) => relatedName(e.department),
-      editOptions: departmentOptions,
+      editOptions: departmentOptionsFor,
       editValue: (e) => idOf(e.department),
       cell: (e) => <RelationLabel value={e.department} />,
     },
@@ -198,7 +235,7 @@ export function EmailRoutingPage() {
       hideBelow: 'xl',
       sortValue: (e) => relatedName(e.opportunity),
       filterValue: (e) => relatedName(e.opportunity),
-      editOptions: programOptions,
+      editOptions: programOptionsFor,
       editValue: (e) => idOf(e.opportunity),
       cell: (e) => <RelationLabel value={e.opportunity} />,
     },
@@ -225,19 +262,21 @@ export function EmailRoutingPage() {
   ]
 
   const segments: { id: Segment; label: string; count: number }[] = [
-    { id: 'company', label: 'Company', count: segCounts.company },
-    { id: 'department', label: 'Dept.', count: segCounts.department },
-    { id: 'program', label: 'Program', count: segCounts.program },
-    { id: 'triage', label: 'Triage', count: segCounts.triage },
-    ...(canSeeAll ? [{ id: 'all' as const, label: 'All', count: segCounts.all }] : []),
+    ...STAGES.map((s) => ({ id: s.id as Segment, label: s.label, count: stageCounts[s.id] })),
+    ...(canSeeAll ? [{ id: 'all' as const, label: 'All', count: stageCounts.all }] : []),
   ]
+  const activeStage = STAGES.find((s) => s.id === segment)
+  const windowNote =
+    emails.length > 0
+      ? `Latest ${emails.length.toLocaleString()}${totalMessages ? ` of ${totalMessages.toLocaleString()}` : ''} messages${oldest ? ` (since ${formatDateTime(oldest)})` : ''}`
+      : 'Outlook-ingested messages'
 
   return (
     <AppPage
       listBar={
         <ListBar
           title="Email Routing"
-          subtitle="Outlook-ingested messages"
+          subtitle={windowNote}
           count={filtered.length}
           search={query}
           onSearch={setQuery}
@@ -248,8 +287,9 @@ export function EmailRoutingPage() {
           segments={
             <Tabs value={segment} onValueChange={(v) => setSegment(v as Segment)}>
               <TabsList>
-                {segments.map((s) => (
-                  <TabsTrigger key={s.id} value={s.id} className="gap-1.5">
+                {segments.map((s, i) => (
+                  <TabsTrigger key={s.id} value={s.id} className="gap-1.5" title={STAGES.find((x) => x.id === s.id)?.hint}>
+                    {i < 3 ? <span className="text-muted-foreground">{i + 1}.</span> : null}
                     {s.label}
                     <span className="rounded-full bg-muted-foreground/15 px-1.5 text-[11px] tabular-nums">
                       {s.count.toLocaleString()}
@@ -266,6 +306,13 @@ export function EmailRoutingPage() {
         <ErrorState onRetry={() => void emailsQuery.refetch()} />
       ) : (
         <div className="grid gap-4 xl:grid-cols-[1fr_340px]">
+          <div className="min-w-0 space-y-2">
+          {activeStage ? (
+            <p className="text-sm text-muted-foreground">
+              <span className="font-medium text-foreground">{activeStage.hint}.</span>{' '}
+              Every message is routed in three steps: company → department → program. Set the missing level in its column and the message moves to the next step.
+            </p>
+          ) : null}
           <DataTable
             rows={filtered}
             columns={columns}
@@ -275,14 +322,11 @@ export function EmailRoutingPage() {
             selectable
             loading={loading}
             emptyIcon={<MailWarning className="size-5" />}
-            emptyTitle={segment === 'triage' ? 'Inbox zero on routing' : 'No messages match'}
-            emptyDescription={
-              segment === 'triage'
-                ? 'Every message has a CRM routing decision.'
-                : 'Adjust your search or segment.'
-            }
+            emptyTitle={query ? 'No messages match your search' : 'Nothing here'}
+            emptyDescription={query ? 'Adjust your search.' : activeStage?.empty ?? 'No messages yet.'}
             initialSort={{ key: 'received_at', dir: 'desc' }}
           />
+          </div>
           <RoutingSidebar />
         </div>
       )}
