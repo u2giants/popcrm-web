@@ -58,7 +58,7 @@ def main(argv):
     try:
         newer = {i for i, r in live_all.items()
                  if datetime.fromisoformat(r["first_seen_at"].replace("Z", "+00:00")) > end}
-    except (KeyError, ValueError, TypeError) as e:
+    except (KeyError, ValueError, TypeError, AttributeError) as e:
         fail(f"live rows need first_seen_at: {e!r}")
     if set(live_all) - set(intended) - newer != set(targets):
         fail("live table minus the intended 50 (and post-incident rows) is not exactly the target list")
