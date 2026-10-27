@@ -4,6 +4,7 @@
 export const ROLE_LABEL: Record<string, string> = {
   administrator: 'Administrator',
   sales: 'Salesperson',
+  sales_assistant: 'Sales Asst.',
   licensing: 'Licensing',
   designer: 'Designer',
   viewer: 'Viewer',
@@ -13,6 +14,7 @@ export const ROLE_LABEL: Record<string, string> = {
 export const ROLE_HELP: Record<string, string> = {
   administrator: 'Full access, including Settings and viewing as other people',
   sales: 'Can be assigned customer departments',
+  sales_assistant: 'Sales assistant',
   licensing: 'Licensing team member',
   designer: 'Design team member',
   viewer: 'Read-only access',

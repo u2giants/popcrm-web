@@ -46,7 +46,7 @@ export function PeoplePanel() {
 
   const roleSlugs = useMemo(() => {
     const slugs = (rolesQuery.data ?? []).map((r) => r.slug)
-    return slugs.length ? slugs : ['administrator', 'sales', 'licensing', 'designer', 'viewer', 'vendor']
+    return slugs.length ? slugs : ['administrator', 'sales', 'sales_assistant', 'licensing', 'designer', 'viewer', 'vendor']
   }, [rolesQuery.data])
 
   const users = useMemo(() => {
@@ -70,7 +70,7 @@ export function PeoplePanel() {
     const roles = has ? u.roles.filter((r) => r !== slug) : [...u.roles, slug]
     void run(
       { kind: 'roles', id: u.id, roles },
-      `${personName(u)} ${has ? 'is no longer' : 'is now'} ${roleLabel(slug) === 'Administrator' ? 'an' : 'a'} ${roleLabel(slug)}`,
+      `${personName(u)} ${has ? 'is no longer' : 'is now'} ${/^[AEIOU]/.test(roleLabel(slug)) ? 'an' : 'a'} ${roleLabel(slug)}`,
     )
   }
 

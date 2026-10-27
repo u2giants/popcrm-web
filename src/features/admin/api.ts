@@ -54,6 +54,7 @@ export interface AssignableDepartment {
   customer_display_name: string | null
   customer_status: string | null
   salesperson_profile_id: string | null
+  secondary_salesperson_profile_id: string | null
 }
 
 function strings(value: unknown): string[] {
@@ -114,6 +115,14 @@ export async function assignDepartments(departmentIds: string[], profileId: stri
   return Number(await rpc('crm_admin_assign_departments', { p_department_ids: departmentIds, p_profile_id: profileId }))
 }
 
+// Sets both salesperson slots (a department can have up to two) for every
+// listed department: profileIds[0] is the main salesperson, [1] the second.
+export async function setDepartmentSalespeople(departmentIds: string[], profileIds: string[]): Promise<number> {
+  return Number(
+    await rpc('crm_admin_set_department_salespeople', { p_department_ids: departmentIds, p_profile_ids: profileIds }),
+  )
+}
+
 export async function fetchAccessHistory(limit = 200): Promise<AccessEvent[]> {
   const rows = (await rpc('crm_admin_access_history', { p_limit: limit })) as Row[] | null
   return (rows ?? []) as unknown as AccessEvent[]
@@ -121,5 +130,5 @@ export async function fetchAccessHistory(limit = 200): Promise<AccessEvent[]> {
 
 export async function fetchDepartmentAssignments(): Promise<AssignableDepartment[]> {
   const rows = (await rpc('crm_admin_department_assignments')) as AssignableDepartment[] | null
-  return rows ?? []
+  return (rows ?? []).map((d) => ({ ...d, secondary_salesperson_profile_id: d.secondary_salesperson_profile_id ?? null }))
 }

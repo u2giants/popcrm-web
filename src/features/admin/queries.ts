@@ -5,6 +5,7 @@ import {
   fetchAdminRoles,
   fetchAdminUsers,
   fetchDepartmentAssignments,
+  setDepartmentSalespeople,
   setUserAppAccess,
   setUserRoles,
   setUserStatus,
@@ -66,11 +67,21 @@ export function useAssignDepartmentsMutation() {
   const queryClient = useQueryClient()
   return useMutation({
     mutationFn: ({ ids, profileId }: { ids: string[]; profileId: string | null }) => assignDepartments(ids, profileId),
-    onSettled: () => {
-      void queryClient.invalidateQueries({ queryKey: adminKeys.departments() })
-      void queryClient.invalidateQueries({ queryKey: adminKeys.users() })
-      // Department lists elsewhere in the app carry the same rows.
-      void queryClient.invalidateQueries({ queryKey: ['crm'] })
-    },
+    onSettled: () => invalidateAssignments(queryClient),
   })
+}
+
+export function useSetDepartmentSalespeopleMutation() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: ({ ids, profileIds }: { ids: string[]; profileIds: string[] }) => setDepartmentSalespeople(ids, profileIds),
+    onSettled: () => invalidateAssignments(queryClient),
+  })
+}
+
+function invalidateAssignments(queryClient: ReturnType<typeof useQueryClient>) {
+  void queryClient.invalidateQueries({ queryKey: adminKeys.departments() })
+  void queryClient.invalidateQueries({ queryKey: adminKeys.users() })
+  // Department lists elsewhere in the app carry the same rows.
+  void queryClient.invalidateQueries({ queryKey: ['crm'] })
 }
