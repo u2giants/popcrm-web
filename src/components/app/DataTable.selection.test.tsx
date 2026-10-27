@@ -66,7 +66,7 @@ describe('DataTable selection + bulk edit', () => {
     fireEvent.click(screen.getByRole('button', { name: /apply to selected/i }))
 
     await waitFor(() => expect(onCellEdit).toHaveBeenCalledTimes(1))
-    expect(onCellEdit).toHaveBeenCalledWith(ROWS[0], 'status', 'ACTIVE')
+    expect(onCellEdit).toHaveBeenCalledWith(ROWS[0], 'status', 'ACTIVE', { bulk: true })
   })
 
   it('shift-click selects the whole range in rendered order', () => {
@@ -87,5 +87,29 @@ describe('DataTable selection + bulk edit', () => {
 
     fireEvent.click(screen.getByRole('button', { name: /clear selection/i }))
     expect(screen.queryByText(/selected$/)).toBeNull()
+  })
+  it('reports failed rows and keeps only them selected', async () => {
+    const onCellEdit = vi.fn(async (row: Row) => {
+      if (row.id === '2') throw new Error('boom')
+    })
+    renderTable(onCellEdit)
+
+    fireEvent.click(screen.getByLabelText('Select all rows'))
+    fireEvent.change(screen.getByLabelText('Value to apply'), { target: { value: 'ACTIVE' } })
+    fireEvent.click(screen.getByRole('button', { name: /apply to selected/i }))
+
+    await waitFor(() => expect(screen.getByText('1 selected')).toBeTruthy())
+    expect(onCellEdit).toHaveBeenCalledTimes(3)
+  })
+
+  it('clears the selection once every row saved', async () => {
+    const onCellEdit = renderTable(vi.fn(async () => {}))
+
+    fireEvent.click(screen.getByLabelText('Select all rows'))
+    fireEvent.change(screen.getByLabelText('Value to apply'), { target: { value: 'ACTIVE' } })
+    fireEvent.click(screen.getByRole('button', { name: /apply to selected/i }))
+
+    await waitFor(() => expect(screen.queryByText(/selected$/)).toBeNull())
+    expect(onCellEdit).toHaveBeenCalledTimes(3)
   })
 })

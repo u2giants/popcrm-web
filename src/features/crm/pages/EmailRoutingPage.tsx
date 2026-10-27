@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react'
 import { toast } from 'sonner'
 import { MailWarning } from 'lucide-react'
 import { AppPage, ListBar, SectionHeader } from '@/components/app/AppPage'
-import { DataTable, type Column, type EditOption } from '@/components/app/DataTable'
+import { DataTable, type Column, type EditOption, type CellEditContext } from '@/components/app/DataTable'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Badge } from '@/components/ui/badge'
 import { ErrorState } from '@/components/app/states'
@@ -103,7 +103,7 @@ export function EmailRoutingPage() {
     return 'triage'
   }
 
-  async function editCell(row: CrmEmailMessage, key: string, value: string) {
+  async function editCell(row: CrmEmailMessage, key: string, value: string, edit?: CellEditContext) {
     const nextValue = value || null
     const expanded =
       key === 'retailer'
@@ -116,6 +116,8 @@ export function EmailRoutingPage() {
     try {
       await updateEmailMutation.mutateAsync({ id: row.id, values: { [key]: expanded ?? nextValue } as Partial<CrmEmailMessage> })
     } catch (error) {
+      // A bulk edit reports failures once, as a summary, so let the table count them.
+      if (edit?.bulk) throw error
       toast.error('Could not save change', { description: logError('EmailRoutingPage.editCell', error) })
     }
   }

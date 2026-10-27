@@ -3,7 +3,7 @@ import { toast } from 'sonner'
 import { useQueryClient } from '@tanstack/react-query'
 import { Contact } from 'lucide-react'
 import { AppPage, ListBar } from '@/components/app/AppPage'
-import { DataTable, type Column, type EditOption } from '@/components/app/DataTable'
+import { DataTable, type Column, type EditOption, type CellEditContext } from '@/components/app/DataTable'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { ErrorState } from '@/components/app/states'
 import { CustomerRelationLogo } from '@/features/crm/components/CustomerRelationLogo'
@@ -109,7 +109,7 @@ export function ContactsPage() {
     [buyers],
   )
 
-  async function editCell(row: Buyer, key: string, value: string) {
+  async function editCell(row: Buyer, key: string, value: string, edit?: CellEditContext) {
     const prev = (row as unknown as Record<string, unknown>)[key]
     const nextValue = value || null
     const expanded =
@@ -160,6 +160,8 @@ export function ContactsPage() {
       queryClient.setQueriesData<Buyer[]>({ queryKey: [...crmKeys.all, 'contactSegment'] }, rollback)
       queryClient.setQueriesData<Buyer[]>({ queryKey: [...crmKeys.all, 'allContacts'] }, rollback)
       queryClient.setQueriesData<Buyer[]>({ queryKey: [...crmKeys.all, 'ingestedContacts'] }, rollback)
+      // A bulk edit reports failures once, as a summary, so let the table count them.
+      if (edit?.bulk) throw error
       toast.error('Could not save change', { description: logError('ContactsPage.editCell', error) })
     }
   }
