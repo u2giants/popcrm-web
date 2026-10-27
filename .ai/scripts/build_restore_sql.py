@@ -62,6 +62,10 @@ def main(argv):
         fail(f"live rows need first_seen_at: {e!r}")
     if set(live_all) - set(intended) - newer != set(targets):
         fail("live table minus the intended 50 (and post-incident rows) is not exactly the target list")
+    if any(live_all[i]["status"] != "OTHER" for i in intended if i in live_all) or not set(intended) <= set(live_all):
+        fail("an intended-50 row is missing from live or no longer OTHER")
+    if set(clone) != set(targets):
+        fail(f"clone is missing {len(set(targets) - set(clone))} target ids or has extras: resolve by hand, never guess")
     if not set(clone) <= set(targets):
         fail("clone has ids outside the target list")
     live = {i: live_all[i] for i in targets}
@@ -85,10 +89,12 @@ set local statement_timeout = '60s';
 create temp table t (id uuid primary key, old_status text not null) on commit drop;
 insert into t values
 {rows};
-select count(*) as locked from (select 1 from crm.ingested_domain where id in (select id from t) for update) l;
 do $$
 declare n int;
 begin
+  perform 1 from crm.ingested_domain where id in (select id from t) for update;
+  get diagnostics n = row_count;
+  if n <> {e - (1 if mode == "negative-test" else 0)} then raise exception 'locked rows % <> rows to write', n; end if;
   select count(*) into n from crm.ingested_domain d join t on t.id = d.id where d.status = 'OTHER';
   if n <> {e} then raise exception 'writable rows % <> expected {e}', n; end if;
 end $$;

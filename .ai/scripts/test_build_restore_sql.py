@@ -43,7 +43,8 @@ assert neg.returncode == 0 and "expected 223" in neg.stdout and neg.stdout.rstri
 
 post = run("apply", clone, live_all + fresh, targets, intended)
 assert post.returncode == 0 and json.loads(post.stderr)["post_incident_rows"] == ["fresh.com"], post.stderr
-assert json.loads(run("apply", clone[:-1], live_all, targets, intended).stderr)["missing_in_clone"] == ["d446.com"]
+assert run("apply", clone[:-1], live_all, targets, intended).returncode != 0
+assert run("apply", clone, live_all[:-1] + [dict(live_all[-1], status="new")], targets, intended).returncode != 0
 
 fails = {
     "unexplained extra live row": (clone, live_all + rows([str(uuid.uuid4())], lambda n: "OTHER"), targets, intended),
