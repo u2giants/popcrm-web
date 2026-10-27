@@ -302,7 +302,6 @@ const toBuyer = (r: Row): Buyer => ({
   email: (r.email ?? null) as string | null,
   phone: (r.phone ?? null) as string | null,
   job_title: (r.job_title ?? null) as string | null,
-  contact_type: (r.contact_type ?? null) as string | null,
   scope: (r.scope ?? null) as string | null,
   retailer: rel(r.company_id, r.company_name, { display_name: r.company_display_name ?? null, customer_status: r.company_customer_status ?? null, domain: r.company_domain ?? null }),
   department: rel(r.department_id, r.department_name),
@@ -776,11 +775,9 @@ export async function updateBuyer(id: string, values: Partial<Buyer>) {
     p_job_title: arg(v.job_title),
     p_company_id: arg(relId(v.retailer)),
     p_crm_department_id: arg(relId(v.department)),
-    p_contact_type: arg(v.contact_type),
     p_scope: arg(v.scope),
     p_clear_company: 'retailer' in v && !relId(v.retailer),
     p_clear_crm_department: 'department' in v && !relId(v.department),
-    p_clear_contact_type: 'contact_type' in v && !v.contact_type,
     p_clear_scope: 'scope' in v && !v.scope,
   }
   const { error } = await supabase.schema('api').rpc('crm_update_contact', args)
@@ -795,7 +792,6 @@ export async function updateBuyer(id: string, values: Partial<Buyer>) {
       p_job_title: args.p_job_title,
       p_company_id: args.p_company_id,
       p_crm_department_id: args.p_crm_department_id,
-      p_contact_type: args.p_contact_type,
       p_scope: args.p_scope,
     })
     if (fallbackError) throw fallbackError

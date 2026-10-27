@@ -1,7 +1,6 @@
 import { useMemo } from 'react'
 import { Mail } from 'lucide-react'
 import { DetailDrawer, DescriptionItem, DescriptionList, DrawerSection } from '@/components/app/DetailDrawer'
-import { StatusBadge } from '@/components/app/StatusBadge'
 import { Button } from '@/components/ui/button'
 import { listData, useEmailsQuery, useMeetingsQuery } from '@/features/crm/queries'
 import { idOf, label, relatedName, formatDate } from '@/features/crm/format'
@@ -25,11 +24,6 @@ export function ContactDrawer({ row, onClose }: { row: Buyer | null; onClose: ()
       onClose={onClose}
       title={row?.name || 'Contact'}
       subtitle={row?.job_title ?? undefined}
-      status={
-        row?.contact_type ? (
-          <StatusBadge tone="info" dot={false}>{label(row.contact_type)}</StatusBadge>
-        ) : undefined
-      }
       footer={
         row?.email ? (
           <Button asChild>
@@ -53,7 +47,6 @@ export function ContactDrawer({ row, onClose }: { row: Buyer | null; onClose: ()
               </DescriptionItem>
               <DescriptionItem term="Phone">{row.phone || '—'}</DescriptionItem>
               <DescriptionItem term="Title">{row.job_title || '—'}</DescriptionItem>
-              <DescriptionItem term="Type">{label(row.contact_type)}</DescriptionItem>
               <DescriptionItem term="Scope">{label(row.scope)}</DescriptionItem>
               <DescriptionItem term="Customer">{relatedName(row.retailer)}</DescriptionItem>
               <DescriptionItem term="Department">{relatedName(row.department)}</DescriptionItem>

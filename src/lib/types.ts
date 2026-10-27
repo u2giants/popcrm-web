@@ -64,7 +64,6 @@ export interface Buyer {
   email: string | null
   phone: string | null
   job_title: string | null
-  contact_type: string | null
   scope: string | null
   retailer: string | Retailer | null
   department: string | CrmDepartment | null

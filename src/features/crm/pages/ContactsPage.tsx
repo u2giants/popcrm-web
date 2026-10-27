@@ -9,9 +9,8 @@ import { ErrorState } from '@/components/app/states'
 import { CustomerRelationLogo } from '@/features/crm/components/CustomerRelationLogo'
 import { useRecordSelection } from '@/features/crm/useRecordSelection'
 import { ContactDrawer } from '@/features/crm/components/ContactDrawer'
-import { customerLabel, idOf, label, relatedName, textOf } from '@/features/crm/format'
+import { customerLabel, idOf, relatedName, textOf } from '@/features/crm/format'
 import { buildRetailerById, isSelectableCustomer, withCurrentCustomer } from '@/features/crm/pages/_shared'
-import { StatusBadge } from '@/components/app/StatusBadge'
 import { NameAvatar } from '@/components/app/NameAvatar'
 import {
   crmKeys,
@@ -90,15 +89,6 @@ export function ContactsPage() {
     },
     [departments],
   )
-  const typeOptions = useMemo<EditOption[]>(
-    () => [
-      { value: '', label: 'Unspecified' },
-      ...Array.from(new Set(buyers.map((b) => b.contact_type).filter(Boolean) as string[]))
-        .sort((a, b) => label(a).localeCompare(label(b)))
-        .map((v) => ({ value: v, label: label(v) })),
-    ],
-    [buyers],
-  )
   const titleOptions = useMemo<EditOption[]>(
     () => [
       { value: '', label: 'No title' },
@@ -127,7 +117,7 @@ export function ContactsPage() {
       key === 'retailer' &&
       idOf(row.department) !== '' &&
       idOf(departmentById.get(idOf(row.department))?.retailer) !== value
-    const relationshipField = key === 'department' || key === 'contact_type'
+    const relationshipField = key === 'department'
     const patch: Partial<Buyer> = clearStaleDepartment
       ? ({ [key]: nextValue, department: null } as Partial<Buyer>)
       : ({ [key]: nextValue } as Partial<Buyer>)
@@ -236,16 +226,6 @@ export function ContactsPage() {
       editOptions: departmentOptionsFor,
       editValue: (b) => idOf(b.department),
       cell: (b) => <span className="text-muted-foreground">{relatedName(b.department)}</span>,
-    },
-    {
-      key: 'contact_type',
-      header: 'Type',
-      hideBelow: 'lg',
-      sortValue: (b) => b.contact_type ?? '',
-      filterValue: (b) => label(b.contact_type),
-      editOptions: typeOptions,
-      editValue: (b) => b.contact_type,
-      cell: (b) => b.contact_type ? <StatusBadge tone="info" dot={false}>{label(b.contact_type)}</StatusBadge> : '—',
     },
   ]
 
