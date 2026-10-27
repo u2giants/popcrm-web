@@ -41,8 +41,10 @@ export type CustomerSegment = 'active' | 'dismissed' | 'all'
 export type CustomerSegmentCounts = Record<CustomerSegment, number> & { triage: number }
 export type ContactSegment = 'customer' | 'department' | 'triage' | 'all'
 export type ContactSegmentCounts = Record<ContactSegment, number>
-export type EmailSegment = 'company' | 'department' | 'program' | 'triage' | 'all'
-export type EmailSegmentCounts = Record<EmailSegment, number>
+// A message's routing stage is the first level (company -> department ->
+// program) it is still missing; 'all' lists every message.
+export type EmailStage = 'needs_company' | 'needs_department' | 'needs_program' | 'routed' | 'skipped'
+export type EmailStageCounts = Record<EmailStage | 'all', number>
 export interface CrmSearchResults {
   customers: Retailer[]
   contacts: Buyer[]
@@ -840,48 +842,29 @@ export async function fetchEmailMessages(limit = -1): Promise<CrmEmailMessage[]>
   return rows.map(toEmail)
 }
 
-function emailSegmentOf(row: Row): Exclude<EmailSegment, 'all'> {
-  const status = row.routing_status as string | null | undefined
-  if (status && status !== 'ROUTED' && status !== 'SKIPPED') return 'triage'
-  if (row.opportunity_id) return 'program'
-  if (row.department_id) return 'department'
-  if (row.company_id) return 'company'
-  return 'triage'
+// Full-history stage counts (shared-db api.crm_email_routing_stage_counts).
+export async function fetchEmailStageCounts(): Promise<EmailStageCounts> {
+  const { data, error } = await anyDb.schema('api').rpc('crm_email_routing_stage_counts')
+  if (error) throw error
+  const row = ((Array.isArray(data) ? data[0] : data) ?? {}) as Row
+  return {
+    needs_company: Number(row.needs_company ?? 0),
+    needs_department: Number(row.needs_department ?? 0),
+    needs_program: Number(row.needs_program ?? 0),
+    routed: Number(row.routed ?? 0),
+    skipped: Number(row.skipped ?? 0),
+    all: Number(row.total ?? 0),
+  }
 }
 
-export async function fetchEmailSegmentCounts(): Promise<EmailSegmentCounts> {
-  const { data, error } = await anyDb.schema("api").rpc('crm_email_routing_segment_counts')
-  if (!error) {
-    const row = ((Array.isArray(data) ? data[0] : data) ?? {}) as Row
-    return {
-      company: Number(row.company ?? 0),
-      department: Number(row.department ?? 0),
-      program: Number(row.program ?? 0),
-      triage: Number(row.triage ?? 0),
-      all: Number(row.all ?? 0),
-    }
-  }
-  if (!isMissingApiObject(error)) throw error
-
-  const PAGE = 1000
-  const counts: EmailSegmentCounts = { company: 0, department: 0, program: 0, triage: 0, all: 0 }
-  let from = 0
-  for (;;) {
-    const { data, error } = await anyDb
-      .schema("api")
-      .from('crm_email_routing_queue')
-      .select('routing_status,company_id,department_id,opportunity_id')
-      .range(from, from + PAGE - 1)
-    if (error) throw error
-    const rows = (data ?? []) as Row[]
-    for (const row of rows) {
-      counts[emailSegmentOf(row)] += 1
-      counts.all += 1
-    }
-    if (rows.length < PAGE) break
-    from += PAGE
-  }
-  return counts
+// One page of a stage, newest first (shared-db api.crm_email_routing_stage_page;
+// the server caps a page at 1000 rows).
+export async function fetchEmailStagePage(stage: EmailStage | 'all', limit: number, offset: number): Promise<CrmEmailMessage[]> {
+  const { data, error } = await anyDb
+    .schema('api')
+    .rpc('crm_email_routing_stage_page', { p_stage: stage, p_limit: limit, p_offset: offset })
+  if (error) throw error
+  return ((data ?? []) as Row[]).map(toEmail)
 }
 
 export async function updateEmailMessage(id: string, values: Partial<CrmEmailMessage>) {

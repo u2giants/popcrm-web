@@ -1,5 +1,5 @@
 import { useMemo } from 'react'
-import { useMutation, useQuery, useQueryClient, type QueryClient } from '@tanstack/react-query'
+import { keepPreviousData, useMutation, useQuery, useQueryClient, type QueryClient } from '@tanstack/react-query'
 import {
   createIgnoreRule,
   createNote,
@@ -15,7 +15,8 @@ import {
   fetchContactSegmentCounts,
   fetchDepartments,
   fetchEmailMessages,
-  fetchEmailSegmentCounts,
+  fetchEmailStageCounts,
+  fetchEmailStagePage,
   fetchIgnoreRules,
   fetchIngestedDomainCount,
   mergeCustomers,
@@ -53,7 +54,8 @@ import {
   type CustomerSegmentCounts,
   type ContactSegment,
   type ContactSegmentCounts,
-  type EmailSegmentCounts,
+  type EmailStage,
+  type EmailStageCounts,
 } from './api'
 import { FIREFLIES_HEALTH_URL } from './constants'
 import { relatedName } from './format'
@@ -99,7 +101,9 @@ export const crmKeys = {
   contactSegmentCounts: () => [...crmKeys.all, 'contactSegmentCounts'] as const,
   departments: (limit = -1) => [...crmKeys.all, 'departments', { limit }] as const,
   emails: (limit = -1) => [...crmKeys.all, 'emails', { limit }] as const,
-  emailSegmentCounts: () => [...crmKeys.all, 'emailSegmentCounts'] as const,
+  emailStageCounts: () => [...crmKeys.all, 'emailStageCounts'] as const,
+  emailStagePage: (stage: string, limit: number, offset: number) =>
+    [...crmKeys.all, 'emails', 'stagePage', { stage, limit, offset }] as const,
   meetings: (limit = -1) => [...crmKeys.all, 'meetings', { limit }] as const,
   ignoreRules: () => [...crmKeys.all, 'ignoreRules'] as const,
   aiConfigs: () => [...crmKeys.all, 'aiConfigs'] as const,
@@ -310,11 +314,22 @@ export function useEmailsQuery(limit = -1) {
   })
 }
 
-export function useEmailSegmentCountsQuery() {
-  return useQuery<EmailSegmentCounts>({
-    queryKey: crmKeys.emailSegmentCounts(),
-    queryFn: fetchEmailSegmentCounts,
+export function useEmailStageCountsQuery() {
+  return useQuery<EmailStageCounts>({
+    queryKey: crmKeys.emailStageCounts(),
+    queryFn: fetchEmailStageCounts,
     ...crmQueryDefaults,
+    staleTime: 10_000,
+    refetchInterval: 45_000,
+  })
+}
+
+export function useEmailStagePageQuery(stage: EmailStage | 'all', limit: number, offset: number) {
+  return useQuery({
+    queryKey: crmKeys.emailStagePage(stage, limit, offset),
+    queryFn: () => fetchEmailStagePage(stage, limit, offset),
+    ...crmQueryDefaults,
+    placeholderData: keepPreviousData,
     staleTime: 10_000,
     refetchInterval: 45_000,
   })
@@ -439,6 +454,7 @@ export function useUpdateEmailMutation() {
     },
     onSettled: () => {
       void queryClient.invalidateQueries({ queryKey: [...crmKeys.all, 'emails'] })
+      void queryClient.invalidateQueries({ queryKey: crmKeys.emailStageCounts() })
       void queryClient.invalidateQueries({ queryKey: crmKeys.stats() })
     },
   })

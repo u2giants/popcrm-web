@@ -15,11 +15,13 @@ import { ROUTING_STATUSES, WORKER_CADENCE } from '@/features/crm/constants'
 import { formatDateTime, idOf, label, relatedName, textOf } from '@/features/crm/format'
 import { customerEditOptions, withCurrentCustomer, buildRetailerById } from '@/features/crm/pages/_shared'
 import { useAuth } from '@/auth/auth'
+import { Button } from '@/components/ui/button'
+import type { EmailStage } from '@/features/crm/api'
 import {
   listData,
   useDepartmentsQuery,
-  useEmailsQuery,
-  useEmailSegmentCountsQuery,
+  useEmailStageCountsQuery,
+  useEmailStagePageQuery,
   useFirefliesHealth,
   useCustomerPickerQuery,
   useOpportunitiesQuery,
@@ -31,11 +33,10 @@ import type { CrmEmailMessage } from '@/lib/types'
 
 // Every message is routed in three levels: company -> department -> program.
 // A message's stage is the first level it is still missing.
-type Stage = 'needs_company' | 'needs_department' | 'needs_program' | 'routed' | 'skipped'
+// Counts and pages come from the server over every message.
+type Stage = EmailStage
 type Segment = Stage | 'all'
-// Largest window the server's fast recent-messages feed returns. Counts and
-// lists are both computed from this same window so they always agree.
-const EMAIL_ROUTE_LIMIT = 1000
+const PAGE_SIZE = 200
 
 const STAGES: { id: Stage; label: string; hint: string; empty: string }[] = [
   { id: 'needs_company', label: 'Needs company', hint: 'Step 1 — pick the customer', empty: 'Every message has a company.' },
@@ -44,14 +45,6 @@ const STAGES: { id: Stage; label: string; hint: string; empty: string }[] = [
   { id: 'routed', label: 'Fully routed', hint: 'Company, department and program set', empty: 'No fully routed messages yet.' },
   { id: 'skipped', label: 'Skipped', hint: 'Not customer business', empty: 'No skipped messages.' },
 ]
-
-function stageOf(e: Pick<CrmEmailMessage, 'routing_status' | 'retailer' | 'department' | 'opportunity'>): Stage {
-  if (idOf(e.opportunity)) return 'routed'
-  if (e.routing_status === 'SKIPPED') return 'skipped'
-  if (!idOf(e.retailer)) return 'needs_company'
-  if (!idOf(e.department)) return 'needs_department'
-  return 'needs_program'
-}
 
 // Status that matches what has been assigned, so the backend label never
 // contradicts the routing levels shown on screen.
@@ -79,8 +72,10 @@ function MethodChip({ method }: { method: string | null | undefined }) {
 
 export function EmailRoutingPage() {
   const customerName = useCustomerDisplayName()
-  const emailsQuery = useEmailsQuery(EMAIL_ROUTE_LIMIT)
-  const countsQuery = useEmailSegmentCountsQuery()
+  const [segment, setSegment] = useState<Segment>('needs_company')
+  const [page, setPage] = useState(0)
+  const emailsQuery = useEmailStagePageQuery(segment, PAGE_SIZE, page * PAGE_SIZE)
+  const countsQuery = useEmailStageCountsQuery()
   const retailersQuery = useCustomerPickerQuery(-1)
   const departmentsQuery = useDepartmentsQuery(-1)
   const opportunitiesQuery = useOpportunitiesQuery(-1)
@@ -96,7 +91,6 @@ export function EmailRoutingPage() {
   const { user } = useAuth()
   const roleText = `${user?.role?.name ?? ''} ${user?.role?.id ?? ''}`.toLowerCase()
   const canSeeAll = /admin/.test(roleText)
-  const [segment, setSegment] = useState<Segment>('needs_company')
   const [query, setQuery] = useState('')
   const [selected, select] = useRecordSelection<CrmEmailMessage>('message', emails)
   const retailerById = useMemo(
@@ -158,18 +152,13 @@ export function EmailRoutingPage() {
     }
   }
 
-  const stageCounts = useMemo(() => {
-    const counts: Record<Segment, number> = { needs_company: 0, needs_department: 0, needs_program: 0, routed: 0, skipped: 0, all: emails.length }
-    for (const e of emails) counts[stageOf(e)]++
-    return counts
-  }, [emails])
-  const totalMessages = countsQuery.data?.all ?? null
-  const oldest = emails.reduce<string | null>((min, e) => (e.received_at && (!min || e.received_at < min) ? e.received_at : min), null)
+  const stageCounts = countsQuery.data ?? null
+  const stageTotal = stageCounts ? stageCounts[segment] : null
+  const pageCount = stageTotal ? Math.max(1, Math.ceil(stageTotal / PAGE_SIZE)) : 1
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase()
     return emails.filter((e) => {
-      if (segment !== 'all' && stageOf(e) !== segment) return false
       if (
         q &&
         !textOf(
@@ -183,7 +172,7 @@ export function EmailRoutingPage() {
       ) return false
       return true
     })
-  }, [emails, segment, query, customerName])
+  }, [emails, query, customerName])
 
   const columns: Column<CrmEmailMessage>[] = [
     {
@@ -262,14 +251,13 @@ export function EmailRoutingPage() {
   ]
 
   const segments: { id: Segment; label: string; count: number }[] = [
-    ...STAGES.map((s) => ({ id: s.id as Segment, label: s.label, count: stageCounts[s.id] })),
-    ...(canSeeAll ? [{ id: 'all' as const, label: 'All', count: stageCounts.all }] : []),
+    ...STAGES.map((s) => ({ id: s.id as Segment, label: s.label, count: stageCounts?.[s.id] ?? 0 })),
+    ...(canSeeAll ? [{ id: 'all' as const, label: 'All', count: stageCounts?.all ?? 0 }] : []),
   ]
   const activeStage = STAGES.find((s) => s.id === segment)
-  const windowNote =
-    emails.length > 0
-      ? `Latest ${emails.length.toLocaleString()}${totalMessages ? ` of ${totalMessages.toLocaleString()}` : ''} messages${oldest ? ` (since ${formatDateTime(oldest)})` : ''}`
-      : 'Outlook-ingested messages'
+  const windowNote = stageCounts ? `${stageCounts.all.toLocaleString()} Outlook-ingested messages` : 'Outlook-ingested messages'
+  const firstRow = page * PAGE_SIZE + 1
+  const lastRow = page * PAGE_SIZE + emails.length
 
   return (
     <AppPage
@@ -277,15 +265,15 @@ export function EmailRoutingPage() {
         <ListBar
           title="Email Routing"
           subtitle={windowNote}
-          count={filtered.length}
+          count={query ? filtered.length : stageTotal ?? filtered.length}
           search={query}
           onSearch={setQuery}
-          searchPlaceholder="Search subject, sender, recipient…"
+          searchPlaceholder="Search this page…"
           actions={
             <CrmStatusBadge kind="routing" status={firefliesOk ? 'ROUTED' : undefined} dot={false} />
           }
           segments={
-            <Tabs value={segment} onValueChange={(v) => setSegment(v as Segment)}>
+            <Tabs value={segment} onValueChange={(v) => { setSegment(v as Segment); setPage(0) }}>
               <TabsList>
                 {segments.map((s, i) => (
                   <TabsTrigger key={s.id} value={s.id} className="gap-1.5" title={STAGES.find((x) => x.id === s.id)?.hint}>
@@ -326,6 +314,19 @@ export function EmailRoutingPage() {
             emptyDescription={query ? 'Adjust your search.' : activeStage?.empty ?? 'No messages yet.'}
             initialSort={{ key: 'received_at', dir: 'desc' }}
           />
+          {stageTotal && stageTotal > PAGE_SIZE ? (
+            <div className="flex items-center justify-end gap-2 text-sm text-muted-foreground">
+              <span className="tabular-nums">
+                {firstRow.toLocaleString()}–{lastRow.toLocaleString()} of {stageTotal.toLocaleString()}
+              </span>
+              <Button variant="outline" size="sm" disabled={page === 0} onClick={() => setPage((p) => p - 1)}>
+                Previous
+              </Button>
+              <Button variant="outline" size="sm" disabled={page + 1 >= pageCount} onClick={() => setPage((p) => p + 1)}>
+                Next
+              </Button>
+            </div>
+          ) : null}
           </div>
           <RoutingSidebar />
         </div>
