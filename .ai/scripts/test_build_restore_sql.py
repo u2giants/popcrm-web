@@ -1,39 +1,65 @@
 #!/usr/bin/env python3
-"""Fixture tests for build_restore_sql.py: run with python3 -I .ai/scripts/test_build_restore_sql.py"""
+"""Fixture tests for build_restore_sql.py: python3 -I .ai/scripts/test_build_restore_sql.py"""
 import json, os, subprocess, sys, tempfile, uuid
 
 HERE = os.path.dirname(os.path.abspath(__file__))
+OLD = "2026-10-01T00:00:00Z"
 ids = [str(uuid.uuid4()) for _ in range(447)]
+ids50 = [str(uuid.uuid4()) for _ in range(50)]
 
 
-def run(clone, live, targets, *extra):
+def run(mode, clone, live_all, targets, intended):
     d = tempfile.mkdtemp()
     paths = []
-    for name, rows in (("c", clone), ("l", live), ("t", targets)):
+    for name, rows in (("c", clone), ("l", live_all), ("t", targets), ("i", intended)):
         p = os.path.join(d, name + ".json")
         with open(p, "w") as f:
             json.dump(rows, f)
         paths.append(p)
-    return subprocess.run([sys.executable, "-I", os.path.join(HERE, "build_restore_sql.py"), "apply", *paths, *extra],
+    return subprocess.run([sys.executable, "-I", os.path.join(HERE, "build_restore_sql.py"), mode, *paths],
                           capture_output=True, text=True)
 
 
-def rows(status_of):
-    return [{"id": i, "domain": f"d{n}.com", "status": status_of(n)} for n, i in enumerate(ids)]
+def rows(idl, status_of, seen=OLD):
+    return [{"id": i, "domain": f"d{n}.com", "status": status_of(n), "first_seen_at": seen} for n, i in enumerate(idl)]
 
 
-targets = rows(lambda n: "OTHER")
-clone = rows(lambda n: "new" if n % 2 else "OTHER")
-live = rows(lambda n: "POTENTIAL_CUSTOMER" if n == 1 else "OTHER")
+targets = rows(ids, lambda n: "OTHER")
+intended = rows(ids50, lambda n: "OTHER")
+clone = rows(ids, lambda n: "new" if n % 2 else "OTHER")
+live_all = rows(ids, lambda n: "POTENTIAL_CUSTOMER" if n == 1 else "OTHER") + intended
+fresh = [{"id": str(uuid.uuid4()), "domain": "fresh.com", "status": "new", "first_seen_at": "2026-10-27T18:00:00Z"}]
 
-r = run(clone, live, targets)
-assert r.returncode == 0, r.stderr
-assert json.loads(r.stderr)["E"] == 222 and json.loads(r.stderr)["skipped_retriaged"] == ["d1.com"]
-assert "commit;" in r.stdout and "primary key" in r.stdout
-assert run(clone, live + live[:3], targets).returncode != 0, "duplicates must abort"
-assert run(rows(lambda n: "OTHER"), live, targets).returncode != 0, "E=0 must abort"
-assert run(rows(lambda n: "Other "), live, targets).returncode != 0, "unknown vocab must abort"
-assert run(clone, live[:-1], targets).returncode != 0, "live id mismatch must abort"
-assert run(clone, live, targets[:-1]).returncode != 0, "wrong target count must abort"
-assert run(clone, [{"id": "x"}], targets).returncode != 0, "malformed must abort"
+ok = run("apply", clone, live_all, targets, intended)
+assert ok.returncode == 0, ok.stderr
+summary = json.loads(ok.stderr)
+assert summary["E"] == 222 and summary["skipped_retriaged"] == ["d1.com"], summary
+assert "commit;" in ok.stdout and "primary key" in ok.stdout
+
+reh = run("rehearse", clone, live_all, targets, intended)
+assert reh.returncode == 0 and reh.stdout.rstrip().endswith("rollback;")
+neg = run("negative-test", clone, live_all, targets, intended)
+assert neg.returncode == 0 and "expected 223" in neg.stdout and neg.stdout.rstrip().endswith("rollback;")
+
+post = run("apply", clone, live_all + fresh, targets, intended)
+assert post.returncode == 0 and json.loads(post.stderr)["post_incident_rows"] == ["fresh.com"], post.stderr
+assert json.loads(run("apply", clone[:-1], live_all, targets, intended).stderr)["missing_in_clone"] == ["d446.com"]
+
+fails = {
+    "unexplained extra live row": (clone, live_all + rows([str(uuid.uuid4())], lambda n: "OTHER"), targets, intended),
+    "target absent from live": (clone, live_all[1:], targets, intended),
+    "duplicate live ids": (clone, live_all + live_all[:3], targets, intended),
+    "duplicate clone ids": (clone + clone[:2], live_all, targets, intended),
+    "duplicate target ids": (clone, live_all, targets + targets[:1], intended),
+    "clone superset": (clone + rows([str(uuid.uuid4())], lambda n: "new"), live_all, targets, intended),
+    "E=0": (rows(ids, lambda n: "OTHER"), live_all, targets, intended),
+    "unknown vocab": (rows(ids, lambda n: "Other "), live_all, targets, intended),
+    "wrong target count": (clone, live_all, targets[:-1], intended),
+    "intended overlaps targets": (clone, live_all, targets, intended[:49] + targets[:1]),
+    "malformed": (clone, [{"id": "x"}], targets, intended),
+    "missing first_seen_at": (clone, [{k: v for k, v in r.items() if k != "first_seen_at"} for r in live_all], targets, intended),
+}
+for name, args in fails.items():
+    r = run("apply", *args)
+    assert r.returncode != 0 and "abort:" in r.stderr, name
 print("ok")
