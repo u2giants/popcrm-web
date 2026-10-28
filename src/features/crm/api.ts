@@ -685,6 +685,43 @@ export async function updateRetailer(id: string, values: Partial<Retailer>) {
   if (error) throw error
 }
 
+/**
+ * Creates a customer for a classified email domain (Email Routing → Domains →
+ * Create new). api.crm_create_customer enforces CRM access, refuses a domain a
+ * customer already owns, and attaches existing contacts on the domain.
+ */
+export async function createCustomer(values: {
+  name: string
+  domain: string
+  customer_status: string
+  display_name: string | null
+  chain_type: string | null
+}): Promise<string> {
+  const { data, error } = await anyDb.schema('api').rpc('crm_create_customer', {
+    p_name: values.name,
+    p_domain: values.domain,
+    p_customer_status: values.customer_status,
+    p_display_name: values.display_name,
+    p_chain_type: values.chain_type,
+  })
+  if (error) throw error
+  return ((data ?? {}) as Row).id as string
+}
+
+/** Contacts whose email is on a domain or one of its subdomains. */
+export async function fetchContactsByDomain(domain: string): Promise<Buyer[]> {
+  const d = domain.trim().toLowerCase()
+  const { data, error } = await anyDb
+    .schema('api')
+    .from('crm_contact_list')
+    .select('*')
+    .or(`email.ilike.*@${d},email.ilike.*.${d}`)
+    .order('email', { ascending: true })
+    .limit(200)
+  if (error) throw error
+  return ((data ?? []) as Row[]).map(toBuyer)
+}
+
 export async function setRetailerLogo(id: string, logoUrl: string | null): Promise<void> {
   const { error } = await anyDb.schema('api').rpc('crm_set_customer_logo', {
     p_customer_id: id,

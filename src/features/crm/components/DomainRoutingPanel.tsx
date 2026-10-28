@@ -1,4 +1,4 @@
-import { useMemo, useRef } from 'react'
+import { useMemo, useRef, useState } from 'react'
 import { toast } from 'sonner'
 import { Globe } from 'lucide-react'
 import { DataTable, type Column, type EditOption, type CellEditContext } from '@/components/app/DataTable'
@@ -10,8 +10,12 @@ import {
   useIngestedDomainsQuery,
   useRetailersQuery,
   useUpdateCustomerMutation,
+  useUpdateIngestedDomainMutation,
 } from '@/features/crm/queries'
 import { logError } from '@/lib/errors'
+import { CreateCustomerDialog } from '@/features/crm/components/CreateCustomerDialog'
+import { StatusBadge } from '@/components/app/StatusBadge'
+import { customerStatusLabel, customerStatusTone } from '@/features/crm/constants'
 import type { CrmIngestedDomain, Retailer } from '@/lib/types'
 
 // Routing a domain adds it to the chosen customer's routing aliases; the email
@@ -27,6 +31,16 @@ const hasDomain = (r: Retailer, domain: string) =>
 // everything else has no use here.
 export const isCustomerDomain = (d: CrmIngestedDomain) =>
   d.status === 'ACTIVE_CUSTOMER' || d.status === 'POTENTIAL_CUSTOMER'
+
+const CREATE_NEW = '__create_new__'
+
+// Fixing a mistaken classification here drops the domain from the list.
+const CLASSIFICATION_OPTIONS: EditOption[] = [
+  { value: 'ACTIVE_CUSTOMER', label: 'Active Customer' },
+  { value: 'POTENTIAL_CUSTOMER', label: 'Potential Customer' },
+  { value: 'OTHER', label: 'Not a Customer' },
+  { value: 'new', label: 'Unclassified' },
+]
 
 type RoutedDomain = CrmIngestedDomain & { routedTo: string | null }
 
@@ -53,7 +67,10 @@ export function DomainRoutingPanel({ query }: { query: string }) {
   const picker = listData(pickerQuery.data)
   const customerById = useMemo(() => buildRetailerById(picker, customers), [picker, customers])
   const options = useMemo<EditOption[]>(
-    () => customerEditOptions(picker.filter((c) => customers.some((x) => x.id === c.id)), 'Not routed'),
+    () => [
+      ...customerEditOptions(picker.filter((c) => customers.some((x) => x.id === c.id)), 'Not routed'),
+      { value: CREATE_NEW, label: '+ Create new customer…' },
+    ],
     [picker, customers],
   )
   // Aliases as last written, so several routes in a row (bulk edit) build on
@@ -67,8 +84,24 @@ export function DomainRoutingPanel({ query }: { query: string }) {
     return unrouted.filter((d) => !q || textOf(d.domain, d.display_name, d.last_sender, d.sample_subject).includes(q))
   }, [unrouted, query])
 
+  const updateDomain = useUpdateIngestedDomainMutation()
+  const [creating, setCreating] = useState<CrmIngestedDomain | null>(null)
+
   async function route(row: RoutedDomain, key: string, value: string, edit?: CellEditContext) {
+    if (key === 'status') {
+      try {
+        await updateDomain.mutateAsync({ id: row.id, values: { status: value } })
+      } catch (error) {
+        if (edit?.bulk) throw error
+        toast.error('Could not reclassify domain', { description: logError('DomainRoutingPanel.reclassify', error) })
+      }
+      return
+    }
     if (key !== 'routedTo') return
+    if (value === CREATE_NEW) {
+      if (!edit?.bulk) setCreating(row)
+      return
+    }
     const domain = row.domain.toLowerCase()
     try {
       // Take the domain off any customer it was routed to before.
@@ -136,6 +169,16 @@ export function DomainRoutingPanel({ query }: { query: string }) {
       editValue: (r) => r.routedTo ?? '',
       cell: () => <span className="text-muted-foreground">Not routed</span>,
     },
+    {
+      key: 'status',
+      header: 'Classification',
+      hideBelow: 'md',
+      sortValue: (r) => customerStatusLabel(r.status),
+      filterValue: (r) => customerStatusLabel(r.status),
+      editOptions: CLASSIFICATION_OPTIONS,
+      editValue: (r) => r.status ?? 'new',
+      cell: (r) => <StatusBadge tone={customerStatusTone(r.status)} dot>{customerStatusLabel(r.status)}</StatusBadge>,
+    },
   ]
 
   return (
@@ -157,6 +200,7 @@ export function DomainRoutingPanel({ query }: { query: string }) {
         initialSort={{ key: 'email_count', dir: 'desc' }}
         pageSize={50}
       />
+      <CreateCustomerDialog key={creating?.id ?? 'none'} domain={creating} onClose={() => setCreating(null)} />
     </div>
   )
 }

@@ -49,6 +49,8 @@ import {
   updateNote,
   updateOpportunity,
   updateRetailer,
+  createCustomer,
+  fetchContactsByDomain,
   updateTask,
   type CustomerBrand,
   type CustomerSegment,
@@ -500,6 +502,24 @@ export function useMergeCustomersMutation() {
     onSettled: () => {
       void queryClient.invalidateQueries({ queryKey: crmKeys.all })
     },
+  })
+}
+
+export function useContactsByDomainQuery(domain: string | null) {
+  return useQuery({
+    queryKey: [...crmKeys.all, 'contactsByDomain', domain ?? ''] as const,
+    queryFn: () => fetchContactsByDomain(domain as string),
+    enabled: !!domain,
+    ...crmQueryDefaults,
+  })
+}
+
+export function useCreateCustomerMutation() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: createCustomer,
+    // A new customer changes pickers, customer lists, domain links and contacts.
+    onSettled: () => void queryClient.invalidateQueries({ queryKey: crmKeys.all }),
   })
 }
 
