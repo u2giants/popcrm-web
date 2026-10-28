@@ -317,6 +317,10 @@ async function matchingRetailersByDomain(domain, displayNames = {}) {
   if (rows.length === 1) return rows[0]
   const banner = candidates.map((c) => applySharedDomainRule(c, rows, displayNames)).find(Boolean)
   if (banner) return banner
+  // A domain routed by hand (listed in a customer's routing aliases from the
+  // Email Routing page) beats the customer whose own domain merely contains it.
+  const routed = rows.filter((r) => splitAliases(r.routing_aliases).some((a) => candidates.includes(a.toLowerCase())))
+  if (routed.length === 1) return routed[0]
   // No banner signal — which is normal on reroute, where the stored message has
   // no sender display names to read. Fall back to the customer that owns the
   // domain outright rather than dropping the message; a banner still wins when

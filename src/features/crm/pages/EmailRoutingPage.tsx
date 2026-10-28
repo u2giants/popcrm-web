@@ -11,6 +11,7 @@ import { CustomerRelationLogo } from '@/features/crm/components/CustomerRelation
 import { RelationLabel } from '@/features/crm/components/RelationLabel'
 import { useRecordSelection } from '@/features/crm/useRecordSelection'
 import { EmailDrawer } from '@/features/crm/components/EmailDrawer'
+import { DomainRoutingPanel } from '@/features/crm/components/DomainRoutingPanel'
 import { ROUTING_STATUSES, WORKER_CADENCE } from '@/features/crm/constants'
 import { formatDateTime, idOf, label, relatedName, textOf } from '@/features/crm/format'
 import { customerEditOptions, withCurrentCustomer, buildRetailerById } from '@/features/crm/pages/_shared'
@@ -23,6 +24,7 @@ import {
   useEmailStageCountsQuery,
   useEmailStagePageQuery,
   useFirefliesHealth,
+  useIngestedDomainsQuery,
   useCustomerPickerQuery,
   useOpportunitiesQuery,
   useUpdateEmailMutation,
@@ -35,7 +37,7 @@ import type { CrmEmailMessage } from '@/lib/types'
 // A message's stage is the first level it is still missing.
 // Counts and pages come from the server over every message.
 type Stage = EmailStage
-type Segment = Stage | 'all'
+type Segment = Stage | 'all' | 'domains'
 const PAGE_SIZE = 50
 
 const STAGES: { id: Stage; label: string; hint: string; empty: string }[] = [
@@ -74,12 +76,13 @@ export function EmailRoutingPage() {
   const customerName = useCustomerDisplayName()
   const [segment, setSegment] = useState<Segment>('needs_company')
   const [page, setPage] = useState(0)
-  const emailsQuery = useEmailStagePageQuery(segment, PAGE_SIZE, page * PAGE_SIZE)
+  const emailsQuery = useEmailStagePageQuery(segment === 'domains' ? 'needs_company' : segment, PAGE_SIZE, page * PAGE_SIZE)
   const countsQuery = useEmailStageCountsQuery()
   const retailersQuery = useCustomerPickerQuery(-1)
   const departmentsQuery = useDepartmentsQuery(-1)
   const opportunitiesQuery = useOpportunitiesQuery(-1)
   const fireflies = useFirefliesHealth()
+  const domainsCountQuery = useIngestedDomainsQuery(-1)
   const updateEmailMutation = useUpdateEmailMutation()
   const emails = listData(emailsQuery.data)
   const retailers = listData(retailersQuery.data)
@@ -153,7 +156,7 @@ export function EmailRoutingPage() {
   }
 
   const stageCounts = countsQuery.data ?? null
-  const stageTotal = stageCounts ? stageCounts[segment] : null
+  const stageTotal = stageCounts && segment !== 'domains' ? stageCounts[segment] : null
   const pageCount = stageTotal ? Math.max(1, Math.ceil(stageTotal / PAGE_SIZE)) : 1
 
   const filtered = useMemo(() => {
@@ -254,6 +257,7 @@ export function EmailRoutingPage() {
     ...STAGES.map((s) => ({ id: s.id as Segment, label: s.label, count: stageCounts?.[s.id] ?? 0 })),
     ...(canSeeAll ? [{ id: 'all' as const, label: 'All', count: stageCounts?.all ?? 0 }] : []),
   ]
+  const domainCount = listData(domainsCountQuery.data).length
   const activeStage = STAGES.find((s) => s.id === segment)
   const windowNote = stageCounts ? `${stageCounts.all.toLocaleString()} Outlook-ingested messages` : 'Outlook-ingested messages'
   const firstRow = page * PAGE_SIZE + 1
@@ -265,10 +269,10 @@ export function EmailRoutingPage() {
         <ListBar
           title="Email Routing"
           subtitle={windowNote}
-          count={query ? filtered.length : stageTotal ?? filtered.length}
+          count={segment === 'domains' ? domainCount : query ? filtered.length : stageTotal ?? filtered.length}
           search={query}
           onSearch={setQuery}
-          searchPlaceholder="Search this page…"
+          searchPlaceholder={segment === 'domains' ? 'Search domain, sender…' : 'Search this page…'}
           actions={
             <CrmStatusBadge kind="routing" status={firefliesOk ? 'ROUTED' : undefined} dot={false} />
           }
@@ -284,13 +288,21 @@ export function EmailRoutingPage() {
                     </span>
                   </TabsTrigger>
                 ))}
+                <TabsTrigger value="domains" className="gap-1.5" title="Route emails by sender domain">
+                  Domains
+                  <span className="rounded-full bg-muted-foreground/15 px-1.5 text-[11px] tabular-nums">
+                    {domainCount.toLocaleString()}
+                  </span>
+                </TabsTrigger>
               </TabsList>
             </Tabs>
           }
         />
       }
     >
-      {error ? (
+      {segment === 'domains' ? (
+        <DomainRoutingPanel query={query} />
+      ) : error ? (
         <ErrorState onRetry={() => void emailsQuery.refetch()} />
       ) : (
         <div className="grid gap-4 xl:grid-cols-[1fr_340px]">
