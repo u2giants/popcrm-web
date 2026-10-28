@@ -54,6 +54,8 @@ export interface CrmIngestedDomain {
   last_sender: string | null
   sample_subject: string | null
   updated_at: string | null
+  customer_id: string | null
+  customer_name: string | null
 }
 
 export interface Buyer {

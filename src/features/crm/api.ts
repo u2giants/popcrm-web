@@ -294,6 +294,8 @@ const toIngestedDomain = (r: Row): CrmIngestedDomain => ({
   last_sender: (r.last_sender ?? null) as string | null,
   sample_subject: (r.sample_subject ?? null) as string | null,
   updated_at: (r.updated_at ?? null) as string | null,
+  customer_id: (r.customer_id ?? null) as string | null,
+  customer_name: (r.customer_name ?? null) as string | null,
 })
 
 const toBuyer = (r: Row): Buyer => ({

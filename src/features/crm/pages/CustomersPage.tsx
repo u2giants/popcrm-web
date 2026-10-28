@@ -139,11 +139,14 @@ export function CustomersPage() {
   }, [allCustomers])
 
   // "New email domains" means not classified yet: still 'new', and not a
-  // domain that already belongs to a customer record.
+  // domain that already belongs to a customer record (linked by customer_id,
+  // which also covers subdomains, or matching a customer's domain).
   const unclassifiedDomains = useMemo(
     () =>
       triageDomains.filter(
-        (r) => (r.status ?? 'new') === 'new' && !customerDomains.has((r.domain ?? '').trim().toLowerCase()),
+        (r) => (r.status ?? 'new') === 'new' &&
+          !r.customer_id &&
+          !customerDomains.has((r.domain ?? '').trim().toLowerCase()),
       ),
     [triageDomains, customerDomains],
   )
