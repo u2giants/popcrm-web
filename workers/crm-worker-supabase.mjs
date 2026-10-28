@@ -184,6 +184,7 @@ const DEFAULT_PO_PATTERNS = [
   /\bPurchase\s+Order[\s:#\-]*(\d{5,12})\b/gi,
   PO_PATTERN,
 ]
+const NO_CUSTOMER_DOMAIN = 'NO_CUSTOMER_DOMAIN'
 const ROUTABLE_STATUSES = ['UNROUTED', 'COMPANY_ONLY', 'COMPANY_DEPT', 'CUSTOMER_EMAIL_NO_COMPANY']
 const MODEL_VALUE_MAP = {
   GPT_5_4: 'openai/gpt-5.4', GPT_5_4_MINI: 'openai/gpt-5.4-mini', GPT_5_4_NANO: 'openai/gpt-5.4-nano',
@@ -597,6 +598,16 @@ async function routeEmail({ subject, bodyText, addresses, displayNames = {}, tas
     if (matches.length === 1) { retailer = matches[0]; routingMethod = 'THREAD_EMAIL_DOMAIN' }
   }
 
+  // Only email that carries a customer domain is sales email. A customer domain
+  // either matches a customer outright or is classified Active/Potential
+  // Customer on the Customers page but not yet routed to one (it then waits in
+  // the Email Routing Domains tab). Everything else is skipped as not
+  // customer-related; reroute rechecks those once a domain gets routed.
+  const bodyDomains = [...new Set(bodyAddresses.map(domainOf).filter((d) => d && d !== INTERNAL_DOMAIN && !isNoiseDomain(d)))]
+  if (task === 'email_routing_model' && !customerDomainPresent && !retailer && !(await hasClassifiedCustomerDomain([...nonNoiseDomains, ...bodyDomains]))) {
+    return { routing_status: 'SKIPPED', routing_method: NO_CUSTOMER_DOMAIN }
+  }
+
   if (!retailer) {
     const subjectHistory = await matchRetailerBySubjectHistory(normalizedSubject)
     if (subjectHistory) { retailer = subjectHistory.id; routingMethod = 'SUBJECT_HISTORY' }
@@ -882,14 +893,25 @@ async function outlookIngestMailbox(mailbox) {
 }
 
 async function reroute() {
-  const rows = await fetchAllRows(() => crm('email_message').select('id,subject,body_preview,sender,recipients,routing_status,company_id').in('routing_status', ROUTABLE_STATUSES))
+  const columns = 'id,subject,body_preview,sender,recipients,routing_status,routing_method,company_id'
+  const rows = [
+    ...await fetchAllRows(() => crm('email_message').select(columns).in('routing_status', ROUTABLE_STATUSES)),
+    // Recheck mail skipped for having no customer domain: a domain routed since
+    // may now make it sales email.
+    ...await fetchAllRows(() => crm('email_message').select(columns).eq('routing_status', 'SKIPPED').eq('routing_method', NO_CUSTOMER_DOMAIN)),
+  ]
   let updated = 0
   let evaluated = 0
   for (const row of rows) {
     const addresses = extractAddresses(`${row.sender || ''} ${row.recipients || ''}`)
     const route = await normalizeRoute(await routeEmail({ subject: row.subject || '', bodyText: row.body_preview || '', addresses, allowAi: process.env.CRM_REROUTE_AI === 'true' }))
     evaluated += 1
-    if (routingImproves(row.routing_status, route, row.company_id)) {
+    const recheck = row.routing_status === 'SKIPPED'
+    // Unassigned mail without a customer domain leaves Needs company; mail a
+    // person already gave a company is never demoted.
+    const demote = !row.company_id && route.routing_method === NO_CUSTOMER_DOMAIN && row.routing_status === 'UNROUTED'
+    const apply = recheck ? route.routing_status !== 'SKIPPED' : demote || routingImproves(row.routing_status, route, row.company_id)
+    if (apply) {
       try {
         must(await crm('email_message').update(routeColumns(route)).eq('id', row.id))
         if (route.opportunity) await updateOpportunitySummary(route.opportunity)
@@ -901,6 +923,15 @@ async function reroute() {
     if (evaluated % 500 === 0) console.log(`reroute: ${evaluated}/${rows.length} evaluated, ${updated} improved`)
   }
   console.log(`reroute: ${evaluated} messages evaluated, ${updated} improved`)
+}
+
+// Domains classified Active/Potential Customer on the Customers page.
+async function hasClassifiedCustomerDomain(domains) {
+  if (!domains.length) return false
+  const classified = await cachedReference('ingested_domains:customer', async () => new Set(
+    must(await crm('ingested_domain').select('domain').in('status', ['ACTIVE_CUSTOMER', 'POTENTIAL_CUSTOMER']).limit(10000))
+      .map((r) => String(r.domain || '').toLowerCase())))
+  return domains.some((d) => domainCandidates(d).some((c) => classified.has(c)))
 }
 
 async function recordIngestedDomain(domain, sender = null, subject = null, displayName = null) {

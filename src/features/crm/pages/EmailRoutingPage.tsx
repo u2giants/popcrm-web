@@ -11,7 +11,7 @@ import { CustomerRelationLogo } from '@/features/crm/components/CustomerRelation
 import { RelationLabel } from '@/features/crm/components/RelationLabel'
 import { useRecordSelection } from '@/features/crm/useRecordSelection'
 import { EmailDrawer } from '@/features/crm/components/EmailDrawer'
-import { DomainRoutingPanel, isCustomerDomain } from '@/features/crm/components/DomainRoutingPanel'
+import { DomainRoutingPanel, useUnroutedCustomerDomains } from '@/features/crm/components/DomainRoutingPanel'
 import { ROUTING_STATUSES, WORKER_CADENCE } from '@/features/crm/constants'
 import { formatDateTime, idOf, label, relatedName, textOf } from '@/features/crm/format'
 import { customerEditOptions, withCurrentCustomer, buildRetailerById } from '@/features/crm/pages/_shared'
@@ -24,7 +24,6 @@ import {
   useEmailStageCountsQuery,
   useEmailStagePageQuery,
   useFirefliesHealth,
-  useIngestedDomainsQuery,
   useCustomerPickerQuery,
   useOpportunitiesQuery,
   useUpdateEmailMutation,
@@ -41,11 +40,11 @@ type Segment = Stage | 'all' | 'domains'
 const PAGE_SIZE = 50
 
 const STAGES: { id: Stage; label: string; hint: string; empty: string }[] = [
-  { id: 'needs_company', label: 'Needs company', hint: 'Step 1 — pick the customer', empty: 'Every message has a company.' },
-  { id: 'needs_department', label: 'Needs department', hint: 'Step 2 — pick the department', empty: 'Every message with a company has a department.' },
-  { id: 'needs_program', label: 'Needs program', hint: 'Step 3 — pick the program', empty: 'Every message with a department has a program.' },
+  { id: 'needs_company', label: 'Needs company', hint: 'Step 2 — pick the customer', empty: 'Every message has a company.' },
+  { id: 'needs_department', label: 'Needs department', hint: 'Step 3 — pick the department', empty: 'Every message with a company has a department.' },
+  { id: 'needs_program', label: 'Needs program', hint: 'Step 4 — pick the program', empty: 'Every message with a department has a program.' },
   { id: 'routed', label: 'Fully routed', hint: 'Company, department and program set', empty: 'No fully routed messages yet.' },
-  { id: 'skipped', label: 'Skipped', hint: 'Not customer business', empty: 'No skipped messages.' },
+  { id: 'skipped', label: 'Skipped', hint: 'Not customer business — no customer domain on it', empty: 'No skipped messages.' },
 ]
 
 // Status that matches what has been assigned, so the backend label never
@@ -74,7 +73,7 @@ function MethodChip({ method }: { method: string | null | undefined }) {
 
 export function EmailRoutingPage() {
   const customerName = useCustomerDisplayName()
-  const [segment, setSegment] = useState<Segment>('needs_company')
+  const [segment, setSegment] = useState<Segment>('domains')
   const [page, setPage] = useState(0)
   const emailsQuery = useEmailStagePageQuery(segment === 'domains' ? 'needs_company' : segment, PAGE_SIZE, page * PAGE_SIZE)
   const countsQuery = useEmailStageCountsQuery()
@@ -82,7 +81,7 @@ export function EmailRoutingPage() {
   const departmentsQuery = useDepartmentsQuery(-1)
   const opportunitiesQuery = useOpportunitiesQuery(-1)
   const fireflies = useFirefliesHealth()
-  const domainsCountQuery = useIngestedDomainsQuery(-1)
+  const unroutedDomains = useUnroutedCustomerDomains()
   const updateEmailMutation = useUpdateEmailMutation()
   const emails = listData(emailsQuery.data)
   const retailers = listData(retailersQuery.data)
@@ -257,7 +256,7 @@ export function EmailRoutingPage() {
     ...STAGES.map((s) => ({ id: s.id as Segment, label: s.label, count: stageCounts?.[s.id] ?? 0 })),
     ...(canSeeAll ? [{ id: 'all' as const, label: 'All', count: stageCounts?.all ?? 0 }] : []),
   ]
-  const domainCount = listData(domainsCountQuery.data).filter(isCustomerDomain).length
+  const domainCount = unroutedDomains.length
   const activeStage = STAGES.find((s) => s.id === segment)
   const windowNote = stageCounts ? `${stageCounts.all.toLocaleString()} Outlook-ingested messages` : 'Outlook-ingested messages'
   const firstRow = page * PAGE_SIZE + 1
@@ -279,21 +278,22 @@ export function EmailRoutingPage() {
           segments={
             <Tabs value={segment} onValueChange={(v) => { setSegment(v as Segment); setPage(0) }}>
               <TabsList>
+                <TabsTrigger value="domains" className="gap-1.5" title="Step 1 — tie each customer domain to its customer">
+                  <span className="text-muted-foreground">1.</span>
+                  Domains
+                  <span className="rounded-full bg-muted-foreground/15 px-1.5 text-[11px] tabular-nums">
+                    {domainCount.toLocaleString()}
+                  </span>
+                </TabsTrigger>
                 {segments.map((s, i) => (
                   <TabsTrigger key={s.id} value={s.id} className="gap-1.5" title={STAGES.find((x) => x.id === s.id)?.hint}>
-                    {i < 3 ? <span className="text-muted-foreground">{i + 1}.</span> : null}
+                    {i < 3 ? <span className="text-muted-foreground">{i + 2}.</span> : null}
                     {s.label}
                     <span className="rounded-full bg-muted-foreground/15 px-1.5 text-[11px] tabular-nums">
                       {s.count.toLocaleString()}
                     </span>
                   </TabsTrigger>
                 ))}
-                <TabsTrigger value="domains" className="gap-1.5" title="Route emails by sender domain">
-                  Domains
-                  <span className="rounded-full bg-muted-foreground/15 px-1.5 text-[11px] tabular-nums">
-                    {domainCount.toLocaleString()}
-                  </span>
-                </TabsTrigger>
               </TabsList>
             </Tabs>
           }
@@ -310,7 +310,7 @@ export function EmailRoutingPage() {
           {activeStage ? (
             <p className="text-sm text-muted-foreground">
               <span className="font-medium text-foreground">{activeStage.hint}.</span>{' '}
-              Every message is routed in three steps: company → department → program. Set the missing level in its column and the message moves to the next step.
+              Only email with a customer domain on it lands here; the rest is skipped as not customer-related. It is routed in three steps: company → department → program. Set the missing level in its column and the message moves to the next step.
             </p>
           ) : null}
           <DataTable

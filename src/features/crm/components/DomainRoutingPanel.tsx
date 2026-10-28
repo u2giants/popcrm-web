@@ -2,7 +2,6 @@ import { useMemo, useRef } from 'react'
 import { toast } from 'sonner'
 import { Globe } from 'lucide-react'
 import { DataTable, type Column, type EditOption, type CellEditContext } from '@/components/app/DataTable'
-import { CustomerRelationLogo } from '@/features/crm/components/CustomerRelationLogo'
 import { formatDateTime, textOf } from '@/features/crm/format'
 import { customerEditOptions, buildRetailerById } from '@/features/crm/pages/_shared'
 import {
@@ -29,14 +28,27 @@ const hasDomain = (r: Retailer, domain: string) =>
 export const isCustomerDomain = (d: CrmIngestedDomain) =>
   d.status === 'ACTIVE_CUSTOMER' || d.status === 'POTENTIAL_CUSTOMER'
 
-type RoutedDomain = CrmIngestedDomain & { routedTo: string | null; how: 'manual' | 'auto' | null }
+type RoutedDomain = CrmIngestedDomain & { routedTo: string | null }
+
+// Customer domains still waiting for a customer. A domain is routed once a
+// customer lists it in its routing aliases or it auto-matches a customer's own
+// domain; routed domains are done and leave the list.
+export function useUnroutedCustomerDomains(): RoutedDomain[] {
+  const domains = listData(useIngestedDomainsQuery(-1).data)
+  const customers = listData(useRetailersQuery(-1).data)
+  return useMemo(
+    () => domains
+      .filter((d) => isCustomerDomain(d) && !d.customer_id && !customers.some((c) => hasDomain(c, d.domain.toLowerCase())))
+      .map((d) => ({ ...d, routedTo: null })),
+    [domains, customers],
+  )
+}
 
 export function DomainRoutingPanel({ query }: { query: string }) {
   const domainsQuery = useIngestedDomainsQuery(-1)
   const customersQuery = useRetailersQuery(-1)
   const pickerQuery = useCustomerPickerQuery(-1)
   const updateCustomer = useUpdateCustomerMutation()
-  const domains = listData(domainsQuery.data)
   const customers = listData(customersQuery.data)
   const picker = listData(pickerQuery.data)
   const customerById = useMemo(() => buildRetailerById(picker, customers), [picker, customers])
@@ -49,19 +61,11 @@ export function DomainRoutingPanel({ query }: { query: string }) {
   const written = useRef(new Map<string, string>())
   const aliasesOf = (c: Retailer) => splitAliases(written.current.get(c.id) ?? c.routing_aliases)
 
-  const rows = useMemo<RoutedDomain[]>(() => {
+  const unrouted = useUnroutedCustomerDomains()
+  const rows = useMemo(() => {
     const q = query.trim().toLowerCase()
-    return domains
-      .filter(isCustomerDomain)
-      .map((d) => {
-        const domain = d.domain.toLowerCase()
-        const manual = customers.find((c) => hasDomain(c, domain))
-        if (manual) return { ...d, routedTo: manual.id, how: 'manual' as const }
-        if (d.customer_id) return { ...d, routedTo: d.customer_id, how: 'auto' as const }
-        return { ...d, routedTo: null, how: null }
-      })
-      .filter((d) => !q || textOf(d.domain, d.display_name, d.last_sender, d.sample_subject, d.customer_name).includes(q))
-  }, [domains, customers, query])
+    return unrouted.filter((d) => !q || textOf(d.domain, d.display_name, d.last_sender, d.sample_subject).includes(q))
+  }, [unrouted, query])
 
   async function route(row: RoutedDomain, key: string, value: string, edit?: CellEditContext) {
     if (key !== 'routedTo') return
@@ -130,15 +134,7 @@ export function DomainRoutingPanel({ query }: { query: string }) {
       filterValue: (r) => (r.routedTo ? 'Routed' : 'Not routed'),
       editOptions: options,
       editValue: (r) => r.routedTo ?? '',
-      cell: (r) =>
-        r.routedTo ? (
-          <div className="flex items-center gap-2">
-            <CustomerRelationLogo value={r.routedTo} customerById={customerById} size={24} variant="token-name" />
-            {r.how === 'auto' ? <span className="text-[11px] text-muted-foreground">auto</span> : null}
-          </div>
-        ) : (
-          <span className="text-muted-foreground">Not routed</span>
-        ),
+      cell: () => <span className="text-muted-foreground">Not routed</span>,
     },
   ]
 
@@ -146,7 +142,7 @@ export function DomainRoutingPanel({ query }: { query: string }) {
     <div className="space-y-2">
       <p className="text-sm text-muted-foreground">
         <span className="font-medium text-foreground">Route sender domains.</span>{' '}
-        Pick a customer for a domain and every email from that domain — new and existing — is routed to that customer.
+        Customer domains not yet tied to a customer. Pick one and the domain leaves this list; its emails — and any earlier ones skipped as not customer-related — are routed to that customer on the next pass.
       </p>
       <DataTable
         rows={rows}
@@ -156,7 +152,7 @@ export function DomainRoutingPanel({ query }: { query: string }) {
         selectable
         loading={domainsQuery.isPending || customersQuery.isPending || pickerQuery.isPending}
         emptyIcon={<Globe className="size-5" />}
-        emptyTitle={query ? 'No domains match your search' : 'No customer domains yet'}
+        emptyTitle={query ? 'No domains match your search' : 'Every customer domain is routed'}
         emptyDescription={query ? 'Adjust your search.' : 'Mark a domain as an Active or Potential Customer on the Customers page and it appears here.'}
         initialSort={{ key: 'email_count', dir: 'desc' }}
         pageSize={50}
