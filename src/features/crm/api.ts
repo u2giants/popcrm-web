@@ -509,6 +509,18 @@ export async function fetchIngestedDomains(limit = -1): Promise<CrmIngestedDomai
   return rows.map(toIngestedDomain)
 }
 
+/** Ingested email domains linked to one customer (read-only). */
+export async function fetchCustomerIngestedDomains(customerId: string): Promise<CrmIngestedDomain[]> {
+  const { data, error } = await anyDb
+    .schema('api')
+    .from('crm_ingested_domain_list')
+    .select('*')
+    .eq('customer_id', customerId)
+    .order('domain', { ascending: true })
+  if (error) throw error
+  return ((data ?? []) as Row[]).map(toIngestedDomain)
+}
+
 /**
  * Triage classification. Writes through api.crm_update_ingested_domain, which
  * enforces app.has_app_access('crm') and constrains the status — the browser

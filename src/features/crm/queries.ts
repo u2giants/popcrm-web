@@ -23,6 +23,7 @@ import {
   previewCustomerMerge,
   fetchIngestedContacts,
   fetchIngestedDomains,
+  fetchCustomerIngestedDomains,
   fetchMeetingNotes,
   fetchNotes,
   fetchOpportunities,
@@ -94,6 +95,7 @@ export const crmKeys = {
   customerSegmentCounts: () => [...crmKeys.all, 'customerSegmentCounts'] as const,
   buyers: (limit = -1) => [...crmKeys.all, 'buyers', { limit }] as const,
   ingestedDomains: (limit = -1) => [...crmKeys.all, 'ingestedDomains', { limit }] as const,
+  customerIngestedDomains: (customerId: string) => [...crmKeys.all, 'ingestedDomains', 'customer', customerId] as const,
   ingestedDomainCount: () => [...crmKeys.all, 'ingestedDomainCount'] as const,
   ingestedContacts: (limit = -1) => [...crmKeys.all, 'ingestedContacts', { limit }] as const,
   contactSegment: (segment: Exclude<ContactSegment, 'all'>, limit = -1) => [...crmKeys.all, 'contactSegment', segment, { limit }] as const,
@@ -240,6 +242,15 @@ export function useBuyersQuery(limit = -1) {
 
 export function useIngestedDomainsQuery(limit = -1) {
   return useQuery({ queryKey: crmKeys.ingestedDomains(limit), queryFn: () => fetchIngestedDomains(limit), ...crmQueryDefaults })
+}
+
+export function useCustomerIngestedDomainsQuery(customerId: string | null | undefined) {
+  return useQuery({
+    queryKey: crmKeys.customerIngestedDomains(customerId ?? ''),
+    queryFn: () => fetchCustomerIngestedDomains(customerId as string),
+    enabled: !!customerId,
+    ...crmQueryDefaults,
+  })
 }
 
 export function useUpdateIngestedDomainMutation() {

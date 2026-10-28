@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import {
   listData,
+  useCustomerIngestedDomainsQuery,
   useDepartmentsQuery,
   useEmailsQuery,
   useIngestedContactsQuery,
@@ -38,6 +39,8 @@ export function CustomerDrawer({ row, onClose }: { row: Retailer | null; onClose
   const departments = listData(useDepartmentsQuery(-1).data)
   const opportunities = listData(useOpportunitiesQuery(-1).data)
   const emails = listData(useEmailsQuery(-1).data)
+  const linkedDomainsQuery = useCustomerIngestedDomainsQuery(row?.id)
+  const linkedDomains = linkedDomainsQuery.data ?? []
 
   const related = useMemo(() => {
     if (!row) return { contacts: [], depts: [], opps: [], recentEmails: [], suggestedDomain: null }
@@ -131,6 +134,27 @@ export function CustomerDrawer({ row, onClose }: { row: Retailer | null; onClose
           {/* Brand logo */}
           <DrawerSection title="Logo">
             <CustomerLogoField key={row.id} customer={row} />
+          </DrawerSection>
+
+          {/* Ingested email domains linked to this customer (read-only) */}
+          <DrawerSection title={`Linked email domains (${linkedDomains.length})`}>
+            {linkedDomainsQuery.isLoading ? (
+              <p className="text-[12px] text-muted-foreground">Loading…</p>
+            ) : linkedDomains.length ? (
+              <ul className="divide-y rounded-[8px] border">
+                {linkedDomains.map((d) => (
+                  <li key={d.id} className="flex items-center gap-[8px] px-[11px] py-[7px]">
+                    <Mail className="size-[13px] shrink-0 text-muted-foreground" />
+                    <span className="min-w-0 flex-1 truncate text-[12.5px] font-[500] text-foreground">{d.domain}</span>
+                    <span className="shrink-0 rounded-full bg-muted px-[8px] py-[2px] text-[11px] text-muted-foreground">
+                      {d.status ? d.status.replace(/_/g, ' ').toLowerCase() : '—'}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <p className="text-[12px] text-muted-foreground">No linked email domains.</p>
+            )}
           </DrawerSection>
 
           {/* Routing aliases */}
