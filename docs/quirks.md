@@ -340,6 +340,11 @@ mail that fails that gate and rechecks every `NO_CUSTOMER_DOMAIN` row, so
 routing a domain pulls earlier mail back that night. An exact alias match wins
 over a customer whose own domain merely contains the sender domain.
 
+The tab's Classification column reclassifies a mistaken customer tag. Its
+"Create new customer" option calls `api.crm_create_customer`
+(popcre/shared-db#4984, owner-requested human-reviewed creation); insert
+triggers link the ingested domain and attach contacts on it.
+
 Future sessions should:
 Never demote mail that already has a company. Keep `NO_CUSTOMER_DOMAIN` as the
 recheck marker; changing it strands earlier skipped mail. Host workers run from
