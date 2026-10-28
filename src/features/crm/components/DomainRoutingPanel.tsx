@@ -24,6 +24,11 @@ const splitAliases = (v: string | null | undefined) =>
 const hasDomain = (r: Retailer, domain: string) =>
   splitAliases(r.routing_aliases).some((a) => a.toLowerCase() === domain)
 
+// Only domains classified as a customer (active or potential) are routed;
+// everything else has no use here.
+export const isCustomerDomain = (d: CrmIngestedDomain) =>
+  d.status === 'ACTIVE_CUSTOMER' || d.status === 'POTENTIAL_CUSTOMER'
+
 type RoutedDomain = CrmIngestedDomain & { routedTo: string | null; how: 'manual' | 'auto' | null }
 
 export function DomainRoutingPanel({ query }: { query: string }) {
@@ -47,6 +52,7 @@ export function DomainRoutingPanel({ query }: { query: string }) {
   const rows = useMemo<RoutedDomain[]>(() => {
     const q = query.trim().toLowerCase()
     return domains
+      .filter(isCustomerDomain)
       .map((d) => {
         const domain = d.domain.toLowerCase()
         const manual = customers.find((c) => hasDomain(c, domain))
@@ -150,8 +156,8 @@ export function DomainRoutingPanel({ query }: { query: string }) {
         selectable
         loading={domainsQuery.isPending || customersQuery.isPending || pickerQuery.isPending}
         emptyIcon={<Globe className="size-5" />}
-        emptyTitle={query ? 'No domains match your search' : 'No email domains yet'}
-        emptyDescription={query ? 'Adjust your search.' : 'Domains appear here as emails arrive.'}
+        emptyTitle={query ? 'No domains match your search' : 'No customer domains yet'}
+        emptyDescription={query ? 'Adjust your search.' : 'Mark a domain as an Active or Potential Customer on the Customers page and it appears here.'}
         initialSort={{ key: 'email_count', dir: 'desc' }}
         pageSize={50}
       />

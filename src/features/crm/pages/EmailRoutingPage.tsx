@@ -11,7 +11,7 @@ import { CustomerRelationLogo } from '@/features/crm/components/CustomerRelation
 import { RelationLabel } from '@/features/crm/components/RelationLabel'
 import { useRecordSelection } from '@/features/crm/useRecordSelection'
 import { EmailDrawer } from '@/features/crm/components/EmailDrawer'
-import { DomainRoutingPanel } from '@/features/crm/components/DomainRoutingPanel'
+import { DomainRoutingPanel, isCustomerDomain } from '@/features/crm/components/DomainRoutingPanel'
 import { ROUTING_STATUSES, WORKER_CADENCE } from '@/features/crm/constants'
 import { formatDateTime, idOf, label, relatedName, textOf } from '@/features/crm/format'
 import { customerEditOptions, withCurrentCustomer, buildRetailerById } from '@/features/crm/pages/_shared'
@@ -257,7 +257,7 @@ export function EmailRoutingPage() {
     ...STAGES.map((s) => ({ id: s.id as Segment, label: s.label, count: stageCounts?.[s.id] ?? 0 })),
     ...(canSeeAll ? [{ id: 'all' as const, label: 'All', count: stageCounts?.all ?? 0 }] : []),
   ]
-  const domainCount = listData(domainsCountQuery.data).length
+  const domainCount = listData(domainsCountQuery.data).filter(isCustomerDomain).length
   const activeStage = STAGES.find((s) => s.id === segment)
   const windowNote = stageCounts ? `${stageCounts.all.toLocaleString()} Outlook-ingested messages` : 'Outlook-ingested messages'
   const firstRow = page * PAGE_SIZE + 1
