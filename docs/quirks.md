@@ -322,6 +322,29 @@ restore `useEmailsQuery(-1)` for Email Routing or use full queue paging to
 compute counts. Small explicit-limit global search against
 `api.crm_email_routing_queue` is still acceptable.
 
+### Email Routing starts with domain routing (2026-10-28)
+
+What changed:
+Email Routing's first tab, **Domains**, lists ingested domains classified
+`ACTIVE_CUSTOMER`/`POTENTIAL_CUSTOMER` (Customers → New email domains) that are
+not yet routed. Routing a domain appends it to the chosen customer's
+`routing_aliases` through `api.crm_update_customer`; no schema change. A domain
+counts as routed when a customer lists it in its aliases or it has an
+auto-linked `customer_id`, and then leaves the tab.
+
+The worker (`routeEmail`, email task only) skips mail with no customer domain
+on it as `SKIPPED` / `routing_method = NO_CUSTOMER_DOMAIN`. A customer domain
+matches a customer (domain or alias) or is a classified customer ingested
+domain. `reroute` (timer 00/06/12/18:05) also demotes unassigned `UNROUTED`
+mail that fails that gate and rechecks every `NO_CUSTOMER_DOMAIN` row, so
+routing a domain pulls earlier mail back that night. An exact alias match wins
+over a customer whose own domain merely contains the sender domain.
+
+Future sessions should:
+Never demote mail that already has a company. Keep `NO_CUSTOMER_DOMAIN` as the
+recheck marker; changing it strands earlier skipped mail. Host workers run from
+the canonical checkout, so pull `main` there after worker changes.
+
 ### Not-customer rules are administrative settings
 
 What changed:
