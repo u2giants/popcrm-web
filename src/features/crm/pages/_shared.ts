@@ -1,4 +1,5 @@
 import { label, customerLabel } from '@/features/crm/format'
+import { CONTACT_TITLES } from '@/features/crm/constants'
 import type { ComboOption } from '@/components/app/Combobox'
 import type { EditOption } from '@/components/app/DataTable'
 import type { Retailer } from '@/lib/types'
@@ -16,6 +17,23 @@ export function uniqueValues<T>(
   return Array.from(seen)
     .sort()
     .map((v) => ({ value: v, label: label(v) }))
+}
+
+// One Title list for every customer: the global CONTACT_TITLES first, in
+// curated order, then any other values already living on contacts.
+export function contactTitleValues(existing: Array<string | null | undefined>): string[] {
+  const canonical = new Set<string>(CONTACT_TITLES)
+  const extras = Array.from(new Set(existing.map((v) => v?.trim()).filter((v): v is string => !!v)))
+    .filter((v) => !canonical.has(v))
+    .sort((a, b) => a.localeCompare(b))
+  return [...CONTACT_TITLES, ...extras]
+}
+
+export function contactTitleOptions(existing: Array<string | null | undefined>): EditOption[] {
+  return [
+    { value: '', label: 'No title' },
+    ...contactTitleValues(existing).map((v) => ({ value: v, label: v })),
+  ]
 }
 
 // Hub entity statuses a customer/vendor picker may offer by default. Most

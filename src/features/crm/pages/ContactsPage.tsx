@@ -10,7 +10,7 @@ import { CustomerRelationLogo } from '@/features/crm/components/CustomerRelation
 import { useRecordSelection } from '@/features/crm/useRecordSelection'
 import { ContactDrawer } from '@/features/crm/components/ContactDrawer'
 import { customerLabel, idOf, relatedName, textOf } from '@/features/crm/format'
-import { buildRetailerById, isSelectableCustomer, withCurrentCustomer } from '@/features/crm/pages/_shared'
+import { buildRetailerById, contactTitleOptions, isSelectableCustomer, withCurrentCustomer } from '@/features/crm/pages/_shared'
 import { NameAvatar } from '@/components/app/NameAvatar'
 import {
   crmKeys,
@@ -90,12 +90,7 @@ export function ContactsPage() {
     [departments],
   )
   const titleOptions = useMemo<EditOption[]>(
-    () => [
-      { value: '', label: 'No title' },
-      ...Array.from(new Set(buyers.map((b) => b.job_title?.trim()).filter(Boolean) as string[]))
-        .sort((a, b) => a.localeCompare(b))
-        .map((v) => ({ value: v, label: v })),
-    ],
+    () => contactTitleOptions(buyers.map((b) => b.job_title)),
     [buyers],
   )
 

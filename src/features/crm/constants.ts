@@ -47,6 +47,19 @@ export const CHAIN_TYPES = [
   'OTHER',
 ] as const
 
+// Contact titles are global — one list shared by every customer, never
+// per-customer. Order = display order. Acronyms stay upper case.
+export const CONTACT_TITLES = [
+  'SVP',
+  'GVP',
+  'VP',
+  'GMM',
+  'DMM',
+  'BUYER',
+  'ASSOCIATE BUYER',
+  'ASSISTANT BUYER',
+] as const
+
 // Customer-status display labels. Context-specific (NOT global label() overrides):
 // `OTHER` means "Other" for chain_type/contact_type, but "Not a Customer" here.
 // `UNASSIGNED`, empty and null all collapse to the single "New Company" bucket.

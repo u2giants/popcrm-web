@@ -15,6 +15,16 @@ const LABEL_OVERRIDES: Record<string, string> = {
   OFF_PRICE: 'Off-Price',
   ECOM: 'eCom',
   GROCERY_DRUG: 'Grocery/Drug',
+  // Global contact titles are stored and shown as written (acronyms stay
+  // upper case); generic title-casing would mangle them.
+  SVP: 'SVP',
+  GVP: 'GVP',
+  VP: 'VP',
+  GMM: 'GMM',
+  DMM: 'DMM',
+  BUYER: 'BUYER',
+  'ASSOCIATE BUYER': 'ASSOCIATE BUYER',
+  'ASSISTANT BUYER': 'ASSISTANT BUYER',
 }
 
 // Turn an UPPER_SNAKE enum or snake field name into a readable label.

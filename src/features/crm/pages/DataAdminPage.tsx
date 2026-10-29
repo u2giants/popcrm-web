@@ -23,7 +23,7 @@ import {
   uploadRetailerLogo,
 } from '@/features/crm/api'
 import { customerLabel, idOf, label, relatedName } from '@/features/crm/format'
-import { uniqueValues, customerPickerOptions, isSelectableCustomer, buildRetailerById } from '@/features/crm/pages/_shared'
+import { uniqueValues, contactTitleValues, customerPickerOptions, isSelectableCustomer, buildRetailerById } from '@/features/crm/pages/_shared'
 import {
   crmKeys,
   listData,
@@ -115,7 +115,7 @@ export function DataAdminPage() {
     [buyers, customerName],
   )
   const titleValues = useMemo(
-    () => uniqueValues(buyers, (b) => b.job_title).map((o) => o.value),
+    () => contactTitleValues(buyers.map((b) => b.job_title)),
     [buyers],
   )
   const divisionValues = useMemo(
@@ -724,7 +724,7 @@ export function DataAdminPage() {
               <section className="rounded-[8px] border bg-card p-4 shadow-[var(--shadow-xs)]">
                 <SectionHeader
                   title="Current Contact Values"
-                  description="Values currently present in contact records."
+                  description="Global titles shared by every customer, plus any other values on contact records."
                 />
                 <div className="mt-4 grid gap-4 sm:grid-cols-2">
                   <ValueList title="Titles" values={titleValues} />

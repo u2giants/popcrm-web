@@ -1,11 +1,14 @@
 import { describe, expect, it } from 'vitest'
 import {
   buildRetailerById,
+  contactTitleOptions,
+  contactTitleValues,
   customerPickerOptions,
   effectiveCustomerStatus,
   isSelectableCustomer,
   withCurrentCustomer,
 } from './_shared'
+import { CONTACT_TITLES } from '@/features/crm/constants'
 import type { Retailer } from '@/lib/types'
 
 const active: Retailer = {
@@ -77,5 +80,25 @@ describe('effectiveCustomerStatus', () => {
 
   it('leaves hub-inactive companies untriaged', () => {
     expect(effectiveCustomerStatus({ ...base, status: 'inactive', is_potential: false })).toBe('UNASSIGNED')
+  })
+})
+
+describe('CRM contact title helpers', () => {
+  it('offers the global titles to every contact, in curated order', () => {
+    const opts = contactTitleOptions([null, '  '])
+    expect(opts[0]).toEqual({ value: '', label: 'No title' })
+    expect(opts.slice(1).map((o) => o.value)).toEqual([...CONTACT_TITLES])
+  })
+
+  it('keeps one-off contact titles after the global list', () => {
+    expect(contactTitleValues(['Senior Buyer', 'SVP', 'Intern', null])).toEqual([
+      ...CONTACT_TITLES,
+      'Intern',
+      'Senior Buyer',
+    ])
+  })
+
+  it('does not repeat a global title already present on contacts', () => {
+    expect(contactTitleValues(['GMM', 'gmm'])).toEqual([...CONTACT_TITLES, 'gmm'])
   })
 })
