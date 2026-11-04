@@ -1,8 +1,9 @@
 // Email routing fallback on ScaleDown: one multiple-choice question over
 // active/potential retailers, accepted only above a calibrated confidence.
 //
-// Uses the Decisions endpoint rather than POST /classify, which rejects more
-// than 20 labels; the customer list is far longer. Cutoff evidence: issue #22.
+// Uses the Decisions endpoint rather than POST /classify: its docs cap labels at
+// 20 and the customer list is far longer, and the cutoff was calibrated here.
+// Cutoff evidence: issue #22.
 
 export const SCALEDOWN_URL = 'https://api.scaledown.xyz/v1/scaledown'
 export const SCALEDOWN_MODEL = 'classify-1'

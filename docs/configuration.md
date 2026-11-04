@@ -109,6 +109,7 @@ requires:
 - `OPENROUTER_API_KEY` for the enabled Opportunity Chat endpoint.
 - `SCALEDOWN_API_KEY` for the email and meeting routing fallback (ScaleDown Decisions API, model `classify-1`). Without it the fallback is skipped with a logged warning.
 - `SCALEDOWN_ROUTING_MIN_CONFIDENCE` optional, default `0.93` (calibrated on live routed emails, issue #22); ScaleDown retailer picks below it are ignored.
+- The `popcrm-fireflies` container has its environment fixed at creation and needs `SCALEDOWN_API_KEY` added when it is next recreated; until then meetings skip the AI fallback and use only the fixed rules.
 
 These requirements are checked before the HTTP server opens its listening
 port. A missing or whitespace-only value therefore stops startup with a
