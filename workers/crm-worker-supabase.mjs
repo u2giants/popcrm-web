@@ -23,7 +23,7 @@
 //   SUPABASE_SERVICE_ROLE_KEY=<server-only>                 (NEVER expose to the browser)
 //   MS_TENANT_ID/MS_CLIENT_ID/MS_CLIENT_SECRET or AZURE_* ; OUTLOOK_MAILBOX ; OUTLOOK_GATED
 //   FIREFLIES_API_KEY, FIREFLIES_WEBHOOK_SECRET, OPENROUTER_API_KEY, PORT=8787
-//   TYPESAFE_API_KEY, JEV_ROUTING_MIN_CONFIDENCE (email routing fallback)
+//   SCALEDOWN_API_KEY, SCALEDOWN_ROUTING_MIN_CONFIDENCE (email routing fallback)
 import { readFileSync } from 'node:fs'
 import { pathToFileURL } from 'node:url'
 import { createClient } from '@supabase/supabase-js'
@@ -44,12 +44,12 @@ import {
   validateCommandEnvironment,
 } from './lib/worker-foundation.mjs'
 import {
-  JEV_URL,
-  buildJevRoutingRequest,
-  pickJevRetailer,
-  resolveJevMinConfidence,
+  SCALEDOWN_URL,
+  buildScaledownRoutingRequest,
+  pickScaledownRetailer,
+  resolveScaledownMinConfidence,
   retailerOptions,
-} from './lib/jev-router.mjs'
+} from './lib/scaledown-router.mjs'
 
 let SUPABASE_URL
 let SERVICE_ROLE_KEY
@@ -58,7 +58,7 @@ let crm
 let core
 let httpBodyLimits
 let upstreamSettings
-let jevMinConfidence
+let scaledownMinConfidence
 let runtimeEnv = process.env
 let boundaries = createWorkerBoundaries()
 
@@ -87,7 +87,7 @@ function initializeRuntime(env = process.env, overrides = {}) {
   crm = (table) => sb.schema('crm').from(table)
   core = (table) => sb.schema('core').from(table)
   upstreamSettings = resolveUpstreamSettings(env)
-  jevMinConfidence = resolveJevMinConfidence(env.JEV_ROUTING_MIN_CONFIDENCE)
+  scaledownMinConfidence = resolveScaledownMinConfidence(env.SCALEDOWN_ROUTING_MIN_CONFIDENCE)
   if (!overrides.graphCursorStore) {
     boundaries.graphCursorStore = createGraphCursorStore(sb)
   }
@@ -449,14 +449,14 @@ async function normalizeRoute(route) {
   return out
 }
 
-let jevKeyMissingLogged = false
+let scaledownKeyMissingLogged = false
 
-// Picks a retailer with TypeSafe Jev when the deterministic rules found none.
+// Picks a retailer with ScaleDown when the deterministic rules found none.
 // Returns a retailer id or null; below-cutoff answers are discarded.
-async function jevRetailerFallback({ subject, bodyText, addresses }) {
-  if (!runtimeEnv.TYPESAFE_API_KEY?.trim()) {
-    if (!jevKeyMissingLogged) console.warn('email AI routing disabled: TYPESAFE_API_KEY is not set')
-    jevKeyMissingLogged = true
+async function scaledownRetailerFallback({ subject, bodyText, addresses }) {
+  if (!runtimeEnv.SCALEDOWN_API_KEY?.trim()) {
+    if (!scaledownKeyMissingLogged) console.warn('email AI routing disabled: SCALEDOWN_API_KEY is not set')
+    scaledownKeyMissingLogged = true
     return null
   }
   const retailers = must(await core('customer').select('id,name,domain').in('customer_status', CUSTOMERS).order('name').limit(1000))
@@ -464,27 +464,27 @@ async function jevRetailerFallback({ subject, bodyText, addresses }) {
   const options = retailerOptions(retailers)
   let res
   try {
-    res = await upstreamFetch('TypeSafe Jev email routing', JEV_URL, {
+    res = await upstreamFetch('ScaleDown email routing', SCALEDOWN_URL, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${runtimeEnv.TYPESAFE_API_KEY}` },
-      body: JSON.stringify(buildJevRoutingRequest({ subject, bodyText, addresses, options })),
-    }, { timeoutMs: upstreamSettings.JEV_FETCH_TIMEOUT_MS })
+      headers: { 'Content-Type': 'application/json', 'x-api-key': runtimeEnv.SCALEDOWN_API_KEY },
+      body: JSON.stringify(buildScaledownRoutingRequest({ subject, bodyText, addresses, options })),
+    }, { timeoutMs: upstreamSettings.SCALEDOWN_FETCH_TIMEOUT_MS })
   } catch (error) {
     console.warn(`email AI routing skipped: ${error.message}`)
     return null
   }
   if (!res.ok) {
-    console.warn(`email AI routing skipped: TypeSafe Jev HTTP ${res.status}`)
+    console.warn(`email AI routing skipped: ScaleDown HTTP ${res.status}`)
     return null
   }
   let body
   try {
     body = await res.json()
   } catch (error) {
-    console.warn(`email AI routing skipped: TypeSafe Jev returned invalid JSON (${error.message})`)
+    console.warn(`email AI routing skipped: ScaleDown returned invalid JSON (${error.message})`)
     return null
   }
-  return pickJevRetailer(body, options, jevMinConfidence)
+  return pickScaledownRetailer(body, options, scaledownMinConfidence)
 }
 
 async function summarizeOpportunity(opportunityId) {
@@ -639,7 +639,7 @@ async function routeEmail({ subject, bodyText, addresses, displayNames = {}, tas
   if (retailer && department) return { routing_status: 'COMPANY_DEPT', routing_method: routingMethod, retailer, department }
   if (retailer) return { routing_status: 'COMPANY_ONLY', routing_method: routingMethod, retailer }
 
-  const aiRetailer = allowAi ? await jevRetailerFallback({ subject, bodyText, addresses: allAddresses }) : null
+  const aiRetailer = allowAi ? await scaledownRetailerFallback({ subject, bodyText, addresses: allAddresses }) : null
   if (aiRetailer) {
     const aiDepartment = await findDepartment(aiRetailer, allAddresses)
     const aiOpportunity = await matchOpportunity({ retailer: aiRetailer, department: aiDepartment, searchText })
