@@ -226,7 +226,7 @@ Each drawer is a `DetailDrawer` with domain-specific sections. All support deep-
 | `CustomerDrawer` | Logo avatar (`CustomerLogo`) in header, colored status/chain chips, contact list, opportunity list, close button footer |
 | `ContactDrawer` | Related customer, opportunity list |
 | `DepartmentDrawer` | Department detail panel with core fields, all contacts assigned to that department, and all programs assigned to that department |
-| `EmailDrawer` | Mail-header preview band; `MethodConfidence` bar; Apply routing / Create ignore rule actions |
+| `EmailDrawer` | Mail-header preview band; routing-method label; Apply routing / Create ignore rule actions |
 | `MeetingDrawer` | Participant chips (`NameAvatar`), Fireflies transcript tile, action items checklist |
 | `TaskDrawer` | Clickable status chips, overdue amber callout, assignee avatar |
 | `NoteDrawer` | Source badge, action items checklist, save button |

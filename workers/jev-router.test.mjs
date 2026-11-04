@@ -18,10 +18,10 @@ describe('jev router', () => {
     expect([...retailerOptions(retailers).keys()]).toEqual(['Target', 'Five Below (fivebelow.com)', 'Five Below (c)'])
   })
 
-  it('builds a choice question with trimmed state', () => {
+  it('builds a choice question with the full email text', () => {
     const options = retailerOptions(retailers)
     const req = buildJevRoutingRequest({ subject: 'PO', bodyText: 'x'.repeat(5000), addresses: ['a@target.com'], options })
-    expect(req.state.length).toBe(3000)
+    expect(req.state).toContain('x'.repeat(5000))
     expect(req.questions.retailer.type).toBe('choice')
     expect(req.questions.retailer.criteria.Target).toContain('target.com')
     expect(req.questions.retailer.criteria[JEV_NONE_OPTION]).toBeTruthy()

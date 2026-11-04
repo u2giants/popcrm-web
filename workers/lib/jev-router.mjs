@@ -4,7 +4,6 @@
 export const JEV_URL = 'https://api.typesafe.ai/v1/systemone'
 export const JEV_MODEL = 'jev-latest'
 export const JEV_DEFAULT_MIN_CONFIDENCE = 0.91
-export const JEV_STATE_MAX_CHARS = 3000
 export const JEV_NONE_OPTION = 'None of these retailers'
 
 export function resolveJevMinConfidence(value) {
@@ -40,7 +39,7 @@ export function buildJevRoutingRequest({ subject, bodyText, addresses, options }
     addresses?.length ? `Addresses: ${addresses.join(', ')}` : '',
     '',
     String(bodyText || ''),
-  ].join('\n').slice(0, JEV_STATE_MAX_CHARS)
+  ].join('\n')
   return {
     state,
     model: JEV_MODEL,
