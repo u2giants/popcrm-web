@@ -50,6 +50,7 @@ Then load additional docs only when relevant:
 | Change data shape, Supabase fields, queries, views, RPCs, or identifiers | `AGENTS.md`, `docs/architecture.md`, `src/lib/types.ts`, `src/lib/database.types.ts`, `src/features/crm/api.ts`, canonical `/worksp/shared-db/supabase/migrations/` for backend changes | Deployment docs unless rollout changes |
 | Investigate bugs or incidents | `AGENTS.md` (Critical incidents pointer), [`docs/critical-incidents.md`](docs/critical-incidents.md), [`docs/quirks.md`](docs/quirks.md) if behavior looks intentional-but-surprising, area-relevant source, `HANDOFF.md` if present | Unrelated docs |
 | Continue unfinished work | `AGENTS.md`, `HANDOFF.md` (if present) and the docs it names | Docs outside the handoff scope |
+| Add contact/program/task create, delete, merge (open plan) | [`plan_crm_basic_crud.md`](plan_crm_basic_crud.md) — read its STATUS table first | Re-planning it |
 | Surprising behavior / non-obvious rules | `AGENTS.md`, [`docs/quirks.md`](docs/quirks.md) | Full incident history |
 | Claude Code session | `CLAUDE.md`, then `AGENTS.md` | Other docs unless the task requires them |
 | Documentation-only cleanup | `AGENTS.md`, `README.md`, affected `docs/`, ignore files | Source files except to verify accuracy |
