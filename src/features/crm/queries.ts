@@ -42,6 +42,9 @@ import {
   updateAiModelConfig,
   updateApprovalThread,
   updateBuyer,
+  fetchDefunctContacts,
+  setContactDefunct,
+  type DefunctReason,
   updateDepartment,
   updateEmailMessage,
   updateIngestedDomain,
@@ -704,5 +707,17 @@ export function useUpdateAiConfigMutation() {
     },
     onError: (_error, _vars, context) => queryClient.setQueryData(crmKeys.aiConfigs(), context?.previous),
     onSettled: () => void queryClient.invalidateQueries({ queryKey: crmKeys.aiConfigs() }),
+  })
+}
+
+export function useDefunctContactsQuery() {
+  return useQuery({ queryKey: [...crmKeys.all, 'defunctContacts'] as const, queryFn: fetchDefunctContacts, ...crmQueryDefaults })
+}
+
+export function useSetContactDefunctMutation() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: ({ id, reason }: { id: string; reason: DefunctReason | null }) => setContactDefunct(id, reason),
+    onSettled: () => void queryClient.invalidateQueries({ queryKey: [...crmKeys.all, 'defunctContacts'] }),
   })
 }

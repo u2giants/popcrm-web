@@ -22,7 +22,9 @@ import {
   useCustomerPickerQuery,
   useUpdateContactMutation,
   useCustomerDisplayName,
+  useDefunctContactsQuery,
 } from '@/features/crm/queries'
+import { defunctLabel } from '@/features/crm/api'
 import { logError } from '@/lib/errors'
 import type { Buyer } from '@/lib/types'
 
@@ -37,6 +39,8 @@ export function ContactsPage() {
   const queryClient = useQueryClient()
   const [query, setQuery] = useState('')
   const [segment, setSegment] = useState<Segment>('customer')
+  const [hideDefunct, setHideDefunct] = useState(false)
+  const defunct = useDefunctContactsQuery().data ?? {}
   const activeSegment = segment === 'all' ? 'customer' : segment
   const segmentQuery = useContactSegmentQuery(activeSegment, -1, segment !== 'all')
   const allContactsQuery = useAllContactsQuery(-1, segment === 'all')
@@ -167,10 +171,11 @@ export function ContactsPage() {
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase()
     return buyers.filter((b) => {
+      if (hideDefunct && defunct[b.id]) return false
       if (q && !textOf(b.name, b.email, b.job_title, customerName(b.retailer), relatedName(b.department)).includes(q)) return false
       return true
     })
-  }, [buyers, query, customerName])
+  }, [buyers, query, customerName, hideDefunct, defunct])
 
   const columns: Column<Buyer>[] = [
     {
@@ -183,13 +188,29 @@ export function ContactsPage() {
         <div className="flex items-center gap-[9px]">
           <NameAvatar name={b.last_name || b.name} size={24} />
           <div className="min-w-0">
-            <div className="truncate font-[500] text-foreground">{b.name}</div>
+            <div className={defunct[b.id] ? 'truncate font-[500] text-muted-foreground line-through' : 'truncate font-[500] text-foreground'}>{b.name}</div>
             {b.email ? (
               <div className="truncate text-[11px] text-muted-foreground">{b.email}</div>
             ) : null}
           </div>
         </div>
       ),
+    },
+    {
+      key: 'defunct',
+      header: 'Status',
+      hideBelow: 'md',
+      headerSearch: false,
+      sortValue: (b) => defunctLabel(defunct[b.id]) || 'Current',
+      filterValue: (b) => (defunct[b.id] ? `Defunct – ${defunctLabel(defunct[b.id])}` : 'Current'),
+      cell: (b) =>
+        defunct[b.id] ? (
+          <span className="rounded-full bg-destructive/12 px-2 py-[1px] text-[11px] font-[500] text-destructive">
+            Defunct · {defunctLabel(defunct[b.id])}
+          </span>
+        ) : (
+          <span className="text-[11px] text-muted-foreground">Current</span>
+        ),
     },
     {
       key: 'job_title',
@@ -234,6 +255,12 @@ export function ContactsPage() {
           search={query}
           onSearch={setQuery}
           searchPlaceholder="Search name, email, title…"
+          actions={
+            <label className="flex cursor-pointer select-none items-center gap-1.5 text-[12px] text-muted-foreground">
+              <input type="checkbox" checked={hideDefunct} onChange={(e) => setHideDefunct(e.target.checked)} />
+              Hide defunct
+            </label>
+          }
           segments={
             <Tabs value={segment} onValueChange={(v) => setSegment(v as Segment)}>
               <TabsList>

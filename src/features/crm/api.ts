@@ -859,6 +859,59 @@ export async function updateBuyer(id: string, values: Partial<Buyer>) {
 }
 
 // ---------------------------------------------------------------------------
+// Defunct contacts (crm.contact_ext): a contact who quit, transferred or retired.
+// No row, or a null reason, means the contact is current.
+// ---------------------------------------------------------------------------
+export type DefunctReason = 'quit' | 'transferred' | 'retired'
+export const DEFUNCT_REASONS: { value: DefunctReason; label: string }[] = [
+  { value: 'quit', label: 'Quit' },
+  { value: 'transferred', label: 'Transferred' },
+  { value: 'retired', label: 'Retired' },
+]
+export function defunctLabel(reason: string | null | undefined): string {
+  return DEFUNCT_REASONS.find((r) => r.value === reason)?.label ?? ''
+}
+
+/** contact id -> defunct reason, for every defunct contact. */
+export async function fetchDefunctContacts(): Promise<Record<string, DefunctReason>> {
+  const out: Record<string, DefunctReason> = {}
+  const pageSize = 1000
+  for (let from = 0; ; from += pageSize) {
+    const { data, error } = await anyDb
+      .schema('crm')
+      .from('contact_ext')
+      .select('contact_id, defunct_reason')
+      .not('defunct_reason', 'is', null)
+      .order('contact_id')
+      .range(from, from + pageSize - 1)
+    if (error) {
+      if (isMissingApiObject(error)) return out
+      throw error
+    }
+    for (const r of (data ?? []) as Row[]) out[r.contact_id as string] = r.defunct_reason as DefunctReason
+    if (!data || data.length < pageSize) return out
+  }
+}
+
+/** Mark a contact defunct with a reason, or pass null to mark it current again. */
+export async function setContactDefunct(contactId: string, reason: DefunctReason | null): Promise<void> {
+  if (reason === null) {
+    const { error } = await anyDb.schema('crm').from('contact_ext').delete().eq('contact_id', contactId)
+    if (error) throw error
+    return
+  }
+  const { data: auth } = await supabase.auth.getUser()
+  const { error } = await anyDb
+    .schema('crm')
+    .from('contact_ext')
+    .upsert(
+      { contact_id: contactId, defunct_reason: reason, defunct_at: new Date().toISOString(), defunct_by: auth.user?.id ?? null },
+      { onConflict: 'contact_id' },
+    )
+  if (error) throw error
+}
+
+// ---------------------------------------------------------------------------
 // Departments
 // ---------------------------------------------------------------------------
 const DEPT_MAP = { retailer: 'company_id', primary_buyer: 'primary_contact_id', active: 'is_active', sort: 'sort_order' }

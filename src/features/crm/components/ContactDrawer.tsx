@@ -6,7 +6,8 @@ import { DetailDrawer, DescriptionItem, DescriptionList, DrawerSection } from '@
 import { Combobox, type ComboOption } from '@/components/app/Combobox'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
-import { listData, useCustomerPickerQuery, useDepartmentsQuery, useEmailsQuery, useMeetingsQuery, useUpdateContactMutation } from '@/features/crm/queries'
+import { listData, useCustomerPickerQuery, useDepartmentsQuery, useEmailsQuery, useMeetingsQuery, useUpdateContactMutation, useDefunctContactsQuery, useSetContactDefunctMutation } from '@/features/crm/queries'
+import { DEFUNCT_REASONS, defunctLabel, type DefunctReason } from '@/features/crm/api'
 import { customerLabel, idOf, label, relatedName, formatDate } from '@/features/crm/format'
 import { isSelectableCustomer } from '@/features/crm/pages/_shared'
 import { logError } from '@/lib/errors'
@@ -27,6 +28,18 @@ export function ContactDrawer({
   const meetings = listData(useMeetingsQuery(-1).data)
   const departments = listData(useDepartmentsQuery(-1).data)
   const updateContactMutation = useUpdateContactMutation()
+  const defunctMap = useDefunctContactsQuery().data ?? {}
+  const setDefunctMutation = useSetContactDefunctMutation()
+  const defunctReason = row ? defunctMap[row.id] ?? null : null
+  async function markDefunct(reason: DefunctReason | null) {
+    if (!row) return
+    try {
+      await setDefunctMutation.mutateAsync({ id: row.id, reason })
+      toast.success(reason ? `Marked defunct (${defunctLabel(reason)})` : 'Marked current again')
+    } catch (error) {
+      toast.error('Could not change status', { description: logError('ContactDrawer.markDefunct', error) })
+    }
+  }
   // The drawer keeps the row it was opened with, so a successful edit is held
   // here and shown until a different contact is opened.
   const [edited, setEdited] = useState<{ id: string; department?: string | CrmDepartment | null; retailer?: string | Retailer | null } | null>(null)
@@ -207,6 +220,27 @@ export function ContactDrawer({
               </div>
             </DrawerSection>
           ) : null}
+          <DrawerSection title="Status">
+            {defunctReason ? (
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="rounded-full bg-destructive/12 px-2.5 py-[2px] text-[12px] font-[500] text-destructive">
+                  Defunct · {defunctLabel(defunctReason)}
+                </span>
+                <Button size="sm" variant="outline" disabled={setDefunctMutation.isPending} onClick={() => void markDefunct(null)}>
+                  Mark current again
+                </Button>
+              </div>
+            ) : (
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="text-[12px] text-muted-foreground">Current. Mark defunct:</span>
+                {DEFUNCT_REASONS.map((r) => (
+                  <Button key={r.value} size="sm" variant="outline" disabled={setDefunctMutation.isPending} onClick={() => void markDefunct(r.value)}>
+                    {r.label}
+                  </Button>
+                ))}
+              </div>
+            )}
+          </DrawerSection>
           <DrawerSection>
             <DescriptionList>
               {!editing ? (<>
