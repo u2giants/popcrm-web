@@ -350,6 +350,31 @@ Never demote mail that already has a company. Keep `NO_CUSTOMER_DOMAIN` as the
 recheck marker; changing it strands earlier skipped mail. Host workers run from
 the canonical checkout, so pull `main` there after worker changes.
 
+### The sender's contact card opens from the email drawer at the Department setting (2026-11-05)
+
+What changed:
+In the email drawer, the **From** address is a right-click target: the context
+menu lists every contact whose email matches the sender address ("Open contact
+card — Name / Customer") plus "Copy address"; with no match it says so instead
+of inventing one. A plain click opens the card directly when exactly one contact
+matches. The card stacks on top of the email drawer (`ContactDrawer` renders
+after it) and lands scrolled to the Department row with a one-shot highlight.
+
+The contact card's Department row is no longer read-only: it is a
+customer-filtered combobox saving through `crm_update_contact` exactly like the
+Contacts grid, and a contact without a customer inherits the department's
+customer when a department is set. This is the manual counterpart to worker
+auto-routing: `findDepartment` in `workers/crm-worker-supabase.mjs` assigns a
+department automatically only when the sender's contact has exactly one
+department link for that company, so setting it here is what moves that sender's
+other mail out of Needs department on the next `reroute` sweep.
+
+Future sessions should:
+Keep the drawer's department edit going through `useUpdateContactMutation` (the
+RPC owns the `core.contact_company` link and clear flags) rather than a direct
+table write, and keep the From-address menu matched on the full address, not a
+domain.
+
 ### Not-customer rules are administrative settings
 
 What changed:
