@@ -37,6 +37,11 @@ export function ContactDrawer({
       await setDefunctMutation.mutateAsync({ id: row.id, reason })
       toast.success(reason ? `Marked defunct (${defunctLabel(reason)})` : 'Marked current again')
     } catch (error) {
+      const e = error as { code?: string; message?: string }
+      if (e.code === '42501' || /row-level security|permission denied/i.test(e.message ?? '')) {
+        toast.error('Only admin and sales can mark contacts defunct')
+        return
+      }
       toast.error('Could not change status', { description: logError('ContactDrawer.markDefunct', error) })
     }
   }
