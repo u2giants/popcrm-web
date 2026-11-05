@@ -65,3 +65,32 @@ describe('DataTable header search on a labelled column', () => {
     expect(rowCount()).toBe(1)
   })
 })
+
+describe('DataTable header search suggestions', () => {
+  afterEach(cleanup)
+  const ac = () => document.querySelector('[data-testid="header-autocomplete"]')
+
+  it('closes on Escape without clearing the search', () => {
+    renderTable()
+    fireEvent.change(searchBox(), { target: { value: 'a' } })
+    expect(ac()).not.toBeNull()
+    fireEvent.keyDown(searchBox(), { key: 'Escape' })
+    expect(ac()).toBeNull()
+    expect((searchBox() as HTMLInputElement).value).toBe('a')
+  })
+
+  it('closes when focus leaves the box', () => {
+    renderTable()
+    fireEvent.change(searchBox(), { target: { value: 'a' } })
+    fireEvent.blur(searchBox())
+    expect(ac()).toBeNull()
+  })
+
+  it('closes after a pick', () => {
+    renderTable()
+    fireEvent.change(searchBox(), { target: { value: 'Manual' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Manual' }))
+    expect(ac()).toBeNull()
+    expect(rowCount()).toBe(1)
+  })
+})

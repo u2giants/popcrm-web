@@ -843,7 +843,15 @@ export function DataTable<T>({
                                 setAutocomplete({ key: col.key, width: r.width, ...placeOverlay(r, r.width, 220) })
                               }
                             }}
-                            onKeyDown={(e) => { if (e.key === 'Escape') { setColSearch(col.key, '', e.currentTarget); (e.currentTarget as HTMLInputElement).blur() } }}
+                            onBlur={() => setAutocomplete((a) => (a?.key === col.key ? null : a))}
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter') { setAutocomplete(null); return }
+                              if (e.key === 'Escape') {
+                                // First Escape just closes the suggestions; a second clears the search.
+                                if (autocomplete?.key === col.key && acSuggestions.length > 0) { setAutocomplete(null); return }
+                                setColSearch(col.key, '', e.currentTarget); (e.currentTarget as HTMLInputElement).blur()
+                              }
+                            }}
                           />
                         </div>
                       )}
@@ -1047,6 +1055,7 @@ export function DataTable<T>({
       {/* Header search autocomplete */}
       {autocomplete && acSuggestions.length > 0 && (
         <div
+          data-testid="header-autocomplete"
           className="fixed z-50 overflow-y-auto rounded-[9px] border bg-popover p-[4px]"
           style={{
             top: autocomplete.top,
