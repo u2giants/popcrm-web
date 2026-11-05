@@ -23,4 +23,11 @@ RUN npm run build
 FROM nginx:alpine
 COPY nginx.conf /etc/nginx/conf.d/default.conf
 COPY --from=build /app/dist /usr/share/nginx/html
+# Known version path the deploy check reads after Coolify deploys
+# (scripts/verify-live-version.sh compares git_sha with the merged commit).
+ARG VCS_REF=unknown
+ARG COMMIT_HASH=""
+ARG COMMIT_DATE=""
+RUN printf '{"git_sha":"%s","commit":"%s","date":"%s"}\n' \
+    "$VCS_REF" "$COMMIT_HASH" "$COMMIT_DATE" > /usr/share/nginx/html/version.json
 EXPOSE 80

@@ -41,6 +41,8 @@ jobs:
       # so a broken tail can sit in a workflow for months without a red run.
       - name: Validate workflow shell blocks
         run: ./scripts/check-workflow-shell.sh
+      - name: Prove the live-version check (matching passes, deliberately stale fails)
+        run: bash scripts/test-verify-live-version.sh
       - name: Lint
         run: npm run lint
       # The suite must run here, not just on a developer's machine. A Vitest
@@ -83,6 +85,7 @@ jobs:
             type=raw,value=latest,enable={{is_default_branch}}
             type=raw,value=main,enable={{is_default_branch}}
             type=sha,prefix=sha-
+            type=raw,value=sha-${{ github.sha }}
 
       - name: Build and push
         uses: docker/build-push-action@v6
@@ -96,6 +99,7 @@ jobs:
           build-args: |
             COMMIT_HASH=${{ steps.vars.outputs.sha7 }}
             COMMIT_DATE=${{ github.event.head_commit.timestamp || github.event.repository.updated_at }}
+            VCS_REF=${{ github.sha }}
             VITE_LOGODEV_TOKEN=${{ secrets.LOGODEV_TOKEN }}
             VITE_SUPABASE_URL=${{ secrets.VITE_SUPABASE_URL }}
             VITE_SUPABASE_ANON_KEY=${{ secrets.VITE_SUPABASE_ANON_KEY }}
@@ -105,6 +109,33 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
+      - uses: actions/checkout@v4
+      - name: Pin Coolify to the immutable image tag
+        env:
+          COOLIFY_BASE_URL: ${{ secrets.COOLIFY_BASE_URL }}
+          COOLIFY_API_TOKEN: ${{ secrets.COOLIFY_API_TOKEN }}
+          COOLIFY_APP_UUID: ${{ secrets.COOLIFY_SERVER_UUID }}
+          IMAGE_TAG: sha-${{ github.sha }}
+        run: |
+          echo "Pinning Coolify to ghcr.io/u2giants/popcrm-web:${IMAGE_TAG}..."
+          response=$(curl -s -w "\n%{http_code}" \
+            -X PATCH \
+            -H "Authorization: Bearer ${COOLIFY_API_TOKEN}" \
+            -H "Accept: application/json" \
+            -H "Content-Type: application/json" \
+            "${COOLIFY_BASE_URL}/api/v1/applications/${COOLIFY_APP_UUID}" \
+            -d "{\"docker_registry_image_tag\": \"${IMAGE_TAG}\"}")
+
+          http_code=$(echo "$response" | tail -1)
+          body=$(echo "$response" | head -n -1)
+          echo "Response: $body"
+
+          if [ "$http_code" != "200" ]; then
+            echo "Coolify tag pin failed with HTTP ${http_code}"
+            echo "Deploy stays fail-closed: refusing to deploy a mutable tag."
+            exit 1
+          fi
+
       - name: Trigger Coolify deployment
         env:
           COOLIFY_BASE_URL: ${{ secrets.COOLIFY_BASE_URL }}
@@ -116,36 +147,9 @@ jobs:
             -H "Authorization: Bearer ${COOLIFY_API_TOKEN}" \
             -H "Content-Type: application/json"
 
-      - name: Wait for production to serve this commit
+      - name: Verify production serves this commit
         run: |
-          expected_sha="${GITHUB_SHA::7}"
-
-          for i in $(seq 1 90); do
-            html="$(curl -fsSL -H 'Cache-Control: no-cache' "https://crm.designflow.app/?deploy-check=${expected_sha}" || true)"
-            asset_path="$(printf '%s' "$html" | sed -nE 's/.*src="([^"]*\/assets\/index-[^"]+\.js)".*/\1/p' | head -1)"
-
-            if [ -n "$asset_path" ]; then
-              case "$asset_path" in
-                http*) asset_url="$asset_path" ;;
-                *) asset_url="https://crm.designflow.app${asset_path}" ;;
-              esac
-
-              if curl -fsSL -H 'Cache-Control: no-cache' "$asset_url" | grep -q "$expected_sha"; then
-                echo "production is serving commit ${expected_sha}"
-                exit 0
-              fi
-            fi
-
-            if [ -n "$asset_path" ]; then
-              echo "waiting for production to serve ${expected_sha}; current bundle is ${asset_path} ($i/90)"
-            else
-              echo "waiting for production bundle discovery ($i/90)"
-            fi
-            sleep 5
-          done
-
-          echo "production did not serve commit ${expected_sha} within 7.5 minutes" >&2
-          if html="$(curl -fsSL -H 'Cache-Control: no-cache' https://crm.designflow.app/ || true)"; then
-            printf '%s\n' "$html" | sed -nE 's/.*src="([^"]*\/assets\/index-[^"]+\.js)".*/last seen bundle: \1/p' >&2
-          fi
-          exit 1
+          bash scripts/verify-live-version.sh \
+            --url "https://crm.designflow.app/version.json" \
+            --expected "${GITHUB_SHA}" \
+            --attempts 90 --interval 5
