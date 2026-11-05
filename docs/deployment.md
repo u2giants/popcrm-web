@@ -111,11 +111,11 @@ recent meeting.
 Production readiness check on 2026-07-27 found all required values present and
 non-blank in `/home/ai/.crm-worker.env`, including
 `FIREFLIES_WEBHOOK_SECRET`; the secret is also recoverable from the named
-1Password item. Fireflies dashboard configuration is still pending. Do not
-restart into fail-closed validation until a Webhooks V2 integration sends only
-`meeting.transcribed` to
-`https://crm-fireflies.designflow.app/s/fireflies-webhook` and uses that same
-concealed signing secret. The worker keeps V1 payload compatibility during the
+1Password item. On 2026-11-04 the Fireflies dashboard was confirmed to have a
+Webhooks V2 configuration sending only `meeting.transcribed` to
+`https://crm-fireflies.designflow.app/s/fireflies-webhook` with that same signing
+secret, applied to all eligible meetings. Automatic delivery of a real meeting is
+not yet proven; the worker logs nothing on success, so check CRM meeting rows. The worker keeps V1 payload compatibility during the
 migration, but the deprecated V1 webhook is not the target configuration.
 For valid `meeting.transcribed` deliveries, the endpoint returns `202 Accepted`
 after signature and payload validation, then completes ingestion asynchronously
