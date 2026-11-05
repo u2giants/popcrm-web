@@ -326,6 +326,7 @@ export function EmailRoutingPage() {
             emptyDescription={query ? 'Adjust your search.' : activeStage?.empty ?? 'No messages yet.'}
             initialSort={{ key: 'received_at', dir: 'desc' }}
             pageSize={PAGE_SIZE}
+            externalPagination
           />
           {stageTotal && stageTotal > PAGE_SIZE ? (
             <div className="flex items-center justify-end gap-2 text-sm text-muted-foreground">
@@ -335,6 +336,7 @@ export function EmailRoutingPage() {
               <Button variant="outline" size="sm" disabled={page === 0} onClick={() => setPage((p) => p - 1)}>
                 Previous
               </Button>
+              <span className="tabular-nums">{page + 1} / {pageCount.toLocaleString()}</span>
               <Button variant="outline" size="sm" disabled={page + 1 >= pageCount} onClick={() => setPage((p) => p + 1)}>
                 Next
               </Button>

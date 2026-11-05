@@ -96,6 +96,7 @@ export function DataTable<T>({
   pageSize = 50,
   initialSort,
   groupBy,
+  externalPagination,
 }: {
   rows: T[]
   columns: Column<T>[]
@@ -110,6 +111,12 @@ export function DataTable<T>({
   pageSize?: number
   initialSort?: { key: string; dir: 'asc' | 'desc' }
   groupBy?: (row: T) => ReactNode
+  /**
+   * The caller renders its own pager below the table (server-side pages).
+   * Hides the built-in footer pager, which would otherwise page only the
+   * fetched slice and show a dead Next button next to the real one.
+   */
+  externalPagination?: boolean
   /**
    * Rows in the order they are currently rendered (after column filters and
    * sorting, across all pages). Lets the caller resolve shift-click ranges
@@ -987,7 +994,7 @@ export function DataTable<T>({
       </div>
 
       {/* Pagination */}
-      {sorted.length > 0 && (
+      {sorted.length > 0 && !externalPagination && (
         <div className="flex items-center justify-between gap-3 border-t px-3 py-2 text-xs text-muted-foreground">
           <span>
             {safePage * effectivePageSize + 1}–{Math.min((safePage + 1) * effectivePageSize, sorted.length)} of{' '}
