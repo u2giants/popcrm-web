@@ -1,6 +1,6 @@
 # Plan — CRM basic add / delete / merge gaps
 
-Handoff: [HANDOFF.d/2026-11-05T2105Z-hetz-claude-crm-basic-crud-plan.md](HANDOFF.d/2026-11-05T2105Z-hetz-claude-crm-basic-crud-plan.md)
+Issue: https://github.com/u2giants/popcrm-web/issues/24 · Handoff: [HANDOFF.d/2026-11-05T2105Z-hetz-claude-crm-basic-crud-plan.md](HANDOFF.d/2026-11-05T2105Z-hetz-claude-crm-basic-crud-plan.md)
 
 ## STATUS (read first — do not re-plan)
 
