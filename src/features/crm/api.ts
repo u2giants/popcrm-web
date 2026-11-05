@@ -901,11 +901,12 @@ export async function setContactDefunct(contactId: string, reason: DefunctReason
     return
   }
   const { data: auth } = await supabase.auth.getUser()
+  if (!auth.user) throw new Error('Sign in again to change a contact status')
   const { error } = await anyDb
     .schema('crm')
     .from('contact_ext')
     .upsert(
-      { contact_id: contactId, defunct_reason: reason, defunct_at: new Date().toISOString(), defunct_by: auth.user?.id ?? null },
+      { contact_id: contactId, defunct_reason: reason, defunct_at: new Date().toISOString(), defunct_by: auth.user.id },
       { onConflict: 'contact_id' },
     )
   if (error) throw error
