@@ -1,11 +1,20 @@
 import { useMemo, useState } from 'react'
 import { toast } from 'sonner'
-import { Ban, Save, X } from 'lucide-react'
+import { Ban, Copy, Save, UserRound, X } from 'lucide-react'
 import { DetailDrawer, DescriptionItem, DescriptionList, DrawerSection } from '@/components/app/DetailDrawer'
 import { Combobox, type ComboOption } from '@/components/app/Combobox'
+import { ContactDrawer } from '@/features/crm/components/ContactDrawer'
 import { CrmStatusBadge } from '@/features/crm/components/CrmStatusBadge'
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
+import {
+  ContextMenu,
+  ContextMenuContent,
+  ContextMenuItem,
+  ContextMenuLabel,
+  ContextMenuSeparator,
+  ContextMenuTrigger,
+} from '@/components/ui/context-menu'
 import {
   Select,
   SelectContent,
@@ -18,6 +27,7 @@ import {
   useCreateIgnoreRuleMutation,
   useDepartmentsQuery,
   useCustomerPickerQuery,
+  useAllContactsQuery,
   useOpportunitiesQuery,
   useUpdateEmailMutation,
 } from '@/features/crm/queries'
@@ -25,7 +35,7 @@ import { ROUTING_STATUSES } from '@/features/crm/constants'
 import { customerPickerOptions, buildRetailerById } from '@/features/crm/pages/_shared'
 import { formatDateTime, idOf, label, relatedName } from '@/features/crm/format'
 import { logError } from '@/lib/errors'
-import type { CrmEmailMessage, Retailer } from '@/lib/types'
+import type { Buyer, CrmEmailMessage, Retailer } from '@/lib/types'
 
 export function EmailDrawer({
   row,
@@ -34,16 +44,22 @@ export function EmailDrawer({
   row: CrmEmailMessage | null
   onClose: () => void
 }) {
+  // The sender's contact card stacks on top of this drawer when opened from
+  // the From address, landing directly on the Department setting.
+  const [contact, setContact] = useState<Buyer | null>(null)
   return (
-    <DetailDrawer
-      open={!!row}
-      onClose={onClose}
-      title={row?.subject || 'Email message'}
-      subtitle={row?.sender ?? undefined}
-      status={row ? <CrmStatusBadge kind="routing" status={row.routing_status} /> : undefined}
-    >
-      {row ? <EmailDrawerForm key={row.id} row={row} onClose={onClose} /> : null}
-    </DetailDrawer>
+    <>
+      <DetailDrawer
+        open={!!row}
+        onClose={onClose}
+        title={row?.subject || 'Email message'}
+        subtitle={row?.sender ?? undefined}
+        status={row ? <CrmStatusBadge kind="routing" status={row.routing_status} /> : undefined}
+      >
+        {row ? <EmailDrawerForm key={row.id} row={row} onClose={onClose} onOpenContact={setContact} /> : null}
+      </DetailDrawer>
+      <ContactDrawer row={contact} focusDepartment onClose={() => setContact(null)} />
+    </>
   )
 }
 
@@ -53,13 +69,20 @@ const METHOD_LABELS: Record<string, string> = {
   AI_ROUTER: 'AI classify',
 }
 
-function EmailDrawerForm({ row, onClose }: { row: CrmEmailMessage; onClose: () => void }) {
+// First email address in a sender header ("Jane Doe <jane@retailer.com>").
+function senderAddress(sender: string | null | undefined): string {
+  const match = String(sender || '').match(/[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/)
+  return (match?.[0] ?? '').toLowerCase()
+}
+
+function EmailDrawerForm({ row, onClose, onOpenContact }: { row: CrmEmailMessage; onClose: () => void; onOpenContact: (contact: Buyer) => void }) {
   const retailersQuery = useCustomerPickerQuery(-1)
   const opportunitiesQuery = useOpportunitiesQuery(-1)
   const departmentsQuery = useDepartmentsQuery(-1)
   const updateEmailMutation = useUpdateEmailMutation()
   const createIgnoreRuleMutation = useCreateIgnoreRuleMutation()
   const retailers = listData(retailersQuery.data)
+  const contacts = listData(useAllContactsQuery(-1).data)
   const opportunities = listData(opportunitiesQuery.data)
   const departments = listData(departmentsQuery.data)
   const [status, setStatus] = useState(row.routing_status || 'UNROUTED')
@@ -102,6 +125,20 @@ function EmailDrawerForm({ row, onClose }: { row: CrmEmailMessage; onClose: () =
   )
   const departmentById = useMemo(() => new Map(departments.map((d) => [d.id, d])), [departments])
   const opportunityById = useMemo(() => new Map(opportunities.map((o) => [o.id, o])), [opportunities])
+  const senderContacts = useMemo(() => {
+    const address = senderAddress(row.sender)
+    if (!address) return []
+    return contacts.filter((c) => (c.email || '').toLowerCase() === address)
+  }, [contacts, row.sender])
+
+  function copySenderAddress() {
+    const address = senderAddress(row.sender)
+    if (!address) return
+    void navigator.clipboard
+      .writeText(address)
+      .then(() => toast.success('Address copied'))
+      .catch(() => toast.error('Could not copy address'))
+  }
 
   async function save() {
     setSaving(true)
@@ -145,7 +182,45 @@ function EmailDrawerForm({ row, onClose }: { row: CrmEmailMessage; onClose: () =
       {/* Message header */}
       <DrawerSection>
         <DescriptionList>
-          <DescriptionItem term="From">{row.sender || '—'}</DescriptionItem>
+          <DescriptionItem term="From">
+            <ContextMenu>
+              <ContextMenuTrigger asChild>
+                <button
+                  type="button"
+                  title="Right-click to open this sender's contact card"
+                  className="cursor-pointer rounded-[4px] text-left underline decoration-transparent underline-offset-2 transition-[text-decoration-color] hover:decoration-current focus-visible:decoration-current"
+                  // One match is the normal case, so a plain click opens it too.
+                  onClick={() => { if (senderContacts.length === 1) onOpenContact(senderContacts[0]) }}
+                >
+                  {row.sender || '—'}
+                </button>
+              </ContextMenuTrigger>
+              <ContextMenuContent>
+                {senderContacts.length ? (
+                  senderContacts.map((c) => (
+                    <ContextMenuItem key={c.id} onSelect={() => onOpenContact(c)}>
+                      <UserRound />
+                      Open contact card{c.name ? ` — ${c.name}` : ''}
+                      {idOf(c.retailer) ? (
+                        <span className="ml-auto truncate text-xs text-muted-foreground">
+                          {relatedName(c.retailer)}
+                        </span>
+                      ) : null}
+                    </ContextMenuItem>
+                  ))
+                ) : (
+                  <ContextMenuLabel className="text-xs font-normal text-muted-foreground">
+                    No contact saved for this address
+                  </ContextMenuLabel>
+                )}
+                <ContextMenuSeparator />
+                <ContextMenuItem onSelect={copySenderAddress}>
+                  <Copy />
+                  Copy address
+                </ContextMenuItem>
+              </ContextMenuContent>
+            </ContextMenu>
+          </DescriptionItem>
           <DescriptionItem term="Received">{formatDateTime(row.received_at)}</DescriptionItem>
           <DescriptionItem term="To" full>{row.recipients || '—'}</DescriptionItem>
         </DescriptionList>
