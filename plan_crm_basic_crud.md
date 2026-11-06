@@ -7,7 +7,7 @@ Issue: https://github.com/u2giants/popcrm-web/issues/24 · Handoff: [HANDOFF.d/2
 | # | Step | State | Evidence |
 |---|------|-------|----------|
 | 0 | Prove live write permissions per table | ✅ done 2026-11-05 | results in §5 (read-only SQL, prod `qsllyeztdwjgirsysgai`) |
-| 1 | Shared-db: archive/delete + create/merge RPCs | 🟡 PR open | popcre/shared-db#5808 (issue #5791); contract tests PASS on preview `mvpkijzfmfcxhnzqogzs` (2026-11-05 ~9:20 PM EST); migrations 20261105235900 + fix-forward 20261106002125; awaiting guarded merge → merged-main preview → automatic production promotion |
+| 1 | Shared-db: archive/delete + create/merge RPCs | 🟡 merged, promotion in lane | popcre/shared-db#5808 merged 2026-11-06 8:26 PM EST (issue #5791, review finding #5810 fixed+closed); preview applied (recovery run 42146285738, evidence at tip 3c1feebd); automatic serial production lane promoting older PRs first — waiting for `20261105235900`+`20261106002125` to land in prod ledger |
 | 2 | Add contact | ✅ code done, preview-proven | e2e on preview 2026-11-05: "E2E Contact …" added via dialog, appears in grid |
 | 3 | Delete (archive) contact | ✅ code done, preview-proven | e2e on preview: archived, gone from grid; contract test proves view exclusion |
 | 4 | Merge duplicate contacts | ✅ code done, preview-proven | e2e on preview: both notes moved to kept contact, duplicate archived; contract test proves every FK repointed |
