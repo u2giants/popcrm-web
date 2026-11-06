@@ -19,7 +19,7 @@ Issue: https://github.com/u2giants/popcrm-web/issues/24 · Handoff: [HANDOFF.d/2
 | 10 | Delete (archive) customer | ⬜ open | — |
 | 11 | Live proof + docs | ⬜ open | — |
 
-Fresh session starts at **Step 0**. Already done (not in this plan): contact
+Fresh session starts at **Step 0**. Update 2026-11-06: a separate session shipped "defunct" contacts (quit/transferred/retired, stored in `crm.contact_ext`, admin and sales only per Albert) — Step 3 must build on that, not duplicate it; read AGENTS.md/docs for its notes. Already done (not in this plan): contact
 editing of name/email/phone/title/customer, commit `56300434` on `main`, live at
 https://crm.designflow.app (`/version.json` showed `9e801d67`, 2026-11-05 3:55 PM EST).
 
