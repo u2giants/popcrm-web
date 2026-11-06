@@ -3,8 +3,11 @@ import {
   buildRetailerById,
   contactTitleOptions,
   contactTitleValues,
+  customerDomainSet,
   customerPickerOptions,
+  domainOfAddress,
   effectiveCustomerStatus,
+  emailsToSweepOnDepartmentAssign,
   isSelectableCustomer,
   withCurrentCustomer,
 } from './_shared'
@@ -100,5 +103,56 @@ describe('CRM contact title helpers', () => {
 
   it('does not repeat a global title already present on contacts', () => {
     expect(contactTitleValues(['GMM', 'gmm'])).toEqual([...CONTACT_TITLES, 'gmm'])
+  })
+})
+
+describe('customer domain helpers', () => {
+  const burlington: Retailer = {
+    ...active,
+    id: 'b1',
+    name: 'Burlington',
+    domain: 'Burlington.com',
+    routing_aliases: 'burlingtonstores.com, burlington-inc.com',
+  }
+
+  it('customerDomainSet collects aliases and primary domains, lowercased', () => {
+    const set = customerDomainSet([burlington, active])
+    expect([...set].sort()).toEqual(['burlington-inc.com', 'burlington.com', 'burlingtonstores.com'])
+  })
+
+  it('domainOfAddress takes the part after the last @, ignoring case and blanks', () => {
+    expect(domainOfAddress('Clare.Catanzaro@Burlington.com')).toBe('burlington.com')
+    expect(domainOfAddress('no-domain')).toBe('')
+    expect(domainOfAddress(null)).toBe('')
+  })
+})
+
+describe('emailsToSweepOnDepartmentAssign', () => {
+  const rel = (id: string) => (id ? { id } : null)
+  const email = (id: string, sender: string | null, retailerId: string, departmentId: string) => ({
+    id,
+    sender,
+    retailer: rel(retailerId),
+    department: rel(departmentId),
+  })
+  const emails = [
+    email('e1', 'clare@burlington.com', 'b1', ''),       // the row being assigned
+    email('e2', 'clare@burlington.com', 'b1', ''),       // swept: same sender+customer, no dept
+    email('e3', 'Clare@Burlington.com', 'b1', ''),       // swept: sender case-insensitive
+    email('e4', 'clare@burlington.com', 'b1', 'd9'),     // already has a department
+    email('e5', 'clare@burlington.com', 'other', ''),    // different customer
+    email('e6', 'other@burlington.com', 'b1', ''),       // different sender
+    email('e7', null, 'b1', ''),                          // no sender
+  ]
+
+  it('sweeps only same-sender same-customer rows still missing a department', () => {
+    expect(emailsToSweepOnDepartmentAssign(emails, emails[0], (v) => (v as { id: string } | null)?.id ?? '').map((e) => e.id))
+      .toEqual(['e2', 'e3'])
+  })
+
+  it('sweeps nothing without a sender or customer to key on', () => {
+    const idOf = (v: unknown) => (v as { id: string } | null)?.id ?? ''
+    expect(emailsToSweepOnDepartmentAssign(emails, emails[6], idOf)).toEqual([])
+    expect(emailsToSweepOnDepartmentAssign(emails, email('x', 'clare@burlington.com', '', ''), idOf)).toEqual([])
   })
 })

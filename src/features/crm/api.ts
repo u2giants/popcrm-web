@@ -242,8 +242,13 @@ async function insertReturning<T>(
 }
 
 async function updateRow(table: string, id: string, payload: Row): Promise<void> {
-  const { error } = await anyDb.schema("crm").from(table).update(payload).eq("id", id)
+  // Ask for the updated row back: an RLS policy that blocks the writer makes
+  // the PATCH touch zero rows and still return success, which would let the
+  // UI report a save that never happened (seen 2026-11-05 with a role-less
+  // user editing email routing). An empty result is surfaced as an error.
+  const { data, error } = await anyDb.schema("crm").from(table).update(payload).eq("id", id).select("id")
   if (error) throw error
+  if (!data || data.length === 0) throw new Error(`No rows were updated in ${table} — your account may lack write permission for it.`)
 }
 
 // ---------------------------------------------------------------------------

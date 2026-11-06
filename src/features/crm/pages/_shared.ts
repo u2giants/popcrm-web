@@ -138,3 +138,59 @@ export function effectiveCustomerStatus(
   if ((r.status ?? '').toLowerCase() === 'potential' || r.is_potential === true) return 'POTENTIAL_CUSTOMER'
   return 'UNASSIGNED'
 }
+
+/** Split a customer's routing aliases (comma / newline / semicolon separated). */
+export function splitRoutingAliases(v: string | null | undefined): string[] {
+  return String(v || '')
+    .split(/[,\n;]/)
+    .map((x) => x.trim().toLowerCase())
+    .filter(Boolean)
+}
+
+/**
+ * Every domain the email worker treats as a customer's own: each customer's
+ * routing aliases plus its primary domain. Emails whose sender sits on one of
+ * these are customer mail; everything else (internal staff, personal accounts)
+ * is noise the routing page hides until asked for.
+ */
+export function customerDomainSet(customers: Retailer[]): Set<string> {
+  const set = new Set<string>()
+  for (const c of customers) {
+    for (const a of splitRoutingAliases(c.routing_aliases)) set.add(a)
+    const d = (c.domain ?? '').trim().toLowerCase()
+    if (d) set.add(d)
+  }
+  return set
+}
+
+/** The lowercased domain of an email address; '' when there is no @. */
+export function domainOfAddress(address: string | null | undefined): string {
+  const s = String(address ?? '').trim().toLowerCase()
+  const at = s.lastIndexOf('@')
+  return at >= 0 ? s.slice(at + 1) : ''
+}
+
+/** Anything `idOf` accepts: a raw id, a relation object, or nothing. */
+type RelLike = string | { id?: string } | null | undefined
+
+/**
+ * The other loaded emails a department assignment should carry over to: same
+ * customer, same sender, still missing its department. One person's mail for
+ * one customer belongs to one department, so setting it once sets it for all.
+ */
+export function emailsToSweepOnDepartmentAssign<T extends { id: string; sender: string | null; retailer: RelLike; department: RelLike }>(
+  emails: T[],
+  source: T,
+  idOf: (v: RelLike) => string,
+): T[] {
+  const sender = String(source.sender ?? '').toLowerCase()
+  const company = idOf(source.retailer)
+  if (!sender || !company) return []
+  return emails.filter(
+    (e) =>
+      e.id !== source.id &&
+      idOf(e.retailer) === company &&
+      String(e.sender ?? '').toLowerCase() === sender &&
+      !idOf(e.department),
+  )
+}

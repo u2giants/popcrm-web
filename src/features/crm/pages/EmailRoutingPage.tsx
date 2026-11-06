@@ -14,7 +14,7 @@ import { EmailDrawer } from '@/features/crm/components/EmailDrawer'
 import { DomainRoutingPanel, useUnroutedCustomerDomains } from '@/features/crm/components/DomainRoutingPanel'
 import { ROUTING_STATUSES, WORKER_CADENCE } from '@/features/crm/constants'
 import { formatDateTime, idOf, label, relatedName, textOf } from '@/features/crm/format'
-import { customerEditOptions, withCurrentCustomer, buildRetailerById } from '@/features/crm/pages/_shared'
+import { customerEditOptions, withCurrentCustomer, buildRetailerById, customerDomainSet, domainOfAddress, emailsToSweepOnDepartmentAssign } from '@/features/crm/pages/_shared'
 import { useAuth } from '@/auth/auth'
 import { Button } from '@/components/ui/button'
 import type { EmailStage } from '@/features/crm/api'
@@ -28,6 +28,7 @@ import {
   useOpportunitiesQuery,
   useUpdateEmailMutation,
   useCustomerDisplayName,
+  useRetailersQuery,
 } from '@/features/crm/queries'
 import { logError } from '@/lib/errors'
 import type { CrmEmailMessage } from '@/lib/types'
@@ -37,7 +38,7 @@ import type { CrmEmailMessage } from '@/lib/types'
 // Counts and pages come from the server over every message.
 type Stage = EmailStage
 type Segment = Stage | 'all' | 'domains'
-const PAGE_SIZE = 50
+const PAGE_SIZE = 250
 
 const STAGES: { id: Stage; label: string; hint: string; empty: string }[] = [
   { id: 'needs_company', label: 'Needs company', hint: 'Step 2 — pick the customer', empty: 'Every message has a company.' },
@@ -94,6 +95,12 @@ export function EmailRoutingPage() {
   const roleText = `${user?.role?.name ?? ''} ${user?.role?.id ?? ''}`.toLowerCase()
   const canSeeAll = /admin/.test(roleText)
   const [query, setQuery] = useState('')
+  // Customer mail first: rows whose sender is not on a customer domain (staff,
+  // personal accounts) stay hidden until the reader asks for them. The counts
+  // above always include them either way.
+  const [showOtherSenders, setShowOtherSenders] = useState(false)
+  const routingCustomers = listData(useRetailersQuery(-1).data)
+  const customerDomains = useMemo(() => customerDomainSet(routingCustomers), [routingCustomers])
   const [selected, select] = useRecordSelection<CrmEmailMessage>('message', emails)
   const retailerById = useMemo(
     () => buildRetailerById(retailers, emails.map((e) => (typeof e.retailer === 'object' ? e.retailer : null))),
@@ -147,6 +154,30 @@ export function EmailRoutingPage() {
     }
     try {
       await updateEmailMutation.mutateAsync({ id: row.id, values })
+      // One person's mail for one customer belongs to one department: a manual
+      // assignment carries over to their other unassigned messages on this page
+      // so they move to Needs program without being set one by one. A bulk edit
+      // already covers exactly the rows the user picked, so it never sweeps.
+      if (key === 'department' && v && !edit?.bulk) {
+        const sweep = emailsToSweepOnDepartmentAssign(emails, row, idOf)
+        if (sweep.length) {
+          const results = await Promise.allSettled(
+            sweep.map((x) => updateEmailMutation.mutateAsync({ id: x.id, values })),
+          )
+          const failed = results.filter((r) => r.status === 'rejected').length
+          const done = sweep.length - failed
+          if (done > 0) {
+            toast.success(`Routed ${done} more ${done === 1 ? 'message' : 'messages'} from this sender`, {
+              description: 'Moved on to Needs program.',
+            })
+          }
+          if (failed > 0) {
+            toast.error(`${failed} ${failed === 1 ? 'message' : 'messages'} could not be routed`, {
+              description: 'Set the department again or assign them individually.',
+            })
+          }
+        }
+      }
     } catch (error) {
       // A bulk edit reports failures once, as a summary, so let the table count them.
       if (edit?.bulk) throw error
@@ -158,7 +189,7 @@ export function EmailRoutingPage() {
   const stageTotal = stageCounts && segment !== 'domains' ? stageCounts[segment] : null
   const pageCount = stageTotal ? Math.max(1, Math.ceil(stageTotal / PAGE_SIZE)) : 1
 
-  const filtered = useMemo(() => {
+  const searched = useMemo(() => {
     const q = query.trim().toLowerCase()
     return emails.filter((e) => {
       if (
@@ -175,6 +206,17 @@ export function EmailRoutingPage() {
       return true
     })
   }, [emails, query, customerName])
+  // Only filter once the customer domains are actually loaded; an empty set
+  // would otherwise hide the whole table for a beat (or for good on a failed load).
+  const domainsLoaded = customerDomains.size > 0
+  const filtered = useMemo(
+    () =>
+      showOtherSenders || !domainsLoaded
+        ? searched
+        : searched.filter((e) => customerDomains.has(domainOfAddress(e.sender))),
+    [searched, showOtherSenders, domainsLoaded, customerDomains],
+  )
+  const hiddenBySender = searched.length - filtered.length
 
   const columns: Column<CrmEmailMessage>[] = [
     {
@@ -268,7 +310,7 @@ export function EmailRoutingPage() {
         <ListBar
           title="Email Routing"
           subtitle={windowNote}
-          count={segment === 'domains' ? domainCount : query ? filtered.length : stageTotal ?? filtered.length}
+          count={segment === 'domains' ? domainCount : query ? searched.length : stageTotal ?? filtered.length}
           search={query}
           onSearch={setQuery}
           searchPlaceholder={segment === 'domains' ? 'Search domain, sender…' : 'Search this page…'}
@@ -313,6 +355,18 @@ export function EmailRoutingPage() {
               Only email with a customer domain on it lands here; the rest is skipped as not customer-related. It is routed in three steps: company → department → program. Set the missing level in its column and the message moves to the next step.
             </p>
           ) : null}
+          {(hiddenBySender > 0 || showOtherSenders) && (
+            <div className="flex items-center justify-between gap-2 rounded-[10px] border bg-card px-3 py-2 text-xs text-muted-foreground">
+              <span>
+                {showOtherSenders
+                  ? 'Showing every sender on this page, including non-customer domains.'
+                  : `${hiddenBySender.toLocaleString()} ${hiddenBySender === 1 ? 'message' : 'messages'} from non-customer senders hidden on this page.`}
+              </span>
+              <Button variant="outline" size="sm" onClick={() => setShowOtherSenders((v) => !v)}>
+                {showOtherSenders ? 'Hide non-customer senders' : 'Show non-customer senders'}
+              </Button>
+            </div>
+          )}
           <DataTable
             rows={filtered}
             columns={columns}
