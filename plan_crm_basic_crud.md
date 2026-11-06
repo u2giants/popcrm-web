@@ -19,7 +19,7 @@ Issue: https://github.com/u2giants/popcrm-web/issues/24 · Handoff: [HANDOFF.d/2
 | 10 | Delete (archive) customer | ✅ code done, preview-proven | e2e on preview: refusal message shown for customer with open program; archive verified in DB (`crm.customer_ext.archived_at`) and customer gone from list |
 | 11 | Live proof + docs | ⬜ open | after shared-db promotion + frontend deploy: repeat gates on crm.designflow.app, clean test records |
 
-Fresh session starts at **Step 0**. Already done (not in this plan): contact
+Fresh session starts at **Step 0**. Update 2026-11-06: a separate session shipped "defunct" contacts (quit/transferred/retired, stored in `crm.contact_ext`, admin and sales only per Albert) — Step 3 must build on that, not duplicate it; read AGENTS.md/docs for its notes. Already done (not in this plan): contact
 editing of name/email/phone/title/customer, commit `56300434` on `main`, live at
 https://crm.designflow.app (`/version.json` showed `9e801d67`, 2026-11-05 3:55 PM EST).
 
