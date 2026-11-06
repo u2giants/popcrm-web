@@ -808,3 +808,31 @@ comparing the table wrapper's `clientWidth` and `scrollWidth`; do not trust the
 visual screenshot alone. Current intended behavior is `DataTable` tables use
 `min-w-full`, and resize handles stay inside header cells (`right-0`).
 
+
+### "Delete" archives contacts/customers/programs but hard-deletes notes/tasks/meetings
+
+Looks like:
+Every record type has a Delete button with a confirm dialog, so users may expect the same thing everywhere.
+
+Actually:
+Two different semantics, on purpose (plan_crm_basic_crud.md, shared-db #5791/#5808):
+
+- Contacts archive into `crm.contact_ext.archived_at` (CRM-owned stamp, same
+  table the defunct marking uses). The contact disappears from CRM lists but
+  the row, its emails, meetings, notes and links stay; PIM/DAM are unaffected.
+- Customers archive into `crm.customer_ext.archived_at` — NOT
+  `core.customer.status`, because PIM filters that column and a CRM archive
+  must not hide a customer from other apps. Archiving is refused while the
+  customer still has non-archived programs; the refusal message names the count.
+- Programs (opportunities) archive via `crm.opportunity.status='archived'`
+  and drop out of the pipeline views.
+- Notes, tasks and meeting notes have no inbound references and are
+  hard-deleted immediately (no archive).
+
+Restoring an archived contact/customer/program is a database action (clear the
+stamp / status); there is no UI undo. Merging two contacts moves every link to
+the kept one and archives the dropped one in the same transaction.
+
+Access roles differ per action: any CRM user can add a contact; contact
+archive/merge need administrator or sales; program create/archive and customer
+archive allow administrator, sales or licensing.
