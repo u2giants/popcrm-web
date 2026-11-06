@@ -48,7 +48,10 @@ vi.mock('@/features/crm/queries', () => ({
   useUpdateCustomerMutation: vi.fn(() => ({ mutateAsync: vi.fn(), isPending: false })),
   useArchiveCustomerMutation: vi.fn(() => ({ mutateAsync: calls.archiveCustomer, isPending: false })),
   useCreateNoteMutation: vi.fn(() => ({ mutateAsync: vi.fn(), isPending: false })),
+  useDefunctContactsQuery: vi.fn(() => ({ data: {} })),
+  useSetContactDefunctMutation: vi.fn(() => ({ mutateAsync: vi.fn(), isPending: false })),
 }))
+vi.mock('@/auth/auth', () => ({ useAuth: vi.fn(() => ({ user: { roles: ['administrator'] } })) }))
 
 const { ContactDrawer } = await import('./ContactDrawer')
 const { NoteDrawer } = await import('./NoteDrawer')

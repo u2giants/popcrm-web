@@ -42,7 +42,9 @@ export function ContactsPage() {
   const [query, setQuery] = useState('')
   const [segment, setSegment] = useState<Segment>('customer')
   const [hideDefunct, setHideDefunct] = useState(false)
-  const defunct = useDefunctContactsQuery().data ?? {}
+  // Stable map reference so the filtered-contacts memo deps hold across renders.
+  const defunctQuery = useDefunctContactsQuery()
+  const defunct = useMemo(() => defunctQuery.data ?? {}, [defunctQuery.data])
   const [creating, setCreating] = useState(false)
   const activeSegment = segment === 'all' ? 'customer' : segment
   const segmentQuery = useContactSegmentQuery(activeSegment, -1, segment !== 'all')
