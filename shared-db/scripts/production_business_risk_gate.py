@@ -170,6 +170,18 @@ def preview_run_has_immutable_apply(run: Any, jobs: Any = None) -> bool:
             **PREVIEW_FAILURE_JOB_CONCLUSIONS,
             "Nudge the production queue": "success",
         })
+    # "Exact concurrent index maintenance" then joined the default job set
+    # beside the queue notification. On a plain migration dispatch that job is
+    # skipped, so a historical original apply run from that era (the #4540
+    # merged-but-unapplied backlog, drained under #2367 step 2.10) proves the
+    # same immutable preview apply: preview succeeded, only promotion failed.
+    # Accept exactly these two additions, never arbitrary extra jobs.
+    if len(rows) == 8:
+        return _exact_job_graph(rows, {
+            **PREVIEW_FAILURE_JOB_CONCLUSIONS,
+            "Exact concurrent index maintenance": "skipped",
+            "Nudge the production queue": "success",
+        })
     if len(rows) != 6:
         return False
     if _exact_job_graph(rows, PREVIEW_FAILURE_JOB_CONCLUSIONS):
@@ -700,6 +712,7 @@ PREVIEW_PRODUCER_PATHS = (
     PREVIEW_WORKFLOW,
     # Exact maintenance policy is runtime input to automatic preview selection.
     "config/nontransactional-index-maintenance.json",
+    "config/table-repack-allowlist.json",
     "config/health-initial-index-definitions.json",
     "scripts/production_migration_guard.py",
     # Hash-bound verification declarations are read by the catalog verifier in
@@ -799,6 +812,11 @@ PREVIEW_PRODUCER_PATHS = (
     # differ from exact main, the applied commit and the preview project ref in
     # the evidence would be whatever a doctored checkout chose to write.
     "scripts/preview_instance_binding.py",
+    # Plan §9 2.1 (issue #5782): the refund-eligible-fault marker step runs in
+    # the preview job after a failure and classifies that failure from the job's
+    # own logs. Unpinned, a doctored copy could mark a change fault refund-
+    # eligible and the promotion selector would stop counting its attempts.
+    "scripts/refund_fault_classification.py",
     # Issue #2342. The preview job's `gh api` evidence reads now go through this
     # thin CLI, and it and the transport beneath it decide what may be retried,
     # what may never be replayed, and when a read fails closed. A doctored copy
@@ -917,7 +935,8 @@ PREVIEW_RUNTIME_DATA_EXEMPTIONS = {
         "no manifest of its own -- prove_historical_original_apply_runs compares "
         "the digest recorded by the run that ORIGINALLY applied each version. "
         "prove_pr_authored additionally requires every allowlisted version to "
-        "have been added by the named source pull request, and it is re-run "
+        "have been added -- or renamed onto, for the pure version-rename cure -- by "
+        "the named source pull request, and it is re-run "
         "during re-derivation (source_pr_commits only collects commit SHAs). "
         "The one limit, stated plainly: the original run's producer code is not "
         "re-pinned to today's main, because an older commit necessarily carries "
