@@ -102,6 +102,14 @@ and the old `coalesce` semantics could not clear values. Until that migration is
 confirmed applied everywhere, `updateBuyer` keeps a fallback call using the old
 RPC argument shape.
 
+Defunct contacts (2026-11-05) live in `crm.contact_ext` (popcre/shared-db PRs
+5767, 5774, 5781): a row with a non-null `defunct_reason` means defunct; deleting
+the row marks the contact current again. The owner wants one plain "Defunct"
+state, so the app always stores `defunct_reason = 'quit'` and never shows the
+reason. Only `administrator` and `sales` may write (database policy, mirrored by
+hiding the controls in `ContactDrawer`); every CRM user can read. Only the
+Contacts list shows the status and the "Hide defunct" toggle so far.
+
 Realtime frontend scaffolding lives in `src/features/crm/realtime.ts`. It listens
 for base-table changes, debounces bursty tables, and invalidates the relevant
 query keys so the app refetches browser-safe `api.crm_*` views instead of trying
