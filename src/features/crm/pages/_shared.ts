@@ -169,28 +169,3 @@ export function domainOfAddress(address: string | null | undefined): string {
   const at = s.lastIndexOf('@')
   return at >= 0 ? s.slice(at + 1) : ''
 }
-
-/** Anything `idOf` accepts: a raw id, a relation object, or nothing. */
-type RelLike = string | { id?: string } | null | undefined
-
-/**
- * The other loaded emails a department assignment should carry over to: same
- * customer, same sender, still missing its department. One person's mail for
- * one customer belongs to one department, so setting it once sets it for all.
- */
-export function emailsToSweepOnDepartmentAssign<T extends { id: string; sender: string | null; retailer: RelLike; department: RelLike }>(
-  emails: T[],
-  source: T,
-  idOf: (v: RelLike) => string,
-): T[] {
-  const sender = String(source.sender ?? '').toLowerCase()
-  const company = idOf(source.retailer)
-  if (!sender || !company) return []
-  return emails.filter(
-    (e) =>
-      e.id !== source.id &&
-      idOf(e.retailer) === company &&
-      String(e.sender ?? '').toLowerCase() === sender &&
-      !idOf(e.department),
-  )
-}

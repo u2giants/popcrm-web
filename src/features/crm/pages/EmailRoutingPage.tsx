@@ -14,10 +14,10 @@ import { EmailDrawer } from '@/features/crm/components/EmailDrawer'
 import { DomainRoutingPanel, useUnroutedCustomerDomains } from '@/features/crm/components/DomainRoutingPanel'
 import { ROUTING_STATUSES, WORKER_CADENCE } from '@/features/crm/constants'
 import { formatDateTime, idOf, label, relatedName, textOf } from '@/features/crm/format'
-import { customerEditOptions, withCurrentCustomer, buildRetailerById, customerDomainSet, domainOfAddress, emailsToSweepOnDepartmentAssign } from '@/features/crm/pages/_shared'
+import { customerEditOptions, withCurrentCustomer, buildRetailerById, customerDomainSet, domainOfAddress } from '@/features/crm/pages/_shared'
 import { useAuth } from '@/auth/auth'
 import { Button } from '@/components/ui/button'
-import type { EmailStage } from '@/features/crm/api'
+import { fetchSenderDepartmentBacklog, type EmailStage } from '@/features/crm/api'
 import {
   listData,
   useDepartmentsQuery,
@@ -155,26 +155,44 @@ export function EmailRoutingPage() {
     try {
       await updateEmailMutation.mutateAsync({ id: row.id, values })
       // One person's mail for one customer belongs to one department: a manual
-      // assignment carries over to their other unassigned messages on this page
-      // so they move to Needs program without being set one by one. A bulk edit
-      // already covers exactly the rows the user picked, so it never sweeps.
+      // assignment carries over to that sender's whole unassigned history for
+      // the customer — across every server page, not just the rows loaded here
+      // — so they move to Needs program without being set one by one. A bulk
+      // edit already covers exactly the rows the user picked, so it never sweeps.
       if (key === 'department' && v && !edit?.bulk) {
-        const sweep = emailsToSweepOnDepartmentAssign(emails, row, idOf)
-        if (sweep.length) {
-          const results = await Promise.allSettled(
-            sweep.map((x) => updateEmailMutation.mutateAsync({ id: x.id, values })),
-          )
-          const failed = results.filter((r) => r.status === 'rejected').length
-          const done = sweep.length - failed
-          if (done > 0) {
-            toast.success(`Routed ${done} more ${done === 1 ? 'message' : 'messages'} from this sender`, {
-              description: 'Moved on to Needs program.',
+        const company = idOf(row.retailer)
+        const sender = row.sender ?? ''
+        if (company && sender) {
+          let targets: string[] = []
+          try {
+            targets = (await fetchSenderDepartmentBacklog(company, sender)).filter((id) => id !== row.id)
+          } catch (searchError) {
+            toast.error('Could not find this sender’s other messages', {
+              description: logError('EmailRoutingPage.editCell.backlog', searchError),
             })
           }
-          if (failed > 0) {
-            toast.error(`${failed} ${failed === 1 ? 'message' : 'messages'} could not be routed`, {
-              description: 'Set the department again or assign them individually.',
-            })
+          if (targets.length) {
+            const loadingId =
+              targets.length > 50 ? toast.loading(`Routing ${targets.length} messages from this sender…`) : undefined
+            let failed = 0
+            for (let i = 0; i < targets.length; i += 25) {
+              const results = await Promise.allSettled(
+                targets.slice(i, i + 25).map((id) => updateEmailMutation.mutateAsync({ id, values })),
+              )
+              failed += results.filter((r) => r.status === 'rejected').length
+            }
+            const done = targets.length - failed
+            if (done > 0) {
+              toast.success(`Routed ${done} more ${done === 1 ? 'message' : 'messages'} from this sender`, {
+                id: loadingId,
+                description: 'Moved on to Needs program, across every page.',
+              })
+            }
+            if (failed > 0) {
+              toast.error(`${failed} ${failed === 1 ? 'message' : 'messages'} could not be routed`, {
+                description: 'Set the department again or assign them individually.',
+              })
+            }
           }
         }
       }

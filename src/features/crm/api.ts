@@ -927,6 +927,26 @@ export async function updateEmailMessage(id: string, values: Partial<CrmEmailMes
   await updateRow('email_message', id, mapValues(values as Row, EMAIL_MAP, EMAIL_RELS))
 }
 
+// Keyed search against api.crm_email_routing_queue (small-search use): every
+// message of one sender at one customer that still needs its department, on any
+// server page — a manual assignment sweeps the sender's whole history, not just
+// the 250 rows currently loaded. Mirrors the needs-department stage rule.
+export async function fetchSenderDepartmentBacklog(companyId: string, sender: string): Promise<string[]> {
+  const pattern = sender.replace(/[\\%_]/g, (c) => `\\${c}`)
+  const { data, error } = await anyDb
+    .schema('api')
+    .from('crm_email_routing_queue')
+    .select('id')
+    .eq('company_id', companyId)
+    .ilike('sender', pattern)
+    .is('department_id', null)
+    .is('opportunity_id', null)
+    .or('routing_status.is.null,routing_status.neq.SKIPPED')
+    .limit(2000)
+  if (error) throw error
+  return ((data ?? []) as Row[]).map((r) => r.id as string)
+}
+
 // ---------------------------------------------------------------------------
 // Meetings
 // ---------------------------------------------------------------------------

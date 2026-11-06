@@ -7,7 +7,6 @@ import {
   customerPickerOptions,
   domainOfAddress,
   effectiveCustomerStatus,
-  emailsToSweepOnDepartmentAssign,
   isSelectableCustomer,
   withCurrentCustomer,
 } from './_shared'
@@ -124,35 +123,5 @@ describe('customer domain helpers', () => {
     expect(domainOfAddress('Clare.Catanzaro@Burlington.com')).toBe('burlington.com')
     expect(domainOfAddress('no-domain')).toBe('')
     expect(domainOfAddress(null)).toBe('')
-  })
-})
-
-describe('emailsToSweepOnDepartmentAssign', () => {
-  const rel = (id: string) => (id ? { id } : null)
-  const email = (id: string, sender: string | null, retailerId: string, departmentId: string) => ({
-    id,
-    sender,
-    retailer: rel(retailerId),
-    department: rel(departmentId),
-  })
-  const emails = [
-    email('e1', 'clare@burlington.com', 'b1', ''),       // the row being assigned
-    email('e2', 'clare@burlington.com', 'b1', ''),       // swept: same sender+customer, no dept
-    email('e3', 'Clare@Burlington.com', 'b1', ''),       // swept: sender case-insensitive
-    email('e4', 'clare@burlington.com', 'b1', 'd9'),     // already has a department
-    email('e5', 'clare@burlington.com', 'other', ''),    // different customer
-    email('e6', 'other@burlington.com', 'b1', ''),       // different sender
-    email('e7', null, 'b1', ''),                          // no sender
-  ]
-
-  it('sweeps only same-sender same-customer rows still missing a department', () => {
-    expect(emailsToSweepOnDepartmentAssign(emails, emails[0], (v) => (v as { id: string } | null)?.id ?? '').map((e) => e.id))
-      .toEqual(['e2', 'e3'])
-  })
-
-  it('sweeps nothing without a sender or customer to key on', () => {
-    const idOf = (v: unknown) => (v as { id: string } | null)?.id ?? ''
-    expect(emailsToSweepOnDepartmentAssign(emails, emails[6], idOf)).toEqual([])
-    expect(emailsToSweepOnDepartmentAssign(emails, email('x', 'clare@burlington.com', '', ''), idOf)).toEqual([])
   })
 })
