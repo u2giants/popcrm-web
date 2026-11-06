@@ -11,6 +11,7 @@ import { DEFUNCT_REASONS, defunctLabel, type DefunctReason } from '@/features/cr
 import { customerLabel, idOf, label, relatedName, formatDate } from '@/features/crm/format'
 import { isSelectableCustomer } from '@/features/crm/pages/_shared'
 import { logError } from '@/lib/errors'
+import { useAuth } from '@/auth/auth'
 import type { Buyer, CrmDepartment, Retailer } from '@/lib/types'
 
 export function ContactDrawer({
@@ -30,6 +31,9 @@ export function ContactDrawer({
   const updateContactMutation = useUpdateContactMutation()
   const defunctMap = useDefunctContactsQuery().data ?? {}
   const setDefunctMutation = useSetContactDefunctMutation()
+  // Owner rule: only administrators and sales may mark or undo a defunct contact.
+  const { user } = useAuth()
+  const canMarkDefunct = (user?.roles ?? []).some((r) => r === 'administrator' || r === 'sales')
   const defunctReason = row ? defunctMap[row.id] ?? null : null
   async function markDefunct(reason: DefunctReason | null) {
     if (!row) return
@@ -231,14 +235,16 @@ export function ContactDrawer({
                 <span className="rounded-full bg-destructive/12 px-2.5 py-[2px] text-[12px] font-[500] text-destructive">
                   Defunct · {defunctLabel(defunctReason)}
                 </span>
-                <Button size="sm" variant="outline" disabled={setDefunctMutation.isPending} onClick={() => void markDefunct(null)}>
-                  Mark current again
-                </Button>
+                {canMarkDefunct ? (
+                  <Button size="sm" variant="outline" disabled={setDefunctMutation.isPending} onClick={() => void markDefunct(null)}>
+                    Mark current again
+                  </Button>
+                ) : null}
               </div>
             ) : (
               <div className="flex flex-wrap items-center gap-2">
-                <span className="text-[12px] text-muted-foreground">Current. Mark defunct:</span>
-                {DEFUNCT_REASONS.map((r) => (
+                <span className="text-[12px] text-muted-foreground">{canMarkDefunct ? 'Current. Mark defunct:' : 'Current'}</span>
+                {canMarkDefunct && DEFUNCT_REASONS.map((r) => (
                   <Button key={r.value} size="sm" variant="outline" disabled={setDefunctMutation.isPending} onClick={() => void markDefunct(r.value)}>
                     {r.label}
                   </Button>
