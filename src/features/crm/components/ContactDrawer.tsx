@@ -19,7 +19,7 @@ import {
   useSetContactDefunctMutation,
   useUpdateContactMutation,
 } from '@/features/crm/queries'
-import { DEFUNCT_REASONS, defunctLabel, type DefunctReason } from '@/features/crm/api'
+import { DEFAULT_DEFUNCT_REASON, type DefunctReason } from '@/features/crm/api'
 import { customerLabel, idOf, label, relatedName, formatDate } from '@/features/crm/format'
 import { isSelectableCustomer } from '@/features/crm/pages/_shared'
 import { logError } from '@/lib/errors'
@@ -51,7 +51,7 @@ export function ContactDrawer({
     if (!row) return
     try {
       await setDefunctMutation.mutateAsync({ id: row.id, reason })
-      toast.success(reason ? `Marked defunct (${defunctLabel(reason)})` : 'Marked current again')
+      toast.success(reason ? 'Marked defunct' : 'Marked current again')
     } catch (error) {
       const e = error as { code?: string; message?: string }
       if (e.code === '42501' || /row-level security|permission denied/i.test(e.message ?? '')) {
@@ -276,7 +276,7 @@ export function ContactDrawer({
             {defunctReason ? (
               <div className="flex flex-wrap items-center gap-2">
                 <span className="rounded-full bg-destructive/12 px-2.5 py-[2px] text-[12px] font-[500] text-destructive">
-                  Defunct · {defunctLabel(defunctReason)}
+                  Defunct
                 </span>
                 {canMarkDefunct ? (
                   <Button size="sm" variant="outline" disabled={setDefunctMutation.isPending} onClick={() => void markDefunct(null)}>
@@ -286,12 +286,12 @@ export function ContactDrawer({
               </div>
             ) : (
               <div className="flex flex-wrap items-center gap-2">
-                <span className="text-[12px] text-muted-foreground">{canMarkDefunct ? 'Current. Mark defunct:' : 'Current'}</span>
-                {canMarkDefunct && DEFUNCT_REASONS.map((r) => (
-                  <Button key={r.value} size="sm" variant="outline" disabled={setDefunctMutation.isPending} onClick={() => void markDefunct(r.value)}>
-                    {r.label}
+                <span className="text-[12px] text-muted-foreground">Current</span>
+                {canMarkDefunct ? (
+                  <Button size="sm" variant="outline" disabled={setDefunctMutation.isPending} onClick={() => void markDefunct(DEFAULT_DEFUNCT_REASON)}>
+                    Mark defunct
                   </Button>
-                ))}
+                ) : null}
               </div>
             )}
           </DrawerSection>

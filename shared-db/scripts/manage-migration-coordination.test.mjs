@@ -1419,7 +1419,7 @@ test('#2758 merge lane grants a real independent-main lock and refuses an overla
   } finally {
     process.chdir(previous)
     assert.ok(path.resolve(repo).startsWith(`${path.resolve(tmpdir())}${path.sep}`))
-    rmSync(repo,{recursive:true,force:true})
+    rmSync(repo,{recursive:true,force:true,maxRetries:10,retryDelay:100})
   }
 })
 
@@ -1445,10 +1445,18 @@ test('database-only workflow acquisitions supply admission while guarded merge r
       commands.push(`${file}: ${command}`)
     }
   }
-  assert.equal(commands.length,3,commands.join('\n'))
+  assert.equal(commands.length,4,commands.join('\n'))
   for(const command of commands){
     assert.match(command,/--pr\s+\S+/,command)
-    if(command.startsWith('guarded-migration-merge.yml:')){
+    if(command.includes('--acquire-promotion-freeze')){
+      // plan_go-live-lane-prevention.md §9 step 1.1 (#5782): the qualification
+      // job's freeze acquire is not a lane admission — it names the same source
+      // PR the always() release names. Step 2.1 completion (#2367): the issue
+      // rides in ISSUE_ARGS only when the resolver found one; never
+      // ADMIT_ARGS or a guessed issue.
+      assert.match(command,/--pr\s+"\$SOURCE_PR"\s+"\$\{ISSUE_ARGS\[@\]\}"/,command)
+      assert.doesNotMatch(command,/--admit-issue|ADMIT_ARGS/,command)
+    }else if(command.startsWith('guarded-migration-merge.yml:')){
       assert.match(command,/acquire-merge-lane-waiting\.mjs["']?\s+--wait-seconds 900 --poll-seconds 15 -- --acquire-merge/,command)
       assert.doesNotMatch(command,/--admit-issue\s+\S+/,command)
       assert.doesNotMatch(command,/ADMIT_ARGS/,command)
@@ -1860,8 +1868,14 @@ test('added migration versions ignore anything the pull request did not add', ()
     { status: 'added', filename: 'supabase/migrations/20260818232639_a.sql' },
     { status: 'modified', filename: 'supabase/migrations/20260818203751_b.sql' },
     { status: 'added', filename: 'docs/notes.md' },
-    { status: 'renamed', filename: 'supabase/migrations/20260101000000_c.sql' },
-  ]), ['20260818232639'])
+    // A pure version rename authors the NEW version (2026-11-06, PR #5830):
+    // the new name is the version a rehearsal may apply.
+    { status: 'renamed', filename: 'supabase/migrations/20260101000000_c.sql', previous_filename: 'supabase/migrations/20251231235959_c.sql' },
+  ]), ['20260818232639', '20260101000000'])
+  // A rename whose destination is not a migration path contributes nothing.
+  assert.deepEqual(addedMigrationVersions([
+    { status: 'renamed', filename: 'docs/renamed.md', previous_filename: 'docs/old.md' },
+  ]), [])
   assert.throws(() => addedMigrationVersions(undefined), /unreadable/)
 })
 
@@ -2364,7 +2378,7 @@ function withReversionRepo(files,run){
     const initialized=spawnSync('git',['init','--quiet',repo],{encoding:'utf8'});assert.equal(initialized.status,0,initialized.stderr)
     const added=spawnSync('git',['-C',repo,'add','--all'],{encoding:'utf8'});assert.equal(added.status,0,added.stderr)
     return run(repo)
-  }finally{rmSync(repo,{recursive:true,force:true})}
+  }finally{rmSync(repo,{recursive:true,force:true,maxRetries:10,retryDelay:100})}
 }
 
 test('REAL GIT: version rewrite discovers a migration whose version exists only in its filename and reverses it',()=>withReversionRepo({
@@ -4558,7 +4572,7 @@ test('DELIVERY PREFLIGHT (#2728): --delivery-preflight runs and registers a pref
     assert.deepEqual(gate.bundle.metadata.delivery_preflight,{preflight_id:gate.record.preflight_id,input_digest:gate.record.input_digest})
     assert.equal(refused,2);assert.equal(missing,2)
     assert.match(errors.join('\n'),/requires --preflight-input/);assert.match(errors.join('\n'),/requires --evidence-bundle/)
-  } finally { if(priorRoot===undefined)delete process.env.DELIVERY_EVIDENCE_REGISTRY_ROOT;else process.env.DELIVERY_EVIDENCE_REGISTRY_ROOT=priorRoot;rmSync(dir,{recursive:true,force:true}) }
+  } finally { if(priorRoot===undefined)delete process.env.DELIVERY_EVIDENCE_REGISTRY_ROOT;else process.env.DELIVERY_EVIDENCE_REGISTRY_ROOT=priorRoot;rmSync(dir,{recursive:true,force:true,maxRetries:10,retryDelay:100}) }
 })
 
 // Issue #2987: the verdict namespace reached its row ceiling and every reviewer
@@ -4751,7 +4765,7 @@ test('issue 2678: the doctor probe tells the wrapper who is calling, so a health
     process.env[PATH_KEY]=originalPath
     if(originalCaller===undefined)delete process.env.AI_MUSE_CALLER;else process.env.AI_MUSE_CALLER=originalCaller
     if(originalClaude===undefined)delete process.env.CLAUDECODE;else process.env.CLAUDECODE=originalClaude
-    rmSync(dir,{recursive:true,force:true})
+    rmSync(dir,{recursive:true,force:true,maxRetries:10,retryDelay:100})
   }
 })
 
@@ -4765,7 +4779,7 @@ test('issue 2678: an explicitly exported caller is never overruled by detection'
   }finally{
     process.env[PATH_KEY]=originalPath
     if(originalCaller===undefined)delete process.env.AI_MUSE_CALLER;else process.env.AI_MUSE_CALLER=originalCaller
-    rmSync(dir,{recursive:true,force:true})
+    rmSync(dir,{recursive:true,force:true,maxRetries:10,retryDelay:100})
   }
 })
 
@@ -5158,7 +5172,7 @@ test('#3411 real Git: production refresh carries only unchanged approval after a
     git(['switch','-q','-c','squash',`${merge}^1`])
     git(['merge','-q','--squash','pr']); const squash=commit('squashed PR')
     assert.throws(() => mergedReviewComparisonBase({mergeCommitSha:squash,head,main:squash,gitRunner:git}),/second parent/,'a squash has no reviewed second parent')
-  } finally { rmSync(repo, { recursive: true, force: true }) }
+  } finally { rmSync(repo, { recursive: true, force: true, maxRetries: 10, retryDelay: 100 }) }
 })
 
 test('deepseek-v4.1-flash is drawable and reads the repository while deepseek-chat stays retired',()=>{
@@ -5332,7 +5346,7 @@ test('#2998 prompt: a handoff without a brief proceeds; a carried brief must be 
     assert.deepEqual(assertDrawPromptContract({ promptFile: bound, headSha: HANDOFF_HEAD }), { carried: true, headClean: true, validatedOnly: true })
     // Both forms at once is ambiguous and refuses instead of silently dropping one (L2).
     assert.throws(() => assertDrawPromptContract({ prompt: 'x', promptFile: bound, headSha: HANDOFF_HEAD }), /both --prompt and --prompt-file/)
-  } finally { rmSync(dir, { recursive: true, force: true }) }
+  } finally { rmSync(dir, { recursive: true, force: true, maxRetries: 10, retryDelay: 100 }) }
 })
 
 // A complete, valid keyed evidence pair for issue 2998 generation 7, with the
@@ -5586,6 +5600,16 @@ test('promotion merge freeze blocks merges, never production, and expires by TTL
   const freeze=acquirePromotionFreeze({issue:3901,pr:3902,owner:'claude-session',ttlMinutes:30,now},io)
   assert.equal(freeze.expiresAt,'2026-10-02T12:30:00.000Z')
   assert.equal(io.refs.has(MUTEX_REF),false)
+  // plan_go-live-lane-prevention.md §9 step 1.3: the record carries the exact
+  // pr/issue/owner/TTL the qualification job passes, and only the same source
+  // PR (or the holder) can release it — a different PR leaves the live freeze.
+  const record=readPromotionFreeze(io,now)
+  assert.equal(record.pr,3902,'the record header carries the source PR')
+  assert.equal(record.issue,3901,'the record header carries the bound work issue')
+  assert.equal(record.owner,'claude-session')
+  assert.equal(record.acquiredAt,'2026-10-02T12:00:00.000Z')
+  assert.throws(()=>releasePromotionFreeze({pr:4242,now},io),/refusing to release another holder's freeze/)
+  assert.ok(io.refs.has(PROMOTION_FREEZE_REF),'a different PR release leaves the live freeze in place')
   assert.throws(()=>acquirePromotionFreeze({issue:1,pr:2,owner:'other',ttlMinutes:10,now},io),/already set; promotion merge freeze held by "claude-session"/)
   assert.throws(()=>acquireExclusive('merge',{owner:'a',pr:1,headSha:'abc',now},io),/merges are paused for a production run; promotion merge freeze held by "claude-session" for PR #3902 \(issue #3901\) until 2026-10-02T12:30:00.000Z/)
   const production=acquireExclusive('production',{owner:'p',headSha:'main',now},io)
@@ -5596,6 +5620,22 @@ test('promotion merge freeze blocks merges, never production, and expires by TTL
   assert.equal(releasePromotionFreeze({pr:3902},io).released,true,'the production cleanup releases by source PR')
   assert.equal(io.refs.has(PROMOTION_FREEZE_REF),false)
   assert.equal(releasePromotionFreeze({pr:3902},io).released,false)
+})
+
+test('step 2.1 completion: a merged PR with no resolvable work issue still freezes on the PR alone',()=>{
+  const io=freezeIo(),now=new Date('2026-11-06T12:00:00Z')
+  const freeze=acquirePromotionFreeze({pr:4531,owner:'automatic-production-qualification',ttlMinutes:45,now},io)
+  assert.equal(freeze.issue,null)
+  const record=readPromotionFreeze(io,now)
+  assert.equal(record.pr,4531)
+  assert.equal(record.issue,null,'a null-issue record reads back without the unreadable fail-closed path')
+  assert.ok(!record.unreadable)
+  assert.throws(()=>acquireExclusive('merge',{owner:'a',pr:1,headSha:'abc',now},io),/for PR #4531 until/,'the freeze text names the PR without an issue clause')
+  try { acquireExclusive('merge',{owner:'a',pr:1,headSha:'abc',now},io); assert.fail('merge must be frozen') } catch (error) {
+    assert.ok(!String(error.message).includes('(issue'),'the freeze text carries no issue clause for a null-issue freeze')
+  }
+  assert.equal(releasePromotionFreeze({pr:4531},io).released,true,'cleanup still releases by source PR')
+  assert.throws(()=>acquirePromotionFreeze({issue:0,pr:1,owner:'x',ttlMinutes:30,now},freezeIo()),/--acquire-promotion-freeze requires --issue <n> and --pr <n>/,'a malformed issue still refuses')
 })
 
 test('#4845: a freeze lets only appended-migration, test and evidence merges through',()=>{
@@ -5788,7 +5828,7 @@ function nonclosingGitFixture(structural=false){
   const gitRunner=(args)=>execFileSync('git',args,{cwd:dir,encoding:'utf8',stdio:['ignore','pipe','pipe']})
   io.verifyNonclosingMaintenanceBinding=request=>verifyNonclosingMaintenanceBinding(request,io,proofGit,{gitRunner})
   io.verifyNonclosingStructuralBinding=request=>verifyNonclosingMaintenanceBinding({...request,structural:true},io,proofGit,{gitRunner})
-  return {dir,git,gitRunner,put,contract,report,live,work,files,io,proofGit,head,base,close:()=>rmSync(dir,{recursive:true,force:true})}
+  return {dir,git,gitRunner,put,contract,report,live,work,files,io,proofGit,head,base,close:()=>rmSync(dir,{recursive:true,force:true,maxRetries:10,retryDelay:100})}
 }
 test('nonclosing maintenance binding proves canonical live direct and snapshot routes through real Git',()=>{
   const f=nonclosingGitFixture()

@@ -109,10 +109,25 @@ export const PRODUCTION_INERT_AUTOMATION = new Set([
   'scripts/sandbox_migration_preflight.py',
 ])
 
+// STEP 2.5 (plan_ci-process-repair.md, #2367): a production dispatch runs the
+// dispatched commit's pinned bytes, so whether its evidence survives main
+// moving is decided by the DATABASE surface alone -- migration bytes, the
+// ledger prefix, and the apply tool that executes them. An unrelated WORKFLOW
+// file (a fixer lane, a report job, a gate for a different lane) is outside
+// that surface: no production step reads it and the dispatched checkout is
+// pinned, so it could change neither what the run applies nor what it proves.
+// Refusing those edits forced identical SQL to be reissued under fresh
+// versions, up to nine times, only to refresh evidence. Exactly one workflow
+// file IS the apply tool -- the one that carries the production job's own
+// steps -- and it stays blocking. The default (merge/preview) lane still
+// refuses every workflow edit, exactly as before.
+const APPLY_TOOL_WORKFLOW_PATH = '.github/workflows/shared-supabase-migrations.yml'
+
 export function isProductionInertPath(path) {
   if (isDocumentationPath(path)) return true
   if (PRODUCTION_INERT_AUTOMATION.has(path)) return true
   if (typeof path !== 'string' || path.includes('\n') || path.includes('\0')) return false
+  if (path.toLowerCase().startsWith('.github/workflows/') && path !== APPLY_TOOL_WORKFLOW_PATH) return true
   return PRODUCTION_INERT_EVIDENCE.test(path) || PRODUCTION_INERT_TEST_FILE.test(path)
 }
 
@@ -253,7 +268,7 @@ export function classifyMainTip({ mainSha, tipSha, cwd, gitRunner = git, product
       ok: true,
       reason:
         `origin/main has advanced to ${tipSha}, but every change since ${mainSha} is ` +
-        `production-inert or a migration appended strictly after the dispatched ledger (${appended.size}), ` +
+        `production-inert or a collision-free migration added past the dispatched commit (${appended.size}), ` +
         'so the dispatched commit is a verified prefix of main for the purposes of this gate.',
       movedBy: paths,
     }
@@ -271,30 +286,41 @@ export function classifyMainTip({ mainSha, tipSha, cwd, gitRunner = git, product
 
 const MIGRATION_PATH = /^supabase\/migrations\/(\d{14})_[^/]+\.sql$/
 
-// VERIFIED-PREFIX PROMOTION (#4845). A production run executes only the
-// dispatched commit's bytes, so a migration that main gained AFTER it cannot
-// change what that run applies or proves -- it only extends main's ledger past
-// the promoted prefix and still needs its own promotion. Such a path is
-// tolerated only when ALL hold, each proven from git, and only in --production:
+// VERIFIED-PREFIX PROMOTION (#4845, widened by step 2.7 of the CI process
+// repair, #2367). A production run executes only the dispatched commit's
+// bytes, so a migration that main gained AFTER it cannot change what that run
+// applies or proves -- it still needs its own promotion. Step 2.7 let merged
+// migrations carry crossed versions, so an added migration may sort anywhere
+// relative to the dispatched ledger, and only the duplicate class still
+// refuses: the ledger keys on the version alone, so a version that already
+// exists in the dispatched tree (or twice in the added set) would silently
+// skip one migration at apply time. Tolerated only when ALL hold, proven from
+// git, and only in --production:
 //   - it was ADDED between the two commits (never modified, deleted or renamed);
-//   - its version sorts strictly after every migration in the dispatched tree,
-//     so the production ledger stays a strict prefix of main's order;
-//   - the dispatched tree has at least one migration to order against.
+//   - its version collides with no migration in the dispatched tree and with
+//     no other added migration;
+//   - the dispatched tree has at least one migration (a dispatch without a
+//     ledger cannot happen, and stays refused).
 // Added `supabase/tests/*.sql` files ride along: no production step reads them.
 // Any git error returns the empty set, so the caller refuses exactly as before.
 const SUPABASE_TEST_PATH = /^supabase\/tests\/[^/]+\.sql$/
 export function laterAppendedMigrationPaths({ mainSha, tipSha, paths, cwd, gitRunner = git }) {
   const added = new Set(nulPaths(gitRunner(['diff', '--name-only', '--no-renames', '--diff-filter=A', '-z', mainSha, tipSha], { cwd })))
-  const versions = nulPaths(gitRunner(['ls-tree', '-r', '-z', '--name-only', mainSha, '--', 'supabase/migrations'], { cwd }))
-    .map((path) => MIGRATION_PATH.exec(path)?.[1]).filter(Boolean).sort()
-  const ledgerEnd = versions.at(-1)
-  if (!ledgerEnd) return new Set()
+  const dispatched = new Set(nulPaths(gitRunner(['ls-tree', '-r', '-z', '--name-only', mainSha, '--', 'supabase/migrations'], { cwd }))
+    .map((path) => MIGRATION_PATH.exec(path)?.[1]).filter(Boolean))
+  if (dispatched.size === 0) return new Set()
   const tolerated = new Set()
+  const addedVersions = new Set()
   let migrations = 0
   for (const path of paths) {
     if (!added.has(path)) continue
     const version = MIGRATION_PATH.exec(path)?.[1]
-    if (version && version > ledgerEnd) { tolerated.add(path); migrations += 1 } else if (SUPABASE_TEST_PATH.test(path)) tolerated.add(path)
+    if (version) {
+      if (dispatched.has(version) || addedVersions.has(version)) return new Set()
+      addedVersions.add(version)
+      tolerated.add(path)
+      migrations += 1
+    } else if (SUPABASE_TEST_PATH.test(path)) tolerated.add(path)
   }
   return migrations > 0 ? tolerated : new Set()
 }
@@ -433,7 +459,7 @@ function main() {
   }
   console.log(`OK -- ${verdict.reason}`)
   if (verdict.movedBy?.length) {
-    for (const path of verdict.movedBy) console.log(`  ${production ? (/^supabase\/(?:migrations|tests)\//.test(path) ? 'appended after dispatched ledger' : 'production-inert') : 'documentation'}: ${path}`)
+    for (const path of verdict.movedBy) console.log(`  ${production ? (/^supabase\/(?:migrations|tests)\//.test(path) ? 'added past the dispatched commit' : 'production-inert') : 'documentation'}: ${path}`)
   }
 }
 
