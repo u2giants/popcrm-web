@@ -24,7 +24,6 @@ import {
   useCustomerDisplayName,
   useDefunctContactsQuery,
 } from '@/features/crm/queries'
-import { defunctLabel } from '@/features/crm/api'
 import { logError } from '@/lib/errors'
 import type { Buyer } from '@/lib/types'
 
@@ -201,12 +200,12 @@ export function ContactsPage() {
       header: 'Status',
       hideBelow: 'md',
       headerSearch: false,
-      sortValue: (b) => defunctLabel(defunct[b.id]) || 'Current',
-      filterValue: (b) => (defunct[b.id] ? `Defunct – ${defunctLabel(defunct[b.id])}` : 'Current'),
+      sortValue: (b) => (defunct[b.id] ? 'Defunct' : 'Current'),
+      filterValue: (b) => (defunct[b.id] ? 'Defunct' : 'Current'),
       cell: (b) =>
         defunct[b.id] ? (
           <span className="rounded-full bg-destructive/12 px-2 py-[1px] text-[11px] font-[500] text-destructive">
-            Defunct · {defunctLabel(defunct[b.id])}
+            Defunct
           </span>
         ) : (
           <span className="text-[11px] text-muted-foreground">Current</span>

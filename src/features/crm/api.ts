@@ -868,6 +868,9 @@ export const DEFUNCT_REASONS: { value: DefunctReason; label: string }[] = [
   { value: 'transferred', label: 'Transferred' },
   { value: 'retired', label: 'Retired' },
 ]
+// The owner wants a single "defunct" state, no reason. The table still needs a
+// reason value, so every new mark stores this one and the app never shows it.
+export const DEFAULT_DEFUNCT_REASON: DefunctReason = 'quit'
 export function defunctLabel(reason: string | null | undefined): string {
   return DEFUNCT_REASONS.find((r) => r.value === reason)?.label ?? ''
 }
