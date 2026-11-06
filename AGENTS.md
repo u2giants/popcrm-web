@@ -296,6 +296,7 @@ No secret values appear here or in the repo.
 | `VITE_LOGODEV_TOKEN` | logo.dev **publishable** token (client-safe) for domain-derived customer logos | optional `.env` (dev); GitHub Actions secret `LOGODEV_TOKEN` → Docker build-arg (prod) | no (falls back to initials) | no (falls back to initials) |
 | `COOLIFY_BASE_URL` | Coolify deploy API base for CI | GitHub Actions secret | n/a | n/a (CI only) |
 | `COOLIFY_API_TOKEN` | Token to trigger Coolify deploy | GitHub Actions secret | n/a | n/a (CI only) |
+| `COOLIFY_WRITE_TOKEN` | App-scoped write token for the image-pin PATCH (1Password: popcrm-web immutable image pin) | GitHub Actions secret | n/a | n/a (CI only) |
 | `COOLIFY_SERVER_UUID` | Coolify **application** uuid to deploy | GitHub Actions secret | n/a | n/a (CI only) |
 | `LOGODEV_TOKEN` | logo.dev publishable token → `VITE_LOGODEV_TOKEN` build-arg | GitHub Actions secret (optional) | n/a | n/a (CI only) |
 | `GITHUB_TOKEN` | GHCR push (built-in) | GitHub Actions (auto) | n/a | n/a (CI only) |

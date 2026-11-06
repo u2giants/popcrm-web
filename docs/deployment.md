@@ -125,7 +125,8 @@ processing; the acknowledgement alone does not prove ingestion succeeded.
 ### GitHub Actions secrets (CI/CD only)
 
 - `COOLIFY_BASE_URL` — `https://coolify.designflow.app`
-- `COOLIFY_API_TOKEN` — Coolify API token used to trigger the deploy
+- `COOLIFY_API_TOKEN` — Coolify API token used to trigger the deploy (deploy/read only; do not widen it)
+- `COOLIFY_WRITE_TOKEN` — write-only Coolify token scoped to the popcrm-web application, used only by the immutable image-pin PATCH. 1Password `vibe_coding`: "Coolify API token - popcrm-web immutable image pin (resource scoped)", field `COOLIFY_WRITE_TOKEN`
 - `COOLIFY_SERVER_UUID` — the Coolify **application** uuid (`a1vb55by4benmh25nd4ga8pt`)
 - `VITE_SUPABASE_URL` — Supabase project URL baked into the static bundle
 - `VITE_SUPABASE_ANON_KEY` — Supabase public anon key baked into the static
