@@ -1,10 +1,12 @@
 import { useMemo, useState } from 'react'
 import { toast } from 'sonner'
-import { LayoutGrid, List, ListTodo } from 'lucide-react'
+import { LayoutGrid, List, ListTodo, Plus } from 'lucide-react'
 import { AppPage, ListBar } from '@/components/app/AppPage'
 import { DataTable, type Column } from '@/components/app/DataTable'
 import { NameAvatar } from '@/components/app/NameAvatar'
 import { StatusBadge } from '@/components/app/StatusBadge'
+import { Button } from '@/components/ui/button'
+import { CreateTaskDialog } from '@/features/crm/components/CreateTaskDialog'
 import {
   Select,
   SelectContent,
@@ -37,6 +39,7 @@ export function TasksPage() {
   const tasks = listData(tasksQuery.data)
   const [query, setQuery] = useState('')
   const [view, setView] = useState<'table' | 'board'>('table')
+  const [creating, setCreating] = useState(false)
   const [selected, select] = useRecordSelection<CrmTask>('task', tasks)
 
   const filtered = useMemo(() => {
@@ -156,7 +159,14 @@ export function TasksPage() {
           search={query}
           onSearch={setQuery}
           searchPlaceholder="Search title, body, assignee…"
-          actions={viewToggle}
+          actions={
+            <>
+              <Button size="sm" onClick={() => setCreating(true)}>
+                <Plus className="size-[13px]" /> New task
+              </Button>
+              {viewToggle}
+            </>
+          }
         />
       }
     >
@@ -178,6 +188,7 @@ export function TasksPage() {
         />
       )}
       <TaskDrawer row={selected} onClose={() => select(null)} />
+      <CreateTaskDialog open={creating} onClose={() => setCreating(false)} />
     </AppPage>
   )
 }

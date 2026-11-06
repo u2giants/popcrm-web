@@ -1,8 +1,10 @@
 import { useMemo, useState } from 'react'
-import { Route } from 'lucide-react'
+import { Plus, Route } from 'lucide-react'
 import { AppPage, ListBar } from '@/components/app/AppPage'
 import { DataTable, type Column } from '@/components/app/DataTable'
+import { Button } from '@/components/ui/button'
 import { ErrorState } from '@/components/app/states'
+import { CreateProgramDialog } from '@/features/crm/components/CreateProgramDialog'
 import { CustomerRelationLogo } from '@/features/crm/components/CustomerRelationLogo'
 import { RelationLabel } from '@/features/crm/components/RelationLabel'
 import { useRecordSelection } from '@/features/crm/useRecordSelection'
@@ -28,6 +30,7 @@ export function ProgramsPage() {
   const customerName = useCustomerDisplayName()
   const opportunitiesQuery = useOpportunitiesQuery(-1)
   const retailersQuery = useCustomerPickerQuery(-1)
+  const [creating, setCreating] = useState(false)
   const opportunities = listData(opportunitiesQuery.data)
   const retailers = listData(retailersQuery.data)
   const [query, setQuery] = useState('')
@@ -123,6 +126,11 @@ export function ProgramsPage() {
           search={query}
           onSearch={setQuery}
           searchPlaceholder="Search name, customer, PO, SO…"
+          actions={
+            <Button size="sm" onClick={() => setCreating(true)}>
+              <Plus className="size-[13px]" /> New program
+            </Button>
+          }
         />
       }
     >
@@ -142,6 +150,7 @@ export function ProgramsPage() {
         />
       )}
       <OpportunityModal row={selected} onClose={() => select(null)} />
+      <CreateProgramDialog open={creating} onClose={() => setCreating(false)} />
     </AppPage>
   )
 }

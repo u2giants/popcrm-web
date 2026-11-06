@@ -1,11 +1,13 @@
 import { useMemo, useState } from 'react'
-import { LayoutGrid, List, Route, Sparkles } from 'lucide-react'
+import { LayoutGrid, List, Plus, Route, Sparkles } from 'lucide-react'
 import { AppPage, ListBar } from '@/components/app/AppPage'
 import { DataTable, type Column } from '@/components/app/DataTable'
 import { FilterSelect } from '@/components/app/FilterSelect'
 import { ScrollArea } from '@/components/ui/scroll-area'
+import { Button } from '@/components/ui/button'
 import { ErrorState, CardGridSkeleton } from '@/components/app/states'
 import { useRecordSelection } from '@/features/crm/useRecordSelection'
+import { CreateProgramDialog } from '@/features/crm/components/CreateProgramDialog'
 import { CustomerRelationLogo } from '@/features/crm/components/CustomerRelationLogo'
 import { OpportunityModal } from '@/features/crm/components/OpportunityModal'
 import { StageBadge } from '@/features/crm/components/CrmStatusBadge'
@@ -38,6 +40,7 @@ export function PipelinePage() {
   const [program, setProgram] = useState('')
   const [division, setDivision] = useState('')
   const [view, setView] = useState<'board' | 'list'>('board')
+  const [creating, setCreating] = useState(false)
   const [selected, select] = useRecordSelection<CrmOpportunity>('opportunity', opportunities)
   const retailerById = useMemo(() => buildRetailerById(retailers), [retailers])
 
@@ -181,7 +184,14 @@ export function PipelinePage() {
               />
             </>
           }
-          actions={viewToggle}
+          actions={
+            <>
+              <Button size="sm" onClick={() => setCreating(true)}>
+                <Plus className="size-[13px]" /> New program
+              </Button>
+              {viewToggle}
+            </>
+          }
         />
       }
     >
@@ -237,6 +247,7 @@ export function PipelinePage() {
       )}
 
       <OpportunityModal row={selected} onClose={() => select(null)} />
+      <CreateProgramDialog open={creating} onClose={() => setCreating(false)} />
     </AppPage>
   )
 }

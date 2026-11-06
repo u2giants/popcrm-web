@@ -1,9 +1,11 @@
 import { useState } from 'react'
 import { toast } from 'sonner'
-import { AlertCircle, Clock } from 'lucide-react'
+import { AlertCircle, Clock, Trash2 } from 'lucide-react'
 import { DetailDrawer, DescriptionItem, DescriptionList, DrawerSection } from '@/components/app/DetailDrawer'
 import { StatusBadge } from '@/components/app/StatusBadge'
-import { useUpdateTaskMutation } from '@/features/crm/queries'
+import { Button } from '@/components/ui/button'
+import { ConfirmDeleteDialog } from '@/features/crm/components/ConfirmDeleteDialog'
+import { useDeleteTaskMutation, useUpdateTaskMutation } from '@/features/crm/queries'
 import { TASK_STATUSES, taskTone } from '@/features/crm/constants'
 import { formatDateTime, label, relatedName } from '@/features/crm/format'
 import { cn } from '@/lib/utils'
@@ -11,6 +13,21 @@ import { logError } from '@/lib/errors'
 import type { CrmTask } from '@/lib/types'
 
 export function TaskDrawer({ row, onClose }: { row: CrmTask | null; onClose: () => void }) {
+  const [confirmingDelete, setConfirmingDelete] = useState(false)
+  const deleteTaskMutation = useDeleteTaskMutation()
+
+  async function remove() {
+    if (!row) return
+    try {
+      await deleteTaskMutation.mutateAsync(row.id)
+      toast.success('Task deleted')
+      setConfirmingDelete(false)
+      onClose()
+    } catch (error) {
+      toast.error('Could not delete task', { description: logError('TaskDrawer.remove', error) })
+    }
+  }
+
   return (
     <DetailDrawer
       open={!!row}
@@ -24,9 +41,28 @@ export function TaskDrawer({ row, onClose }: { row: CrmTask | null; onClose: () 
           </StatusBadge>
         ) : undefined
       }
+      footer={row ? <TaskDrawerFooterActions onDelete={() => setConfirmingDelete(true)} /> : undefined}
     >
       {row ? <TaskDrawerForm key={row.id} row={row} /> : null}
+      <ConfirmDeleteDialog
+        open={confirmingDelete && !!row}
+        title="Delete this task?"
+        message={`"${row?.title || 'This task'}" will be deleted for good. There is no archive for tasks.`}
+        confirmLabel="Delete task"
+        destructive
+        pending={deleteTaskMutation.isPending}
+        onConfirm={() => void remove()}
+        onClose={() => setConfirmingDelete(false)}
+      />
     </DetailDrawer>
+  )
+}
+
+function TaskDrawerFooterActions({ onDelete }: { onDelete: () => void }) {
+  return (
+    <Button variant="outline" size="sm" className="text-destructive hover:text-destructive" onClick={onDelete}>
+      <Trash2 className="size-[13px]" /> Delete
+    </Button>
   )
 }
 

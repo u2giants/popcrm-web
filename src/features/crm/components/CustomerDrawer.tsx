@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react'
-import { Building2, Check, Mail, Pencil, Route, X } from 'lucide-react'
+import { Building2, Check, Mail, Pencil, Route, Trash2, X } from 'lucide-react'
 import { toast } from 'sonner'
 import { DetailDrawer, DescriptionItem, DescriptionList, DrawerSection } from '@/components/app/DetailDrawer'
 import { StatusBadge } from '@/components/app/StatusBadge'
@@ -7,8 +7,10 @@ import { NameAvatar } from '@/components/app/NameAvatar'
 import { CustomerLogo } from '@/components/app/CustomerLogo'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { ConfirmDeleteDialog } from '@/features/crm/components/ConfirmDeleteDialog'
 import {
   listData,
+  useArchiveCustomerMutation,
   useCustomerIngestedDomainsQuery,
   useDepartmentsQuery,
   useEmailsQuery,
@@ -41,6 +43,22 @@ export function CustomerDrawer({ row, onClose }: { row: Retailer | null; onClose
   const emails = listData(useEmailsQuery(-1).data)
   const linkedDomainsQuery = useCustomerIngestedDomainsQuery(row?.id)
   const linkedDomains = linkedDomainsQuery.data ?? []
+  const archiveMutation = useArchiveCustomerMutation()
+  const [confirmingDelete, setConfirmingDelete] = useState(false)
+
+  async function remove() {
+    if (!row) return
+    try {
+      await archiveMutation.mutateAsync(row.id)
+      toast.success(`${customerLabel(row)} removed from CRM lists`)
+      setConfirmingDelete(false)
+      onClose()
+    } catch (error) {
+      // The RPC refuses while the customer still has open programs; its message
+      // names the count, so surface it verbatim.
+      toast.error('Could not remove customer', { description: logError('CustomerDrawer.remove', error) })
+    }
+  }
 
   const related = useMemo(() => {
     if (!row) return { contacts: [], depts: [], opps: [], recentEmails: [], suggestedDomain: null }
@@ -77,9 +95,14 @@ export function CustomerDrawer({ row, onClose }: { row: Retailer | null; onClose
         ) : undefined
       }
       footer={
-        <Button variant="outline" size="sm" onClick={onClose}>
-          <X className="size-[13px]" /> Close
-        </Button>
+        <div className="flex gap-2">
+          <Button variant="outline" size="sm" className="text-destructive hover:text-destructive" onClick={() => setConfirmingDelete(true)}>
+            <Trash2 className="size-[13px]" /> Delete
+          </Button>
+          <Button variant="outline" size="sm" onClick={onClose}>
+            <X className="size-[13px]" /> Close
+          </Button>
+        </div>
       }
     >
       {row ? (
@@ -244,6 +267,16 @@ export function CustomerDrawer({ row, onClose }: { row: Retailer | null; onClose
           ) : null}
         </>
       ) : null}
+      <ConfirmDeleteDialog
+        open={confirmingDelete && !!row}
+        title="Remove this customer?"
+        message={`${row ? customerLabel(row) : 'This customer'} will be hidden from CRM lists only — other apps keep seeing it. Its contacts, programs and history stay put; restoring is a database action.`}
+        detail="Customers with open programs cannot be removed; archive those programs first."
+        confirmLabel="Remove customer"
+        pending={archiveMutation.isPending}
+        onConfirm={() => void remove()}
+        onClose={() => setConfirmingDelete(false)}
+      />
     </DetailDrawer>
   )
 }

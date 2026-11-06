@@ -1,12 +1,24 @@
 import { useMemo, useState } from 'react'
 import { toast } from 'sonner'
-import { Mail, Pencil } from 'lucide-react'
+import { Mail, Pencil, Trash2 } from 'lucide-react'
 import { Input } from '@/components/ui/input'
 import { DetailDrawer, DescriptionItem, DescriptionList, DrawerSection } from '@/components/app/DetailDrawer'
 import { Combobox, type ComboOption } from '@/components/app/Combobox'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
-import { listData, useCustomerPickerQuery, useDepartmentsQuery, useEmailsQuery, useMeetingsQuery, useUpdateContactMutation, useDefunctContactsQuery, useSetContactDefunctMutation } from '@/features/crm/queries'
+import { ConfirmDeleteDialog } from '@/features/crm/components/ConfirmDeleteDialog'
+import { MergeContactsDialog } from '@/features/crm/components/MergeContactsDialog'
+import {
+  listData,
+  useArchiveContactMutation,
+  useCustomerPickerQuery,
+  useDefunctContactsQuery,
+  useDepartmentsQuery,
+  useEmailsQuery,
+  useMeetingsQuery,
+  useSetContactDefunctMutation,
+  useUpdateContactMutation,
+} from '@/features/crm/queries'
 import { DEFUNCT_REASONS, defunctLabel, type DefunctReason } from '@/features/crm/api'
 import { customerLabel, idOf, label, relatedName, formatDate } from '@/features/crm/format'
 import { isSelectableCustomer } from '@/features/crm/pages/_shared'
@@ -49,6 +61,11 @@ export function ContactDrawer({
       toast.error('Could not change status', { description: logError('ContactDrawer.markDefunct', error) })
     }
   }
+  const archiveContactMutation = useArchiveContactMutation()
+  const [confirmingDelete, setConfirmingDelete] = useState(false)
+  const [merging, setMerging] = useState(false)
+  const [appliedScope, setAppliedScope] = useState<{ id: string; scope: string | null } | null>(null)
+  const shownScope = appliedScope && row && appliedScope.id === row.id ? appliedScope.scope : row?.scope ?? null
   // The drawer keeps the row it was opened with, so a successful edit is held
   // here and shown until a different contact is opened.
   const [edited, setEdited] = useState<{ id: string; department?: string | CrmDepartment | null; retailer?: string | Retailer | null } | null>(null)
@@ -161,6 +178,28 @@ export function ContactDrawer({
     }
   }
 
+  async function setScope(value: string) {
+    if (!row) return
+    try {
+      await updateContactMutation.mutateAsync({ id: row.id, values: { scope: value || null } })
+      setAppliedScope({ id: row.id, scope: value || null })
+    } catch (error) {
+      toast.error('Could not save scope', { description: logError('ContactDrawer.setScope', error) })
+    }
+  }
+
+  async function archive() {
+    if (!row) return
+    try {
+      await archiveContactMutation.mutateAsync(row.id)
+      toast.success(`${view.name || 'Contact'} removed from lists`)
+      setConfirmingDelete(false)
+      onClose()
+    } catch (error) {
+      toast.error('Could not remove contact', { description: logError('ContactDrawer.archive', error) })
+    }
+  }
+
   return (
     <DetailDrawer
       open={!!row}
@@ -181,6 +220,10 @@ export function ContactDrawer({
           <div className="flex gap-2">
             <Button variant="outline" onClick={startEdit}>
               <Pencil className="size-4" /> Edit
+            </Button>
+            <Button variant="outline" onClick={() => setMerging(true)}>Merge</Button>
+            <Button variant="outline" className="text-destructive hover:text-destructive" onClick={() => setConfirmingDelete(true)}>
+              <Trash2 className="size-4" /> Delete
             </Button>
             {view.email ? (
               <Button asChild>
@@ -265,7 +308,19 @@ export function ContactDrawer({
               <DescriptionItem term="Phone">{view.phone || '—'}</DescriptionItem>
               <DescriptionItem term="Title">{view.job_title || '—'}</DescriptionItem>
               </>) : null}
-              <DescriptionItem term="Scope">{label(row.scope)}</DescriptionItem>
+              <DescriptionItem term="Scope">
+                <select
+                  className="h-8 rounded-[7px] border bg-background px-2 text-[12.5px] outline-none focus:border-ring"
+                  value={shownScope ?? ''}
+                  onChange={(e) => void setScope(e.target.value)}
+                  disabled={updateContactMutation.isPending}
+                >
+                  <option value="">Unspecified — not set</option>
+                  <option value="COMPANY_WIDE">{label('COMPANY_WIDE')}</option>
+                  <option value="DEPARTMENT">{label('DEPARTMENT')}</option>
+                  <option value="IGNORED">{label('IGNORED')}</option>
+                </select>
+              </DescriptionItem>
               {!editing ? <DescriptionItem term="Customer">{relatedName(currentRetailer)}</DescriptionItem> : null}
               <div
                 ref={focusDepartment ? (el) => { el?.scrollIntoView({ block: 'center' }) } : undefined}
@@ -331,6 +386,20 @@ export function ContactDrawer({
           </DrawerSection>
         </>
       ) : null}
+      <ConfirmDeleteDialog
+        open={confirmingDelete && !!row}
+        title="Remove this contact?"
+        message={`${view.name || 'This contact'} will be hidden from all CRM lists. Nothing is deleted: their emails, meetings, notes and links stay put, and restoring is a database action.`}
+        confirmLabel="Remove contact"
+        pending={archiveContactMutation.isPending}
+        onConfirm={() => void archive()}
+        onClose={() => setConfirmingDelete(false)}
+      />
+      <MergeContactsDialog
+        keep={merging && row ? row : null}
+        onClose={() => setMerging(false)}
+        onMerged={() => setMerging(false)}
+      />
     </DetailDrawer>
   )
 }

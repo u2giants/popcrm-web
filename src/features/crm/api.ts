@@ -435,6 +435,46 @@ export async function updateOpportunity(id: string, values: Partial<CrmOpportuni
   await updateRow('opportunity', id, mapValues(values as Row, OPP_MAP, OPP_RELS))
 }
 
+/**
+ * Creates a program (crm.opportunity) through api.crm_create_opportunity, which
+ * enforces CRM write roles, requires an existing non-archived customer, and
+ * reads back through the list view so the caller gets the joined shape.
+ */
+export async function createOpportunity(values: {
+  name: string
+  company_id: string
+  contact_id?: string | null
+  department_id?: string | null
+  stage?: string | null
+  amount?: string | number | null
+  close_date?: string | null
+}): Promise<CrmOpportunity> {
+  const amount = values.amount === '' || values.amount === null || values.amount === undefined ? null : Number(values.amount)
+  const { data, error } = await anyDb.schema('api').rpc('crm_create_opportunity', {
+    p_name: values.name,
+    p_company_id: values.company_id,
+    p_contact_id: arg(values.contact_id),
+    p_department_id: arg(values.department_id),
+    p_stage: arg(values.stage),
+    p_estimated_value: amount === null || Number.isNaN(amount) ? undefined : amount,
+    p_close_date: arg(values.close_date),
+  })
+  if (error) throw error
+  const id = ((data ?? {}) as Row).id as string
+  const back = await anyDb.schema('api').from('crm_opportunity_list').select('*').eq('id', id).maybeSingle()
+  if (back.error) throw back.error
+  return toOpportunity((back.data ?? { id }) as Row)
+}
+
+/**
+ * Hides a program from CRM lists (crm.opportunity.status='archived'). The RPC
+ * is idempotent; restoring is a database action.
+ */
+export async function archiveOpportunity(id: string) {
+  const { error } = await anyDb.schema('api').rpc('crm_archive_opportunity', { p_opportunity_id: id })
+  if (error) throw error
+}
+
 export async function askOpportunityAi(id: string, question: string): Promise<string> {
   const { data: sessionData } = await supabase.auth.getSession()
   const token = sessionData.session?.access_token
@@ -676,6 +716,16 @@ export async function mergeCustomers(args: {
   return { ok: Boolean(result.success), code: (result.code as string) ?? undefined, message: (result.message as string) ?? undefined }
 }
 
+/**
+ * Hides a customer from CRM lists (crm.customer_ext.status='archived' — CRM's
+ * own row, so PIM/DAM views that read core.customer are untouched). The RPC
+ * refuses while the customer still has non-archived programs and says so.
+ */
+export async function archiveCustomer(id: string) {
+  const { error } = await anyDb.schema('api').rpc('crm_archive_customer', { p_customer_id: id })
+  if (error) throw error
+}
+
 export async function updateRetailer(id: string, values: Partial<Retailer>) {
   const v = values as Row
   const { error } = await anyDb.schema('api').rpc('crm_update_customer', {
@@ -858,6 +908,57 @@ export async function updateBuyer(id: string, values: Partial<Buyer>) {
   if (error) throw error
 }
 
+/**
+ * Creates a contact through api.crm_create_contact: enforces CRM access,
+ * rejects blank names, malformed emails and case-insensitive duplicate emails,
+ * and creates the buyer relation row when a customer is given.
+ */
+export async function createContact(values: {
+  name: string
+  email?: string | null
+  phone?: string | null
+  job_title?: string | null
+  retailer_id?: string | null
+  department_id?: string | null
+}): Promise<Buyer> {
+  const { data, error } = await anyDb.schema('api').rpc('crm_create_contact', {
+    p_full_name: values.name,
+    p_email: arg(values.email),
+    p_phone: arg(values.phone),
+    p_job_title: arg(values.job_title),
+    p_company_id: arg(values.retailer_id),
+    p_crm_department_id: arg(values.department_id),
+  })
+  if (error) throw error
+  const id = data as string
+  const back = await anyDb.schema('api').from('crm_contact_list').select('*').eq('id', id).maybeSingle()
+  if (back.error) throw back.error
+  return toBuyer((back.data ?? { id }) as Row)
+}
+
+/**
+ * Hides a contact from CRM lists (crm.contact_ext.archived_at, CRM-owned so no
+ * other app's view changes meaning). Idempotent; restoring is a database action.
+ */
+export async function archiveContact(id: string) {
+  const { error } = await anyDb.schema('api').rpc('crm_archive_contact', { p_contact_id: id })
+  if (error) throw error
+}
+
+/**
+ * Merges two duplicate contacts (api.crm_merge_contacts): moves every link
+ * (emails, meetings, notes, tasks, programs, company relations, PIM links)
+ * onto the kept contact, fills its blank fields from the dropped one, and
+ * archives the dropped contact in one transaction.
+ */
+export async function mergeContacts(keepId: string, dropId: string) {
+  const { error } = await anyDb.schema('api').rpc('crm_merge_contacts', {
+    p_keep_id: keepId,
+    p_drop_id: dropId,
+  })
+  if (error) throw error
+}
+
 // ---------------------------------------------------------------------------
 // Defunct contacts (crm.contact_ext): a contact who quit, transferred or retired.
 // No row, or a null reason, means the contact is current.
@@ -1016,6 +1117,12 @@ export async function updateMeetingNote(id: string, values: Partial<CrmMeetingNo
   await updateRow('meeting_note', id, mapValues(values as Row, MEETING_MAP, MEETING_RELS))
 }
 
+// Meeting notes have no inbound references, so removing one is a hard delete.
+export async function deleteMeetingNote(id: string) {
+  const { error } = await anyDb.schema('crm').from('meeting_note').delete().eq('id', id)
+  if (error) throw error
+}
+
 // ---------------------------------------------------------------------------
 // Ignore rules
 // ---------------------------------------------------------------------------
@@ -1059,6 +1166,12 @@ export async function updateNote(id: string, values: Partial<CrmNote>) {
   await updateRow('note', id, mapValues(values as Row, NOTE_MAP, NOTE_RELS))
 }
 
+// Notes have no inbound references, so removing one is a hard delete.
+export async function deleteNote(id: string) {
+  const { error } = await anyDb.schema('crm').from('note').delete().eq('id', id)
+  if (error) throw error
+}
+
 // ---------------------------------------------------------------------------
 // Tasks
 // ---------------------------------------------------------------------------
@@ -1076,6 +1189,12 @@ export async function createTask(values: Partial<CrmTask>) {
 
 export async function updateTask(id: string, values: Partial<CrmTask>) {
   await updateRow('task', id, mapValues(values as Row, TASK_MAP, TASK_RELS))
+}
+
+// Tasks have no inbound references, so removing one is a hard delete.
+export async function deleteTask(id: string) {
+  const { error } = await anyDb.schema('crm').from('task').delete().eq('id', id)
+  if (error) throw error
 }
 
 // ---------------------------------------------------------------------------

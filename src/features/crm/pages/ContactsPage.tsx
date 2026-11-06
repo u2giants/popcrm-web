@@ -1,11 +1,13 @@
 import { useMemo, useState } from 'react'
 import { toast } from 'sonner'
 import { useQueryClient } from '@tanstack/react-query'
-import { Contact } from 'lucide-react'
+import { Contact, UserPlus } from 'lucide-react'
 import { AppPage, ListBar } from '@/components/app/AppPage'
 import { DataTable, type Column, type EditOption, type CellEditContext } from '@/components/app/DataTable'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { Button } from '@/components/ui/button'
 import { ErrorState } from '@/components/app/states'
+import { CreateContactDialog } from '@/features/crm/components/CreateContactDialog'
 import { CustomerRelationLogo } from '@/features/crm/components/CustomerRelationLogo'
 import { useRecordSelection } from '@/features/crm/useRecordSelection'
 import { ContactDrawer } from '@/features/crm/components/ContactDrawer'
@@ -41,6 +43,7 @@ export function ContactsPage() {
   const [segment, setSegment] = useState<Segment>('customer')
   const [hideDefunct, setHideDefunct] = useState(false)
   const defunct = useDefunctContactsQuery().data ?? {}
+  const [creating, setCreating] = useState(false)
   const activeSegment = segment === 'all' ? 'customer' : segment
   const segmentQuery = useContactSegmentQuery(activeSegment, -1, segment !== 'all')
   const allContactsQuery = useAllContactsQuery(-1, segment === 'all')
@@ -256,10 +259,15 @@ export function ContactsPage() {
           onSearch={setQuery}
           searchPlaceholder="Search name, email, title…"
           actions={
-            <label className="flex cursor-pointer select-none items-center gap-1.5 text-[12px] text-muted-foreground">
-              <input type="checkbox" checked={hideDefunct} onChange={(e) => setHideDefunct(e.target.checked)} />
-              Hide defunct
-            </label>
+            <>
+              <Button size="sm" onClick={() => setCreating(true)}>
+                <UserPlus className="size-[13px]" /> Add contact
+              </Button>
+              <label className="flex cursor-pointer select-none items-center gap-1.5 text-[12px] text-muted-foreground">
+                <input type="checkbox" checked={hideDefunct} onChange={(e) => setHideDefunct(e.target.checked)} />
+                Hide defunct
+              </label>
+            </>
           }
           segments={
             <Tabs value={segment} onValueChange={(v) => setSegment(v as Segment)}>
@@ -305,6 +313,7 @@ export function ContactsPage() {
         />
       )}
       <ContactDrawer row={selected} onClose={() => select(null)} />
+      <CreateContactDialog open={creating} onClose={() => setCreating(false)} />
     </AppPage>
   )
 }

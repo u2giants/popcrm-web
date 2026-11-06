@@ -6,18 +6,18 @@ Issue: https://github.com/u2giants/popcrm-web/issues/24 · Handoff: [HANDOFF.d/2
 
 | # | Step | State | Evidence |
 |---|------|-------|----------|
-| 0 | Prove live write permissions per table | ⬜ open (2026-11-05) | — |
-| 1 | Shared-db: archive/delete + create/merge RPCs | ⬜ open | — |
-| 2 | Add contact | ⬜ open | — |
-| 3 | Delete (archive) contact | ⬜ open | — |
-| 4 | Merge duplicate contacts | ⬜ open | — |
-| 5 | Edit contact scope | ⬜ open | — |
-| 6 | Add program | ⬜ open | — |
-| 7 | Delete (archive) program | ⬜ open | — |
-| 8 | Delete note / task / meeting | ⬜ open | — |
-| 9 | Add task from Tasks page | ⬜ open | — |
-| 10 | Delete (archive) customer | ⬜ open | — |
-| 11 | Live proof + docs | ⬜ open | — |
+| 0 | Prove live write permissions per table | ✅ done 2026-11-05 | results in §5 (read-only SQL, prod `qsllyeztdwjgirsysgai`) |
+| 1 | Shared-db: archive/delete + create/merge RPCs | 🟡 PR open | popcre/shared-db#5808 (issue #5791); contract tests PASS on preview `mvpkijzfmfcxhnzqogzs` (2026-11-05 ~9:20 PM EST); migrations 20261105235900 + fix-forward 20261106002125; awaiting guarded merge → merged-main preview → automatic production promotion |
+| 2 | Add contact | ✅ code done, preview-proven | e2e on preview 2026-11-05: "E2E Contact …" added via dialog, appears in grid |
+| 3 | Delete (archive) contact | ✅ code done, preview-proven | e2e on preview: archived, gone from grid; contract test proves view exclusion |
+| 4 | Merge duplicate contacts | ✅ code done, preview-proven | e2e on preview: both notes moved to kept contact, duplicate archived; contract test proves every FK repointed |
+| 5 | Edit contact scope | ✅ code done, preview-proven | e2e on preview: scope → COMPANY_WIDE, saved, reopens as such (options include IGNORED per review) |
+| 6 | Add program | ✅ code done, preview-proven | e2e on preview: "E2E Program …" created, appears in programs grid |
+| 7 | Delete (archive) program | ✅ code done, preview-proven | e2e on preview: archived via modal Delete, gone from grid |
+| 8 | Delete note / task / meeting | ✅ code done, preview-proven | e2e on preview: task + note deleted, gone (hard delete); meeting flow proven by unit test (no meeting rows on preview); contract tests cover DB side |
+| 9 | Add task from Tasks page | ✅ code done, preview-proven | e2e on preview: "E2E Task …" created from Tasks page, appears, then deleted (assignee field omitted: only an admin-gated RPC can list profiles; flagged below) |
+| 10 | Delete (archive) customer | ✅ code done, preview-proven | e2e on preview: refusal message shown for customer with open program; archive verified in DB (`crm.customer_ext.archived_at`) and customer gone from list |
+| 11 | Live proof + docs | ⬜ open | after shared-db promotion + frontend deploy: repeat gates on crm.designflow.app, clean test records |
 
 Fresh session starts at **Step 0**. Already done (not in this plan): contact
 editing of name/email/phone/title/customer, commit `56300434` on `main`, live at
@@ -73,6 +73,62 @@ any PIM/DAM change.
 ## Part 2 — What we already know
 
 ### 5. Current state
+
+**Step 0 results (2026-11-05, read-only SQL on production `qsllyeztdwjgirsysgai` via
+Supabase management API):**
+
+Privileges for role `authenticated` (RLS on everywhere; write policies =
+`app.has_role('administrator') or app.has_any_role(array['sales','licensing'])`):
+
+| Table | INSERT | UPDATE | DELETE | Notes |
+|---|---|---|---|---|
+| `core.contact` | ✗ | ✗ | ✗ | admin_write/shared_read policies; RPC only |
+| `core.contact_company` | ✗ | ✗ | ✗ | same; carries `scope`, `crm_department_id`, `contact_type`, `title` |
+| `core.customer` | ✗ | ✗ | ✗ | same (plan said `core.company` — actual table is `core.customer`) |
+| `crm.customer_ext` | ✗ | ✗ | ✗ | write policy exists but no grant; RPC only |
+| `crm.opportunity` | ✓ | ✓ | ✓ | direct writes allowed for sales/licensing/admin |
+| `crm.note` | ✓ | ✓ | ✓ | same |
+| `crm.task` | ✓ | ✓ | ✓ | same |
+| `crm.meeting_note` | ✓ | ✓ | ✓ | same |
+
+Archive columns decided:
+- Contact: `core.contact.status` enum `entity_status` =
+  `active|inactive|archived|deleted|potential`; all 8850 rows are `active`; **no
+  non-CRM view filters contact.status** → archive = `status='archived'`; CRM
+  views add `ct.status <> 'archived' and ct.status <> 'deleted'`.
+- Customer: PIM `api.pm_customer_list` filters `c.status IN
+  ('active','potential')` → archiving via core.status would hide customers from
+  PIM. Archive CRM-only instead: upsert `crm.customer_ext.status='archived'`;
+  CRM customer views exclude ext-archived. `api.crm_customer_picker_list`
+  already uses this exact `COALESCE(x.status,'active')='active'` pattern.
+- Opportunity/program: `crm.opportunity.status` free text, unused by frontend,
+  0 rows live → archive = `status='archived'`; views filter it.
+- Note/task/meeting: no status column, **no inbound FKs** → hard DELETE via
+  direct table delete (grants + RLS already allow).
+
+Inbound FKs on `core.contact` (merge must repoint): `contact_company`
+(cascade; UNIQUE(contact_id, company_id, relationship_type) — delete drop's row
+when keep collides), `contact_source_ref` (cascade; unique key not
+contact-scoped, safe repoint), `vendor_contact` (cascade; UNIQUE
+NULLS NOT DISTINCT(factory_id, contact_id, role) — collision-delete),
+`crm.department.primary_contact_id` (set null), `crm.email_message.contact_id`,
+`crm.meeting_note.contact_id`, `crm.note.contact_id`, `crm.opportunity.contact_id`,
+`crm.task.contact_id` (all set null), `pim.product.contact_id`,
+`pim.project.contact_id` (set null). `core.contact.email` has **no unique
+index** (citext) — duplicate check must be a query inside `crm_create_contact`.
+
+Scope values (live): `core.contact_company.scope` ∈ {`COMPANY_WIDE` (875),
+`DEPARTMENT` (55)}; no DB check constraint; frontend `label()` renders them.
+Stages: `crm.opportunity` 0 rows live; frontend `OPPORTUNITY_STAGES` is the
+allowed set. `crm_update_contact` exists (admin/sales/licensing check inside);
+`crm_set_opportunity_stage` is the RPC pattern to copy.
+
+CRM list views needing an archived filter: `crm_contact_list`,
+`crm_contact_segment_list`, `crm_contact_segment_counts`, `crm_customer_list`,
+`crm_customer_overview`, `crm_customer_picker_list` (has it already),
+`crm_opportunity_list`. `crm_task_list`/`crm_note_list`/`crm_meeting_list` need
+none (hard delete).
+
 - Exists: `createCustomer`, `mergeCustomers`, `createDepartment`,
   `deleteDepartment` (direct `crm.department` delete), `createNote`,
   `createTask` (API exists, used only from Data Admin), `createIgnoreRule`;

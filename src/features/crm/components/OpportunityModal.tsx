@@ -5,6 +5,7 @@ import {
   Link2,
   Maximize2,
   Minimize2,
+  Trash2,
   X,
   Sparkles,
   Send,
@@ -18,8 +19,9 @@ import {
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { ScrollArea } from '@/components/ui/scroll-area'
+import { ConfirmDeleteDialog } from '@/features/crm/components/ConfirmDeleteDialog'
 import { askOpportunityAi } from '@/features/crm/api'
-import { listData, useCreateNoteMutation, useNotesQuery, useSetOpportunityStageMutation, useTasksQuery } from '@/features/crm/queries'
+import { listData, useArchiveOpportunityMutation, useCreateNoteMutation, useNotesQuery, useSetOpportunityStageMutation, useTasksQuery } from '@/features/crm/queries'
 import { OPPORTUNITY_STAGES, stageChipClass } from '@/features/crm/constants'
 import { formatDate, idOf, label, relatedName } from '@/features/crm/format'
 import { cn } from '@/lib/utils'
@@ -141,6 +143,8 @@ function ModalInner({
   const tasks = listData(useTasksQuery(-1).data)
   const createNoteMutation = useCreateNoteMutation()
   const setStageMutation = useSetOpportunityStageMutation()
+  const archiveMutation = useArchiveOpportunityMutation()
+  const [confirmingDelete, setConfirmingDelete] = useState(false)
   const [stage, setStage] = useState(row.stage || OPPORTUNITY_STAGES[0])
   const [composerText, setComposerText] = useState('')
   const [sending, setSending] = useState(false)
@@ -172,6 +176,17 @@ function ModalInner({
       toast.error('AI answer failed', { description: logError('OpportunityModal.askAi', error) })
     } finally {
       setAsking(false)
+    }
+  }
+
+  async function remove() {
+    try {
+      await archiveMutation.mutateAsync(row.id)
+      toast.success(`${row.name || 'Program'} removed from the pipeline`)
+      setConfirmingDelete(false)
+      onClose()
+    } catch (error) {
+      toast.error('Could not remove program', { description: logError('OpportunityModal.remove', error) })
     }
   }
 
@@ -255,6 +270,16 @@ function ModalInner({
           title="Copy link"
         >
           <Link2 className="size-[14px]" />
+        </button>
+
+        {/* Delete (archive): hidden from lists, recoverable */}
+        <button
+          onClick={() => setConfirmingDelete(true)}
+          className="flex size-[28px] items-center justify-center rounded-[7px] text-muted-foreground hover:bg-accent hover:text-destructive"
+          aria-label="Delete"
+          title="Remove this program"
+        >
+          <Trash2 className="size-[14px]" />
         </button>
 
         {/* Expand / collapse */}
@@ -502,6 +527,15 @@ function ModalInner({
           </div>
         </div>
       </div>
+      <ConfirmDeleteDialog
+        open={confirmingDelete}
+        title="Remove this program?"
+        message={`"${row.name || 'This program'}" will be hidden from the pipeline. Its notes, tasks and links stay put; restoring is a database action.`}
+        confirmLabel="Remove program"
+        pending={archiveMutation.isPending}
+        onConfirm={() => void remove()}
+        onClose={() => setConfirmingDelete(false)}
+      />
     </>
   )
 }

@@ -1,9 +1,18 @@
 import { useMemo } from 'react'
 import { keepPreviousData, useMutation, useQuery, useQueryClient, type QueryClient } from '@tanstack/react-query'
 import {
+  archiveContact,
+  archiveCustomer,
+  archiveOpportunity,
+  createContact,
   createIgnoreRule,
   createNote,
+  createOpportunity,
+  createTask,
   createDepartment,
+  deleteMeetingNote,
+  deleteNote,
+  deleteTask,
   fetchCustomerBrands,
   fetchCustomerSegment,
   fetchCustomerSegmentCounts,
@@ -20,6 +29,7 @@ import {
   fetchIgnoreRules,
   fetchIngestedDomainCount,
   mergeCustomers,
+  mergeContacts,
   previewCustomerMerge,
   fetchIngestedContacts,
   fetchIngestedDomains,
@@ -593,11 +603,128 @@ export function useUpdateContactMutation() {
   })
 }
 
+export function useCreateContactMutation() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: createContact,
+    // Same surfaces as useUpdateContactMutation: a new contact changes every
+    // contact list and the segment counts.
+    onSettled: () => {
+      void queryClient.invalidateQueries({ queryKey: [...crmKeys.all, 'ingestedContacts'] })
+      void queryClient.invalidateQueries({ queryKey: [...crmKeys.all, 'buyers'] })
+      void queryClient.invalidateQueries({ queryKey: [...crmKeys.all, 'contactSegment'] })
+      void queryClient.invalidateQueries({ queryKey: [...crmKeys.all, 'allContacts'] })
+      void queryClient.invalidateQueries({ queryKey: crmKeys.contactSegmentCounts() })
+      void queryClient.invalidateQueries({ queryKey: crmKeys.stats() })
+    },
+  })
+}
+
+export function useArchiveContactMutation() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: archiveContact,
+    onSettled: () => {
+      void queryClient.invalidateQueries({ queryKey: [...crmKeys.all, 'ingestedContacts'] })
+      void queryClient.invalidateQueries({ queryKey: [...crmKeys.all, 'buyers'] })
+      void queryClient.invalidateQueries({ queryKey: [...crmKeys.all, 'contactSegment'] })
+      void queryClient.invalidateQueries({ queryKey: [...crmKeys.all, 'allContacts'] })
+      void queryClient.invalidateQueries({ queryKey: crmKeys.contactSegmentCounts() })
+      void queryClient.invalidateQueries({ queryKey: crmKeys.stats() })
+    },
+  })
+}
+
+export function useMergeContactsMutation() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: ({ keepId, dropId }: { keepId: string; dropId: string }) => mergeContacts(keepId, dropId),
+    // A merge moves links across emails, meetings, notes, tasks and programs,
+    // so refresh everything (same as the customer merge).
+    onSettled: () => void queryClient.invalidateQueries({ queryKey: crmKeys.all }),
+  })
+}
+
 export function useUpdateOpportunityMutation() {
   const queryClient = useQueryClient()
   return useMutation({
     mutationFn: ({ id, values }: { id: string; values: Partial<CrmOpportunity> }) => updateOpportunity(id, values),
     onSettled: () => void queryClient.invalidateQueries({ queryKey: [...crmKeys.all, 'opportunities'] }),
+  })
+}
+
+export function useCreateOpportunityMutation() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: createOpportunity,
+    onSettled: () => {
+      void queryClient.invalidateQueries({ queryKey: [...crmKeys.all, 'opportunities'] })
+      void queryClient.invalidateQueries({ queryKey: crmKeys.stats() })
+    },
+  })
+}
+
+export function useArchiveOpportunityMutation() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: archiveOpportunity,
+    onSettled: () => {
+      void queryClient.invalidateQueries({ queryKey: [...crmKeys.all, 'opportunities'] })
+      void queryClient.invalidateQueries({ queryKey: crmKeys.stats() })
+    },
+  })
+}
+
+export function useArchiveCustomerMutation() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: archiveCustomer,
+    // Same surfaces as the customer merge: every customer-derived list.
+    onSettled: () => void queryClient.invalidateQueries({ queryKey: crmKeys.all }),
+  })
+}
+
+export function useCreateTaskMutation() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: createTask,
+    onSettled: () => {
+      void queryClient.invalidateQueries({ queryKey: [...crmKeys.all, 'tasks'] })
+      void queryClient.invalidateQueries({ queryKey: crmKeys.stats() })
+    },
+  })
+}
+
+export function useDeleteNoteMutation() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: deleteNote,
+    onSettled: () => {
+      void queryClient.invalidateQueries({ queryKey: [...crmKeys.all, 'notes'] })
+      void queryClient.invalidateQueries({ queryKey: crmKeys.stats() })
+    },
+  })
+}
+
+export function useDeleteTaskMutation() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: deleteTask,
+    onSettled: () => {
+      void queryClient.invalidateQueries({ queryKey: [...crmKeys.all, 'tasks'] })
+      void queryClient.invalidateQueries({ queryKey: crmKeys.stats() })
+    },
+  })
+}
+
+export function useDeleteMeetingMutation() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: deleteMeetingNote,
+    onSettled: () => {
+      void queryClient.invalidateQueries({ queryKey: [...crmKeys.all, 'meetings'] })
+      void queryClient.invalidateQueries({ queryKey: crmKeys.stats() })
+    },
   })
 }
 

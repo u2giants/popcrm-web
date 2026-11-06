@@ -1,13 +1,14 @@
 import { useState } from 'react'
 import { toast } from 'sonner'
-import { Save, Square } from 'lucide-react'
+import { Save, Square, Trash2 } from 'lucide-react'
 import { DetailDrawer, DescriptionItem, DescriptionList, DrawerSection } from '@/components/app/DetailDrawer'
 import { StatusBadge } from '@/components/app/StatusBadge'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
-import { useUpdateNoteMutation } from '@/features/crm/queries'
+import { ConfirmDeleteDialog } from '@/features/crm/components/ConfirmDeleteDialog'
+import { useDeleteNoteMutation, useUpdateNoteMutation } from '@/features/crm/queries'
 import { label, relatedName } from '@/features/crm/format'
 import { logError } from '@/lib/errors'
 import type { CrmNote } from '@/lib/types'
@@ -20,6 +21,21 @@ function parseChecklist(text: string): string[] {
 }
 
 export function NoteDrawer({ row, onClose }: { row: CrmNote | null; onClose: () => void }) {
+  const [confirmingDelete, setConfirmingDelete] = useState(false)
+  const deleteNoteMutation = useDeleteNoteMutation()
+
+  async function remove() {
+    if (!row) return
+    try {
+      await deleteNoteMutation.mutateAsync(row.id)
+      toast.success('Note deleted')
+      setConfirmingDelete(false)
+      onClose()
+    } catch (error) {
+      toast.error('Could not delete note', { description: logError('NoteDrawer.remove', error) })
+    }
+  }
+
   return (
     <DetailDrawer
       open={!!row}
@@ -33,8 +49,25 @@ export function NoteDrawer({ row, onClose }: { row: CrmNote | null; onClose: () 
           </StatusBadge>
         ) : undefined
       }
+      footer={
+        row ? (
+          <Button variant="outline" size="sm" className="text-destructive hover:text-destructive" onClick={() => setConfirmingDelete(true)}>
+            <Trash2 className="size-[13px]" /> Delete
+          </Button>
+        ) : undefined
+      }
     >
       {row ? <NoteDrawerForm key={row.id} row={row} onClose={onClose} /> : null}
+      <ConfirmDeleteDialog
+        open={confirmingDelete && !!row}
+        title="Delete this note?"
+        message={`"${row?.title || 'This note'}" will be deleted for good. There is no archive for notes.`}
+        confirmLabel="Delete note"
+        destructive
+        pending={deleteNoteMutation.isPending}
+        onConfirm={() => void remove()}
+        onClose={() => setConfirmingDelete(false)}
+      />
     </DetailDrawer>
   )
 }

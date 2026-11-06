@@ -1,8 +1,14 @@
-import { CheckSquare, ExternalLink, Mic, Square, Users } from 'lucide-react'
+import { useState } from 'react'
+import { toast } from 'sonner'
+import { CheckSquare, ExternalLink, Mic, Square, Trash2, Users } from 'lucide-react'
 import { DetailDrawer, DescriptionItem, DescriptionList, DrawerSection } from '@/components/app/DetailDrawer'
 import { NameAvatar } from '@/components/app/NameAvatar'
 import { StatusBadge } from '@/components/app/StatusBadge'
+import { Button } from '@/components/ui/button'
+import { ConfirmDeleteDialog } from '@/features/crm/components/ConfirmDeleteDialog'
+import { useDeleteMeetingMutation } from '@/features/crm/queries'
 import { formatDate, label, relatedName } from '@/features/crm/format'
+import { logError } from '@/lib/errors'
 import type { CrmMeetingNote } from '@/lib/types'
 
 function parseChecklist(text: string): string[] {
@@ -13,12 +19,26 @@ function parseChecklist(text: string): string[] {
 }
 
 export function MeetingDrawer({ row, onClose }: { row: CrmMeetingNote | null; onClose: () => void }) {
+  const [confirmingDelete, setConfirmingDelete] = useState(false)
+  const deleteMeetingMutation = useDeleteMeetingMutation()
   const participants = (row?.participants || '')
     .split(/[\n,;]/)
     .map((p) => p.trim())
     .filter(Boolean)
 
   const actionLines = row?.action_items ? parseChecklist(row.action_items) : []
+
+  async function remove() {
+    if (!row) return
+    try {
+      await deleteMeetingMutation.mutateAsync(row.id)
+      toast.success('Meeting note deleted')
+      setConfirmingDelete(false)
+      onClose()
+    } catch (error) {
+      toast.error('Could not delete meeting note', { description: logError('MeetingDrawer.remove', error) })
+    }
+  }
 
   return (
     <DetailDrawer
@@ -31,6 +51,13 @@ export function MeetingDrawer({ row, onClose }: { row: CrmMeetingNote | null; on
           <StatusBadge tone="info" dot={false}>
             {label(row.source)}
           </StatusBadge>
+        ) : undefined
+      }
+      footer={
+        row ? (
+          <Button variant="outline" size="sm" className="text-destructive hover:text-destructive" onClick={() => setConfirmingDelete(true)}>
+            <Trash2 className="size-[13px]" /> Delete
+          </Button>
         ) : undefined
       }
     >
@@ -111,6 +138,16 @@ export function MeetingDrawer({ row, onClose }: { row: CrmMeetingNote | null; on
           ) : null}
         </>
       ) : null}
+      <ConfirmDeleteDialog
+        open={confirmingDelete && !!row}
+        title="Delete this meeting note?"
+        message={`"${row?.name || 'This meeting note'}" will be deleted for good. There is no archive for meeting notes.`}
+        confirmLabel="Delete meeting note"
+        destructive
+        pending={deleteMeetingMutation.isPending}
+        onConfirm={() => void remove()}
+        onClose={() => setConfirmingDelete(false)}
+      />
     </DetailDrawer>
   )
 }
