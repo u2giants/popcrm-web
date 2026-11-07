@@ -7,17 +7,17 @@ Issue: https://github.com/u2giants/popcrm-web/issues/24 · Handoff: [HANDOFF.d/2
 | # | Step | State | Evidence |
 |---|------|-------|----------|
 | 0 | Prove live write permissions per table | ✅ done 2026-11-05 | results in §5 (read-only SQL, prod `qsllyeztdwjgirsysgai`) |
-| 1 | Shared-db: archive/delete + create/merge RPCs | 🟡 merged, promotion in lane | popcre/shared-db#5808 merged 2026-11-06 8:26 PM EST (issue #5791, review finding #5810 fixed+closed); preview applied (recovery run 42146285738, evidence at tip 3c1feebd); automatic serial production lane promoting older PRs first — waiting for `20261105235900`+`20261106002125` to land in prod ledger |
-| 2 | Add contact | ✅ code done, preview-proven | e2e on preview 2026-11-05: "E2E Contact …" added via dialog, appears in grid |
-| 3 | Delete (archive) contact | ✅ code done, preview-proven | e2e on preview: archived, gone from grid; contract test proves view exclusion |
-| 4 | Merge duplicate contacts | ✅ code done, preview-proven | e2e on preview: both notes moved to kept contact, duplicate archived; contract test proves every FK repointed |
-| 5 | Edit contact scope | ✅ code done, preview-proven | e2e on preview: scope → COMPANY_WIDE, saved, reopens as such (options include IGNORED per review) |
-| 6 | Add program | ✅ code done, preview-proven | e2e on preview: "E2E Program …" created, appears in programs grid |
-| 7 | Delete (archive) program | ✅ code done, preview-proven | e2e on preview: archived via modal Delete, gone from grid |
-| 8 | Delete note / task / meeting | ✅ code done, preview-proven | e2e on preview: task + note deleted, gone (hard delete); meeting flow proven by unit test (no meeting rows on preview); contract tests cover DB side |
-| 9 | Add task from Tasks page | ✅ code done, preview-proven | e2e on preview: "E2E Task …" created from Tasks page, appears, then deleted (assignee field omitted: only an admin-gated RPC can list profiles; flagged below) |
-| 10 | Delete (archive) customer | ✅ code done, preview-proven | e2e on preview: refusal message shown for customer with open program; archive verified in DB (`crm.customer_ext.archived_at`) and customer gone from list |
-| 11 | Live proof + docs | ⬜ open | after shared-db promotion + frontend deploy: repeat gates on crm.designflow.app, clean test records |
+| 1 | Shared-db: archive/delete + create/merge RPCs | ✅ done 2026-11-06 3:19 PM EST — LIVE in production | production ledger carries `20261106144500`+`20261106144600` (apply run 42287178690 success, tip f1736f47); path: PR #5857 (renames above the then-max) + lane repair PR #5903 (rename authorship proof) + historical-recovery dispatch; RPC fix-forward `20261106212400` (PR #5927: manual programs need a distinct external pair — NULLS NOT DISTINCT key) live 6:51 PM EST, apply run 42314544737 |
+| 2 | Add contact | ✅ done 2026-11-06 — live-proven | e2e on crm.designflow.app (deploy 50b84717): contact added via dialog, appears in grid |
+| 3 | Delete (archive) contact | ✅ done 2026-11-06 — live-proven | e2e live: archived, gone from grid |
+| 4 | Merge duplicate contacts | ✅ done 2026-11-06 — live-proven | e2e live: both notes moved to kept contact, duplicate archived |
+| 5 | Edit contact scope | ✅ done 2026-11-06 — live-proven | e2e live: scope → COMPANY_WIDE, saved, reopens as such |
+| 6 | Add program | ✅ done 2026-11-06 — live-proven | e2e live after fix `20261106212400`: program created, appears in programs grid (second manual create had hit the external-key constraint live; fixed and re-proven) |
+| 7 | Delete (archive) program | ✅ done 2026-11-06 — live-proven | e2e live: archived via modal Delete, gone from grid |
+| 8 | Delete note / task / meeting | ✅ done 2026-11-06 — live-proven | e2e live: task + note deleted, gone; meeting delete guarded off on production (real data; no fixture) — proven by unit + contract tests |
+| 9 | Add task from Tasks page | ✅ done 2026-11-06 — live-proven | e2e live: task created from Tasks page, appears, then deleted (assignee field omitted: only an admin-gated RPC can list profiles; flagged below) |
+| 10 | Delete (archive) customer | ✅ done 2026-11-06 — live-proven | e2e live: refusal shown for customer with open program; archive verified in DB (`crm.customer_ext.archived_at`) |
+| 11 | Live proof + docs | ✅ done 2026-11-06 7:05 PM EST | all gates PASS on https://crm.designflow.app (`/version.json` = 50b84717); fixtures cleaned to zero active E2E rows (verified by SQL count); ai-admin crm access re-revoked |
 
 Fresh session starts at **Step 0**. Update 2026-11-06: a separate session shipped "defunct" contacts (quit/transferred/retired, stored in `crm.contact_ext`, admin and sales only per Albert) — Step 3 must build on that, not duplicate it; read AGENTS.md/docs for its notes. Already done (not in this plan): contact
 editing of name/email/phone/title/customer, commit `56300434` on `main`, live at
