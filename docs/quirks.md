@@ -836,3 +836,12 @@ the kept one and archives the dropped one in the same transaction.
 Access roles differ per action: any CRM user can add a contact; contact
 archive/merge need administrator or sales; program create/archive and customer
 archive allow administrator, sales or licensing.
+
+## Ingested-domain `email_count` is pinned by contact sync (2026-11-08)
+
+`crm.record_ingested_domain` adds 1 per call, and contact sync re-records every
+unknown domain on each daily run. Since PR #27, contact sync then sets
+`email_count` to the real number of email messages naming that domain, so the
+value means "emails", not "times recorded". A Fireflies meeting's +1 is
+overwritten on the next daily sync. The buyer `contact_company` insert is an
+on-conflict-ignore upsert (PR #26), so a re-run cannot fail on that key.
