@@ -1005,13 +1005,13 @@ async function contactSync() {
       full_name: personNameFromEmail(address),
       email: address,
     }).select('id').single())
-    must(await core('contact_company').insert({
+    must(await core('contact_company').upsert({
       contact_id: contact.id,
       company_id: customerId,
       relationship_type: 'buyer',
       scope: 'COMPANY_WIDE',
       contact_type: 'OTHER',
-    }))
+    }, { onConflict: 'contact_id,company_id,relationship_type', ignoreDuplicates: true }))
     buyersCreated += 1
   }
   console.log(`contact-sync: ${retailersCreated} ingested domains recorded, ${buyersCreated} customer contacts created, ${addresses.length} addresses evaluated`)
