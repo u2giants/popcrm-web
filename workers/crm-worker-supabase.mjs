@@ -967,13 +967,17 @@ async function contactSync() {
   const rows = await fetchAllRows(() => crm('email_message').select('id,subject,sender,recipients'))
   const subjectByDomain = new Map()
   const senderByDomain = new Map()
+  const emailCountByDomain = new Map()
   for (const row of rows) {
+    const rowDomains = new Set()
     for (const address of extractAddresses(`${row.sender || ''} ${row.recipients || ''}`)) {
       const domain = domainOf(address)
       if (!domain) continue
       if (!subjectByDomain.has(domain) && row.subject) subjectByDomain.set(domain, row.subject)
       if (!senderByDomain.has(domain)) senderByDomain.set(domain, address)
+      rowDomains.add(domain)
     }
+    for (const domain of rowDomains) emailCountByDomain.set(domain, (emailCountByDomain.get(domain) || 0) + 1)
   }
   const addresses = [...new Set(rows.flatMap((row) => extractAddresses(`${row.sender || ''} ${row.recipients || ''}`)))]
     .filter((address) => {
@@ -993,6 +997,8 @@ async function contactSync() {
       }
       if (!customerId) {
         await recordIngestedDomain(domain, senderByDomain.get(domain) || address, subjectByDomain.get(domain) || null, domainToCompanyName(domain))
+        // The RPC adds 1 per call; a daily re-run must not inflate it, so pin the true email total.
+        must(await crm('ingested_domain').update({ email_count: emailCountByDomain.get(domain) || 1 }).eq('domain', domain))
         retailersCreated += 1
       }
       retailerByDomain.set(domain, customerId)
