@@ -1,3 +1,9 @@
+---
+summary: System design of the SPA: Vite/React shell, CrmDataContext loading, Supabase api.* contracts, workers, auth and impersonation, key files per layer.
+kind: living
+status: current
+read-when: changing data flow, app structure, auth, or Supabase read/write contracts
+---
 # Architecture — popcrm-web
 
 `popcrm-web` is a static React SPA for POP CRM.

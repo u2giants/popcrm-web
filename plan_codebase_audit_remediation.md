@@ -1,3 +1,9 @@
+---
+summary: 2026-07-26 audit remediation plan: fourteen findings, fifteen sessions, progress ledger; Sessions 13 (worker batching) and 14 (promotion residue) pending.
+kind: plan
+status: open
+read-when: continuing audit Sessions 13 or 14, or checking the ledger
+---
 # POP CRM codebase audit remediation plan
 
 **Plan status:** Ready for implementation

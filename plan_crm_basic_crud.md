@@ -1,3 +1,9 @@
+---
+summary: CRM basic CRUD plan: add/delete/merge contacts, programs, notes, tasks, customers; steps 0-11 all live-proven 2026-11-06.
+kind: plan
+status: done
+read-when: changing contact/program/customer create, archive, or merge flows
+---
 # Plan — CRM basic add / delete / merge gaps
 
 Issue: https://github.com/u2giants/popcrm-web/issues/24 · Handoff: [HANDOFF.d/2026-11-05T2105Z-hetz-claude-crm-basic-crud-plan.md](HANDOFF.d/2026-11-05T2105Z-hetz-claude-crm-basic-crud-plan.md)

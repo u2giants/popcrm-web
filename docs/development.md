@@ -1,3 +1,9 @@
+---
+summary: Local setup and checks: npm scripts, lint (zero warnings), tests, typecheck, the /__charts dev probe, worktree lint workaround, doc-update habits.
+kind: ops
+status: current
+read-when: setting up locally, running tests/lint/build, or changing dev tooling
+---
 # Development — popcrm-web
 
 ## Setup
@@ -100,7 +106,7 @@ centre label, and zero-value bars all render, with zero console errors.
 
 ## Frontend Redesign
 
-Read `frontend_imp.md` before substantial UI work. The implemented direction is Tailwind Plus Application UI for app patterns and shadcn charts (Recharts) for analytics, themed by the shared design tokens in `src/index.css`, while keeping the Vite/React/Supabase architecture.
+Before substantial UI work, read the historical design specs in [`design_handoff_popcrm_elevation/`](../design_handoff_popcrm_elevation/SCREENS.md). The implemented direction is Tailwind Plus Application UI for app patterns and shadcn charts (Recharts) for analytics, themed by the shared design tokens in `src/index.css`, while keeping the Vite/React/Supabase architecture.
 
 For infrastructure/server decisions, also keep
 [`u2giants/albert-standards/infrastructure`](https://github.com/u2giants/albert-standards/tree/main/infrastructure)

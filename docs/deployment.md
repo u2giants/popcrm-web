@@ -1,3 +1,9 @@
+---
+summary: Real deploy path: push to main, GitHub Actions verify/build/publish to GHCR, Coolify pulls; env ownership, rollback by sha tag, SSH break-glass rules.
+kind: ops
+status: current
+read-when: changing deploy, CI/CD, Docker, nginx, rollback, or runtime environment
+---
 # Deployment — popcrm-web
 
 POP CRM is deployed through the compliant CI/CD path: **GitHub Actions builds

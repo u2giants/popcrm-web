@@ -13,5 +13,6 @@ router; this file only adds Claude Code-specific notes.
 - **Shared DB / host / secrets / quirks / incidents:** all live behind the
   pointers in `AGENTS.md`. Do not restate them here.
 
-Background on the redesign (charts, tokens, layout) lives in `frontend_imp.md`
-(historical plan, largely implemented).
+Background on the redesign (screens, layout, tokens) lives in
+`design_handoff_popcrm_elevation/` (historical design artifacts, largely
+implemented).

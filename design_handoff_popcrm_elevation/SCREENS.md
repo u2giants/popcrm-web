@@ -1,3 +1,9 @@
+---
+summary: Historical UI design artifact: screen-by-screen specs of the POP CRM elevation redesign mapping each screen to src/features/crm/pages modules.
+kind: spec
+status: done
+read-when: revisiting elevation layout, density, or screen design decisions
+---
 # SCREENS — POP CRM elevation, screen-by-screen specs
 
 > **Historical UI design artifact:** Customer, Contact, Department, Factory/Vendor,

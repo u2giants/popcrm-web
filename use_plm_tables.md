@@ -1,3 +1,9 @@
+---
+summary: Retired CRM rulebook stub pointing to the companywide business-rules map; CRM never owns its own Customer/Licensor/Property definitions.
+kind: ops
+status: current
+read-when: looking for the old CRM PLM-table rules or use_plm_tables
+---
 # Shared business rules pointer
 
 This former CRM-specific rulebook is retired. Business rules are organized by business topic and shared across applications.

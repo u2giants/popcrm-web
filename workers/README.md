@@ -1,3 +1,9 @@
+---
+summary: Host worker runtime: crm-worker-supabase.mjs entrypoint, systemd popcrm-* units and timers, secrets file, log and run commands, Fireflies container.
+kind: ops
+status: current
+read-when: changing, running, or debugging host workers or the Fireflies webhook
+---
 # POP CRM Host Workers
 
 This directory owns the current CRM host-side worker runtime for the shared

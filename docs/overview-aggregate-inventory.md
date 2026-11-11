@@ -1,3 +1,9 @@
+---
+summary: Phase 7A inventory of every Overview/sidebar displayed value and the seven api.crm_overview_* server contracts, parity evidence and the silent-cap decision.
+kind: proof
+status: current
+read-when: changing Overview KPIs, charts, or the crm_overview_* aggregate contracts
+---
 # Overview + Sidebar aggregate inventory (Phase 7A gate 2)
 
 > **Status, 2026-08-13:** the shared-db half of Phase 7A is **applied to

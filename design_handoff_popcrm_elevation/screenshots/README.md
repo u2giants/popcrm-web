@@ -1,3 +1,9 @@
+---
+summary: Index of static ~920px screenshots of every elevation screen (light and one dark); the runnable prototype is the source of truth.
+kind: spec
+status: done
+read-when: comparing current screens against the elevation design visually
+---
 # Screenshots — POP CRM elevation (V1)
 
 Static reference captures of every screen, at ~920px-wide preview. Light theme unless noted.

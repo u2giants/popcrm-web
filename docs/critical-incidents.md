@@ -1,3 +1,9 @@
+---
+summary: Incident write-ups with impact, root cause and rules added: select-all bulk overwrite, timeout remediations, auth and deploy failures.
+kind: living
+status: current
+read-when: investigating a regression, blank page, deploy failure, or data-access gate
+---
 # Critical incidents
 
 Moved out of AGENTS.md. Load when investigating a regression or deploy failure.

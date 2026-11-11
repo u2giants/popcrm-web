@@ -1,3 +1,9 @@
+---
+summary: Historical design addendum: record detail modal, AG-Grid tables, colorful iconography, layered on the elevation SCREENS specs.
+kind: spec
+status: done
+read-when: revisiting record modal, table, or iconography design decisions
+---
 # ADDENDUM v2 — Record modal, AG-Grid tables, colorful iconography
 
 > **Historical UI design artifact:** Business identities and statuses follow the

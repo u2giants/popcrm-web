@@ -1,3 +1,9 @@
+---
+summary: Intentional quirks and do-not-fix notes: bootstrap failure tolerance, email-routing windows, deprecated account contracts, and more.
+kind: living
+status: current
+read-when: a screen, filter, worker, or import path behaves surprisingly or looks wrong
+---
 # Intentional quirks and non-obvious decisions
 
 Moved out of AGENTS.md so the always-load guide stays a router. Load this file when behavior looks wrong or surprising.

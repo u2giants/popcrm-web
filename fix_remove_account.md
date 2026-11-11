@@ -1,3 +1,9 @@
+---
+summary: Two-step removal of legacy account-named API/RPC contracts; customer-named contracts are live, the final shared-db drop of old names is still pending.
+kind: plan
+status: open
+read-when: retiring the deprecated crm_account_* compatibility contracts
+---
 # Remove Legacy Account Naming
 
 Date: 2026-06-28

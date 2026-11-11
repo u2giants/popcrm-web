@@ -1,3 +1,9 @@
+---
+summary: How to read secrets from the vibe_coding vault via the 1Password MCP server or op CLI, with secret-reference syntax and never-commit rules.
+kind: ops
+status: current
+read-when: pulling a secret or credential from 1Password for this repo
+---
 # Using 1Password in this repo
 
 Two ways to pull secrets from 1Password instead of hardcoding them:

@@ -1,3 +1,9 @@
+---
+summary: Build-time VITE_* env vars (Supabase URL/anon key, logo.dev token), where dev and CI store them, and when albert-standards must be updated too.
+kind: ops
+status: current
+read-when: adding or changing env vars, build args, or runtime settings
+---
 # Configuration — popcrm-web
 
 Infrastructure/server ownership notes are mirrored in

@@ -1,3 +1,9 @@
+---
+summary: 2026 plan that replaced snapshot-style bootstrap with live TanStack Query data; phased steps, bounds per screen. Implemented; kept as the design record.
+kind: plan
+status: done
+read-when: changing how CRM screens load, refresh, or bound data
+---
 # Live Data Implementation Plan
 
 ## Background

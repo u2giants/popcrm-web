@@ -1,3 +1,9 @@
+---
+summary: Evidence for the .ai-devops task-gates rollout: test-task-gates results, pinned engine workflow, lint/test/build proof, byte-exact rollback check.
+kind: proof
+status: done
+read-when: changing .ai-devops/task-gates.json or scripts/test-task-gates.sh
+---
 # Phase 4 task-gate rollout evidence
 
 Issue `popcre/ai-devops#335` adds repository-local routing policy and executable refusal evidence. The policy protects POP CRM identity, privileged worker, production-release, host-unit, and shared-database paths without changing application, database, worker, host, or deployment behavior.
