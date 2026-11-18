@@ -125,7 +125,15 @@ async function fetchAllRows(buildQuery, { keyColumn = 'id', pageSize = ROW_PAGE_
   for (;;) {
     let q = buildQuery().order(keyColumn, { ascending: true }).limit(pageSize)
     if (after !== null) q = q.gt(keyColumn, after)
-    const page = must(await q)
+    let res = await q
+    // A statement timeout under transient database load is retried with backoff.
+    for (let attempt = 1; res.error && /statement timeout/i.test(res.error.message) && attempt < 3; attempt++) {
+      await new Promise((r) => setTimeout(r, 5000 * attempt))
+      q = buildQuery().order(keyColumn, { ascending: true }).limit(pageSize)
+      if (after !== null) q = q.gt(keyColumn, after)
+      res = await q
+    }
+    const page = must(res)
     rows.push(...page)
     if (page.length < pageSize) return rows
     after = page[page.length - 1][keyColumn]
@@ -1076,10 +1084,15 @@ export function matchingAddressRule(rules, addresses, customerDomainPresent) {
 }
 
 async function applyIgnoreRules() {
-  const [rules, emails] = await Promise.all([
-    crm('ignore_rule').select('id,pattern,match_type,rule_type,emails_skipped').limit(5000).then(must),
-    fetchAllRows(() => crm('email_message').select('id,subject').eq('routing_status', 'UNROUTED')),
-  ])
+  // Read the rules first: with no SUBJECT rules nothing can match, so the
+  // unrouted-email scan is skipped instead of competing for database time
+  // (it timed out during database-wide load on 2026-11-18 with zero rules).
+  const rules = must(await crm('ignore_rule').select('id,pattern,match_type,rule_type,emails_skipped').limit(5000))
+  if (!rules.some((r) => ruleTypeOf(r) === 'SUBJECT')) {
+    console.log('apply-ignore-rules: 0 emails skipped by 0 rules (no subject rules)')
+    return
+  }
+  const emails = await fetchAllRows(() => crm('email_message').select('id,subject').eq('routing_status', 'UNROUTED'))
   let skipped = 0
   const counts = new Map()
   for (const email of emails) {
