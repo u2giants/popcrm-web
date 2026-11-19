@@ -218,7 +218,9 @@ export function PeoplePanel() {
                     <td className="py-2.5 pr-3 tabular-nums text-muted-foreground">
                       {u.department_count || '—'}
                     </td>
-                    <td className="py-2.5 pr-3 text-muted-foreground">{formatDate(u.last_sign_in_at) || 'Never'}</td>
+                    <td className="py-2.5 pr-3 text-muted-foreground">
+                      {u.last_sign_in_at ? formatDate(u.last_sign_in_at) : 'Never'}
+                    </td>
                     <td className="py-2.5">
                       <div className="flex items-center gap-2">
                         <StatusBadge tone={active ? 'success' : 'neutral'}>{active ? 'Active' : 'Inactive'}</StatusBadge>

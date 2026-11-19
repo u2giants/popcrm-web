@@ -19,7 +19,7 @@ import { ChartHBar, type HBarItem } from '@/components/app/ChartHBar'
 import { ChartAreaVolume, type AreaSeries } from '@/components/app/ChartAreaVolume'
 import { CrmStatusBadge } from '@/features/crm/components/CrmStatusBadge'
 import { RelationLabel } from '@/features/crm/components/RelationLabel'
-import { formatDate, label } from '@/features/crm/format'
+import { formatDate, label, parseDateParts } from '@/features/crm/format'
 import {
   listData,
   useFirefliesHealth,
@@ -51,13 +51,12 @@ const ROUTING_NAMES: Record<string, string> = {
 
 // The server returns each bucket's START date as a plain YYYY-MM-DD string; the
 // chart labels every bucket by its END date (start + 7 days), which is what the
-// old client-side series did. Parse the parts by hand: `new Date('2026-05-21')`
-// is parsed as UTC midnight and then read back in local time, which shifts the
-// label a day for every user west of UTC.
+// old client-side series did. Date-only strings parse as local calendar days
+// via parseDateParts (see format.ts) so the label never shifts a day west of UTC.
 function volumeLabel(weekStart: string): string {
-  const [year, month, day] = weekStart.split('-').map(Number)
-  if (!year || !month || !day) return weekStart
-  const end = new Date(year, month - 1, day + 7)
+  const parts = parseDateParts(weekStart)
+  if (!parts) return weekStart
+  const end = new Date(parts.year, parts.month - 1, parts.day + 7)
   return `${end.getMonth() + 1}/${end.getDate()}`
 }
 

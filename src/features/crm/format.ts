@@ -92,9 +92,20 @@ export function initials(name: string) {
   )
 }
 
+// A date-only string ("2026-11-20" — no time, no offset) names a calendar day,
+// not an instant. `new Date("2026-11-20")` parses it as UTC midnight, which
+// reads as the 19th for everyone west of UTC. Split it into local parts so the
+// entered day is the day shown (#48).
+export function parseDateParts(value: string): { year: number; month: number; day: number } | null {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return null
+  const [year, month, day] = value.split('-').map(Number)
+  return { year, month, day }
+}
+
 export function formatDate(value: string | null | undefined) {
   if (!value) return '—'
-  const date = new Date(value)
+  const parts = parseDateParts(value)
+  const date = parts ? new Date(parts.year, parts.month - 1, parts.day) : new Date(value)
   if (Number.isNaN(date.getTime())) return value
   return date.toLocaleDateString(undefined, {
     year: 'numeric',
