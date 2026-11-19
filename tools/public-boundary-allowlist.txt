@@ -1,0 +1,184 @@
+# Words exempt from the project-shaped-identifier rule in
+# ai-public-boundary-check (same contract as the ai-devops original and
+# u2giants/popdam3's tools/public-boundary-allowlist.txt).
+#
+# That rule rejects any run of exactly 20 lowercase letters, because that is
+# the shape of a Supabase project reference. This file clears false positives
+# per matched WORD without widening the rule.
+#
+# Context (#31): ai-doc-safety ran repo-wide for the first time on this
+# repository and found 119 distinct 20-letter strings, almost all inherited
+# from the auto-synced read-only shared-db/ mirror (work-contract JSON,
+# verification receipts, fixture migrations) that popdam3 had already
+# reviewed and allowlisted for the same mirror content. Those groups are
+# ported here; only the tokens that actually appear in this repository are
+# carried. Never add a string you cannot explain.
+
+
+# --- Supabase project references: publishable by design, dead, or public ----
+# A project reference is the URL-host component of a public Supabase endpoint;
+# it carries no credential (service-role keys are never in the tree). The
+# boundary's target is the secret, not the hostname.
+
+# aaxtrlfpnoutziwhshlt: the synology-monitor Supabase DB login name, recorded in a vendored mirror runbook next to its project reference; a username, not a credential.
+aaxtrlfpnoutziwhshlt
+# dgmebpgczkrxykqqfjev: the designflow-prod-cutover-rehearsal-20260913 Supabase branch reference in the vendored mirror 3601 verification doc.
+dgmebpgczkrxykqqfjev
+# eqccjfbyrywsqkxxpjvg: a superseded sandbox/rehearsal Supabase project reference kept in vendored mirror migration notes and fix_vendor_review.md.
+eqccjfbyrywsqkxxpjvg
+# mvpkijzfmfcxhnzqogzs: a superseded shared-db preview/rehearsal Supabase project reference recorded in vendored mirror work-contract JSON.
+mvpkijzfmfcxhnzqogzs
+# qsllyeztdwjgirsysgai: the production Supabase project reference this app ships as public client config (URL-host component of VITE_SUPABASE_URL in .env.example, AGENTS.md, README, docs); hostnames carry no credential and service-role keys are never in the tree.
+qsllyeztdwjgirsysgai
+# rjyboqwcdzcocqgmsyel: the shared-db preview/rehearsal Supabase project reference, named in this repo's plan files and the vendored shared-db mirror docs.
+rjyboqwcdzcocqgmsyel
+# ryltkzzernhwnojzouyb: the decommissioned popdam-prod.old Ohio Supabase project reference (project deleted 2026-06-20), kept in vendored mirror fix_vendor_review.md as history.
+ryltkzzernhwnojzouyb
+# wxwtyxubjsfvxvjrajbk: a rehearsal/branch Supabase project reference recorded in the vendored mirror 3601 ColdLion access-path evidence doc.
+wxwtyxubjsfvxvjrajbk
+# xjcyeuvzkhtzsheknaiu: a superseded preview-branch Supabase project reference kept in vendored mirror app-migration notes (including this app's own 2026-06/07 migration notes) as history.
+xjcyeuvzkhtzsheknaiu
+# xupnyeifmpsacrqahwwm: the DesignFlow sandbox (non-production) Supabase project reference, recorded in vendored mirror work-contract JSON.
+xupnyeifmpsacrqahwwm
+
+# --- Machine-generated agent work-contract JSON vendored under .agent/ ------
+# Squashed camelCase phrases from automation prose in the vendored shared-db
+# mirror's .agent/work contract and completion JSON (isauthoritativeprobe,
+# sourceimplementation, ...). Not identifiers.
+
+afternewsourcechecks
+allotherrequirements
+ashboundtypedsidecar
+existingcatalogtests
+holeclosureassertion
+immutablegenerations
+implementationcommit
+isauthoritativeprobe
+isolatedouterservice
+normalcurrentreviews
+normalrenewalexpires
+perrootverifiedstate
+plusimplicitmetadata
+previewqualification
+qualifyoriginalapply
+reviewerbudgetbypass
+sourceimplementation
+
+# --- Synthetic sentinel tokens in vendored shared-db test fixtures ---------
+# Deliberately non-secret strings (repeated letter blocks, alphabet runs) used
+# to assert credential-shape validation in the mirror's own tests and fixture
+# migrations. Not credentials.
+
+aaaaaaaaaaaaaaaaaaaa
+aaaabbbbccccddddeeee
+abcdefghijabcdefghij
+abcdefghijklmnopqrst
+bbbbbbbbbbbbbbbbbbbb
+cccccccccccccccccccc
+zzzsemanticonlytoken
+zzzunmistakabletoken
+zzzzbbbbccccddddeeee
+zzzzyyyyxxxxwwwwvvvv
+zzzzzzzzzzzzzzzzzzzz
+
+# --- Squashed technical phrases in vendored shared-db mirror prose ----------
+# Ordinary technical English run together without separators in mirror docs,
+# verification receipts and archives (zeroimprovementclaim,
+# cloudsqlimportexport, nondeterministically, ...), as reviewed in
+# u2giants/popdam3's allowlist for the same mirror content. Not identifiers.
+
+afterpolicyisinstall
+andretireonlyunmerge
+approvedartifactjoin
+authorizedcleanupfix
+automatictimebasedsc
+beyondcurrentallowed
+boundedobservationsa
+causaleligibleblocke
+cloudsqliamgroupuser
+cloudsqlimportexport
+cloudsqlinactiveuser
+completebackendvalid
+contingentonbindinga
+criticalpathwallcloc
+defensibleconversion
+dpartialreliefinvest
+estimatefeaturecosta
+evaluatedproposalonl
+everreapplyreservedv
+existingapprovedarti
+existingglobalfreeze
+extendexistingclassi
+filteringinvalidrows
+firstsmallreviewedfi
+firststagecomplexity
+foreignhistoryrewrit
+freezealonecoversall
+freshapprovalrequire
+frontendbaselinechan
+fullactualgroupdelta
+fulltreedenylistmode
+hedulerorhardperform
+implementingworkstre
+independentlycleanup
+independentnamespace
+manuallyfixsharedpre
+metricsandactualbind
+naturallyauthorizedp
+nevercurrentdefaultu
+nlessseparatelyrevie
+noautomaticstrongern
+nofiltermalformedrow
+nonarrayalreadycover
+nondeterministically
+normaltypedimmutable
+owneralreadyrequeste
+pairoriginalbytecust
+preauthorizedgroupsa
+productionapplicatio
+productionheldfullbl
+productionwritepause
+repairthroughsupport
+reserveoldbranchhist
+restoreonlyexactnoti
+reuseexistingcontext
+samplemayzeroreadypr
+stopandreviseproposa
+stopforprospectiveam
+truncatedcompletefla
+
+# --- 2026-11-01 reviewed English compounds in inherited shared-db evidence --
+# Exact scanner tokens reviewed in u2giants/popdam3's allowlist for the same
+# mirror content; no private project identifier or broader pattern exemption.
+
+allotherordinaryjobs
+detectorregeneration
+diagnoseactualsource
+eadycompletionactual
+inalsubstantivefiles
+initialcriticalquota
+pairprivatepreserved
+permittednativeevide
+publishedbeforeedits
+readycompletionactua
+reviewinflightmutati
+substantivefinaldiff
+ullspecifiedofflinec
+withoutunrelatedpatc
+xactoriginalreviewed
+xistingmanualoptinpr
+zeroimprovementclaim
+
+# --- popcrm-web-specific tokens --------------------------------------------
+# Tokens that appear in this repository's own files rather than the mirror.
+
+# hysicalheightininche: 20-letter chunk of the public DAM/XMP metadata field name dam:Physicalheightininches inside the vendored shared-db sandbox fixture migration.
+hysicalheightininche
+# hysicalwidthininches: 20-letter chunk of the public DAM/XMP metadata field name dam:Physicalwidthininches inside the vendored shared-db sandbox fixture migration.
+hysicalwidthininches
+# modelcontextprotocol: the public npm scope @modelcontextprotocol in package-lock.json registry URLs (machine-generated lockfile, names on the public npm registry).
+modelcontextprotocol
+# umberoftextualcommen: 20-letter chunk of the public DAM/XMP metadata field name dam:Numberoftextualcomments inside the vendored shared-db sandbox fixture migration.
+umberoftextualcommen
+# tcscehehgeiijilylezv: the Supabase preview-branch URL-host component documented in the workers/crm-worker-supabase.mjs env comment (SUPABASE_URL preview-first); a public hostname, not a credential.
+tcscehehgeiijilylezv
