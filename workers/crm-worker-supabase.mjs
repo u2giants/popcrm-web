@@ -419,7 +419,12 @@ export async function matchOpportunity({ retailer, department, searchText }) {
   const so = activeRows.find((r) => r.sales_order_number && lowerNumbers.includes(String(r.sales_order_number).toLowerCase()))
   if (so) return { method: 'SALES_ORDER_NUMBER', row: { id: so.id, retailer: so.company_id, department: so.department_id } }
 
-  const fuzzy = pickUniqueBest(activeRows.map((r) => ({ row: r, score: Math.max(fuzzyScore(searchText, r.name), fuzzyScore(searchText, r.production_po_number)) })), 0.72)
+  // fix_bugs.md G: the PO term of this Math.max scored the whole email text
+  // against a 5-12 digit PO number (arguments inverted), i.e. ~0 always, and
+  // exact PO matching already runs earlier in matchOpportunity. The dead term
+  // is removed with no behavior change; fuzzy PO matching stays off pending a
+  // real owner decision to introduce it properly.
+  const fuzzy = pickUniqueBest(activeRows.map((r) => ({ row: r, score: fuzzyScore(searchText, r.name) })), 0.72)
   if (fuzzy) return { method: department ? 'OPPORTUNITY_FUZZY_DEPARTMENT' : 'OPPORTUNITY_FUZZY', row: { id: fuzzy.id, retailer: fuzzy.company_id, department: fuzzy.department_id } }
   return null
 }
