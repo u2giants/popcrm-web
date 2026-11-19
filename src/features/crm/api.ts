@@ -54,8 +54,8 @@ export interface CrmSearchResults {
   failedGroups: string[]
 }
 
-// Dynamic table/view names, generic Row payloads, and newly-added customer
-// contracts can outrun generated types, so these helpers use the untyped surface.
+// Helpers with dynamic table/view/function names below use the untyped
+// surface; every statically named call goes through the typed client.
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const anyDb = supabase as any
 
@@ -64,9 +64,9 @@ const anyDb = supabase as any
 // on the administrator role; a non-admin caller gets an insufficient_privilege
 // error rather than data.
 export async function fetchAdminUserList(): Promise<AdminUserSummary[]> {
-  const { data, error } = await anyDb.schema('api').rpc('crm_admin_user_list')
+  const { data, error } = await supabase.schema('api').rpc('crm_admin_user_list')
   if (error) throw error
-  const rows: Row[] = Array.isArray(data) ? data : []
+  const rows: Row[] = Array.isArray(data) ? (data as unknown as Row[]) : []
   return rows.map((r): AdminUserSummary => ({
     id: r.id as string,
     email: (r.email ?? null) as string | null,
@@ -476,7 +476,7 @@ export async function createOpportunity(values: {
   close_date?: string | null
 }): Promise<CrmOpportunity> {
   const amount = values.amount === '' || values.amount === null || values.amount === undefined ? null : Number(values.amount)
-  const { data, error } = await anyDb.schema('api').rpc('crm_create_opportunity', {
+  const { data, error } = await supabase.schema('api').rpc('crm_create_opportunity', {
     p_name: values.name,
     p_company_id: values.company_id,
     p_contact_id: arg(values.contact_id),
@@ -487,7 +487,7 @@ export async function createOpportunity(values: {
   })
   if (error) throw error
   const id = ((data ?? {}) as Row).id as string
-  const back = await anyDb.schema('api').from('crm_opportunity_list').select('*').eq('id', id).maybeSingle()
+  const back = await supabase.schema('api').from('crm_opportunity_list').select('*').eq('id', id).maybeSingle()
   if (back.error) throw back.error
   return toOpportunity((back.data ?? { id }) as Row)
 }
@@ -497,7 +497,7 @@ export async function createOpportunity(values: {
  * is idempotent; restoring is a database action.
  */
 export async function archiveOpportunity(id: string) {
-  const { error } = await anyDb.schema('api').rpc('crm_archive_opportunity', { p_opportunity_id: id })
+  const { error } = await supabase.schema('api').rpc('crm_archive_opportunity', { p_opportunity_id: id })
   if (error) throw error
 }
 
@@ -546,7 +546,7 @@ export async function fetchCustomerPickerList(limit = -1): Promise<Retailer[]> {
   const order: Order[] = [{ col: 'display_name' }, { col: 'name' }]
   let data: Row[]
   if (limit >= 0) {
-    let q = anyDb.schema('api').from('crm_customer_picker_list').select(columns).limit(limit)
+    let q = supabase.schema('api').from('crm_customer_picker_list').select(columns).limit(limit)
     for (const o of order) q = q.order(o.col, { ascending: true, nullsFirst: false })
     const res = await q
     if (res.error) throw res.error
@@ -577,7 +577,7 @@ export async function fetchIngestedDomains(limit = -1): Promise<CrmIngestedDomai
   let from = 0
   for (;;) {
     const cappedEnd = limit >= 0 ? Math.min(from + PAGE - 1, limit - 1) : from + PAGE - 1
-    const { data, error } = await anyDb
+    const { data, error } = await supabase
       .schema('api')
       .from('crm_ingested_domain_list')
       .select('*')
@@ -596,7 +596,7 @@ export async function fetchIngestedDomains(limit = -1): Promise<CrmIngestedDomai
 
 /** Ingested email domains linked to one customer (read-only). */
 export async function fetchCustomerIngestedDomains(customerId: string): Promise<CrmIngestedDomain[]> {
-  const { data, error } = await anyDb
+  const { data, error } = await supabase
     .schema('api')
     .from('crm_ingested_domain_list')
     .select('*')
@@ -614,15 +614,15 @@ export async function fetchCustomerIngestedDomains(customerId: string): Promise<
  */
 export async function updateIngestedDomain(id: string, values: Partial<CrmIngestedDomain>) {
   if (values.status === undefined) return
-  const { error } = await anyDb.schema('api').rpc('crm_update_ingested_domain', {
+  const { error } = await supabase.schema('api').rpc('crm_update_ingested_domain', {
     p_ingested_domain_id: id,
-    p_status: values.status,
+    p_status: arg(values.status),
   })
   if (error) throw error
 }
 
 async function fetchIngestedDomainCount(): Promise<number> {
-  const { count, error } = await anyDb
+  const { count, error } = await supabase
     .schema('api')
     .from('crm_ingested_domain_list')
     .select('*', { count: 'exact', head: true })
@@ -636,7 +636,7 @@ export async function fetchCustomerSegment(segment: CustomerSegment, limit = -1)
 }
 
 export async function fetchCustomerSegmentCounts(): Promise<CustomerSegmentCounts> {
-  const { data, error } = await anyDb.schema("api").rpc('crm_customer_segment_counts')
+  const { data, error } = await supabase.schema("api").rpc('crm_customer_segment_counts')
   if (!error) {
     const row = ((Array.isArray(data) ? data[0] : data) ?? {}) as Row
     return {
@@ -688,7 +688,7 @@ function readMergeCounts(value: unknown): Array<{ label: string; count: number }
 }
 
 export async function previewCustomerMerge(survivorId: string, loserId: string): Promise<CustomerMergePreview> {
-  const { data, error } = await anyDb.schema('api').rpc('db_data_admin_preview_customer_merge', {
+  const { data, error } = await supabase.schema('api').rpc('db_data_admin_preview_customer_merge', {
     p_survivor_id: survivorId,
     p_loser_id: loserId,
   })
@@ -729,7 +729,7 @@ export async function mergeCustomers(args: {
   operationId: string
   reason: string
 }): Promise<{ ok: boolean; code?: string; message?: string }> {
-  const { data, error } = await anyDb.schema('api').rpc('db_data_admin_merge_customer', {
+  const { data, error } = await supabase.schema('api').rpc('db_data_admin_merge_customer', {
     p_survivor_id: args.survivorId,
     p_loser_id: args.loserId,
     p_preview_token: args.previewToken,
@@ -750,13 +750,13 @@ export async function mergeCustomers(args: {
  * refuses while the customer still has non-archived programs and says so.
  */
 export async function archiveCustomer(id: string) {
-  const { error } = await anyDb.schema('api').rpc('crm_archive_customer', { p_customer_id: id })
+  const { error } = await supabase.schema('api').rpc('crm_archive_customer', { p_customer_id: id })
   if (error) throw error
 }
 
 export async function updateRetailer(id: string, values: Partial<Retailer>) {
   const v = values as Row
-  const { error } = await anyDb.schema('api').rpc('crm_update_customer', {
+  const { error } = await supabase.schema('api').rpc('crm_update_customer', {
     p_customer_id: id,
     p_name: arg(v.name),
     p_domain: arg(v.domain),
@@ -780,12 +780,12 @@ export async function createCustomer(values: {
   display_name: string | null
   chain_type: string | null
 }): Promise<string> {
-  const { data, error } = await anyDb.schema('api').rpc('crm_create_customer', {
+  const { data, error } = await supabase.schema('api').rpc('crm_create_customer', {
     p_name: values.name,
     p_domain: values.domain,
     p_customer_status: values.customer_status,
-    p_display_name: values.display_name,
-    p_chain_type: values.chain_type,
+    p_display_name: arg(values.display_name),
+    p_chain_type: arg(values.chain_type),
   })
   if (error) throw error
   return ((data ?? {}) as Row).id as string
@@ -794,7 +794,7 @@ export async function createCustomer(values: {
 /** Contacts whose email is on a domain or one of its subdomains. */
 export async function fetchContactsByDomain(domain: string): Promise<Buyer[]> {
   const d = domain.trim().toLowerCase()
-  const { data, error } = await anyDb
+  const { data, error } = await supabase
     .schema('api')
     .from('crm_contact_list')
     .select('*')
@@ -806,9 +806,9 @@ export async function fetchContactsByDomain(domain: string): Promise<Buyer[]> {
 }
 
 export async function setRetailerLogo(id: string, logoUrl: string | null): Promise<void> {
-  const { error } = await anyDb.schema('api').rpc('crm_set_customer_logo', {
+  const { error } = await supabase.schema('api').rpc('crm_set_customer_logo', {
     p_customer_id: id,
-    p_logo_url: logoUrl,
+    p_logo_url: arg(logoUrl),
   })
   if (error) throw error
 }
@@ -967,7 +967,7 @@ export async function createContact(values: {
   retailer_id?: string | null
   department_id?: string | null
 }): Promise<Buyer> {
-  const { data, error } = await anyDb.schema('api').rpc('crm_create_contact', {
+  const { data, error } = await supabase.schema('api').rpc('crm_create_contact', {
     p_full_name: values.name,
     p_email: arg(values.email),
     p_phone: arg(values.phone),
@@ -977,7 +977,7 @@ export async function createContact(values: {
   })
   if (error) throw error
   const id = data as string
-  const back = await anyDb.schema('api').from('crm_contact_list').select('*').eq('id', id).maybeSingle()
+  const back = await supabase.schema('api').from('crm_contact_list').select('*').eq('id', id).maybeSingle()
   if (back.error) throw back.error
   return toBuyer((back.data ?? { id }) as Row)
 }
@@ -987,7 +987,7 @@ export async function createContact(values: {
  * other app's view changes meaning). Idempotent; restoring is a database action.
  */
 export async function archiveContact(id: string) {
-  const { error } = await anyDb.schema('api').rpc('crm_archive_contact', { p_contact_id: id })
+  const { error } = await supabase.schema('api').rpc('crm_archive_contact', { p_contact_id: id })
   if (error) throw error
 }
 
@@ -998,7 +998,7 @@ export async function archiveContact(id: string) {
  * archives the dropped contact in one transaction.
  */
 export async function mergeContacts(keepId: string, dropId: string) {
-  const { error } = await anyDb.schema('api').rpc('crm_merge_contacts', {
+  const { error } = await supabase.schema('api').rpc('crm_merge_contacts', {
     p_keep_id: keepId,
     p_drop_id: dropId,
   })
@@ -1019,7 +1019,7 @@ export async function fetchDefunctContacts(): Promise<Record<string, DefunctReas
   const out: Record<string, DefunctReason> = {}
   const pageSize = 1000
   for (let from = 0; ; from += pageSize) {
-    const { data, error } = await anyDb
+    const { data, error } = await supabase
       .schema('crm')
       .from('contact_ext')
       .select('contact_id, defunct_reason')
@@ -1038,13 +1038,13 @@ export async function fetchDefunctContacts(): Promise<Record<string, DefunctReas
 /** Mark a contact defunct with a reason, or pass null to mark it current again. */
 export async function setContactDefunct(contactId: string, reason: DefunctReason | null): Promise<void> {
   if (reason === null) {
-    const { error } = await anyDb.schema('crm').from('contact_ext').delete().eq('contact_id', contactId)
+    const { error } = await supabase.schema('crm').from('contact_ext').delete().eq('contact_id', contactId)
     if (error) throw error
     return
   }
   const { data: auth } = await supabase.auth.getUser()
   if (!auth.user) throw new Error('Sign in again to change a contact status')
-  const { error } = await anyDb
+  const { error } = await supabase
     .schema('crm')
     .from('contact_ext')
     .upsert(
@@ -1120,7 +1120,7 @@ export function departmentUseSummary(counts: DepartmentReferenceCounts): string 
 export async function deleteDepartment(id: string) {
   const entries = await Promise.all(
     (Object.keys(DEPARTMENT_REFERENCE_VIEWS) as (keyof DepartmentReferenceCounts)[]).map(async (key) => {
-      const { count, error } = await anyDb
+      const { count, error } = await supabase
         .schema('api')
         .from(DEPARTMENT_REFERENCE_VIEWS[key])
         .select('id', { count: 'exact', head: true })
@@ -1143,7 +1143,7 @@ const EMAIL_RELS = ['retailer', 'department', 'opportunity']
 
 export async function fetchEmailMessages(limit = -1): Promise<CrmEmailMessage[]> {
   const rowLimit = limit >= 0 ? limit : 500
-  const { data, error } = await anyDb.schema("api").rpc('crm_email_routing_recent', { p_limit: rowLimit })
+  const { data, error } = await supabase.schema("api").rpc('crm_email_routing_recent', { p_limit: rowLimit })
   if (!error) return ((data ?? []) as Row[]).map(toEmail)
   if (!isMissingApiObject(error)) throw error
 
@@ -1153,7 +1153,7 @@ export async function fetchEmailMessages(limit = -1): Promise<CrmEmailMessage[]>
 
 // Full-history stage counts (shared-db api.crm_email_routing_stage_counts).
 export async function fetchEmailStageCounts(): Promise<EmailStageCounts> {
-  const { data, error } = await anyDb.schema('api').rpc('crm_email_routing_stage_counts')
+  const { data, error } = await supabase.schema('api').rpc('crm_email_routing_stage_counts')
   if (error) throw error
   const row = ((Array.isArray(data) ? data[0] : data) ?? {}) as Row
   return {
@@ -1169,7 +1169,7 @@ export async function fetchEmailStageCounts(): Promise<EmailStageCounts> {
 // One page of a stage, newest first (shared-db api.crm_email_routing_stage_page;
 // the server caps a page at 1000 rows).
 export async function fetchEmailStagePage(stage: EmailStage | 'all', limit: number, offset: number): Promise<CrmEmailMessage[]> {
-  const { data, error } = await anyDb
+  const { data, error } = await supabase
     .schema('api')
     .rpc('crm_email_routing_stage_page', { p_stage: stage, p_limit: limit, p_offset: offset })
   if (error) throw error
@@ -1192,7 +1192,7 @@ export async function fetchSenderDepartmentBacklog(companyId: string, sender: st
   const out: string[] = []
   let from = 0
   for (;;) {
-    const { data, error } = await anyDb
+    const { data, error } = await supabase
       .schema('api')
       .from('crm_email_routing_queue')
       .select('id')
@@ -1256,7 +1256,7 @@ export async function deleteIgnoreRule(id: string) {
 // subject mirrors it closely enough for a human preview.
 export async function countEmailsMatchingSubject(pattern: string): Promise<number> {
   const escaped = pattern.replace(/[\\%_]/g, (c) => `\\${c}`)
-  const { count, error } = await anyDb
+  const { count, error } = await supabase
     .schema('api')
     .from('crm_email_routing_queue')
     .select('id', { count: 'exact', head: true })
@@ -1354,20 +1354,20 @@ export async function searchCrm(query: string, limitPerGroup = 8): Promise<CrmSe
   const [customers, contacts, opportunities, emails] = await Promise.all([
     // Status-aware picker contract — never surface global-inactive or
     // CRM-inactive rows in global CommandSearch.
-    anyDb
+    supabase
       .schema("api")
       .from('crm_customer_picker_list')
       .select('id,name,display_name,core_status,crm_status,updated_at')
       .or(ilikeAny(['name', 'display_name'], pattern))
       .order('name')
       .limit(limitPerGroup),
-    anyDb
+    supabase
       .schema("api")
       .from('crm_contact_list')
       .select('id,name,email,company_id,company_name,company_display_name')
       .or(ilikeAny(['name', 'email', 'job_title', 'company_name'], pattern))
       .limit(limitPerGroup),
-    anyDb
+    supabase
       .schema("api")
       .from('crm_opportunity_list')
       .select('id,name,company_id,company_name,company_display_name')
@@ -1375,7 +1375,7 @@ export async function searchCrm(query: string, limitPerGroup = 8): Promise<CrmSe
       .order('stage', { nullsFirst: false })
       .order('name')
       .limit(limitPerGroup),
-    anyDb
+    supabase
       .schema("api")
       .from('crm_email_routing_queue')
       .select('id,subject,sender,company_id,company_name,company_display_name')

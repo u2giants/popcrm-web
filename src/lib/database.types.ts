@@ -10,7 +10,7 @@ export type Database = {
   // Allows to automatically instantiate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
-    PostgrestVersion: "14.5"
+    PostgrestVersion: "14.18"
   }
   api: {
     Tables: {
@@ -34,6 +34,400 @@ export type Database = {
           updated_at: string | null
         }
         Relationships: []
+      }
+      coke_capture_inventory: {
+        Row: {
+          approval_index_complete: boolean | null
+          asset_details_complete: boolean | null
+          asset_index_complete: boolean | null
+          capture_key: string | null
+          errors: Json | null
+          expected_counts: Json | null
+          id: string | null
+          load_completed_at: string | null
+          load_started_at: string | null
+          media_downloaded: number | null
+          observed_counts: Json | null
+          source_captured_at: string | null
+          source_commit_sha: string | null
+          source_manifest_sha256: string | null
+          status: string | null
+        }
+        Insert: {
+          approval_index_complete?: boolean | null
+          asset_details_complete?: boolean | null
+          asset_index_complete?: boolean | null
+          capture_key?: string | null
+          errors?: Json | null
+          expected_counts?: Json | null
+          id?: string | null
+          load_completed_at?: string | null
+          load_started_at?: string | null
+          media_downloaded?: number | null
+          observed_counts?: Json | null
+          source_captured_at?: string | null
+          source_commit_sha?: string | null
+          source_manifest_sha256?: string | null
+          status?: string | null
+        }
+        Update: {
+          approval_index_complete?: boolean | null
+          asset_details_complete?: boolean | null
+          asset_index_complete?: boolean | null
+          capture_key?: string | null
+          errors?: Json | null
+          expected_counts?: Json | null
+          id?: string | null
+          load_completed_at?: string | null
+          load_started_at?: string | null
+          media_downloaded?: number | null
+          observed_counts?: Json | null
+          source_captured_at?: string | null
+          source_commit_sha?: string | null
+          source_manifest_sha256?: string | null
+          status?: string | null
+        }
+        Relationships: []
+      }
+      coke_current_approval_item: {
+        Row: {
+          approval_route_id: string | null
+          capture_id: string | null
+          company_label: string | null
+          current_stage: string | null
+          item_id: string | null
+          item_type: string | null
+          last_action_text: string | null
+          preview_path: string | null
+          source_url: string | null
+          status: string | null
+          submitted_text: string | null
+          title: string | null
+          version_count: number | null
+          view_count: number | null
+        }
+        Insert: {
+          approval_route_id?: string | null
+          capture_id?: string | null
+          company_label?: string | null
+          current_stage?: string | null
+          item_id?: string | null
+          item_type?: string | null
+          last_action_text?: string | null
+          preview_path?: string | null
+          source_url?: string | null
+          status?: string | null
+          submitted_text?: string | null
+          title?: string | null
+          version_count?: number | null
+          view_count?: number | null
+        }
+        Update: {
+          approval_route_id?: string | null
+          capture_id?: string | null
+          company_label?: string | null
+          current_stage?: string | null
+          item_id?: string | null
+          item_type?: string | null
+          last_action_text?: string | null
+          preview_path?: string | null
+          source_url?: string | null
+          status?: string | null
+          submitted_text?: string | null
+          title?: string | null
+          version_count?: number | null
+          view_count?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "coke_approval_item_capture_id_fkey"
+            columns: ["capture_id"]
+            isOneToOne: false
+            referencedRelation: "coke_capture_inventory"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      coke_current_asset: {
+        Row: {
+          asset_id: string | null
+          asset_name: string | null
+          capture_id: string | null
+          description: string | null
+          details_path: string | null
+          download_path: string | null
+          file_size_bytes: number | null
+          file_size_display: string | null
+          file_type: string | null
+          page_number: number | null
+          preview_path: string | null
+          raw_tag_string: string | null
+          thumbnail_path: string | null
+          uploaded_at_text: string | null
+          uploaded_by_label: string | null
+        }
+        Insert: {
+          asset_id?: string | null
+          asset_name?: string | null
+          capture_id?: string | null
+          description?: string | null
+          details_path?: string | null
+          download_path?: string | null
+          file_size_bytes?: number | null
+          file_size_display?: string | null
+          file_type?: string | null
+          page_number?: number | null
+          preview_path?: string | null
+          raw_tag_string?: string | null
+          thumbnail_path?: string | null
+          uploaded_at_text?: string | null
+          uploaded_by_label?: string | null
+        }
+        Update: {
+          asset_id?: string | null
+          asset_name?: string | null
+          capture_id?: string | null
+          description?: string | null
+          details_path?: string | null
+          download_path?: string | null
+          file_size_bytes?: number | null
+          file_size_display?: string | null
+          file_type?: string | null
+          page_number?: number | null
+          preview_path?: string | null
+          raw_tag_string?: string | null
+          thumbnail_path?: string | null
+          uploaded_at_text?: string | null
+          uploaded_by_label?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "coke_asset_capture_id_fkey"
+            columns: ["capture_id"]
+            isOneToOne: false
+            referencedRelation: "coke_capture_inventory"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      coke_current_contract_manufacturer: {
+        Row: {
+          capture_id: string | null
+          contract_id: string | null
+          exact_name: string | null
+          expiration_display: string | null
+          manufacturer_id: string | null
+          source_path: string | null
+          status: string | null
+        }
+        Insert: {
+          capture_id?: string | null
+          contract_id?: string | null
+          exact_name?: string | null
+          expiration_display?: string | null
+          manufacturer_id?: string | null
+          source_path?: string | null
+          status?: string | null
+        }
+        Update: {
+          capture_id?: string | null
+          contract_id?: string | null
+          exact_name?: string | null
+          expiration_display?: string | null
+          manufacturer_id?: string | null
+          source_path?: string | null
+          status?: string | null
+        }
+        Relationships: []
+      }
+      coke_current_manufacturer_submission: {
+        Row: {
+          address_line_1: string | null
+          address_line_2: string | null
+          annual_cost_response: string | null
+          approval_route_id: string | null
+          capture_id: string | null
+          city: string | null
+          commencement_text: string | null
+          comments: string | null
+          company_label: string | null
+          contact_email: string | null
+          contact_name: string | null
+          contact_phone: string | null
+          country: string | null
+          current_stage: string | null
+          expiration_text: string | null
+          item_id: string | null
+          item_type: string | null
+          last_action_text: string | null
+          legal_name: string | null
+          licensed_products_text: string | null
+          postal_code: string | null
+          preview_path: string | null
+          region: string | null
+          source_url: string | null
+          status: string | null
+          subcontractor_response: string | null
+          submitted_text: string | null
+          title: string | null
+          version_count: number | null
+          view_count: number | null
+          website: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "coke_approval_item_capture_id_fkey"
+            columns: ["capture_id"]
+            isOneToOne: false
+            referencedRelation: "coke_capture_inventory"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      coke_current_packaging_submission: {
+        Row: {
+          approval_route_id: string | null
+          capture_id: string | null
+          company_label: string | null
+          current_stage: string | null
+          item_id: string | null
+          item_type: string | null
+          last_action_text: string | null
+          metadata: Json | null
+          preview_path: string | null
+          source_url: string | null
+          status: string | null
+          submitted_text: string | null
+          title: string | null
+          version_count: number | null
+          view_count: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "coke_approval_item_capture_id_fkey"
+            columns: ["capture_id"]
+            isOneToOne: false
+            referencedRelation: "coke_capture_inventory"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      coke_current_product_submission: {
+        Row: {
+          approval_route_id: string | null
+          capture_id: string | null
+          company_label: string | null
+          current_stage: string | null
+          item_id: string | null
+          item_type: string | null
+          last_action_text: string | null
+          metadata: Json | null
+          preview_path: string | null
+          source_url: string | null
+          status: string | null
+          submitted_text: string | null
+          title: string | null
+          version_count: number | null
+          view_count: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "coke_approval_item_capture_id_fkey"
+            columns: ["capture_id"]
+            isOneToOne: false
+            referencedRelation: "coke_capture_inventory"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      coke_current_royalty_report: {
+        Row: {
+          capture_id: string | null
+          contract_id: string | null
+          currency_code: string | null
+          period_label: string | null
+          report_source_key: string | null
+          royalty_amount: number | null
+          royalty_amount_display: string | null
+          source_path: string | null
+          status: string | null
+        }
+        Insert: {
+          capture_id?: string | null
+          contract_id?: string | null
+          currency_code?: string | null
+          period_label?: string | null
+          report_source_key?: string | null
+          royalty_amount?: number | null
+          royalty_amount_display?: string | null
+          source_path?: string | null
+          status?: string | null
+        }
+        Update: {
+          capture_id?: string | null
+          contract_id?: string | null
+          currency_code?: string | null
+          period_label?: string | null
+          report_source_key?: string | null
+          royalty_amount?: number | null
+          royalty_amount_display?: string | null
+          source_path?: string | null
+          status?: string | null
+        }
+        Relationships: []
+      }
+      coke_current_sku: {
+        Row: {
+          approval_item_id: string | null
+          approval_item_resolution_status: string | null
+          capture_id: string | null
+          deactivation_date: string | null
+          deactivation_reason: string | null
+          primary_property_label: string | null
+          product_label: string | null
+          property_list_raw: string | null
+          sku: string | null
+          sku_source_id: string | null
+          sku_title: string | null
+          source_label: string | null
+        }
+        Insert: {
+          approval_item_id?: string | null
+          approval_item_resolution_status?: never
+          capture_id?: string | null
+          deactivation_date?: string | null
+          deactivation_reason?: string | null
+          primary_property_label?: string | null
+          product_label?: string | null
+          property_list_raw?: string | null
+          sku?: string | null
+          sku_source_id?: string | null
+          sku_title?: string | null
+          source_label?: string | null
+        }
+        Update: {
+          approval_item_id?: string | null
+          approval_item_resolution_status?: never
+          capture_id?: string | null
+          deactivation_date?: string | null
+          deactivation_reason?: string | null
+          primary_property_label?: string | null
+          product_label?: string | null
+          property_list_raw?: string | null
+          sku?: string | null
+          sku_source_id?: string | null
+          sku_title?: string | null
+          source_label?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "coke_sku_capture_id_fkey"
+            columns: ["capture_id"]
+            isOneToOne: false
+            referencedRelation: "coke_capture_inventory"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       coldlion_licensor_reconciliation: {
         Row: {
@@ -102,7 +496,29 @@ export type Database = {
           resolution_status: string | null
           source_name: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "erp_property_property_id_fkey"
+            columns: ["matched_property_id"]
+            isOneToOne: false
+            referencedRelation: "property_names"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "taxonomy_resolution_review_proposed_property_id_fkey"
+            columns: ["open_review_proposed_property_id"]
+            isOneToOne: false
+            referencedRelation: "property_names"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "taxonomy_resolution_review_resolved_property_id_fkey"
+            columns: ["open_review_resolved_property_id"]
+            isOneToOne: false
+            referencedRelation: "property_names"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       coldlion_taxonomy_cutover_summary: {
         Row: {
@@ -657,6 +1073,9 @@ export type Database = {
       }
       crm_ingested_domain_list: {
         Row: {
+          customer_id: string | null
+          customer_name: string | null
+          customer_status: string | null
           display_name: string | null
           domain: string | null
           email_count: number | null
@@ -668,31 +1087,57 @@ export type Database = {
           status: string | null
           updated_at: string | null
         }
-        Insert: {
-          display_name?: string | null
-          domain?: never
-          email_count?: number | null
-          first_seen_at?: string | null
-          id?: string | null
-          last_seen_at?: string | null
-          last_sender?: never
-          sample_subject?: string | null
-          status?: string | null
-          updated_at?: string | null
-        }
-        Update: {
-          display_name?: string | null
-          domain?: never
-          email_count?: number | null
-          first_seen_at?: string | null
-          id?: string | null
-          last_seen_at?: string | null
-          last_sender?: never
-          sample_subject?: string | null
-          status?: string | null
-          updated_at?: string | null
-        }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "ingested_domain_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "crm_account_list"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ingested_domain_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "crm_account_overview"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "ingested_domain_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "crm_customer_list"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ingested_domain_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "crm_customer_overview"
+            referencedColumns: ["company_id"]
+          },
+          {
+            foreignKeyName: "ingested_domain_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "crm_customer_picker_list"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ingested_domain_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "dam_customer_list"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ingested_domain_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "pm_customer_list"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       crm_meeting_list: {
         Row: {
@@ -1165,20 +1610,48 @@ export type Database = {
         }
         Relationships: []
       }
+      dam_order_customer_settings: {
+        Row: {
+          customer_normalized: string | null
+          suffix: string | null
+          updated_at: string | null
+          updated_by: string | null
+        }
+        Insert: {
+          customer_normalized?: string | null
+          suffix?: string | null
+          updated_at?: string | null
+          updated_by?: string | null
+        }
+        Update: {
+          customer_normalized?: string | null
+          suffix?: string | null
+          updated_at?: string | null
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
       dam_order_list: {
         Row: {
           actual_ship_date: string | null
           assortment_component_ordinal: number | null
           assortment_id: string | null
+          assortment_parent_cases: number | null
+          assortment_parent_key: string | null
+          assortment_parent_quantity: number | null
           booking_state: string | null
           cancel_date: string | null
           cancel_raw: string | null
           cargo_forecast_date: string | null
           cargo_forecast_raw: string | null
           case_pack: number | null
+          cases_error: string | null
           cases_reported: number | null
           close_tracking: boolean | null
+          coldlion_import_po: string | null
+          coldlion_quantity_ordered: number | null
           coldlion_source_id: string | null
+          coldlion_unmatched: boolean | null
           company_id: string | null
           container_booking_group: string | null
           contractual_sample_reorder: boolean | null
@@ -1208,6 +1681,7 @@ export type Database = {
           master_data_license_status: string | null
           master_data_licensor: string | null
           master_data_match_status: string | null
+          master_data_sample_vendor: string | null
           master_data_tracker_type: string | null
           mbl: string | null
           order_date: string | null
@@ -1219,22 +1693,31 @@ export type Database = {
           order_type: string | null
           order_void_reason: string | null
           order_voided_at: string | null
+          order_window_date: string | null
           ordering_company: string | null
+          product_workflow_source: string | null
           production_order_number: string | null
           professional_photos: string | null
           quantity_ordered: number | null
           quantity_shipped: number | null
           requested_ship_date: string | null
+          sales_order_received_date: string | null
+          sample_depth_inches: number | null
+          sample_depth_raw: string | null
+          sample_depth_source_row: number | null
           seal_container_date: string | null
           sent_po_date: string | null
           ship_to: string | null
           sku: string | null
           sku_normalized: string | null
+          snapshot_contractual_sample_reorder: boolean | null
           snapshot_description: string | null
           snapshot_license_status: string | null
+          snapshot_professional_photos: string | null
           snapshot_sku: string | null
           snapshot_source_row: string | null
           snapshot_style_type: string | null
+          snapshot_test_report: string | null
           source_style_type: string | null
           start_ship_date: string | null
           start_ship_raw: string | null
@@ -1321,8 +1804,82 @@ export type Database = {
             foreignKeyName: "production_order_line_item_id_fkey"
             columns: ["item_id"]
             isOneToOne: false
+            referencedRelation: "pim_item_picker"
+            referencedColumns: ["item_id"]
+          },
+          {
+            foreignKeyName: "production_order_line_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: false
             referencedRelation: "plm_item_status"
             referencedColumns: ["item_id"]
+          },
+        ]
+      }
+      dam_order_sample_depth: {
+        Row: {
+          customer_normalized: string | null
+          depth_inches: number | null
+          depth_raw: string | null
+          sku_normalized: string | null
+          source_row_number: number | null
+          source_workbook_id: string | null
+          updated_at: string | null
+          updated_by: string | null
+        }
+        Insert: {
+          customer_normalized?: string | null
+          depth_inches?: number | null
+          depth_raw?: string | null
+          sku_normalized?: string | null
+          source_row_number?: number | null
+          source_workbook_id?: string | null
+          updated_at?: string | null
+          updated_by?: string | null
+        }
+        Update: {
+          customer_normalized?: string | null
+          depth_inches?: number | null
+          depth_raw?: string | null
+          sku_normalized?: string | null
+          source_row_number?: number | null
+          source_workbook_id?: string | null
+          updated_at?: string | null
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
+      dam_order_vendor_statistics: {
+        Row: {
+          activity_status: string | null
+          closed_orders: number | null
+          factory_id: string | null
+          last_sent_po_date: string | null
+          open_orders: number | null
+          order_count: number | null
+          vendor_name: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "production_order_factory_id_fkey"
+            columns: ["factory_id"]
+            isOneToOne: false
+            referencedRelation: "crm_factory_picker_list"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "production_order_factory_id_fkey"
+            columns: ["factory_id"]
+            isOneToOne: false
+            referencedRelation: "dam_factory_list"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "production_order_factory_id_fkey"
+            columns: ["factory_id"]
+            isOneToOne: false
+            referencedRelation: "pm_factory_list"
+            referencedColumns: ["id"]
           },
         ]
       }
@@ -1334,6 +1891,118 @@ export type Database = {
           subtitle: string | null
           title: string | null
           updated_at: string | null
+        }
+        Relationships: []
+      }
+      licensing_entity_candidates: {
+        Row: {
+          core_character_id: string | null
+          core_franchise_id: string | null
+          core_licensor_id: string | null
+          core_property_id: string | null
+          core_style_guide_id: string | null
+          created_at: string | null
+          dam_asset_id: string | null
+          entity_kind: string | null
+          has_resolution_reason: boolean | null
+          is_ambiguous: boolean | null
+          is_open: boolean | null
+          needs_decision: boolean | null
+          opa_evidence_readable: boolean | null
+          opa_observation_count: number | null
+          resolution_status: string | null
+          resolved_at: string | null
+          resolved_by: string | null
+          source_id: string | null
+          source_scope_by_licensor: Json | null
+          source_system: string | null
+          updated_at: string | null
+        }
+        Relationships: []
+      }
+      licensing_relationship_candidates: {
+        Row: {
+          core_character_id: string | null
+          core_franchise_id: string | null
+          core_property_id: string | null
+          core_style_guide_id: string | null
+          created_at: string | null
+          dam_asset_id: string | null
+          eligible_for_match: boolean | null
+          evidence_kind:
+            | Database["core"]["Enums"]["relationship_evidence_kind"]
+            | null
+          has_resolution_reason: boolean | null
+          has_source_evidence: boolean | null
+          is_ambiguous: boolean | null
+          is_direct_source_relationship: boolean | null
+          is_open: boolean | null
+          licensor_id: string | null
+          needs_decision: boolean | null
+          relationship_evidence_permitted: boolean | null
+          relationship_kind: string | null
+          resolution_status: string | null
+          resolved_at: string | null
+          resolved_by: string | null
+          scope_row_count: number | null
+          source_left_id: string | null
+          source_purposes: string[] | null
+          source_right_id: string | null
+          source_system: string | null
+          updated_at: string | null
+        }
+        Relationships: []
+      }
+      licensing_resolution_queue: {
+        Row: {
+          is_ambiguous: boolean | null
+          item_count: number | null
+          item_kind: string | null
+          latest_updated_at: string | null
+          licensor_id: string | null
+          oldest_created_at: string | null
+          resolution_status: string | null
+          scope_axis: string | null
+          source_system: string | null
+        }
+        Relationships: []
+      }
+      opa_disney_property: {
+        Row: {
+          licensed_property_id: number | null
+          portal_operator: string | null
+          property_name: string | null
+          provenance_type: string | null
+          resolution_status: string | null
+          resolved_at: string | null
+          resolved_studio: string | null
+          source_system: string | null
+        }
+        Relationships: []
+      }
+      opa_lucasfilm_property: {
+        Row: {
+          licensed_property_id: number | null
+          portal_operator: string | null
+          property_name: string | null
+          provenance_type: string | null
+          resolution_status: string | null
+          resolved_at: string | null
+          resolved_studio: string | null
+          source_system: string | null
+        }
+        Relationships: []
+      }
+      opa_marvel_property: {
+        Row: {
+          licensed_property_id: number | null
+          portal_operator: string | null
+          property_name: string | null
+          provenance_type: string | null
+          resolution_status: string | null
+          resolved_at: string | null
+          resolved_studio: string | null
+          source_system: string | null
         }
         Relationships: []
       }
@@ -1386,7 +2055,29 @@ export type Database = {
           property_name?: string | null
           source_url?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "plm_opa_property_character_property_fk"
+            columns: ["licensed_property_id"]
+            isOneToOne: false
+            referencedRelation: "opa_disney_property"
+            referencedColumns: ["licensed_property_id"]
+          },
+          {
+            foreignKeyName: "plm_opa_property_character_property_fk"
+            columns: ["licensed_property_id"]
+            isOneToOne: false
+            referencedRelation: "opa_lucasfilm_property"
+            referencedColumns: ["licensed_property_id"]
+          },
+          {
+            foreignKeyName: "plm_opa_property_character_property_fk"
+            columns: ["licensed_property_id"]
+            isOneToOne: false
+            referencedRelation: "opa_marvel_property"
+            referencedColumns: ["licensed_property_id"]
+          },
+        ]
       }
       opa_property_reconciliation: {
         Row: {
@@ -1403,6 +2094,58 @@ export type Database = {
           opa_property_name: string | null
           resolution_status: string | null
           unresolved_character_count: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "plm_opa_property_character_property_fk"
+            columns: ["licensed_property_id"]
+            isOneToOne: false
+            referencedRelation: "opa_disney_property"
+            referencedColumns: ["licensed_property_id"]
+          },
+          {
+            foreignKeyName: "plm_opa_property_character_property_fk"
+            columns: ["licensed_property_id"]
+            isOneToOne: false
+            referencedRelation: "opa_lucasfilm_property"
+            referencedColumns: ["licensed_property_id"]
+          },
+          {
+            foreignKeyName: "plm_opa_property_character_property_fk"
+            columns: ["licensed_property_id"]
+            isOneToOne: false
+            referencedRelation: "opa_marvel_property"
+            referencedColumns: ["licensed_property_id"]
+          },
+        ]
+      }
+      pim_item_picker: {
+        Row: {
+          company_code: string | null
+          description: string | null
+          division_code: string | null
+          item_id: string | null
+          item_number: string | null
+          source_id: string | null
+          source_system: string | null
+        }
+        Insert: {
+          company_code?: never
+          description?: string | null
+          division_code?: never
+          item_id?: string | null
+          item_number?: string | null
+          source_id?: string | null
+          source_system?: string | null
+        }
+        Update: {
+          company_code?: never
+          description?: string | null
+          division_code?: never
+          item_id?: string | null
+          item_number?: string | null
+          source_id?: string | null
+          source_system?: string | null
         }
         Relationships: []
       }
@@ -1429,52 +2172,6 @@ export type Database = {
           source_system: string | null
           style_number: string | null
           synced_at: string | null
-        }
-        Insert: {
-          dismissed?: boolean | null
-          division_code?: string | null
-          erp_updated_at?: string | null
-          id?: string | null
-          item_description?: string | null
-          licensor_code?: string | null
-          mg_category?: string | null
-          mg01_code?: string | null
-          mg02_code?: string | null
-          mg03_code?: string | null
-          mg04_code?: string | null
-          mg05_code?: string | null
-          mg06_code?: string | null
-          prepack_code?: string | null
-          prepack_codes?: Json | null
-          property_code?: string | null
-          size_code?: string | null
-          source_id?: string | null
-          source_system?: string | null
-          style_number?: string | null
-          synced_at?: string | null
-        }
-        Update: {
-          dismissed?: boolean | null
-          division_code?: string | null
-          erp_updated_at?: string | null
-          id?: string | null
-          item_description?: string | null
-          licensor_code?: string | null
-          mg_category?: string | null
-          mg01_code?: string | null
-          mg02_code?: string | null
-          mg03_code?: string | null
-          mg04_code?: string | null
-          mg05_code?: string | null
-          mg06_code?: string | null
-          prepack_code?: string | null
-          prepack_codes?: Json | null
-          property_code?: string | null
-          size_code?: string | null
-          source_id?: string | null
-          source_system?: string | null
-          style_number?: string | null
-          synced_at?: string | null
         }
         Relationships: []
       }
@@ -1692,8 +2389,22 @@ export type Database = {
             foreignKeyName: "product_plm_item_id_fkey"
             columns: ["plm_item_id"]
             isOneToOne: false
+            referencedRelation: "pim_item_picker"
+            referencedColumns: ["item_id"]
+          },
+          {
+            foreignKeyName: "product_plm_item_id_fkey"
+            columns: ["plm_item_id"]
+            isOneToOne: false
             referencedRelation: "plm_item_status"
             referencedColumns: ["item_id"]
+          },
+          {
+            foreignKeyName: "product_property_id_fkey"
+            columns: ["property_id"]
+            isOneToOne: false
+            referencedRelation: "property_names"
+            referencedColumns: ["id"]
           },
         ]
       }
@@ -1788,7 +2499,7 @@ export type Database = {
           asset_count: number | null
           capture_id: string | null
           character_name: string | null
-          character_source_id: number | null
+          character_source_id: string | null
           core_character_id: string | null
           explicit_property_names: string[] | null
           resolution_reason: string | null
@@ -1847,7 +2558,7 @@ export type Database = {
           franchise_names_cooccurrence_evidence_only: string[] | null
           is_licensed_selection: boolean | null
           property_name: string | null
-          property_source_id: number | null
+          property_source_id: string | null
           resolution_reason: string | null
           resolution_status: string | null
           resolved_at: string | null
@@ -1877,10 +2588,10 @@ export type Database = {
           evidence_asset_count: number | null
           evidence_kind: string | null
           franchise_name: string | null
-          franchise_source_id: number | null
+          franchise_source_id: string | null
           is_direct_source_relationship: boolean | null
           property_name: string | null
-          property_source_id: number | null
+          property_source_id: string | null
         }
         Relationships: [
           {
@@ -1908,7 +2619,7 @@ export type Database = {
           paramount_term: string | null
           property_names: string[] | null
           style_guide_name: string | null
-          style_guide_source_id: number | null
+          style_guide_source_id: string | null
         }
         Relationships: [
           {
@@ -1927,49 +2638,234 @@ export type Database = {
           },
         ]
       }
-      wb_property_character: {
+      property_names: {
         Row: {
-          captured_at: string | null
-          character_label: string | null
-          character_source_id: string | null
-          id_fallback: boolean | null
-          property_label: string | null
-          property_source_id: string | null
-          source_url: string | null
-        }
-        Insert: {
-          captured_at?: string | null
-          character_label?: string | null
-          character_source_id?: string | null
-          id_fallback?: boolean | null
-          property_label?: string | null
-          property_source_id?: string | null
-          source_url?: string | null
-        }
-        Update: {
-          captured_at?: string | null
-          character_label?: string | null
-          character_source_id?: string | null
-          id_fallback?: boolean | null
-          property_label?: string | null
-          property_source_id?: string | null
-          source_url?: string | null
+          code: string | null
+          description_name: string | null
+          display_name: string | null
+          id: string | null
+          licensor_code: string | null
+          licensor_name: string | null
+          name: string | null
+          nickname: string | null
+          short_name: string | null
+          status: Database["app"]["Enums"]["entity_status"] | null
+          submission_property_id: string | null
+          submission_property_name: string | null
+          submission_source: string | null
         }
         Relationships: []
       }
-      wb_property_reconciliation: {
+      source_capture_inventory: {
         Row: {
-          captured_at: string | null
-          core_licensor_code: string | null
-          core_property_name: string | null
-          property_id: string | null
-          property_source_id: string | null
+          carries_resolution: boolean | null
+          count_basis: string | null
+          count_note: string | null
+          latest_complete_row_count: number | null
+          latest_complete_status: string | null
+          retained_row_count: number | null
+          row_count: number | null
+          source_system: string | null
+          table_comment: string | null
+          table_name: unknown
+        }
+        Relationships: []
+      }
+      source_resolution: {
+        Row: {
+          core_character_id: string | null
+          core_franchise_id: string | null
+          core_licensor_id: string | null
+          core_property_id: string | null
+          core_style_guide_id: string | null
+          dam_asset_id: string | null
+          entity_kind: string | null
           resolution_reason: string | null
           resolution_status: string | null
           resolved_at: string | null
           resolved_by: string | null
-          warner_character_count: number | null
-          warner_property_label: string | null
+          source_id: string | null
+          source_system: string | null
+          target_missing: boolean | null
+          updated_at: string | null
+        }
+        Insert: {
+          core_character_id?: string | null
+          core_franchise_id?: string | null
+          core_licensor_id?: string | null
+          core_property_id?: string | null
+          core_style_guide_id?: string | null
+          dam_asset_id?: string | null
+          entity_kind?: string | null
+          resolution_reason?: string | null
+          resolution_status?: string | null
+          resolved_at?: string | null
+          resolved_by?: string | null
+          source_id?: string | null
+          source_system?: string | null
+          target_missing?: never
+          updated_at?: string | null
+        }
+        Update: {
+          core_character_id?: string | null
+          core_franchise_id?: string | null
+          core_licensor_id?: string | null
+          core_property_id?: string | null
+          core_style_guide_id?: string | null
+          dam_asset_id?: string | null
+          entity_kind?: string | null
+          resolution_reason?: string | null
+          resolution_status?: string | null
+          resolved_at?: string | null
+          resolved_by?: string | null
+          source_id?: string | null
+          source_system?: string | null
+          target_missing?: never
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      wb_canonical_relationship_candidates: {
+        Row: {
+          assertion_type: string | null
+          canonical_property_id: string | null
+          edge_kind: string | null
+          evidence_hash: string | null
+          evidence_source: string | null
+          observed_at: string | null
+          source_entity_id: string | null
+        }
+        Relationships: []
+      }
+      wb_durable_entity_lifecycle_verification: {
+        Row: {
+          contract_ok: boolean | null
+        }
+        Relationships: []
+      }
+      wb_inferred_franchise_character: {
+        Row: {
+          character_fallback_key: string | null
+          character_id: string | null
+          character_source_id: string | null
+          character_source_namespace: string | null
+          evidence_strength: string | null
+          evidence_type: string | null
+          first_seen_at: string | null
+          franchise_fallback_key: string | null
+          franchise_id: string | null
+          franchise_source_id: string | null
+          franchise_source_namespace: string | null
+          is_direct: boolean | null
+          last_seen_at: string | null
+          support_asset_count: number | null
+          support_ratio: number | null
+          via_asset_count: number | null
+        }
+        Relationships: []
+      }
+      wb_inferred_franchise_property: {
+        Row: {
+          evidence_strength: string | null
+          evidence_type: string | null
+          first_seen_at: string | null
+          franchise_fallback_key: string | null
+          franchise_id: string | null
+          franchise_source_id: string | null
+          franchise_source_namespace: string | null
+          is_direct: boolean | null
+          last_seen_at: string | null
+          property_fallback_key: string | null
+          property_id: string | null
+          property_source_id: string | null
+          property_source_namespace: string | null
+          support_asset_count: number | null
+          support_ratio: number | null
+          via_asset_count: number | null
+        }
+        Relationships: []
+      }
+      wb_inferred_franchise_style_guide: {
+        Row: {
+          evidence_strength: string | null
+          evidence_type: string | null
+          first_seen_at: string | null
+          franchise_fallback_key: string | null
+          franchise_id: string | null
+          franchise_source_id: string | null
+          franchise_source_namespace: string | null
+          is_direct: boolean | null
+          last_seen_at: string | null
+          style_guide_fallback_key: string | null
+          style_guide_id: string | null
+          style_guide_source_id: string | null
+          style_guide_source_namespace: string | null
+          support_asset_count: number | null
+          support_ratio: number | null
+          via_asset_count: number | null
+        }
+        Relationships: []
+      }
+      wb_inferred_property_character: {
+        Row: {
+          character_fallback_key: string | null
+          character_id: string | null
+          character_source_id: string | null
+          character_source_namespace: string | null
+          evidence_strength: string | null
+          evidence_type: string | null
+          first_seen_at: string | null
+          is_direct: boolean | null
+          last_seen_at: string | null
+          property_fallback_key: string | null
+          property_id: string | null
+          property_source_id: string | null
+          property_source_namespace: string | null
+          support_asset_count: number | null
+          support_ratio: number | null
+          via_asset_count: number | null
+        }
+        Relationships: []
+      }
+      wb_inferred_style_guide_character: {
+        Row: {
+          character_fallback_key: string | null
+          character_id: string | null
+          character_source_id: string | null
+          character_source_namespace: string | null
+          evidence_strength: string | null
+          evidence_type: string | null
+          first_seen_at: string | null
+          is_direct: boolean | null
+          last_seen_at: string | null
+          style_guide_fallback_key: string | null
+          style_guide_id: string | null
+          style_guide_source_id: string | null
+          style_guide_source_namespace: string | null
+          support_asset_count: number | null
+          support_ratio: number | null
+          via_asset_count: number | null
+        }
+        Relationships: []
+      }
+      wb_inferred_style_guide_property: {
+        Row: {
+          evidence_strength: string | null
+          evidence_type: string | null
+          first_seen_at: string | null
+          is_direct: boolean | null
+          last_seen_at: string | null
+          property_fallback_key: string | null
+          property_id: string | null
+          property_source_id: string | null
+          property_source_namespace: string | null
+          style_guide_fallback_key: string | null
+          style_guide_id: string | null
+          style_guide_source_id: string | null
+          style_guide_source_namespace: string | null
+          support_asset_count: number | null
+          support_ratio: number | null
+          via_asset_count: number | null
         }
         Relationships: []
       }
@@ -2025,7 +2921,90 @@ export type Database = {
           isSetofReturn: true
         }
       }
+      crm_admin_access_history: { Args: { p_limit?: number }; Returns: Json }
+      crm_admin_assign_departments: {
+        Args: { p_department_ids: string[]; p_profile_id: string }
+        Returns: number
+      }
+      crm_admin_department_assignments: { Args: never; Returns: Json }
+      crm_admin_role_list: { Args: never; Returns: Json }
+      crm_admin_set_app_access: {
+        Args: { p_app: string; p_enabled: boolean; p_profile_id: string }
+        Returns: Json
+      }
+      crm_admin_set_department_salespeople: {
+        Args: { p_department_ids: string[]; p_profile_ids: string[] }
+        Returns: number
+      }
+      crm_admin_set_user_roles: {
+        Args: { p_profile_id: string; p_roles: string[] }
+        Returns: Json
+      }
+      crm_admin_set_user_status: {
+        Args: { p_profile_id: string; p_status: string }
+        Returns: Json
+      }
+      crm_admin_user_directory: { Args: never; Returns: Json }
       crm_admin_user_list: { Args: never; Returns: Json }
+      crm_archive_contact: {
+        Args: { p_contact_id: string }
+        Returns: undefined
+      }
+      crm_archive_customer: {
+        Args: { p_customer_id: string }
+        Returns: undefined
+      }
+      crm_archive_opportunity: {
+        Args: { p_opportunity_id: string }
+        Returns: undefined
+      }
+      crm_create_contact: {
+        Args: {
+          p_company_id?: string
+          p_crm_department_id?: string
+          p_email?: string
+          p_full_name: string
+          p_job_title?: string
+          p_phone?: string
+          p_scope?: string
+        }
+        Returns: string
+      }
+      crm_create_customer: {
+        Args: {
+          p_chain_type?: string
+          p_customer_status?: string
+          p_display_name?: string
+          p_domain: string
+          p_name: string
+          p_routing_aliases?: string
+        }
+        Returns: Database["core"]["Tables"]["customer"]["Row"]
+        SetofOptions: {
+          from: "*"
+          to: "customer"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      crm_create_opportunity: {
+        Args: {
+          p_close_date?: string
+          p_company_id: string
+          p_contact_id?: string
+          p_department_id?: string
+          p_estimated_value?: number
+          p_name: string
+          p_stage?: string
+        }
+        Returns: Database["crm"]["Tables"]["opportunity"]["Row"]
+        SetofOptions: {
+          from: "*"
+          to: "opportunity"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       crm_customer_logo_url: {
         Args: { p_import_logo_url: string; p_metadata: Json }
         Returns: string
@@ -2091,6 +3070,44 @@ export type Database = {
           program: number
           triage: number
         }[]
+      }
+      crm_email_routing_stage_counts: {
+        Args: never
+        Returns: {
+          needs_company: number
+          needs_department: number
+          needs_program: number
+          routed: number
+          skipped: number
+          total: number
+        }[]
+      }
+      crm_email_routing_stage_page: {
+        Args: { p_limit?: number; p_offset?: number; p_stage?: string }
+        Returns: {
+          body_preview: string
+          company_id: string
+          company_name: string
+          department_id: string
+          department_name: string
+          detected_po_numbers: string
+          detected_so_numbers: string
+          id: string
+          opportunity_id: string
+          opportunity_name: string
+          opportunity_stage: string
+          received_at: string
+          recipients: string
+          routing_method: string
+          routing_status: string
+          sender: string
+          subject: string
+          updated_at: string
+        }[]
+      }
+      crm_merge_contacts: {
+        Args: { p_drop_id: string; p_keep_id: string }
+        Returns: string
       }
       crm_overview_counts: {
         Args: never
@@ -2188,7 +3205,6 @@ export type Database = {
           p_company_id: string
           p_customer_status?: string
           p_domain?: string
-          p_display_name?: string
           p_name?: string
           p_routing_aliases?: string
           p_so_patterns?: string
@@ -2230,8 +3246,10 @@ export type Database = {
       crm_update_customer: {
         Args: {
           p_chain_type?: string
+          p_clear_domain?: boolean
           p_customer_id: string
           p_customer_status?: string
+          p_display_name?: string
           p_domain?: string
           p_name?: string
           p_routing_aliases?: string
@@ -2246,10 +3264,7 @@ export type Database = {
         }
       }
       crm_update_ingested_domain: {
-        Args: {
-          p_ingested_domain_id: string
-          p_status?: string
-        }
+        Args: { p_ingested_domain_id: string; p_status?: string }
         Returns: Database["crm"]["Tables"]["ingested_domain"]["Row"]
         SetofOptions: {
           from: "*"
@@ -2286,6 +3301,16 @@ export type Database = {
           p_sort?: string
           p_sort_dir?: string
           p_status?: string
+        }
+        Returns: Json
+      }
+      db_data_admin_decide_property_match: {
+        Args: {
+          p_client_request_id: string
+          p_decision: string
+          p_decision_reason: string
+          p_licensed_property_ids: number[]
+          p_resolution_id: string
         }
         Returns: Json
       }
@@ -2358,11 +3383,38 @@ export type Database = {
         }
         Returns: Json
       }
+      db_data_admin_property_match_queue: {
+        Args: { p_cursor?: string; p_page_size?: number; p_search?: string }
+        Returns: Json
+      }
+      db_data_admin_scraped_properties: {
+        Args: { p_cursor?: string; p_page_size?: number; p_search?: string }
+        Returns: Json
+      }
+      db_data_admin_scraped_source_inventory: {
+        Args: {
+          p_cursor?: string
+          p_entity_kind: string
+          p_page_size?: number
+          p_search?: string
+        }
+        Returns: Json
+      }
       db_data_admin_set_product_depth_status: {
         Args: {
           p_depth_id: string
           p_expected_updated_at: string
           p_operation_id: string
+          p_reason: string
+          p_status: string
+        }
+        Returns: Json
+      }
+      db_data_admin_set_property_status: {
+        Args: {
+          p_expected_updated_at: string
+          p_operation_id: string
+          p_property_id: string
           p_reason: string
           p_status: string
         }
@@ -2421,6 +3473,79 @@ export type Database = {
         }
         Returns: Json
       }
+      dflow_admin_access_history: {
+        Args: { p_actor_profile_id: string; p_limit?: number }
+        Returns: Json
+      }
+      dflow_admin_actor_profile_id: {
+        Args: { p_email: string }
+        Returns: string
+      }
+      dflow_admin_role_list: {
+        Args: { p_actor_profile_id: string }
+        Returns: Json
+      }
+      dflow_admin_set_app_access: {
+        Args: {
+          p_actor_profile_id: string
+          p_app: string
+          p_enabled: boolean
+          p_profile_id: string
+        }
+        Returns: Json
+      }
+      dflow_admin_set_user_roles: {
+        Args: {
+          p_actor_profile_id: string
+          p_profile_id: string
+          p_roles: string[]
+        }
+        Returns: Json
+      }
+      dflow_admin_set_user_status: {
+        Args: {
+          p_actor_profile_id: string
+          p_profile_id: string
+          p_status: string
+        }
+        Returns: Json
+      }
+      dflow_admin_user_directory: {
+        Args: { p_actor_profile_id: string }
+        Returns: Json
+      }
+      mg06_site_path: {
+        Args: { p_licensor_site: string; p_property_id: string }
+        Returns: {
+          site_character_id: string
+          site_character_name: string
+          site_property_id: string
+          site_property_name: string
+        }[]
+      }
+      oracle_user_directory: {
+        Args: never
+        Returns: {
+          email: string
+          lastname: string
+          level: string
+          name: string
+          office_location: string
+          roles: string[]
+          status: string
+          user_id: number
+        }[]
+      }
+      pm_accept_activity_triage: {
+        Args: {
+          p_due_at?: string
+          p_notes?: string
+          p_title?: string
+          p_triage_id: string
+          p_type?: string
+        }
+        Returns: Json
+      }
       pm_account_page: {
         Args: {
           p_after_id?: string
@@ -2437,6 +3562,54 @@ export type Database = {
           order_count: number
           project_count: number
         }[]
+      }
+      pm_add_product_comment: {
+        Args: {
+          p_body: string
+          p_client_operation_id?: string
+          p_product_id: string
+        }
+        Returns: Json
+      }
+      pm_begin_activity_triage: {
+        Args: {
+          p_comment_id: string
+          p_contract_version: string
+          p_envelope?: Json
+          p_input_digest: string
+          p_input_key_version: string
+          p_model: string
+          p_signature?: string
+        }
+        Returns: Json
+      }
+      pm_cancel_product_comment_reservation: {
+        Args: { p_recovery_handle: string }
+        Returns: Json
+      }
+      pm_complete_activity_triage: {
+        Args: {
+          p_action_label: string
+          p_envelope?: Json
+          p_lease_token_hash: string
+          p_result_payload?: Json
+          p_signature?: string
+          p_triage_id: string
+          p_usage_payload?: Json
+        }
+        Returns: Json
+      }
+      pm_create_decision: {
+        Args: { p_notes?: string; p_product_id: string; p_type: string }
+        Returns: Json
+      }
+      pm_create_dependency: {
+        Args: { p_product_id: string; p_title: string }
+        Returns: Json
+      }
+      pm_create_reminder: {
+        Args: { p_due_at?: string; p_product_id: string; p_title: string }
+        Returns: Json
       }
       pm_department_handoffs: {
         Args: { p_business_unit: string; p_limit?: number; p_since?: string }
@@ -2490,6 +3663,23 @@ export type Database = {
           updated_at: string
         }[]
       }
+      pm_dismiss_activity_triage: {
+        Args: { p_triage_id: string }
+        Returns: Json
+      }
+      pm_fail_activity_triage: {
+        Args: {
+          p_envelope?: Json
+          p_error_code: string
+          p_lease_token_hash: string
+          p_signature?: string
+          p_triage_id: string
+        }
+        Returns: Json
+      }
+      pm_get_activity_triage: { Args: { p_comment_id: string }; Returns: Json }
+      pm_list_active_jev_triage: { Args: never; Returns: Json }
+      pm_list_reviewed_jev_triage: { Args: never; Returns: Json }
       pm_my_reminder_page: {
         Args: { p_business_unit: string; p_limit?: number }
         Returns: {
@@ -2722,6 +3912,19 @@ export type Database = {
           updated_at: string
         }[]
       }
+      pm_record_jev_suggestion_impression: {
+        Args: { p_triage_id: string }
+        Returns: Json
+      }
+      pm_recover_product_comment_handle: {
+        Args: { p_recovery_handle: string }
+        Returns: Json
+      }
+      pm_repair_comment_triage_queue: { Args: never; Returns: Json }
+      pm_reserve_product_comment_operation: {
+        Args: { p_client_operation_id: string; p_product_id: string }
+        Returns: Json
+      }
       pm_schedule_page: {
         Args: {
           p_after_date?: string
@@ -2751,6 +3954,14 @@ export type Database = {
           updated_at: string
         }[]
       }
+      pm_update_dependency_status: {
+        Args: { p_activity_id: string; p_status: string }
+        Returns: Json
+      }
+      pm_update_reminder_status: {
+        Args: { p_notification_id: string; p_status: string }
+        Returns: Json
+      }
       pm_upsert_view_pref: {
         Args: { p_patch: Json; p_scope: string }
         Returns: {
@@ -2760,6 +3971,18 @@ export type Database = {
           scope: string
           updated_at: string
         }[]
+      }
+      pm_verify_jev_runtime_fence: {
+        Args: {
+          p_emergency_generation: number
+          p_lease_token_hash: string
+          p_nonce: string
+          p_release_digest: string
+          p_signature: string
+          p_timestamp: string
+          p_triage_id: string
+        }
+        Returns: Json
       }
       product_depth_list: {
         Args: { p_limit?: number; p_search?: string; p_selected_ids?: string[] }
@@ -2790,6 +4013,74 @@ export type Database = {
           mg_type_code: string
           selectable: boolean
           status: string
+        }[]
+      }
+      resolve_item_mg_category: {
+        Args: { p_item_id: number }
+        Returns: {
+          code: string
+          id: string
+          name: string
+        }[]
+      }
+      set_source_resolution:
+        | {
+            Args: {
+              p_core_character_id?: string
+              p_core_property_id?: string
+              p_core_style_guide_id?: string
+              p_dam_asset_id?: string
+              p_entity_kind: string
+              p_expected_updated_at?: string
+              p_resolution_reason?: string
+              p_resolution_status: string
+              p_source_id: string
+              p_source_system: string
+            }
+            Returns: Database["plm"]["Tables"]["source_resolution"]["Row"]
+            SetofOptions: {
+              from: "*"
+              to: "source_resolution"
+              isOneToOne: true
+              isSetofReturn: false
+            }
+          }
+        | {
+            Args: {
+              p_core_character_id: string
+              p_core_franchise_id: string
+              p_core_licensor_id: string
+              p_core_property_id: string
+              p_core_style_guide_id: string
+              p_dam_asset_id: string
+              p_entity_kind: string
+              p_expected_updated_at: string
+              p_resolution_reason: string
+              p_resolution_status: string
+              p_source_id: string
+              p_source_system: string
+            }
+            Returns: Database["plm"]["Tables"]["source_resolution"]["Row"]
+            SetofOptions: {
+              from: "*"
+              to: "source_resolution"
+              isOneToOne: true
+              isSetofReturn: false
+            }
+          }
+      source_capture_inventory_exact: {
+        Args: { p_table_name?: string }
+        Returns: {
+          carries_resolution: boolean
+          count_basis: string
+          count_note: string
+          latest_complete_row_count: number
+          latest_complete_status: string
+          retained_row_count: number
+          row_count: number
+          source_system: string
+          table_comment: string
+          table_name: unknown
         }[]
       }
       taxonomy_baseline_pin_list: {
@@ -3109,6 +4400,7 @@ export type Database = {
       comment: {
         Row: {
           body: string
+          body_revision: number
           created_at: string
           created_by_profile_id: string | null
           id: string
@@ -3123,6 +4415,7 @@ export type Database = {
         }
         Insert: {
           body: string
+          body_revision?: number
           created_at?: string
           created_by_profile_id?: string | null
           id?: string
@@ -3137,6 +4430,7 @@ export type Database = {
         }
         Update: {
           body?: string
+          body_revision?: number
           created_at?: string
           created_by_profile_id?: string | null
           id?: string
@@ -3549,13 +4843,6 @@ export type Database = {
             referencedRelation: "UIElements"
             referencedColumns: ["Id"]
           },
-          {
-            foreignKeyName: "RolePermissions_UserId_fkey"
-            columns: ["UserId"]
-            isOneToOne: false
-            referencedRelation: "users"
-            referencedColumns: ["id"]
-          },
         ]
       }
       UIElements: {
@@ -3589,34 +4876,43 @@ export type Database = {
       }
       user_notification: {
         Row: {
+          created_at: string
           created_date: string | null
           event: string | null
           id: number
+          idempotency_key: string | null
           message: string | null
           title: string | null
           type: string | null
           unread: boolean | null
           user_id_fk: number | null
+          workflow_action_id: number | null
         }
         Insert: {
+          created_at?: string
           created_date?: string | null
           event?: string | null
           id?: never
+          idempotency_key?: string | null
           message?: string | null
           title?: string | null
           type?: string | null
           unread?: boolean | null
           user_id_fk?: number | null
+          workflow_action_id?: number | null
         }
         Update: {
+          created_at?: string
           created_date?: string | null
           event?: string | null
           id?: never
+          idempotency_key?: string | null
           message?: string | null
           title?: string | null
           type?: string | null
           unread?: boolean | null
           user_id_fk?: number | null
+          workflow_action_id?: number | null
         }
         Relationships: []
       }
@@ -3799,6 +5095,14 @@ export type Database = {
         Returns: boolean
       }
       db_data_admin_vendor_row: { Args: { p_id: string }; Returns: Json }
+      dflow_admin_assume_actor: {
+        Args: { p_actor_profile_id: string }
+        Returns: undefined
+      }
+      dflow_admin_restore_claims: {
+        Args: { p_claims: string; p_sub: string }
+        Returns: undefined
+      }
       has_any_role: {
         Args: { required_roles: Database["app"]["Enums"]["app_role"][] }
         Returns: boolean
@@ -3821,6 +5125,7 @@ export type Database = {
         Args: never
         Returns: undefined
       }
+      require_licensing_manager_access: { Args: never; Returns: undefined }
     }
     Enums: {
       app_name: "dam" | "crm" | "pm" | "plm" | "admin"
@@ -3831,6 +5136,7 @@ export type Database = {
         | "designer"
         | "viewer"
         | "vendor"
+        | "sales_assistant"
       entity_status:
         | "active"
         | "inactive"
@@ -4023,9 +5329,9 @@ export type Database = {
           code: string | null
           created_at: string
           id: string
+          licensor_id: string | null
           metadata: Json
           name: string
-          property_id: string | null
           status: Database["app"]["Enums"]["entity_status"]
           updated_at: string
         }
@@ -4033,9 +5339,9 @@ export type Database = {
           code?: string | null
           created_at?: string
           id?: string
+          licensor_id?: string | null
           metadata?: Json
           name: string
-          property_id?: string | null
           status?: Database["app"]["Enums"]["entity_status"]
           updated_at?: string
         }
@@ -4043,19 +5349,86 @@ export type Database = {
           code?: string | null
           created_at?: string
           id?: string
+          licensor_id?: string | null
           metadata?: Json
           name?: string
-          property_id?: string | null
           status?: Database["app"]["Enums"]["entity_status"]
           updated_at?: string
         }
         Relationships: [
           {
-            foreignKeyName: "character_property_id_fkey"
-            columns: ["property_id"]
+            foreignKeyName: "character_licensor_id_fkey"
+            columns: ["licensor_id"]
             isOneToOne: false
-            referencedRelation: "property"
+            referencedRelation: "licensor"
             referencedColumns: ["id"]
+          },
+        ]
+      }
+      character_alias: {
+        Row: {
+          alias: string
+          character_id: string
+          created_at: string
+          created_by: string | null
+          evidence_notes: string | null
+          id: string
+          licensor_id: string
+          normalized_alias: string | null
+          source_id: string | null
+          source_system: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          alias: string
+          character_id: string
+          created_at?: string
+          created_by?: string | null
+          evidence_notes?: string | null
+          id?: string
+          licensor_id: string
+          normalized_alias?: string | null
+          source_id?: string | null
+          source_system: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          alias?: string
+          character_id?: string
+          created_at?: string
+          created_by?: string | null
+          evidence_notes?: string | null
+          id?: string
+          licensor_id?: string
+          normalized_alias?: string | null
+          source_id?: string | null
+          source_system?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "character_alias_character_id_fkey"
+            columns: ["character_id"]
+            isOneToOne: false
+            referencedRelation: "character"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "character_alias_licensor_id_fkey"
+            columns: ["licensor_id"]
+            isOneToOne: false
+            referencedRelation: "licensor"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "character_alias_parent_matches_character"
+            columns: ["character_id", "licensor_id"]
+            isOneToOne: false
+            referencedRelation: "character"
+            referencedColumns: ["id", "licensor_id"]
           },
         ]
       }
@@ -4290,12 +5663,15 @@ export type Database = {
           company_type: string
           created_at: string
           customer_status: string | null
+          dilution: number | null
           display_name: string | null
           domain: string | null
           id: string
           is_potential: boolean
+          logistic_load: number | null
           metadata: Json
           name: string
+          nickname: string | null
           normalized_name: string | null
           phone: string | null
           primary_salesperson_profile_id: string | null
@@ -4312,12 +5688,15 @@ export type Database = {
           company_type?: string
           created_at?: string
           customer_status?: string | null
+          dilution?: number | null
           display_name?: string | null
           domain?: string | null
           id?: string
           is_potential?: boolean
+          logistic_load?: number | null
           metadata?: Json
           name: string
+          nickname?: string | null
           normalized_name?: string | null
           phone?: string | null
           primary_salesperson_profile_id?: string | null
@@ -4334,12 +5713,15 @@ export type Database = {
           company_type?: string
           created_at?: string
           customer_status?: string | null
+          dilution?: number | null
           display_name?: string | null
           domain?: string | null
           id?: string
           is_potential?: boolean
+          logistic_load?: number | null
           metadata?: Json
           name?: string
+          nickname?: string | null
           normalized_name?: string | null
           phone?: string | null
           primary_salesperson_profile_id?: string | null
@@ -4665,11 +6047,16 @@ export type Database = {
           company_id: string | null
           country: string | null
           created_at: string
+          designflow_vendor_id: number | null
           display_name: string | null
           id: string
           metadata: Json
           name: string
+          orders_completed: number | null
+          orders_with_problem: number | null
+          party_type: string | null
           status: Database["app"]["Enums"]["entity_status"]
+          trade_name: string | null
           updated_at: string
           vendor_group: string | null
         }
@@ -4678,11 +6065,16 @@ export type Database = {
           company_id?: string | null
           country?: string | null
           created_at?: string
+          designflow_vendor_id?: number | null
           display_name?: string | null
           id?: string
           metadata?: Json
           name: string
+          orders_completed?: number | null
+          orders_with_problem?: number | null
+          party_type?: string | null
           status?: Database["app"]["Enums"]["entity_status"]
+          trade_name?: string | null
           updated_at?: string
           vendor_group?: string | null
         }
@@ -4691,11 +6083,16 @@ export type Database = {
           company_id?: string | null
           country?: string | null
           created_at?: string
+          designflow_vendor_id?: number | null
           display_name?: string | null
           id?: string
           metadata?: Json
           name?: string
+          orders_completed?: number | null
+          orders_with_problem?: number | null
+          party_type?: string | null
           status?: Database["app"]["Enums"]["entity_status"]
+          trade_name?: string | null
           updated_at?: string
           vendor_group?: string | null
         }
@@ -4753,6 +6150,107 @@ export type Database = {
           },
         ]
       }
+      factory_product_category: {
+        Row: {
+          created_at: string
+          factory_id: string
+          product_category_id: string
+          rank: number
+        }
+        Insert: {
+          created_at?: string
+          factory_id: string
+          product_category_id: string
+          rank: number
+        }
+        Update: {
+          created_at?: string
+          factory_id?: string
+          product_category_id?: string
+          rank?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "factory_product_category_factory_id_fkey"
+            columns: ["factory_id"]
+            isOneToOne: false
+            referencedRelation: "factory"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "factory_product_category_product_category_id_fkey"
+            columns: ["product_category_id"]
+            isOneToOne: false
+            referencedRelation: "product_category"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      factory_rep: {
+        Row: {
+          created_at: string
+          factory_id: string
+          id: string
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          factory_id: string
+          id?: string
+          name: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          factory_id?: string
+          id?: string
+          name?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "factory_rep_factory_id_fkey"
+            columns: ["factory_id"]
+            isOneToOne: false
+            referencedRelation: "factory"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      factory_representation: {
+        Row: {
+          created_at: string
+          factory_id: string
+          trading_company_id: string
+        }
+        Insert: {
+          created_at?: string
+          factory_id: string
+          trading_company_id: string
+        }
+        Update: {
+          created_at?: string
+          factory_id?: string
+          trading_company_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "factory_representation_factory_id_fkey"
+            columns: ["factory_id"]
+            isOneToOne: false
+            referencedRelation: "factory"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "factory_representation_trading_company_id_fkey"
+            columns: ["trading_company_id"]
+            isOneToOne: false
+            referencedRelation: "factory"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       factory_source_ref: {
         Row: {
           confidence: Database["app"]["Enums"]["source_confidence"]
@@ -4794,6 +6292,147 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "factory"
             referencedColumns: ["id"]
+          },
+        ]
+      }
+      factory_vendor_login: {
+        Row: {
+          created_at: string
+          designflow_login_id: number
+          email: string | null
+          factory_id: string
+          person: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          designflow_login_id: number
+          email?: string | null
+          factory_id: string
+          person?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          designflow_login_id?: number
+          email?: string | null
+          factory_id?: string
+          person?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "factory_vendor_login_factory_id_fkey"
+            columns: ["factory_id"]
+            isOneToOne: false
+            referencedRelation: "factory"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      franchise: {
+        Row: {
+          code: string | null
+          created_at: string
+          created_by: string | null
+          id: string
+          licensor_id: string
+          metadata: Json
+          name: string
+          source_evidence: string | null
+          source_id: string | null
+          source_system: string
+          status: Database["app"]["Enums"]["entity_status"]
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          code?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          licensor_id: string
+          metadata?: Json
+          name: string
+          source_evidence?: string | null
+          source_id?: string | null
+          source_system: string
+          status?: Database["app"]["Enums"]["entity_status"]
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          code?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          licensor_id?: string
+          metadata?: Json
+          name?: string
+          source_evidence?: string | null
+          source_id?: string | null
+          source_system?: string
+          status?: Database["app"]["Enums"]["entity_status"]
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "franchise_licensor_id_fkey"
+            columns: ["licensor_id"]
+            isOneToOne: false
+            referencedRelation: "licensor"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      franchise_alias: {
+        Row: {
+          alias: string
+          created_at: string
+          created_by: string | null
+          evidence_notes: string | null
+          franchise_id: string
+          id: string
+          licensor_id: string
+          normalized_alias: string | null
+          source_system: string | null
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          alias: string
+          created_at?: string
+          created_by?: string | null
+          evidence_notes?: string | null
+          franchise_id: string
+          id?: string
+          licensor_id: string
+          normalized_alias?: string | null
+          source_system?: string | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          alias?: string
+          created_at?: string
+          created_by?: string | null
+          evidence_notes?: string | null
+          franchise_id?: string
+          id?: string
+          licensor_id?: string
+          normalized_alias?: string | null
+          source_system?: string | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "franchise_alias_franchise_fkey"
+            columns: ["franchise_id", "licensor_id"]
+            isOneToOne: false
+            referencedRelation: "franchise"
+            referencedColumns: ["id", "licensor_id"]
           },
         ]
       }
@@ -4870,6 +6509,7 @@ export type Database = {
           id: string
           metadata: Json
           name: string
+          nickname: string | null
           status: Database["app"]["Enums"]["entity_status"]
           updated_at: string
         }
@@ -4879,6 +6519,7 @@ export type Database = {
           id?: string
           metadata?: Json
           name: string
+          nickname?: string | null
           status?: Database["app"]["Enums"]["entity_status"]
           updated_at?: string
         }
@@ -4888,6 +6529,7 @@ export type Database = {
           id?: string
           metadata?: Json
           name?: string
+          nickname?: string | null
           status?: Database["app"]["Enums"]["entity_status"]
           updated_at?: string
         }
@@ -4993,7 +6635,7 @@ export type Database = {
           },
         ]
       }
-      merchGroup: {
+      merchGroup_retired_20261115: {
         Row: {
           companyCode_fk: string | null
           companyCode_id_fk: number | null
@@ -5053,7 +6695,7 @@ export type Database = {
         }
         Relationships: []
       }
-      merchGroupHeaders: {
+      merchGroupHeaders_retired_20261115: {
         Row: {
           companyCode: string | null
           companyCode_id_fk: number | null
@@ -5210,6 +6852,125 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "merchGroupMaster"
             referencedColumns: ["mg_id"]
+          },
+        ]
+      }
+      merchGroupRepairJournal: {
+        Row: {
+          action: string
+          column_name: string | null
+          from_id: number | null
+          is_active: boolean | null
+          item_id_pk: string | null
+          journal_id: number
+          mg_code: string | null
+          mg_id: number | null
+          parent_id: number | null
+          previous_active: boolean | null
+          previous_desc: string | null
+          recorded_at: string
+          run_id: string
+          to_id: number | null
+        }
+        Insert: {
+          action: string
+          column_name?: string | null
+          from_id?: number | null
+          is_active?: boolean | null
+          item_id_pk?: string | null
+          journal_id?: never
+          mg_code?: string | null
+          mg_id?: number | null
+          parent_id?: number | null
+          previous_active?: boolean | null
+          previous_desc?: string | null
+          recorded_at?: string
+          run_id: string
+          to_id?: number | null
+        }
+        Update: {
+          action?: string
+          column_name?: string | null
+          from_id?: number | null
+          is_active?: boolean | null
+          item_id_pk?: string | null
+          journal_id?: never
+          mg_code?: string | null
+          mg_id?: number | null
+          parent_id?: number | null
+          previous_active?: boolean | null
+          previous_desc?: string | null
+          recorded_at?: string
+          run_id?: string
+          to_id?: number | null
+        }
+        Relationships: []
+      }
+      mg_category: {
+        Row: {
+          code: string
+          created_at: string
+          id: string
+          is_active: boolean
+          metadata: Json
+          name: string
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          metadata?: Json
+          name: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          metadata?: Json
+          name?: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      mg_category_merch_group: {
+        Row: {
+          created_at: string
+          id: string
+          merch_group_mg_id: number
+          mg_category_id: string
+          source: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          merch_group_mg_id: number
+          mg_category_id: string
+          source?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          merch_group_mg_id?: number
+          mg_category_id?: string
+          source?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "mg_category_merch_group_mg_category_id_fkey"
+            columns: ["mg_category_id"]
+            isOneToOne: false
+            referencedRelation: "mg_category"
+            referencedColumns: ["id"]
           },
         ]
       }
@@ -5601,47 +7362,6 @@ export type Database = {
           },
         ]
       }
-      properties_and_characters: {
-        Row: {
-          created_at: string
-          id: number
-          licensor_id: number
-          name: string
-          source_character_id: string | null
-          source_licensed_property_id: string | null
-          type: string
-          updated_at: string
-        }
-        Insert: {
-          created_at?: string
-          id: number
-          licensor_id: number
-          name: string
-          source_character_id?: string | null
-          source_licensed_property_id?: string | null
-          type: string
-          updated_at?: string
-        }
-        Update: {
-          created_at?: string
-          id?: number
-          licensor_id?: number
-          name?: string
-          source_character_id?: string | null
-          source_licensed_property_id?: string | null
-          type?: string
-          updated_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "properties_and_characters_licensor_id_fkey"
-            columns: ["licensor_id"]
-            isOneToOne: false
-            referencedRelation: "licenseList"
-            referencedColumns: ["licenseList_id"]
-          },
-        ]
-      }
       property: {
         Row: {
           code: string | null
@@ -5650,7 +7370,12 @@ export type Database = {
           licensor_id: string
           metadata: Json
           name: string
+          nickname: string | null
+          short_name: string | null
           status: Database["app"]["Enums"]["entity_status"]
+          submission_property_id: string | null
+          submission_property_name: string | null
+          submission_source: string | null
           updated_at: string
         }
         Insert: {
@@ -5660,7 +7385,12 @@ export type Database = {
           licensor_id: string
           metadata?: Json
           name: string
+          nickname?: string | null
+          short_name?: string | null
           status?: Database["app"]["Enums"]["entity_status"]
+          submission_property_id?: string | null
+          submission_property_name?: string | null
+          submission_source?: string | null
           updated_at?: string
         }
         Update: {
@@ -5670,7 +7400,12 @@ export type Database = {
           licensor_id?: string
           metadata?: Json
           name?: string
+          nickname?: string | null
+          short_name?: string | null
           status?: Database["app"]["Enums"]["entity_status"]
+          submission_property_id?: string | null
+          submission_property_name?: string | null
+          submission_source?: string | null
           updated_at?: string
         }
         Relationships: [
@@ -5750,38 +7485,44 @@ export type Database = {
           },
         ]
       }
-      property_character: {
+      property_character_associations: {
         Row: {
           character_id: string
           created_at: string
-          is_primary: boolean
+          is_current: boolean
           property_id: string
-          source: string
+          retired_at: string | null
+          retired_reason: string | null
+          updated_at: string
         }
         Insert: {
           character_id: string
           created_at?: string
-          is_primary?: boolean
+          is_current?: boolean
           property_id: string
-          source?: string
+          retired_at?: string | null
+          retired_reason?: string | null
+          updated_at?: string
         }
         Update: {
           character_id?: string
           created_at?: string
-          is_primary?: boolean
+          is_current?: boolean
           property_id?: string
-          source?: string
+          retired_at?: string | null
+          retired_reason?: string | null
+          updated_at?: string
         }
         Relationships: [
           {
-            foreignKeyName: "property_character_character_id_fkey"
+            foreignKeyName: "property_character_associations_character_id_fkey"
             columns: ["character_id"]
             isOneToOne: false
             referencedRelation: "character"
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "property_character_property_id_fkey"
+            foreignKeyName: "property_character_associations_property_id_fkey"
             columns: ["property_id"]
             isOneToOne: false
             referencedRelation: "property"
@@ -5789,48 +7530,409 @@ export type Database = {
           },
         ]
       }
-      property_character_associations: {
+      property_character_source_edge: {
         Row: {
-          character_id: number
+          character_id: string
+          confidence: number | null
           created_at: string
-          licensor_id: number
-          property_id: number
-          updated_at: string | null
+          created_by: string | null
+          evidence_kind: Database["core"]["Enums"]["relationship_evidence_kind"]
+          id: string
+          is_current: boolean
+          is_direct_source_relationship: boolean | null
+          licensor_id: string
+          metadata: Json
+          observation_count: number
+          property_id: string
+          source_evidence: string | null
+          source_id: string | null
+          source_system: string
+          superseded_at: string | null
+          superseded_reason: string | null
+          updated_at: string
+          updated_by: string | null
         }
         Insert: {
-          character_id: number
+          character_id: string
+          confidence?: number | null
           created_at?: string
-          licensor_id: number
-          property_id: number
-          updated_at?: string | null
+          created_by?: string | null
+          evidence_kind: Database["core"]["Enums"]["relationship_evidence_kind"]
+          id?: string
+          is_current?: boolean
+          is_direct_source_relationship?: boolean | null
+          licensor_id: string
+          metadata?: Json
+          observation_count?: number
+          property_id: string
+          source_evidence?: string | null
+          source_id?: string | null
+          source_system: string
+          superseded_at?: string | null
+          superseded_reason?: string | null
+          updated_at?: string
+          updated_by?: string | null
         }
         Update: {
-          character_id?: number
+          character_id?: string
+          confidence?: number | null
           created_at?: string
-          licensor_id?: number
-          property_id?: number
-          updated_at?: string | null
+          created_by?: string | null
+          evidence_kind?: Database["core"]["Enums"]["relationship_evidence_kind"]
+          id?: string
+          is_current?: boolean
+          is_direct_source_relationship?: boolean | null
+          licensor_id?: string
+          metadata?: Json
+          observation_count?: number
+          property_id?: string
+          source_evidence?: string | null
+          source_id?: string | null
+          source_system?: string
+          superseded_at?: string | null
+          superseded_reason?: string | null
+          updated_at?: string
+          updated_by?: string | null
         }
         Relationships: [
           {
-            foreignKeyName: "property_character_associations_character_id_fkey"
+            foreignKeyName: "property_character_source_edge_character_id_fkey"
             columns: ["character_id"]
             isOneToOne: false
-            referencedRelation: "properties_and_characters"
+            referencedRelation: "character"
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "property_character_associations_licensor_id_fkey"
+            foreignKeyName: "property_character_source_edge_licensor_id_fkey"
             columns: ["licensor_id"]
             isOneToOne: false
-            referencedRelation: "licenseList"
-            referencedColumns: ["licenseList_id"]
+            referencedRelation: "licensor"
+            referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "property_character_associations_property_id_fkey"
+            foreignKeyName: "property_character_source_edge_property_id_fkey"
             columns: ["property_id"]
             isOneToOne: false
-            referencedRelation: "properties_and_characters"
+            referencedRelation: "property"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      property_franchise: {
+        Row: {
+          created_at: string
+          franchise_id: string
+          is_current: boolean
+          property_id: string
+          retired_at: string | null
+          retired_reason: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          franchise_id: string
+          is_current?: boolean
+          property_id: string
+          retired_at?: string | null
+          retired_reason?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          franchise_id?: string
+          is_current?: boolean
+          property_id?: string
+          retired_at?: string | null
+          retired_reason?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "property_franchise_franchise_id_fkey"
+            columns: ["franchise_id"]
+            isOneToOne: false
+            referencedRelation: "franchise"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "property_franchise_property_id_fkey"
+            columns: ["property_id"]
+            isOneToOne: false
+            referencedRelation: "property"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      property_franchise_source_edge: {
+        Row: {
+          confidence: number | null
+          created_at: string
+          created_by: string | null
+          evidence_kind: Database["core"]["Enums"]["relationship_evidence_kind"]
+          franchise_id: string
+          id: string
+          is_current: boolean
+          is_direct_source_relationship: boolean | null
+          licensor_id: string
+          metadata: Json
+          observation_count: number
+          property_id: string
+          source_evidence: string | null
+          source_id: string | null
+          source_system: string
+          superseded_at: string | null
+          superseded_reason: string | null
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          confidence?: number | null
+          created_at?: string
+          created_by?: string | null
+          evidence_kind: Database["core"]["Enums"]["relationship_evidence_kind"]
+          franchise_id: string
+          id?: string
+          is_current?: boolean
+          is_direct_source_relationship?: boolean | null
+          licensor_id: string
+          metadata?: Json
+          observation_count?: number
+          property_id: string
+          source_evidence?: string | null
+          source_id?: string | null
+          source_system: string
+          superseded_at?: string | null
+          superseded_reason?: string | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          confidence?: number | null
+          created_at?: string
+          created_by?: string | null
+          evidence_kind?: Database["core"]["Enums"]["relationship_evidence_kind"]
+          franchise_id?: string
+          id?: string
+          is_current?: boolean
+          is_direct_source_relationship?: boolean | null
+          licensor_id?: string
+          metadata?: Json
+          observation_count?: number
+          property_id?: string
+          source_evidence?: string | null
+          source_id?: string | null
+          source_system?: string
+          superseded_at?: string | null
+          superseded_reason?: string | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "property_franchise_source_edge_franchise_id_fkey"
+            columns: ["franchise_id"]
+            isOneToOne: false
+            referencedRelation: "franchise"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "property_franchise_source_edge_licensor_id_fkey"
+            columns: ["licensor_id"]
+            isOneToOne: false
+            referencedRelation: "licensor"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "property_franchise_source_edge_property_id_fkey"
+            columns: ["property_id"]
+            isOneToOne: false
+            referencedRelation: "property"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      property_site_path: {
+        Row: {
+          created_at: string
+          id: string
+          is_current: boolean
+          licensor_site: string
+          ordinal: number
+          property_id: string
+          site_character_id: string | null
+          site_character_name: string | null
+          site_property_id: string | null
+          site_property_name: string
+          source_evidence: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_current?: boolean
+          licensor_site: string
+          ordinal?: number
+          property_id: string
+          site_character_id?: string | null
+          site_character_name?: string | null
+          site_property_id?: string | null
+          site_property_name: string
+          source_evidence: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_current?: boolean
+          licensor_site?: string
+          ordinal?: number
+          property_id?: string
+          site_character_id?: string | null
+          site_character_name?: string | null
+          site_property_id?: string | null
+          site_property_name?: string
+          source_evidence?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "property_site_path_property_id_fkey"
+            columns: ["property_id"]
+            isOneToOne: false
+            referencedRelation: "property"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      property_style_guide: {
+        Row: {
+          created_at: string
+          is_current: boolean
+          property_id: string
+          retired_at: string | null
+          retired_reason: string | null
+          style_guide_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          is_current?: boolean
+          property_id: string
+          retired_at?: string | null
+          retired_reason?: string | null
+          style_guide_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          is_current?: boolean
+          property_id?: string
+          retired_at?: string | null
+          retired_reason?: string | null
+          style_guide_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "property_style_guide_property_id_fkey"
+            columns: ["property_id"]
+            isOneToOne: false
+            referencedRelation: "property"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "property_style_guide_style_guide_id_fkey"
+            columns: ["style_guide_id"]
+            isOneToOne: false
+            referencedRelation: "style_guide"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      property_style_guide_source_edge: {
+        Row: {
+          confidence: number | null
+          created_at: string
+          created_by: string | null
+          evidence_kind: Database["core"]["Enums"]["relationship_evidence_kind"]
+          id: string
+          is_current: boolean
+          is_direct_source_relationship: boolean | null
+          licensor_id: string
+          metadata: Json
+          observation_count: number
+          property_id: string
+          source_evidence: string | null
+          source_id: string | null
+          source_system: string
+          style_guide_id: string
+          superseded_at: string | null
+          superseded_reason: string | null
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          confidence?: number | null
+          created_at?: string
+          created_by?: string | null
+          evidence_kind: Database["core"]["Enums"]["relationship_evidence_kind"]
+          id?: string
+          is_current?: boolean
+          is_direct_source_relationship?: boolean | null
+          licensor_id: string
+          metadata?: Json
+          observation_count?: number
+          property_id: string
+          source_evidence?: string | null
+          source_id?: string | null
+          source_system: string
+          style_guide_id: string
+          superseded_at?: string | null
+          superseded_reason?: string | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          confidence?: number | null
+          created_at?: string
+          created_by?: string | null
+          evidence_kind?: Database["core"]["Enums"]["relationship_evidence_kind"]
+          id?: string
+          is_current?: boolean
+          is_direct_source_relationship?: boolean | null
+          licensor_id?: string
+          metadata?: Json
+          observation_count?: number
+          property_id?: string
+          source_evidence?: string | null
+          source_id?: string | null
+          source_system?: string
+          style_guide_id?: string
+          superseded_at?: string | null
+          superseded_reason?: string | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "property_style_guide_source_edge_licensor_id_fkey"
+            columns: ["licensor_id"]
+            isOneToOne: false
+            referencedRelation: "licensor"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "property_style_guide_source_edge_property_id_fkey"
+            columns: ["property_id"]
+            isOneToOne: false
+            referencedRelation: "property"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "property_style_guide_source_edge_style_guide_id_fkey"
+            columns: ["style_guide_id"]
+            isOneToOne: false
+            referencedRelation: "style_guide"
             referencedColumns: ["id"]
           },
         ]
@@ -5945,29 +8047,31 @@ export type Database = {
         Row: {
           character_id: string
           created_at: string
+          is_current: boolean
           metadata: Json
+          retired_at: string | null
+          retired_reason: string | null
           style_guide_id: string
         }
         Insert: {
           character_id: string
           created_at?: string
+          is_current?: boolean
           metadata?: Json
+          retired_at?: string | null
+          retired_reason?: string | null
           style_guide_id: string
         }
         Update: {
           character_id?: string
           created_at?: string
+          is_current?: boolean
           metadata?: Json
+          retired_at?: string | null
+          retired_reason?: string | null
           style_guide_id?: string
         }
         Relationships: [
-          {
-            foreignKeyName: "style_guide_character_character_id_fkey"
-            columns: ["character_id"]
-            isOneToOne: false
-            referencedRelation: "character"
-            referencedColumns: ["id"]
-          },
           {
             foreignKeyName: "style_guide_character_style_guide_id_fkey"
             columns: ["style_guide_id"]
@@ -5977,6 +8081,145 @@ export type Database = {
           },
         ]
       }
+      style_guide_character_source_edge: {
+        Row: {
+          character_id: string
+          confidence: number | null
+          created_at: string
+          created_by: string | null
+          evidence_kind: Database["core"]["Enums"]["relationship_evidence_kind"]
+          id: string
+          is_current: boolean
+          is_direct_source_relationship: boolean | null
+          licensor_id: string
+          metadata: Json
+          observation_count: number
+          source_evidence: string | null
+          source_id: string | null
+          source_system: string
+          style_guide_id: string
+          superseded_at: string | null
+          superseded_reason: string | null
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          character_id: string
+          confidence?: number | null
+          created_at?: string
+          created_by?: string | null
+          evidence_kind: Database["core"]["Enums"]["relationship_evidence_kind"]
+          id?: string
+          is_current?: boolean
+          is_direct_source_relationship?: boolean | null
+          licensor_id: string
+          metadata?: Json
+          observation_count?: number
+          source_evidence?: string | null
+          source_id?: string | null
+          source_system: string
+          style_guide_id: string
+          superseded_at?: string | null
+          superseded_reason?: string | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          character_id?: string
+          confidence?: number | null
+          created_at?: string
+          created_by?: string | null
+          evidence_kind?: Database["core"]["Enums"]["relationship_evidence_kind"]
+          id?: string
+          is_current?: boolean
+          is_direct_source_relationship?: boolean | null
+          licensor_id?: string
+          metadata?: Json
+          observation_count?: number
+          source_evidence?: string | null
+          source_id?: string | null
+          source_system?: string
+          style_guide_id?: string
+          superseded_at?: string | null
+          superseded_reason?: string | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "style_guide_character_source_edge_character_id_fkey"
+            columns: ["character_id"]
+            isOneToOne: false
+            referencedRelation: "character"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "style_guide_character_source_edge_licensor_id_fkey"
+            columns: ["licensor_id"]
+            isOneToOne: false
+            referencedRelation: "licensor"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "style_guide_character_source_edge_style_guide_id_fkey"
+            columns: ["style_guide_id"]
+            isOneToOne: false
+            referencedRelation: "style_guide"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      taxonomy_owner_ruling: {
+        Row: {
+          action_taken: string
+          created_at: string
+          entity_code: string | null
+          entity_id: string | null
+          entity_name: string | null
+          entity_schema: string
+          entity_table: string
+          id: string
+          open_questions: string | null
+          ruled_at: string
+          ruled_by: string
+          ruling: string
+          ruling_evidence: string
+          updated_at: string
+        }
+        Insert: {
+          action_taken: string
+          created_at?: string
+          entity_code?: string | null
+          entity_id?: string | null
+          entity_name?: string | null
+          entity_schema?: string
+          entity_table: string
+          id?: string
+          open_questions?: string | null
+          ruled_at: string
+          ruled_by: string
+          ruling: string
+          ruling_evidence: string
+          updated_at?: string
+        }
+        Update: {
+          action_taken?: string
+          created_at?: string
+          entity_code?: string | null
+          entity_id?: string | null
+          entity_name?: string | null
+          entity_schema?: string
+          entity_table?: string
+          id?: string
+          open_questions?: string | null
+          ruled_at?: string
+          ruled_by?: string
+          ruling?: string
+          ruling_evidence?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       taxonomy_source_ref: {
         Row: {
           confidence: Database["app"]["Enums"]["source_confidence"]
@@ -5984,10 +8227,14 @@ export type Database = {
           entity_id: string
           entity_schema: string
           entity_table: string
+          first_seen_at: string | null
           id: string
+          last_seen_at: string | null
+          missing_since: string | null
           raw: Json
           source_code: string | null
           source_id: string
+          source_licensor_id: string | null
           source_name: string | null
           source_system: string
           source_table: string
@@ -5998,10 +8245,14 @@ export type Database = {
           entity_id: string
           entity_schema?: string
           entity_table: string
+          first_seen_at?: string | null
           id?: string
+          last_seen_at?: string | null
+          missing_since?: string | null
           raw?: Json
           source_code?: string | null
           source_id: string
+          source_licensor_id?: string | null
           source_name?: string | null
           source_system: string
           source_table: string
@@ -6012,15 +8263,27 @@ export type Database = {
           entity_id?: string
           entity_schema?: string
           entity_table?: string
+          first_seen_at?: string | null
           id?: string
+          last_seen_at?: string | null
+          missing_since?: string | null
           raw?: Json
           source_code?: string | null
           source_id?: string
+          source_licensor_id?: string | null
           source_name?: string | null
           source_system?: string
           source_table?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "taxonomy_source_ref_source_licensor_id_fkey"
+            columns: ["source_licensor_id"]
+            isOneToOne: false
+            referencedRelation: "licensor"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       technical_designer: {
         Row: {
@@ -6174,7 +8437,179 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      property_character_associations_current: {
+        Row: {
+          character_id: string | null
+          created_at: string | null
+          is_current: boolean | null
+          property_id: string | null
+          retired_at: string | null
+          retired_reason: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          character_id?: string | null
+          created_at?: string | null
+          is_current?: boolean | null
+          property_id?: string | null
+          retired_at?: string | null
+          retired_reason?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          character_id?: string | null
+          created_at?: string | null
+          is_current?: boolean | null
+          property_id?: string | null
+          retired_at?: string | null
+          retired_reason?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "property_character_associations_character_id_fkey"
+            columns: ["character_id"]
+            isOneToOne: false
+            referencedRelation: "character"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "property_character_associations_property_id_fkey"
+            columns: ["property_id"]
+            isOneToOne: false
+            referencedRelation: "property"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      property_franchise_current: {
+        Row: {
+          created_at: string | null
+          franchise_id: string | null
+          is_current: boolean | null
+          property_id: string | null
+          retired_at: string | null
+          retired_reason: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          franchise_id?: string | null
+          is_current?: boolean | null
+          property_id?: string | null
+          retired_at?: string | null
+          retired_reason?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          franchise_id?: string | null
+          is_current?: boolean | null
+          property_id?: string | null
+          retired_at?: string | null
+          retired_reason?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "property_franchise_franchise_id_fkey"
+            columns: ["franchise_id"]
+            isOneToOne: false
+            referencedRelation: "franchise"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "property_franchise_property_id_fkey"
+            columns: ["property_id"]
+            isOneToOne: false
+            referencedRelation: "property"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      property_style_guide_current: {
+        Row: {
+          created_at: string | null
+          is_current: boolean | null
+          property_id: string | null
+          retired_at: string | null
+          retired_reason: string | null
+          style_guide_id: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          is_current?: boolean | null
+          property_id?: string | null
+          retired_at?: string | null
+          retired_reason?: string | null
+          style_guide_id?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          is_current?: boolean | null
+          property_id?: string | null
+          retired_at?: string | null
+          retired_reason?: string | null
+          style_guide_id?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "property_style_guide_property_id_fkey"
+            columns: ["property_id"]
+            isOneToOne: false
+            referencedRelation: "property"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "property_style_guide_style_guide_id_fkey"
+            columns: ["style_guide_id"]
+            isOneToOne: false
+            referencedRelation: "style_guide"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      style_guide_character_current: {
+        Row: {
+          character_id: string | null
+          created_at: string | null
+          is_current: boolean | null
+          metadata: Json | null
+          retired_at: string | null
+          retired_reason: string | null
+          style_guide_id: string | null
+        }
+        Insert: {
+          character_id?: string | null
+          created_at?: string | null
+          is_current?: boolean | null
+          metadata?: Json | null
+          retired_at?: string | null
+          retired_reason?: string | null
+          style_guide_id?: string | null
+        }
+        Update: {
+          character_id?: string | null
+          created_at?: string | null
+          is_current?: boolean | null
+          metadata?: Json | null
+          retired_at?: string | null
+          retired_reason?: string | null
+          style_guide_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "style_guide_character_style_guide_id_fkey"
+            columns: ["style_guide_id"]
+            isOneToOne: false
+            referencedRelation: "style_guide"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Functions: {
       match_customer: {
@@ -6219,9 +8654,17 @@ export type Database = {
         }
         Returns: undefined
       }
+      refresh_property_submission_name: { Args: never; Returns: number }
+      submission_property_label: {
+        Args: { p_id: string; p_source: string }
+        Returns: string
+      }
     }
     Enums: {
-      [_ in never]: never
+      relationship_evidence_kind:
+        | "direct_source_assertion"
+        | "inferred"
+        | "co_occurrence"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -6274,8 +8717,43 @@ export type Database = {
         }
         Relationships: []
       }
+      contact_ext: {
+        Row: {
+          archived_at: string | null
+          archived_by: string | null
+          contact_id: string
+          created_at: string
+          defunct_at: string | null
+          defunct_by: string | null
+          defunct_reason: string | null
+          updated_at: string
+        }
+        Insert: {
+          archived_at?: string | null
+          archived_by?: string | null
+          contact_id: string
+          created_at?: string
+          defunct_at?: string | null
+          defunct_by?: string | null
+          defunct_reason?: string | null
+          updated_at?: string
+        }
+        Update: {
+          archived_at?: string | null
+          archived_by?: string | null
+          contact_id?: string
+          created_at?: string
+          defunct_at?: string | null
+          defunct_by?: string | null
+          defunct_reason?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       customer_ext: {
         Row: {
+          archived_at: string | null
+          archived_by: string | null
           created_at: string
           customer_id: string
           status: Database["app"]["Enums"]["entity_status"]
@@ -6285,6 +8763,8 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          archived_at?: string | null
+          archived_by?: string | null
           created_at?: string
           customer_id: string
           status?: Database["app"]["Enums"]["entity_status"]
@@ -6294,6 +8774,8 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          archived_at?: string | null
+          archived_by?: string | null
           created_at?: string
           customer_id?: string
           status?: Database["app"]["Enums"]["entity_status"]
@@ -6315,6 +8797,8 @@ export type Database = {
           metadata: Json
           name: string
           primary_contact_id: string | null
+          salesperson_profile_id: string | null
+          secondary_salesperson_profile_id: string | null
           sort_order: number | null
           status: string
           updated_at: string
@@ -6329,6 +8813,8 @@ export type Database = {
           metadata?: Json
           name: string
           primary_contact_id?: string | null
+          salesperson_profile_id?: string | null
+          secondary_salesperson_profile_id?: string | null
           sort_order?: number | null
           status?: string
           updated_at?: string
@@ -6343,6 +8829,8 @@ export type Database = {
           metadata?: Json
           name?: string
           primary_contact_id?: string | null
+          salesperson_profile_id?: string | null
+          secondary_salesperson_profile_id?: string | null
           sort_order?: number | null
           status?: string
           updated_at?: string
@@ -6517,6 +9005,7 @@ export type Database = {
       ingested_domain: {
         Row: {
           created_at: string
+          customer_id: string | null
           display_name: string | null
           domain: string
           email_count: number
@@ -6531,6 +9020,7 @@ export type Database = {
         }
         Insert: {
           created_at?: string
+          customer_id?: string | null
           display_name?: string | null
           domain: string
           email_count?: number
@@ -6545,6 +9035,7 @@ export type Database = {
         }
         Update: {
           created_at?: string
+          customer_id?: string | null
           display_name?: string | null
           domain?: string
           email_count?: number
@@ -7045,6 +9536,10 @@ export type Database = {
         Args: { p_cursor_key: string }
         Returns: Json
       }
+      match_ingested_domain_customer: {
+        Args: { p_domain: string }
+        Returns: string
+      }
       record_ingested_domain: {
         Args: {
           p_display_name?: string
@@ -7054,6 +9549,7 @@ export type Database = {
         }
         Returns: {
           created_at: string
+          customer_id: string | null
           display_name: string | null
           domain: string
           email_count: number
@@ -7145,9 +9641,12 @@ export type Database = {
           file_object_id: string | null
           file_type: string | null
           filename: string | null
+          first_seen_at: string | null
           id: string
+          last_seen_at: string | null
           licensor_id: string | null
           metadata: Json
+          missing_since: string | null
           product_subtype_id: string | null
           property_id: string | null
           relative_path: string | null
@@ -7167,9 +9666,12 @@ export type Database = {
           file_object_id?: string | null
           file_type?: string | null
           filename?: string | null
+          first_seen_at?: string | null
           id?: string
+          last_seen_at?: string | null
           licensor_id?: string | null
           metadata?: Json
+          missing_since?: string | null
           product_subtype_id?: string | null
           property_id?: string | null
           relative_path?: string | null
@@ -7189,9 +9691,12 @@ export type Database = {
           file_object_id?: string | null
           file_type?: string | null
           filename?: string | null
+          first_seen_at?: string | null
           id?: string
+          last_seen_at?: string | null
           licensor_id?: string | null
           metadata?: Json
+          missing_since?: string | null
           product_subtype_id?: string | null
           property_id?: string | null
           relative_path?: string | null
@@ -7206,6 +9711,13 @@ export type Database = {
         }
         Relationships: [
           {
+            foreignKeyName: "asset_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "dam_order_list_customer_directory"
+            referencedColumns: ["customer_id"]
+          },
+          {
             foreignKeyName: "asset_style_group_id_fkey"
             columns: ["style_group_id"]
             isOneToOne: false
@@ -7219,20 +9731,103 @@ export type Database = {
           asset_id: string
           character_id: string
           id: string
+          is_current: boolean
+          retired_at: string | null
+          retired_reason: string | null
         }
         Insert: {
           asset_id: string
           character_id: string
           id?: string
+          is_current?: boolean
+          retired_at?: string | null
+          retired_reason?: string | null
         }
         Update: {
           asset_id?: string
           character_id?: string
           id?: string
+          is_current?: boolean
+          retired_at?: string | null
+          retired_reason?: string | null
         }
         Relationships: [
           {
             foreignKeyName: "asset_character_asset_id_fkey"
+            columns: ["asset_id"]
+            isOneToOne: false
+            referencedRelation: "asset"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      asset_character_source_edge: {
+        Row: {
+          asset_id: string
+          character_id: string
+          confidence: number | null
+          created_at: string
+          created_by: string | null
+          evidence_kind: Database["core"]["Enums"]["relationship_evidence_kind"]
+          id: string
+          is_current: boolean
+          is_direct_source_relationship: boolean | null
+          licensor_id: string
+          metadata: Json
+          observation_count: number
+          source_evidence: string | null
+          source_id: string | null
+          source_system: string
+          superseded_at: string | null
+          superseded_reason: string | null
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          asset_id: string
+          character_id: string
+          confidence?: number | null
+          created_at?: string
+          created_by?: string | null
+          evidence_kind: Database["core"]["Enums"]["relationship_evidence_kind"]
+          id?: string
+          is_current?: boolean
+          is_direct_source_relationship?: boolean | null
+          licensor_id: string
+          metadata?: Json
+          observation_count?: number
+          source_evidence?: string | null
+          source_id?: string | null
+          source_system: string
+          superseded_at?: string | null
+          superseded_reason?: string | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          asset_id?: string
+          character_id?: string
+          confidence?: number | null
+          created_at?: string
+          created_by?: string | null
+          evidence_kind?: Database["core"]["Enums"]["relationship_evidence_kind"]
+          id?: string
+          is_current?: boolean
+          is_direct_source_relationship?: boolean | null
+          licensor_id?: string
+          metadata?: Json
+          observation_count?: number
+          source_evidence?: string | null
+          source_id?: string | null
+          source_system?: string
+          superseded_at?: string | null
+          superseded_reason?: string | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "asset_character_source_edge_asset_id_fkey"
             columns: ["asset_id"]
             isOneToOne: false
             referencedRelation: "asset"
@@ -7288,6 +9883,118 @@ export type Database = {
           },
         ]
       }
+      asset_franchise: {
+        Row: {
+          asset_id: string
+          created_at: string
+          franchise_id: string
+          is_current: boolean
+          retired_at: string | null
+          retired_reason: string | null
+          updated_at: string
+        }
+        Insert: {
+          asset_id: string
+          created_at?: string
+          franchise_id: string
+          is_current?: boolean
+          retired_at?: string | null
+          retired_reason?: string | null
+          updated_at?: string
+        }
+        Update: {
+          asset_id?: string
+          created_at?: string
+          franchise_id?: string
+          is_current?: boolean
+          retired_at?: string | null
+          retired_reason?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "asset_franchise_asset_id_fkey"
+            columns: ["asset_id"]
+            isOneToOne: false
+            referencedRelation: "asset"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      asset_franchise_source_edge: {
+        Row: {
+          asset_id: string
+          confidence: number | null
+          created_at: string
+          created_by: string | null
+          evidence_kind: Database["core"]["Enums"]["relationship_evidence_kind"]
+          franchise_id: string
+          id: string
+          is_current: boolean
+          is_direct_source_relationship: boolean | null
+          licensor_id: string
+          metadata: Json
+          observation_count: number
+          source_evidence: string | null
+          source_id: string | null
+          source_system: string
+          superseded_at: string | null
+          superseded_reason: string | null
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          asset_id: string
+          confidence?: number | null
+          created_at?: string
+          created_by?: string | null
+          evidence_kind: Database["core"]["Enums"]["relationship_evidence_kind"]
+          franchise_id: string
+          id?: string
+          is_current?: boolean
+          is_direct_source_relationship?: boolean | null
+          licensor_id: string
+          metadata?: Json
+          observation_count?: number
+          source_evidence?: string | null
+          source_id?: string | null
+          source_system: string
+          superseded_at?: string | null
+          superseded_reason?: string | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          asset_id?: string
+          confidence?: number | null
+          created_at?: string
+          created_by?: string | null
+          evidence_kind?: Database["core"]["Enums"]["relationship_evidence_kind"]
+          franchise_id?: string
+          id?: string
+          is_current?: boolean
+          is_direct_source_relationship?: boolean | null
+          licensor_id?: string
+          metadata?: Json
+          observation_count?: number
+          source_evidence?: string | null
+          source_id?: string | null
+          source_system?: string
+          superseded_at?: string | null
+          superseded_reason?: string | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "asset_franchise_source_edge_asset_id_fkey"
+            columns: ["asset_id"]
+            isOneToOne: false
+            referencedRelation: "asset"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       asset_path_history: {
         Row: {
           asset_id: string
@@ -7319,6 +10026,230 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "asset_path_history_asset_id_fkey"
+            columns: ["asset_id"]
+            isOneToOne: false
+            referencedRelation: "asset"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      asset_property: {
+        Row: {
+          asset_id: string
+          created_at: string
+          is_current: boolean
+          property_id: string
+          retired_at: string | null
+          retired_reason: string | null
+          updated_at: string
+        }
+        Insert: {
+          asset_id: string
+          created_at?: string
+          is_current?: boolean
+          property_id: string
+          retired_at?: string | null
+          retired_reason?: string | null
+          updated_at?: string
+        }
+        Update: {
+          asset_id?: string
+          created_at?: string
+          is_current?: boolean
+          property_id?: string
+          retired_at?: string | null
+          retired_reason?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "asset_property_asset_id_fkey"
+            columns: ["asset_id"]
+            isOneToOne: false
+            referencedRelation: "asset"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      asset_property_source_edge: {
+        Row: {
+          asset_id: string
+          confidence: number | null
+          created_at: string
+          created_by: string | null
+          evidence_kind: Database["core"]["Enums"]["relationship_evidence_kind"]
+          id: string
+          is_current: boolean
+          is_direct_source_relationship: boolean | null
+          licensor_id: string
+          metadata: Json
+          observation_count: number
+          property_id: string
+          source_evidence: string | null
+          source_id: string | null
+          source_system: string
+          superseded_at: string | null
+          superseded_reason: string | null
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          asset_id: string
+          confidence?: number | null
+          created_at?: string
+          created_by?: string | null
+          evidence_kind: Database["core"]["Enums"]["relationship_evidence_kind"]
+          id?: string
+          is_current?: boolean
+          is_direct_source_relationship?: boolean | null
+          licensor_id: string
+          metadata?: Json
+          observation_count?: number
+          property_id: string
+          source_evidence?: string | null
+          source_id?: string | null
+          source_system: string
+          superseded_at?: string | null
+          superseded_reason?: string | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          asset_id?: string
+          confidence?: number | null
+          created_at?: string
+          created_by?: string | null
+          evidence_kind?: Database["core"]["Enums"]["relationship_evidence_kind"]
+          id?: string
+          is_current?: boolean
+          is_direct_source_relationship?: boolean | null
+          licensor_id?: string
+          metadata?: Json
+          observation_count?: number
+          property_id?: string
+          source_evidence?: string | null
+          source_id?: string | null
+          source_system?: string
+          superseded_at?: string | null
+          superseded_reason?: string | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "asset_property_source_edge_asset_id_fkey"
+            columns: ["asset_id"]
+            isOneToOne: false
+            referencedRelation: "asset"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      asset_style_guide: {
+        Row: {
+          asset_id: string
+          created_at: string
+          is_current: boolean
+          retired_at: string | null
+          retired_reason: string | null
+          style_guide_id: string
+          updated_at: string
+        }
+        Insert: {
+          asset_id: string
+          created_at?: string
+          is_current?: boolean
+          retired_at?: string | null
+          retired_reason?: string | null
+          style_guide_id: string
+          updated_at?: string
+        }
+        Update: {
+          asset_id?: string
+          created_at?: string
+          is_current?: boolean
+          retired_at?: string | null
+          retired_reason?: string | null
+          style_guide_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "asset_style_guide_asset_id_fkey"
+            columns: ["asset_id"]
+            isOneToOne: false
+            referencedRelation: "asset"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      asset_style_guide_source_edge: {
+        Row: {
+          asset_id: string
+          confidence: number | null
+          created_at: string
+          created_by: string | null
+          evidence_kind: Database["core"]["Enums"]["relationship_evidence_kind"]
+          id: string
+          is_current: boolean
+          is_direct_source_relationship: boolean | null
+          licensor_id: string
+          metadata: Json
+          observation_count: number
+          source_evidence: string | null
+          source_id: string | null
+          source_system: string
+          style_guide_id: string
+          superseded_at: string | null
+          superseded_reason: string | null
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          asset_id: string
+          confidence?: number | null
+          created_at?: string
+          created_by?: string | null
+          evidence_kind: Database["core"]["Enums"]["relationship_evidence_kind"]
+          id?: string
+          is_current?: boolean
+          is_direct_source_relationship?: boolean | null
+          licensor_id: string
+          metadata?: Json
+          observation_count?: number
+          source_evidence?: string | null
+          source_id?: string | null
+          source_system: string
+          style_guide_id: string
+          superseded_at?: string | null
+          superseded_reason?: string | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          asset_id?: string
+          confidence?: number | null
+          created_at?: string
+          created_by?: string | null
+          evidence_kind?: Database["core"]["Enums"]["relationship_evidence_kind"]
+          id?: string
+          is_current?: boolean
+          is_direct_source_relationship?: boolean | null
+          licensor_id?: string
+          metadata?: Json
+          observation_count?: number
+          source_evidence?: string | null
+          source_id?: string | null
+          source_system?: string
+          style_guide_id?: string
+          superseded_at?: string | null
+          superseded_reason?: string | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "asset_style_guide_source_edge_asset_id_fkey"
             columns: ["asset_id"]
             isOneToOne: false
             referencedRelation: "asset"
@@ -7389,6 +10320,44 @@ export type Database = {
           status_reason?: string | null
           updated_at?: string
         }
+        Relationships: [
+          {
+            foreignKeyName: "customer_ext_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: true
+            referencedRelation: "dam_order_list_customer_directory"
+            referencedColumns: ["customer_id"]
+          },
+        ]
+      }
+      dam_asset_image_vectors: {
+        Row: {
+          asset_id: string
+          border_cropped: boolean
+          computed_at: string
+          embedding_model: string
+          last_embedded_thumbnail_url: string
+          vec_dino: unknown
+          vec_siglip: unknown
+        }
+        Insert: {
+          asset_id: string
+          border_cropped?: boolean
+          computed_at?: string
+          embedding_model: string
+          last_embedded_thumbnail_url: string
+          vec_dino?: unknown
+          vec_siglip?: unknown
+        }
+        Update: {
+          asset_id?: string
+          border_cropped?: boolean
+          computed_at?: string
+          embedding_model?: string
+          last_embedded_thumbnail_url?: string
+          vec_dino?: unknown
+          vec_siglip?: unknown
+        }
         Relationships: []
       }
       erp_item_snapshot: {
@@ -7452,6 +10421,47 @@ export type Database = {
           status_reason?: string | null
           updated_at?: string
         }
+        Relationships: [
+          {
+            foreignKeyName: "factory_ext_factory_id_fkey"
+            columns: ["factory_id"]
+            isOneToOne: true
+            referencedRelation: "dam_order_list_vendor_directory"
+            referencedColumns: ["vendor_id"]
+          },
+        ]
+      }
+      folder_rename_log: {
+        Row: {
+          batch_id: string
+          id: number
+          new_path: string
+          old_path: string
+          renamed_at: string
+          reverted_at: string | null
+          rule: string
+          share: string
+        }
+        Insert: {
+          batch_id: string
+          id?: never
+          new_path: string
+          old_path: string
+          renamed_at: string
+          reverted_at?: string | null
+          rule: string
+          share?: string
+        }
+        Update: {
+          batch_id?: string
+          id?: never
+          new_path?: string
+          old_path?: string
+          renamed_at?: string
+          reverted_at?: string | null
+          rule?: string
+          share?: string
+        }
         Relationships: []
       }
       helper_device: {
@@ -7484,6 +10494,242 @@ export type Database = {
           paired_profile_id?: string | null
           status?: string
           updated_at?: string
+        }
+        Relationships: []
+      }
+      image_embed_jobs: {
+        Row: {
+          asset_id: string | null
+          attempts: number
+          created_at: string
+          error: string | null
+          id: string
+          kind: string
+          lease_expires_at: string | null
+          lease_owner: string | null
+          payload: string | null
+          result_dino: unknown
+          result_siglip: unknown
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          asset_id?: string | null
+          attempts?: number
+          created_at?: string
+          error?: string | null
+          id?: string
+          kind: string
+          lease_expires_at?: string | null
+          lease_owner?: string | null
+          payload?: string | null
+          result_dino?: unknown
+          result_siglip?: unknown
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          asset_id?: string | null
+          attempts?: number
+          created_at?: string
+          error?: string | null
+          id?: string
+          kind?: string
+          lease_expires_at?: string | null
+          lease_owner?: string | null
+          payload?: string | null
+          result_dino?: unknown
+          result_siglip?: unknown
+          status?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      image_embed_worker_heartbeat: {
+        Row: {
+          seen_at: string
+          worker_id: string
+        }
+        Insert: {
+          seen_at: string
+          worker_id: string
+        }
+        Update: {
+          seen_at?: string
+          worker_id?: string
+        }
+        Relationships: []
+      }
+      order_buy_sheet_import: {
+        Row: {
+          customer_id: string
+          file_name: string | null
+          file_sha256: string
+          id: string
+          imported_at: string
+          imported_by: string
+          order_numbers: Json
+          parsed_lines: Json
+          raw_sheet: Json
+          result: Json
+        }
+        Insert: {
+          customer_id: string
+          file_name?: string | null
+          file_sha256: string
+          id?: string
+          imported_at?: string
+          imported_by: string
+          order_numbers?: Json
+          parsed_lines: Json
+          raw_sheet: Json
+          result: Json
+        }
+        Update: {
+          customer_id?: string
+          file_name?: string | null
+          file_sha256?: string
+          id?: string
+          imported_at?: string
+          imported_by?: string
+          order_numbers?: Json
+          parsed_lines?: Json
+          raw_sheet?: Json
+          result?: Json
+        }
+        Relationships: []
+      }
+      order_tracking_ext: {
+        Row: {
+          agent: string | null
+          cbm: number | null
+          comment: string | null
+          crd_override_set: boolean
+          document_bill_of_lading: boolean | null
+          document_invoice: boolean | null
+          document_lacey_act: boolean | null
+          document_packing_list: boolean | null
+          document_telex: boolean | null
+          document_tsca: boolean | null
+          eta_override_set: boolean
+          inspection_note: string | null
+          inspection_passed: string | null
+          order_id: string
+          payment_note: string | null
+          request_wire: boolean | null
+          sent_to_coldlion: boolean | null
+          updated_at: string
+          updated_by: string | null
+          vessel: string | null
+          worksheet_done: boolean | null
+        }
+        Insert: {
+          agent?: string | null
+          cbm?: number | null
+          comment?: string | null
+          crd_override_set?: boolean
+          document_bill_of_lading?: boolean | null
+          document_invoice?: boolean | null
+          document_lacey_act?: boolean | null
+          document_packing_list?: boolean | null
+          document_telex?: boolean | null
+          document_tsca?: boolean | null
+          eta_override_set?: boolean
+          inspection_note?: string | null
+          inspection_passed?: string | null
+          order_id: string
+          payment_note?: string | null
+          request_wire?: boolean | null
+          sent_to_coldlion?: boolean | null
+          updated_at?: string
+          updated_by?: string | null
+          vessel?: string | null
+          worksheet_done?: boolean | null
+        }
+        Update: {
+          agent?: string | null
+          cbm?: number | null
+          comment?: string | null
+          crd_override_set?: boolean
+          document_bill_of_lading?: boolean | null
+          document_invoice?: boolean | null
+          document_lacey_act?: boolean | null
+          document_packing_list?: boolean | null
+          document_telex?: boolean | null
+          document_tsca?: boolean | null
+          eta_override_set?: boolean
+          inspection_note?: string | null
+          inspection_passed?: string | null
+          order_id?: string
+          payment_note?: string | null
+          request_wire?: boolean | null
+          sent_to_coldlion?: boolean | null
+          updated_at?: string
+          updated_by?: string | null
+          vessel?: string | null
+          worksheet_done?: boolean | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "order_tracking_ext_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: true
+            referencedRelation: "dam_order_tracking"
+            referencedColumns: ["order_id"]
+          },
+        ]
+      }
+      orderlist_customer_settings: {
+        Row: {
+          customer_normalized: string
+          suffix: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          customer_normalized: string
+          suffix: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          customer_normalized?: string
+          suffix?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
+      orderlist_sample_depth: {
+        Row: {
+          customer_normalized: string
+          depth_inches: number | null
+          depth_raw: string | null
+          sku_normalized: string
+          source_row_number: number | null
+          source_workbook_id: string | null
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          customer_normalized: string
+          depth_inches?: number | null
+          depth_raw?: string | null
+          sku_normalized: string
+          source_row_number?: number | null
+          source_workbook_id?: string | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          customer_normalized?: string
+          depth_inches?: number | null
+          depth_raw?: string | null
+          sku_normalized?: string
+          source_row_number?: number | null
+          source_workbook_id?: string | null
+          updated_at?: string
+          updated_by?: string | null
         }
         Relationships: []
       }
@@ -7698,6 +10944,144 @@ export type Database = {
         }
         Relationships: []
       }
+      search_embedding_last_write: {
+        Row: {
+          corpus: string
+          created_at: string
+          last_write: string | null
+        }
+        Insert: {
+          corpus: string
+          created_at?: string
+          last_write?: string | null
+        }
+        Update: {
+          corpus?: string
+          created_at?: string
+          last_write?: string | null
+        }
+        Relationships: []
+      }
+      search_group_vectors: {
+        Row: {
+          asset_id: string | null
+          document_type: string
+          embedding: string
+          embedding_model: string | null
+          entity_id: string
+          style_group_id: string | null
+        }
+        Insert: {
+          asset_id?: string | null
+          document_type?: string
+          embedding: string
+          embedding_model?: string | null
+          entity_id: string
+          style_group_id?: string | null
+        }
+        Update: {
+          asset_id?: string | null
+          document_type?: string
+          embedding?: string
+          embedding_model?: string | null
+          entity_id?: string
+          style_group_id?: string | null
+        }
+        Relationships: []
+      }
+      search_text_embed_jobs: {
+        Row: {
+          attempts: number
+          document_type: string
+          enqueued_at: string
+          entity_id: string
+          error: string | null
+          error_category: string | null
+          input_sha256: string | null
+          lease_expires_at: string | null
+          lease_owner: string | null
+          lease_token: string | null
+          max_attempts: number
+          next_retry_at: string | null
+        }
+        Insert: {
+          attempts?: number
+          document_type: string
+          enqueued_at?: string
+          entity_id: string
+          error?: string | null
+          error_category?: string | null
+          input_sha256?: string | null
+          lease_expires_at?: string | null
+          lease_owner?: string | null
+          lease_token?: string | null
+          max_attempts?: number
+          next_retry_at?: string | null
+        }
+        Update: {
+          attempts?: number
+          document_type?: string
+          enqueued_at?: string
+          entity_id?: string
+          error?: string | null
+          error_category?: string | null
+          input_sha256?: string | null
+          lease_expires_at?: string | null
+          lease_owner?: string | null
+          lease_token?: string | null
+          max_attempts?: number
+          next_retry_at?: string | null
+        }
+        Relationships: []
+      }
+      search_text_seed_state: {
+        Row: {
+          document_type: string
+          done: boolean
+          last_entity_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          document_type: string
+          done?: boolean
+          last_entity_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          document_type?: string
+          done?: boolean
+          last_entity_id?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      search_text_vectors: {
+        Row: {
+          document_type: string
+          embedded_at: string
+          embedding: unknown
+          entity_id: string
+          input_sha256: string
+          model: string
+        }
+        Insert: {
+          document_type: string
+          embedded_at?: string
+          embedding: unknown
+          entity_id: string
+          input_sha256: string
+          model: string
+        }
+        Update: {
+          document_type?: string
+          embedded_at?: string
+          embedding?: unknown
+          entity_id?: string
+          input_sha256?: string
+          model?: string
+        }
+        Relationships: []
+      }
       sku_human_description: {
         Row: {
           description: string
@@ -7823,6 +11207,13 @@ export type Database = {
             referencedRelation: "asset"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "style_group_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "dam_order_list_customer_directory"
+            referencedColumns: ["customer_id"]
+          },
         ]
       }
       style_guide_file: {
@@ -7831,6 +11222,7 @@ export type Database = {
           created_at: string
           file_object_id: string | null
           folder: string | null
+          has_talent_likeness: boolean | null
           id: string
           licensor_id: string | null
           metadata: Json
@@ -7839,6 +11231,7 @@ export type Database = {
           source_id: string | null
           source_system: string | null
           status: string | null
+          style_guide_id: string | null
           title: string | null
           updated_at: string
         }
@@ -7847,6 +11240,7 @@ export type Database = {
           created_at?: string
           file_object_id?: string | null
           folder?: string | null
+          has_talent_likeness?: boolean | null
           id?: string
           licensor_id?: string | null
           metadata?: Json
@@ -7855,6 +11249,7 @@ export type Database = {
           source_id?: string | null
           source_system?: string | null
           status?: string | null
+          style_guide_id?: string | null
           title?: string | null
           updated_at?: string
         }
@@ -7863,6 +11258,7 @@ export type Database = {
           created_at?: string
           file_object_id?: string | null
           folder?: string | null
+          has_talent_likeness?: boolean | null
           id?: string
           licensor_id?: string | null
           metadata?: Json
@@ -7871,17 +11267,421 @@ export type Database = {
           source_id?: string | null
           source_system?: string | null
           status?: string | null
+          style_guide_id?: string | null
           title?: string | null
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "style_guide_file_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "dam_order_list_customer_directory"
+            referencedColumns: ["customer_id"]
+          },
+        ]
       }
     }
     Views: {
-      [_ in never]: never
+      asset_character_current: {
+        Row: {
+          asset_id: string | null
+          character_id: string | null
+          id: string | null
+          is_current: boolean | null
+          retired_at: string | null
+          retired_reason: string | null
+        }
+        Insert: {
+          asset_id?: string | null
+          character_id?: string | null
+          id?: string | null
+          is_current?: boolean | null
+          retired_at?: string | null
+          retired_reason?: string | null
+        }
+        Update: {
+          asset_id?: string | null
+          character_id?: string | null
+          id?: string | null
+          is_current?: boolean | null
+          retired_at?: string | null
+          retired_reason?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "asset_character_asset_id_fkey"
+            columns: ["asset_id"]
+            isOneToOne: false
+            referencedRelation: "asset"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      asset_franchise_current: {
+        Row: {
+          asset_id: string | null
+          created_at: string | null
+          franchise_id: string | null
+          is_current: boolean | null
+          retired_at: string | null
+          retired_reason: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          asset_id?: string | null
+          created_at?: string | null
+          franchise_id?: string | null
+          is_current?: boolean | null
+          retired_at?: string | null
+          retired_reason?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          asset_id?: string | null
+          created_at?: string | null
+          franchise_id?: string | null
+          is_current?: boolean | null
+          retired_at?: string | null
+          retired_reason?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "asset_franchise_asset_id_fkey"
+            columns: ["asset_id"]
+            isOneToOne: false
+            referencedRelation: "asset"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      asset_property_current: {
+        Row: {
+          asset_id: string | null
+          created_at: string | null
+          is_current: boolean | null
+          property_id: string | null
+          retired_at: string | null
+          retired_reason: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          asset_id?: string | null
+          created_at?: string | null
+          is_current?: boolean | null
+          property_id?: string | null
+          retired_at?: string | null
+          retired_reason?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          asset_id?: string | null
+          created_at?: string | null
+          is_current?: boolean | null
+          property_id?: string | null
+          retired_at?: string | null
+          retired_reason?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "asset_property_asset_id_fkey"
+            columns: ["asset_id"]
+            isOneToOne: false
+            referencedRelation: "asset"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      asset_style_guide_current: {
+        Row: {
+          asset_id: string | null
+          created_at: string | null
+          is_current: boolean | null
+          retired_at: string | null
+          retired_reason: string | null
+          style_guide_id: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          asset_id?: string | null
+          created_at?: string | null
+          is_current?: boolean | null
+          retired_at?: string | null
+          retired_reason?: string | null
+          style_guide_id?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          asset_id?: string | null
+          created_at?: string | null
+          is_current?: boolean | null
+          retired_at?: string | null
+          retired_reason?: string | null
+          style_guide_id?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "asset_style_guide_asset_id_fkey"
+            columns: ["asset_id"]
+            isOneToOne: false
+            referencedRelation: "asset"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      dam_order_list_customer_directory: {
+        Row: {
+          customer_id: string | null
+          customer_name: string | null
+        }
+        Insert: {
+          customer_id?: string | null
+          customer_name?: string | null
+        }
+        Update: {
+          customer_id?: string | null
+          customer_name?: string | null
+        }
+        Relationships: []
+      }
+      dam_order_list_vendor_directory: {
+        Row: {
+          vendor_id: string | null
+          vendor_name: string | null
+        }
+        Insert: {
+          vendor_id?: string | null
+          vendor_name?: string | null
+        }
+        Update: {
+          vendor_id?: string | null
+          vendor_name?: string | null
+        }
+        Relationships: []
+      }
+      dam_order_tracking: {
+        Row: {
+          agent: string | null
+          booking_state: string | null
+          booking_string: string | null
+          cancel_date: string | null
+          cargo_forecast_date: string | null
+          cbm: number | null
+          close_tracking: boolean | null
+          comment: string | null
+          company_id: string | null
+          components: Json | null
+          container_booking_group: string | null
+          customer_name: string | null
+          customer_po_number: string | null
+          customer_suffix: string | null
+          days_delay: number | null
+          days_delay_status: string | null
+          document_bill_of_lading: boolean | null
+          document_invoice: boolean | null
+          document_lacey_act: boolean | null
+          document_packing_list: boolean | null
+          document_telex: boolean | null
+          document_tsca: boolean | null
+          eta: string | null
+          etd: string | null
+          factory_id: string | null
+          inspection_note: string | null
+          inspection_passed: string | null
+          invalid_case_lines: number | null
+          line_count: number | null
+          mbl: string | null
+          missing_photos: number | null
+          missing_test_reports: number | null
+          order_date: string | null
+          order_id: string | null
+          order_type: string | null
+          order_voided_at: string | null
+          payment_note: string | null
+          production_order_number: string | null
+          request_wire: boolean | null
+          seal_container_forecast: string | null
+          seal_container_forecast_status: string | null
+          sent_po_date: string | null
+          sent_to_coldlion: boolean | null
+          start_ship_date: string | null
+          svn_number: string | null
+          total_cases: number | null
+          tracking_updated_at: string | null
+          unknown_case_groups: number | null
+          unresolved_product_lines: number | null
+          vendor_delivery_date: string | null
+          vendor_name: string | null
+          vessel: string | null
+          warehouse_date: string | null
+          worksheet_days_remaining: number | null
+          worksheet_done: boolean | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "production_order_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "dam_order_list_customer_directory"
+            referencedColumns: ["customer_id"]
+          },
+          {
+            foreignKeyName: "production_order_factory_id_fkey"
+            columns: ["factory_id"]
+            isOneToOne: false
+            referencedRelation: "dam_order_list_vendor_directory"
+            referencedColumns: ["vendor_id"]
+          },
+        ]
+      }
     }
     Functions: {
+      claim_image_embed_jobs: {
+        Args: {
+          p_kind: string
+          p_lease_seconds: number
+          p_limit: number
+          p_worker_id: string
+        }
+        Returns: {
+          asset_id: string | null
+          attempts: number
+          created_at: string
+          error: string | null
+          id: string
+          kind: string
+          lease_expires_at: string | null
+          lease_owner: string | null
+          payload: string | null
+          result_dino: unknown
+          result_siglip: unknown
+          status: string
+          updated_at: string
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "image_embed_jobs"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
+      complete_image_embed_job: {
+        Args: {
+          p_border_cropped: boolean
+          p_embedding_model: string
+          p_id: string
+          p_result_dino: unknown
+          p_result_siglip: unknown
+          p_thumbnail_url: string
+        }
+        Returns: undefined
+      }
+      enqueue_image_embed_index_job: {
+        Args: { p_asset_id: string }
+        Returns: undefined
+      }
+      fail_image_embed_job: {
+        Args: { p_error: string; p_id: string; p_permanent?: boolean }
+        Returns: undefined
+      }
+      get_image_embed_asset_thumbnails: {
+        Args: { p_asset_ids: string[] }
+        Returns: {
+          asset_id: string
+          is_deleted: boolean
+          thumbnail_url: string
+        }[]
+      }
+      image_embed_enabled: { Args: never; Returns: boolean }
+      image_embed_purge_jobs: { Args: never; Returns: number }
+      image_embed_worker_heartbeat: {
+        Args: { p_worker_id: string }
+        Returns: undefined
+      }
+      image_embed_workers_fresh: {
+        Args: { p_stale_seconds?: number }
+        Returns: boolean
+      }
       jsonb_leaf_text: { Args: { p: Json }; Returns: string }
+      orderlist_cargo_forecast: {
+        Args: { p_ship_to: string; p_start: string; p_type: string }
+        Returns: string
+      }
+      orderlist_license_status: {
+        Args: { p_discontinued: boolean; p_row: Json }
+        Returns: string
+      }
+      orderlist_parse_boolean: { Args: { p_value: string }; Returns: boolean }
+      orderlist_parse_number: { Args: { p_value: string }; Returns: number }
+      orderlist_po_status: {
+        Args: {
+          p_assortment: string
+          p_booking: string
+          p_closed: boolean
+          p_delivery: string
+          p_etd: string
+          p_pack: number
+          p_po: string
+          p_qty: number
+          p_sent: string
+          p_style: string
+          p_type: string
+        }
+        Returns: string
+      }
+      orderlist_product_facts: {
+        Args: { p_catalog: string; p_item_id: string }
+        Returns: {
+          facts: Json
+        }[]
+      }
+      orderlist_sales_order_received_date: {
+        Args: { p_coldlion_source_id: string }
+        Returns: string
+      }
+      path_as_of: {
+        Args: { p_at: string; p_path: string; p_share: string }
+        Returns: string
+      }
+      path_candidates: {
+        Args: { p_asset_id: string; p_share: string }
+        Returns: string[]
+      }
+      search_embedding_image_provenance: {
+        Args: { p_asset_id: string; p_previous?: Json; p_thumbnail_url: string }
+        Returns: Json
+      }
+      search_embedding_inputs_match: {
+        Args: {
+          p_indexed_at: string
+          p_model: string
+          p_new: Json
+          p_new_text_hash: string
+          p_old: Json
+          p_old_text_hash: string
+          p_vector_at: string
+        }
+        Returns: boolean
+      }
+      search_text_embedding_input: {
+        Args: { p_document_type: string; p_entity_id: string }
+        Returns: string
+      }
+      search_text_embedding_model: { Args: never; Returns: string }
+      upsert_dam_asset_image_vectors: {
+        Args: {
+          p_asset_id: string
+          p_border_cropped: boolean
+          p_embedding_model: string
+          p_last_embedded_thumbnail_url: string
+          p_vec_dino: unknown
+          p_vec_siglip: unknown
+        }
+        Returns: undefined
+      }
     }
     Enums: {
       [_ in never]: never
@@ -8138,6 +11938,185 @@ export type Database = {
   }
   pim: {
     Tables: {
+      ai_activity_triage: {
+        Row: {
+          accepted_at: string | null
+          action_label: string | null
+          attempt_count: number
+          comment_id: string
+          contract_version: string
+          created_at: string
+          created_record_id: string | null
+          created_record_table: string | null
+          dismissed_at: string | null
+          eligibility_id: string
+          error_code: string | null
+          first_impression_at: string | null
+          id: string
+          input_digest: string
+          input_key_version: string
+          lease_acquired_at: string | null
+          lease_expires_at: string | null
+          lease_token_hash: string | null
+          live_comment_id: string | null
+          live_product_id: string | null
+          live_requester_profile_id: string | null
+          model: string
+          product_id: string
+          provider_started_at: string | null
+          request_limit_window_start: string | null
+          requester_profile_id: string
+          result_payload: Json
+          reviewed_at: string | null
+          reviewed_by_profile_id: string | null
+          source_body_revision: number
+          state: string
+          timeout_count: number
+          updated_at: string
+          usage_payload: Json
+        }
+        Insert: {
+          accepted_at?: string | null
+          action_label?: string | null
+          attempt_count?: number
+          comment_id: string
+          contract_version: string
+          created_at?: string
+          created_record_id?: string | null
+          created_record_table?: string | null
+          dismissed_at?: string | null
+          eligibility_id: string
+          error_code?: string | null
+          first_impression_at?: string | null
+          id?: string
+          input_digest: string
+          input_key_version: string
+          lease_acquired_at?: string | null
+          lease_expires_at?: string | null
+          lease_token_hash?: string | null
+          live_comment_id?: string | null
+          live_product_id?: string | null
+          live_requester_profile_id?: string | null
+          model: string
+          product_id: string
+          provider_started_at?: string | null
+          request_limit_window_start?: string | null
+          requester_profile_id: string
+          result_payload?: Json
+          reviewed_at?: string | null
+          reviewed_by_profile_id?: string | null
+          source_body_revision: number
+          state?: string
+          timeout_count?: number
+          updated_at?: string
+          usage_payload?: Json
+        }
+        Update: {
+          accepted_at?: string | null
+          action_label?: string | null
+          attempt_count?: number
+          comment_id?: string
+          contract_version?: string
+          created_at?: string
+          created_record_id?: string | null
+          created_record_table?: string | null
+          dismissed_at?: string | null
+          eligibility_id?: string
+          error_code?: string | null
+          first_impression_at?: string | null
+          id?: string
+          input_digest?: string
+          input_key_version?: string
+          lease_acquired_at?: string | null
+          lease_expires_at?: string | null
+          lease_token_hash?: string | null
+          live_comment_id?: string | null
+          live_product_id?: string | null
+          live_requester_profile_id?: string | null
+          model?: string
+          product_id?: string
+          provider_started_at?: string | null
+          request_limit_window_start?: string | null
+          requester_profile_id?: string
+          result_payload?: Json
+          reviewed_at?: string | null
+          reviewed_by_profile_id?: string | null
+          source_body_revision?: number
+          state?: string
+          timeout_count?: number
+          updated_at?: string
+          usage_payload?: Json
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_activity_triage_live_product_id_fkey"
+            columns: ["live_product_id"]
+            isOneToOne: false
+            referencedRelation: "product"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ai_activity_triage_eligibility: {
+        Row: {
+          canceled_at: string | null
+          client_operation_id: string
+          cohort: string
+          comment_id: string | null
+          created_at: string
+          eligibility_state: string
+          eligibility_version: number
+          expires_at: string
+          id: string
+          product_id: string
+          recovery_handle_mac: string | null
+          requester_profile_id: string
+          reservation_token_hash: string | null
+          reserved_at: string
+          source_body_revision: number
+          submitted_at: string | null
+          updated_at: string
+        }
+        Insert: {
+          canceled_at?: string | null
+          client_operation_id: string
+          cohort?: string
+          comment_id?: string | null
+          created_at?: string
+          eligibility_state?: string
+          eligibility_version?: number
+          expires_at?: string
+          id?: string
+          product_id: string
+          recovery_handle_mac?: string | null
+          requester_profile_id: string
+          reservation_token_hash?: string | null
+          reserved_at?: string
+          source_body_revision: number
+          submitted_at?: string | null
+          updated_at?: string
+        }
+        Update: {
+          canceled_at?: string | null
+          client_operation_id?: string
+          cohort?: string
+          comment_id?: string | null
+          created_at?: string
+          eligibility_state?: string
+          eligibility_version?: number
+          expires_at?: string
+          id?: string
+          product_id?: string
+          recovery_handle_mac?: string | null
+          requester_profile_id?: string
+          reservation_token_hash?: string | null
+          reserved_at?: string
+          source_body_revision?: number
+          submitted_at?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       checklist_item: {
         Row: {
           created_at: string
@@ -9285,9 +13264,81 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      coldlion_item_image_metadata: {
+        Row: {
+          color_code: string | null
+          company_code: string | null
+          division_code: string | null
+          erp_created_at: string | null
+          erp_updated_at: string | null
+          file_name: string | null
+          file_type: string | null
+          item_image_desc: string | null
+          item_no: string | null
+          label_code: string | null
+          last_seen_at: string | null
+          pkey: number | null
+          resource_id: number | null
+        }
+        Insert: {
+          color_code?: string | null
+          company_code?: string | null
+          division_code?: string | null
+          erp_created_at?: string | null
+          erp_updated_at?: string | null
+          file_name?: string | null
+          file_type?: string | null
+          item_image_desc?: string | null
+          item_no?: string | null
+          label_code?: string | null
+          last_seen_at?: string | null
+          pkey?: number | null
+          resource_id?: number | null
+        }
+        Update: {
+          color_code?: string | null
+          company_code?: string | null
+          division_code?: string | null
+          erp_created_at?: string | null
+          erp_updated_at?: string | null
+          file_name?: string | null
+          file_type?: string | null
+          item_image_desc?: string | null
+          item_no?: string | null
+          label_code?: string | null
+          last_seen_at?: string | null
+          pkey?: number | null
+          resource_id?: number | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
+      pm_complete_activity_triage_worker: {
+        Args: {
+          p_action_label: string
+          p_error_code: string
+          p_lease_token_hash: string
+          p_result_payload: Json
+          p_triage_id: string
+          p_usage_payload: Json
+        }
+        Returns: string
+      }
+      pm_fail_activity_triage_worker: {
+        Args: {
+          p_error_code: string
+          p_lease_token_hash: string
+          p_triage_id: string
+        }
+        Returns: string
+      }
+      pm_jev_require_admin_pm_writer: { Args: never; Returns: string }
+      pm_validate_comment_body: { Args: { p_body: string }; Returns: string }
+      pm_verify_jev_hmac_envelope: {
+        Args: { p_envelope: Json; p_signature: string }
+        Returns: boolean
+      }
       sync_clickup_tasks: {
         Args: { p_mode?: string; p_snapshot: Json }
         Returns: {
@@ -9362,6 +13413,13 @@ export type Database = {
             columns: ["item_id"]
             isOneToOne: false
             referencedRelation: "item"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "art_piece_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: false
+            referencedRelation: "item_missing_attribution"
             referencedColumns: ["id"]
           },
         ]
@@ -9496,6 +13554,905 @@ export type Database = {
             referencedRelation: "item"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "art_piece_item_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: false
+            referencedRelation: "item_missing_attribution"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      coke_approval_comment: {
+        Row: {
+          approval_route_id: string
+          author_label: string | null
+          body: string | null
+          capture_id: string
+          comment_source_key: string
+          identity_method: string
+          posted_at_text: string | null
+          raw: Json
+          source_sequence: number | null
+          visibility_label: string | null
+        }
+        Insert: {
+          approval_route_id: string
+          author_label?: string | null
+          body?: string | null
+          capture_id: string
+          comment_source_key: string
+          identity_method?: string
+          posted_at_text?: string | null
+          raw: Json
+          source_sequence?: number | null
+          visibility_label?: string | null
+        }
+        Update: {
+          approval_route_id?: string
+          author_label?: string | null
+          body?: string | null
+          capture_id?: string
+          comment_source_key?: string
+          identity_method?: string
+          posted_at_text?: string | null
+          raw?: Json
+          source_sequence?: number | null
+          visibility_label?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "coke_approval_comment_capture_id_approval_route_id_fkey"
+            columns: ["capture_id", "approval_route_id"]
+            isOneToOne: false
+            referencedRelation: "coke_approval_item"
+            referencedColumns: ["capture_id", "approval_route_id"]
+          },
+        ]
+      }
+      coke_approval_item: {
+        Row: {
+          approval_route_id: string
+          capture_id: string
+          company_label: string | null
+          current_stage: string | null
+          item_id: string
+          item_type: string | null
+          last_action_text: string | null
+          preview_path: string | null
+          raw: Json
+          source_url: string | null
+          status: string | null
+          submitted_text: string | null
+          title: string | null
+          version_count: number | null
+          view_count: number | null
+        }
+        Insert: {
+          approval_route_id: string
+          capture_id: string
+          company_label?: string | null
+          current_stage?: string | null
+          item_id: string
+          item_type?: string | null
+          last_action_text?: string | null
+          preview_path?: string | null
+          raw: Json
+          source_url?: string | null
+          status?: string | null
+          submitted_text?: string | null
+          title?: string | null
+          version_count?: number | null
+          view_count?: number | null
+        }
+        Update: {
+          approval_route_id?: string
+          capture_id?: string
+          company_label?: string | null
+          current_stage?: string | null
+          item_id?: string
+          item_type?: string | null
+          last_action_text?: string | null
+          preview_path?: string | null
+          raw?: Json
+          source_url?: string | null
+          status?: string | null
+          submitted_text?: string | null
+          title?: string | null
+          version_count?: number | null
+          view_count?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "coke_approval_item_capture_id_fkey"
+            columns: ["capture_id"]
+            isOneToOne: false
+            referencedRelation: "coke_capture"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      coke_approval_metadata_value: {
+        Row: {
+          approval_route_id: string
+          capture_id: string
+          field_key: string
+          field_value: string | null
+          ordinal: number
+          raw: Json
+          source_href: string | null
+          value_key: string | null
+        }
+        Insert: {
+          approval_route_id: string
+          capture_id: string
+          field_key: string
+          field_value?: string | null
+          ordinal: number
+          raw: Json
+          source_href?: string | null
+          value_key?: string | null
+        }
+        Update: {
+          approval_route_id?: string
+          capture_id?: string
+          field_key?: string
+          field_value?: string | null
+          ordinal?: number
+          raw?: Json
+          source_href?: string | null
+          value_key?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "coke_approval_metadata_value_capture_id_approval_route_id_fkey"
+            columns: ["capture_id", "approval_route_id"]
+            isOneToOne: false
+            referencedRelation: "coke_approval_item"
+            referencedColumns: ["capture_id", "approval_route_id"]
+          },
+        ]
+      }
+      coke_approval_related_item: {
+        Row: {
+          approval_route_id: string
+          capture_id: string
+          ordinal: number
+          raw: Json
+          related_href: string | null
+          related_label: string | null
+          related_route_id: string | null
+          relationship_truth: string
+        }
+        Insert: {
+          approval_route_id: string
+          capture_id: string
+          ordinal: number
+          raw: Json
+          related_href?: string | null
+          related_label?: string | null
+          related_route_id?: string | null
+          relationship_truth?: string
+        }
+        Update: {
+          approval_route_id?: string
+          capture_id?: string
+          ordinal?: number
+          raw?: Json
+          related_href?: string | null
+          related_label?: string | null
+          related_route_id?: string | null
+          relationship_truth?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "coke_approval_related_item_capture_id_approval_route_id_fkey"
+            columns: ["capture_id", "approval_route_id"]
+            isOneToOne: false
+            referencedRelation: "coke_approval_item"
+            referencedColumns: ["capture_id", "approval_route_id"]
+          },
+        ]
+      }
+      coke_approval_stage_snapshot: {
+        Row: {
+          approval_route_id: string
+          capture_id: string
+          raw: Json
+          stage_date_text: string | null
+          stage_label: string | null
+          stage_ordinal: number
+          stage_status: string | null
+          version_count: number | null
+          view_count: number | null
+        }
+        Insert: {
+          approval_route_id: string
+          capture_id: string
+          raw: Json
+          stage_date_text?: string | null
+          stage_label?: string | null
+          stage_ordinal: number
+          stage_status?: string | null
+          version_count?: number | null
+          view_count?: number | null
+        }
+        Update: {
+          approval_route_id?: string
+          capture_id?: string
+          raw?: Json
+          stage_date_text?: string | null
+          stage_label?: string | null
+          stage_ordinal?: number
+          stage_status?: string | null
+          version_count?: number | null
+          view_count?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "coke_approval_stage_snapshot_capture_id_approval_route_id_fkey"
+            columns: ["capture_id", "approval_route_id"]
+            isOneToOne: false
+            referencedRelation: "coke_approval_item"
+            referencedColumns: ["capture_id", "approval_route_id"]
+          },
+        ]
+      }
+      coke_approval_vocabulary_value: {
+        Row: {
+          approval_route_id: string
+          capture_id: string
+          field_key: string
+          ordinal: number
+          raw: Json
+          relationship_truth: string
+          value_key: string
+          vocabulary_kind: string
+        }
+        Insert: {
+          approval_route_id: string
+          capture_id: string
+          field_key: string
+          ordinal: number
+          raw: Json
+          relationship_truth?: string
+          value_key: string
+          vocabulary_kind: string
+        }
+        Update: {
+          approval_route_id?: string
+          capture_id?: string
+          field_key?: string
+          ordinal?: number
+          raw?: Json
+          relationship_truth?: string
+          value_key?: string
+          vocabulary_kind?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "coke_approval_vocabulary_valu_capture_id_approval_route_id_fkey"
+            columns: ["capture_id", "approval_route_id"]
+            isOneToOne: false
+            referencedRelation: "coke_approval_item"
+            referencedColumns: ["capture_id", "approval_route_id"]
+          },
+          {
+            foreignKeyName: "coke_approval_vocabulary_valu_capture_id_vocabulary_kind_v_fkey"
+            columns: ["capture_id", "vocabulary_kind", "value_key"]
+            isOneToOne: false
+            referencedRelation: "coke_vocabulary_value"
+            referencedColumns: ["capture_id", "vocabulary_kind", "value_key"]
+          },
+        ]
+      }
+      coke_asset: {
+        Row: {
+          asset_id: string
+          asset_name: string | null
+          capture_id: string
+          description: string | null
+          details_path: string | null
+          download_path: string | null
+          file_size_bytes: number | null
+          file_size_display: string | null
+          file_type: string | null
+          page_number: number | null
+          preview_path: string | null
+          raw: Json
+          raw_tag_string: string | null
+          thumbnail_path: string | null
+          uploaded_at_text: string | null
+          uploaded_by_label: string | null
+        }
+        Insert: {
+          asset_id: string
+          asset_name?: string | null
+          capture_id: string
+          description?: string | null
+          details_path?: string | null
+          download_path?: string | null
+          file_size_bytes?: number | null
+          file_size_display?: string | null
+          file_type?: string | null
+          page_number?: number | null
+          preview_path?: string | null
+          raw: Json
+          raw_tag_string?: string | null
+          thumbnail_path?: string | null
+          uploaded_at_text?: string | null
+          uploaded_by_label?: string | null
+        }
+        Update: {
+          asset_id?: string
+          asset_name?: string | null
+          capture_id?: string
+          description?: string | null
+          details_path?: string | null
+          download_path?: string | null
+          file_size_bytes?: number | null
+          file_size_display?: string | null
+          file_type?: string | null
+          page_number?: number | null
+          preview_path?: string | null
+          raw?: Json
+          raw_tag_string?: string | null
+          thumbnail_path?: string | null
+          uploaded_at_text?: string | null
+          uploaded_by_label?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "coke_asset_capture_id_fkey"
+            columns: ["capture_id"]
+            isOneToOne: false
+            referencedRelation: "coke_capture"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      coke_asset_detail_value: {
+        Row: {
+          asset_id: string
+          capture_id: string
+          field_key: string
+          field_value: string | null
+          ordinal: number
+          raw: Json
+        }
+        Insert: {
+          asset_id: string
+          capture_id: string
+          field_key: string
+          field_value?: string | null
+          ordinal: number
+          raw: Json
+        }
+        Update: {
+          asset_id?: string
+          capture_id?: string
+          field_key?: string
+          field_value?: string | null
+          ordinal?: number
+          raw?: Json
+        }
+        Relationships: [
+          {
+            foreignKeyName: "coke_asset_detail_value_capture_id_asset_id_fkey"
+            columns: ["capture_id", "asset_id"]
+            isOneToOne: false
+            referencedRelation: "coke_asset"
+            referencedColumns: ["capture_id", "asset_id"]
+          },
+        ]
+      }
+      coke_asset_property_option: {
+        Row: {
+          capture_id: string
+          classification: string | null
+          classification_status: string
+          exact_label: string
+          option_key: string
+          ordinal: number
+          raw: Json
+          source_field: string
+          source_value: string | null
+        }
+        Insert: {
+          capture_id: string
+          classification?: string | null
+          classification_status?: string
+          exact_label: string
+          option_key: string
+          ordinal: number
+          raw: Json
+          source_field: string
+          source_value?: string | null
+        }
+        Update: {
+          capture_id?: string
+          classification?: string | null
+          classification_status?: string
+          exact_label?: string
+          option_key?: string
+          ordinal?: number
+          raw?: Json
+          source_field?: string
+          source_value?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "coke_asset_property_option_capture_id_fkey"
+            columns: ["capture_id"]
+            isOneToOne: false
+            referencedRelation: "coke_capture"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      coke_asset_tag: {
+        Row: {
+          asset_id: string
+          capture_id: string
+          raw: Json
+          relationship_truth: string
+          source_evidence: string
+          tag_key: string
+        }
+        Insert: {
+          asset_id: string
+          capture_id: string
+          raw: Json
+          relationship_truth?: string
+          source_evidence: string
+          tag_key: string
+        }
+        Update: {
+          asset_id?: string
+          capture_id?: string
+          raw?: Json
+          relationship_truth?: string
+          source_evidence?: string
+          tag_key?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "coke_asset_tag_capture_id_asset_id_fkey"
+            columns: ["capture_id", "asset_id"]
+            isOneToOne: false
+            referencedRelation: "coke_asset"
+            referencedColumns: ["capture_id", "asset_id"]
+          },
+          {
+            foreignKeyName: "coke_asset_tag_capture_id_tag_key_fkey"
+            columns: ["capture_id", "tag_key"]
+            isOneToOne: false
+            referencedRelation: "coke_tag"
+            referencedColumns: ["capture_id", "tag_key"]
+          },
+        ]
+      }
+      coke_capture: {
+        Row: {
+          account_scope: string
+          approval_index_complete: boolean
+          asset_details_complete: boolean
+          asset_index_complete: boolean
+          capture_key: string
+          created_by: string
+          errors: Json
+          expected_counts: Json
+          id: string
+          load_completed_at: string | null
+          load_started_at: string
+          media_downloaded: number
+          observed_counts: Json
+          portal_base_url: string
+          raw_summary: Json
+          source_captured_at: string
+          source_commit_sha: string
+          source_manifest_sha256: string
+          source_repository: string
+          status: string
+        }
+        Insert: {
+          account_scope: string
+          approval_index_complete?: boolean
+          asset_details_complete?: boolean
+          asset_index_complete?: boolean
+          capture_key: string
+          created_by: string
+          errors?: Json
+          expected_counts: Json
+          id: string
+          load_completed_at?: string | null
+          load_started_at?: string
+          media_downloaded?: number
+          observed_counts?: Json
+          portal_base_url: string
+          raw_summary: Json
+          source_captured_at: string
+          source_commit_sha: string
+          source_manifest_sha256: string
+          source_repository: string
+          status?: string
+        }
+        Update: {
+          account_scope?: string
+          approval_index_complete?: boolean
+          asset_details_complete?: boolean
+          asset_index_complete?: boolean
+          capture_key?: string
+          created_by?: string
+          errors?: Json
+          expected_counts?: Json
+          id?: string
+          load_completed_at?: string | null
+          load_started_at?: string
+          media_downloaded?: number
+          observed_counts?: Json
+          portal_base_url?: string
+          raw_summary?: Json
+          source_captured_at?: string
+          source_commit_sha?: string
+          source_manifest_sha256?: string
+          source_repository?: string
+          status?: string
+        }
+        Relationships: []
+      }
+      coke_contract: {
+        Row: {
+          capture_id: string
+          contract_id: string
+          end_date: string | null
+          expiration_display: string | null
+          raw: Json
+          source_path: string | null
+          start_date: string | null
+          status: string | null
+        }
+        Insert: {
+          capture_id: string
+          contract_id: string
+          end_date?: string | null
+          expiration_display?: string | null
+          raw: Json
+          source_path?: string | null
+          start_date?: string | null
+          status?: string | null
+        }
+        Update: {
+          capture_id?: string
+          contract_id?: string
+          end_date?: string | null
+          expiration_display?: string | null
+          raw?: Json
+          source_path?: string | null
+          start_date?: string | null
+          status?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "coke_contract_capture_id_fkey"
+            columns: ["capture_id"]
+            isOneToOne: false
+            referencedRelation: "coke_capture"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      coke_contract_manufacturer: {
+        Row: {
+          capture_id: string
+          contract_id: string
+          exact_name: string
+          expiration_display: string | null
+          manufacturer_id: string
+          raw: Json
+          source_path: string | null
+          status: string | null
+        }
+        Insert: {
+          capture_id: string
+          contract_id: string
+          exact_name: string
+          expiration_display?: string | null
+          manufacturer_id: string
+          raw: Json
+          source_path?: string | null
+          status?: string | null
+        }
+        Update: {
+          capture_id?: string
+          contract_id?: string
+          exact_name?: string
+          expiration_display?: string | null
+          manufacturer_id?: string
+          raw?: Json
+          source_path?: string | null
+          status?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "coke_contract_manufacturer_capture_id_contract_id_fkey"
+            columns: ["capture_id", "contract_id"]
+            isOneToOne: false
+            referencedRelation: "coke_contract"
+            referencedColumns: ["capture_id", "contract_id"]
+          },
+        ]
+      }
+      coke_manufacturer_profile: {
+        Row: {
+          address_line_1: string | null
+          address_line_2: string | null
+          annual_cost_response: string | null
+          approval_route_id: string
+          capture_id: string
+          city: string | null
+          commencement_text: string | null
+          comments: string | null
+          contact_email: string | null
+          contact_name: string | null
+          contact_phone: string | null
+          country: string | null
+          expiration_text: string | null
+          legal_name: string | null
+          licensed_products_text: string | null
+          postal_code: string | null
+          raw: Json
+          region: string | null
+          subcontractor_response: string | null
+          website: string | null
+        }
+        Insert: {
+          address_line_1?: string | null
+          address_line_2?: string | null
+          annual_cost_response?: string | null
+          approval_route_id: string
+          capture_id: string
+          city?: string | null
+          commencement_text?: string | null
+          comments?: string | null
+          contact_email?: string | null
+          contact_name?: string | null
+          contact_phone?: string | null
+          country?: string | null
+          expiration_text?: string | null
+          legal_name?: string | null
+          licensed_products_text?: string | null
+          postal_code?: string | null
+          raw: Json
+          region?: string | null
+          subcontractor_response?: string | null
+          website?: string | null
+        }
+        Update: {
+          address_line_1?: string | null
+          address_line_2?: string | null
+          annual_cost_response?: string | null
+          approval_route_id?: string
+          capture_id?: string
+          city?: string | null
+          commencement_text?: string | null
+          comments?: string | null
+          contact_email?: string | null
+          contact_name?: string | null
+          contact_phone?: string | null
+          country?: string | null
+          expiration_text?: string | null
+          legal_name?: string | null
+          licensed_products_text?: string | null
+          postal_code?: string | null
+          raw?: Json
+          region?: string | null
+          subcontractor_response?: string | null
+          website?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "coke_manufacturer_profile_capture_id_approval_route_id_fkey"
+            columns: ["capture_id", "approval_route_id"]
+            isOneToOne: true
+            referencedRelation: "coke_approval_item"
+            referencedColumns: ["capture_id", "approval_route_id"]
+          },
+        ]
+      }
+      coke_royalty_report: {
+        Row: {
+          capture_id: string
+          contract_id: string
+          currency_code: string | null
+          period_label: string | null
+          raw: Json
+          report_source_key: string
+          royalty_amount: number | null
+          royalty_amount_display: string | null
+          source_path: string | null
+          status: string | null
+        }
+        Insert: {
+          capture_id: string
+          contract_id: string
+          currency_code?: string | null
+          period_label?: string | null
+          raw: Json
+          report_source_key: string
+          royalty_amount?: number | null
+          royalty_amount_display?: string | null
+          source_path?: string | null
+          status?: string | null
+        }
+        Update: {
+          capture_id?: string
+          contract_id?: string
+          currency_code?: string | null
+          period_label?: string | null
+          raw?: Json
+          report_source_key?: string
+          royalty_amount?: number | null
+          royalty_amount_display?: string | null
+          source_path?: string | null
+          status?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "coke_royalty_report_capture_id_contract_id_fkey"
+            columns: ["capture_id", "contract_id"]
+            isOneToOne: false
+            referencedRelation: "coke_contract"
+            referencedColumns: ["capture_id", "contract_id"]
+          },
+        ]
+      }
+      coke_sku: {
+        Row: {
+          approval_item_id: string | null
+          capture_id: string
+          deactivation_date: string | null
+          deactivation_reason: string | null
+          primary_property_label: string | null
+          product_label: string | null
+          property_list_raw: string | null
+          raw: Json
+          sku: string | null
+          sku_source_id: string
+          sku_title: string | null
+          source_label: string | null
+        }
+        Insert: {
+          approval_item_id?: string | null
+          capture_id: string
+          deactivation_date?: string | null
+          deactivation_reason?: string | null
+          primary_property_label?: string | null
+          product_label?: string | null
+          property_list_raw?: string | null
+          raw: Json
+          sku?: string | null
+          sku_source_id: string
+          sku_title?: string | null
+          source_label?: string | null
+        }
+        Update: {
+          approval_item_id?: string | null
+          capture_id?: string
+          deactivation_date?: string | null
+          deactivation_reason?: string | null
+          primary_property_label?: string | null
+          product_label?: string | null
+          property_list_raw?: string | null
+          raw?: Json
+          sku?: string | null
+          sku_source_id?: string
+          sku_title?: string | null
+          source_label?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "coke_sku_capture_id_fkey"
+            columns: ["capture_id"]
+            isOneToOne: false
+            referencedRelation: "coke_capture"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      coke_tag: {
+        Row: {
+          capture_id: string
+          exact_label: string
+          identity_method: string
+          raw: Json
+          tag_key: string
+        }
+        Insert: {
+          capture_id: string
+          exact_label: string
+          identity_method: string
+          raw: Json
+          tag_key: string
+        }
+        Update: {
+          capture_id?: string
+          exact_label?: string
+          identity_method?: string
+          raw?: Json
+          tag_key?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "coke_tag_capture_id_fkey"
+            columns: ["capture_id"]
+            isOneToOne: false
+            referencedRelation: "coke_capture"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      coke_vocabulary_value: {
+        Row: {
+          canonical_id: string | null
+          canonical_schema: string | null
+          canonical_table: string | null
+          capture_id: string
+          exact_label: string
+          identity_method: string
+          parent_value_key: string | null
+          raw: Json
+          resolution_status: string
+          source_field: string
+          source_id: string | null
+          value_key: string
+          vocabulary_kind: string
+        }
+        Insert: {
+          canonical_id?: string | null
+          canonical_schema?: string | null
+          canonical_table?: string | null
+          capture_id: string
+          exact_label: string
+          identity_method: string
+          parent_value_key?: string | null
+          raw: Json
+          resolution_status?: string
+          source_field: string
+          source_id?: string | null
+          value_key: string
+          vocabulary_kind: string
+        }
+        Update: {
+          canonical_id?: string | null
+          canonical_schema?: string | null
+          canonical_table?: string | null
+          capture_id?: string
+          exact_label?: string
+          identity_method?: string
+          parent_value_key?: string | null
+          raw?: Json
+          resolution_status?: string
+          source_field?: string
+          source_id?: string | null
+          value_key?: string
+          vocabulary_kind?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "coke_vocabulary_value_capture_id_fkey"
+            columns: ["capture_id"]
+            isOneToOne: false
+            referencedRelation: "coke_capture"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "coke_vocabulary_value_capture_id_vocabulary_kind_parent_va_fkey"
+            columns: ["capture_id", "vocabulary_kind", "parent_value_key"]
+            isOneToOne: false
+            referencedRelation: "coke_vocabulary_value"
+            referencedColumns: ["capture_id", "vocabulary_kind", "value_key"]
+          },
         ]
       }
       coldlion_promotion_audit: {
@@ -9627,6 +14584,30 @@ export type Database = {
         }
         Relationships: []
       }
+      coldlion_property_sync_run: {
+        Row: {
+          applied: boolean
+          counts: Json
+          id: number
+          ran_at: string
+          skipped: Json
+        }
+        Insert: {
+          applied: boolean
+          counts: Json
+          id?: never
+          ran_at?: string
+          skipped?: Json
+        }
+        Update: {
+          applied?: boolean
+          counts?: Json
+          id?: never
+          ran_at?: string
+          skipped?: Json
+        }
+        Relationships: []
+      }
       companyCode: {
         Row: {
           comCode_id: number
@@ -9729,6 +14710,303 @@ export type Database = {
         }
         Relationships: []
       }
+      contract_property: {
+        Row: {
+          capture_id: string
+          exact_property_text: string
+          id: string
+          recorded_at: string
+        }
+        Insert: {
+          capture_id: string
+          exact_property_text: string
+          id?: string
+          recorded_at?: string
+        }
+        Update: {
+          capture_id?: string
+          exact_property_text?: string
+          id?: string
+          recorded_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contract_property_capture_id_fkey"
+            columns: ["capture_id"]
+            isOneToOne: false
+            referencedRelation: "contract_property_capture"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      contract_property_capture: {
+        Row: {
+          captured_at: string
+          controlling_chain_complete: boolean
+          decision_authority: string
+          evidence_date: string
+          id: string
+          licensor_id: string
+          source_identity: string
+        }
+        Insert: {
+          captured_at?: string
+          controlling_chain_complete: boolean
+          decision_authority: string
+          evidence_date: string
+          id?: string
+          licensor_id: string
+          source_identity: string
+        }
+        Update: {
+          captured_at?: string
+          controlling_chain_complete?: boolean
+          decision_authority?: string
+          evidence_date?: string
+          id?: string
+          licensor_id?: string
+          source_identity?: string
+        }
+        Relationships: []
+      }
+      contract_property_document: {
+        Row: {
+          capture_id: string
+          document_sha256: string
+          evidence_identity: string
+          id: string
+          recorded_at: string
+          signature_status: string
+        }
+        Insert: {
+          capture_id: string
+          document_sha256: string
+          evidence_identity: string
+          id?: string
+          recorded_at?: string
+          signature_status: string
+        }
+        Update: {
+          capture_id?: string
+          document_sha256?: string
+          evidence_identity?: string
+          id?: string
+          recorded_at?: string
+          signature_status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contract_property_document_capture_id_fkey"
+            columns: ["capture_id"]
+            isOneToOne: false
+            referencedRelation: "contract_property_capture"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      contract_property_evidence: {
+        Row: {
+          capture_id: string
+          document_id: string
+          id: string
+          page_schedule_locator: string
+          property_id: string
+          recorded_at: string
+        }
+        Insert: {
+          capture_id: string
+          document_id: string
+          id?: string
+          page_schedule_locator: string
+          property_id: string
+          recorded_at?: string
+        }
+        Update: {
+          capture_id?: string
+          document_id?: string
+          id?: string
+          page_schedule_locator?: string
+          property_id?: string
+          recorded_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contract_property_evidence_capture_fkey"
+            columns: ["capture_id"]
+            isOneToOne: false
+            referencedRelation: "contract_property_capture"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contract_property_evidence_document_fkey"
+            columns: ["capture_id", "document_id"]
+            isOneToOne: false
+            referencedRelation: "contract_property_document"
+            referencedColumns: ["capture_id", "id"]
+          },
+          {
+            foreignKeyName: "contract_property_evidence_property_fkey"
+            columns: ["capture_id", "property_id"]
+            isOneToOne: false
+            referencedRelation: "contract_property"
+            referencedColumns: ["capture_id", "id"]
+          },
+        ]
+      }
+      creative_submission_contract_resolution: {
+        Row: {
+          approval_actor_id: string
+          approved_at: string
+          contract_capture_id: string | null
+          contract_property_id: string | null
+          created_at: string
+          decision_state: string
+          decision_version: number
+          resolution_id: string
+          reviewed_batch_digest: string
+          reviewed_batch_id: string
+          submission_source_id: string
+          submission_source_system: string
+          submission_source_table: string
+          supersedes_resolution_id: string | null
+        }
+        Insert: {
+          approval_actor_id: string
+          approved_at: string
+          contract_capture_id?: string | null
+          contract_property_id?: string | null
+          created_at?: string
+          decision_state: string
+          decision_version: number
+          resolution_id?: string
+          reviewed_batch_digest: string
+          reviewed_batch_id: string
+          submission_source_id: string
+          submission_source_system: string
+          submission_source_table: string
+          supersedes_resolution_id?: string | null
+        }
+        Update: {
+          approval_actor_id?: string
+          approved_at?: string
+          contract_capture_id?: string | null
+          contract_property_id?: string | null
+          created_at?: string
+          decision_state?: string
+          decision_version?: number
+          resolution_id?: string
+          reviewed_batch_digest?: string
+          reviewed_batch_id?: string
+          submission_source_id?: string
+          submission_source_system?: string
+          submission_source_table?: string
+          supersedes_resolution_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "creative_submission_contract_reso_supersedes_resolution_id_fkey"
+            columns: ["supersedes_resolution_id"]
+            isOneToOne: true
+            referencedRelation: "creative_submission_contract_resolution"
+            referencedColumns: ["resolution_id"]
+          },
+          {
+            foreignKeyName: "creative_submission_contract_resolution_contract_fk"
+            columns: ["contract_capture_id", "contract_property_id"]
+            isOneToOne: false
+            referencedRelation: "contract_property"
+            referencedColumns: ["capture_id", "id"]
+          },
+        ]
+      }
+      creative_submission_property_resolution_archive: {
+        Row: {
+          approval_actor_id: string
+          approved_at: string
+          created_at: string
+          creative_source_id: string
+          creative_source_system: string
+          creative_source_table: string
+          decision_state: string
+          decision_version: number
+          resolution_id: string
+          reviewed_batch_digest: string
+          reviewed_batch_id: string
+          supersedes_resolution_id: string | null
+        }
+        Insert: {
+          approval_actor_id: string
+          approved_at: string
+          created_at?: string
+          creative_source_id: string
+          creative_source_system: string
+          creative_source_table: string
+          decision_state: string
+          decision_version: number
+          resolution_id: string
+          reviewed_batch_digest: string
+          reviewed_batch_id: string
+          supersedes_resolution_id?: string | null
+        }
+        Update: {
+          approval_actor_id?: string
+          approved_at?: string
+          created_at?: string
+          creative_source_id?: string
+          creative_source_system?: string
+          creative_source_table?: string
+          decision_state?: string
+          decision_version?: number
+          resolution_id?: string
+          reviewed_batch_digest?: string
+          reviewed_batch_id?: string
+          supersedes_resolution_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "creative_submission_property_reso_supersedes_resolution_id_fkey"
+            columns: ["supersedes_resolution_id"]
+            isOneToOne: false
+            referencedRelation: "creative_submission_property_resolution_archive"
+            referencedColumns: ["resolution_id"]
+          },
+        ]
+      }
+      creative_submission_property_resolution_member_archive: {
+        Row: {
+          created_at: string
+          resolution_id: string
+          resolution_member_id: string
+          submission_source_id: string
+          submission_source_system: string
+          submission_source_table: string
+        }
+        Insert: {
+          created_at?: string
+          resolution_id: string
+          resolution_member_id: string
+          submission_source_id: string
+          submission_source_system: string
+          submission_source_table: string
+        }
+        Update: {
+          created_at?: string
+          resolution_id?: string
+          resolution_member_id?: string
+          submission_source_id?: string
+          submission_source_system?: string
+          submission_source_table?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "creative_submission_property_resolution_memb_resolution_id_fkey"
+            columns: ["resolution_id"]
+            isOneToOne: false
+            referencedRelation: "creative_submission_property_resolution_archive"
+            referencedColumns: ["resolution_id"]
+          },
+        ]
+      }
       customer_import: {
         Row: {
           airbyte_customers_hashid: string | null
@@ -9782,6 +15060,1676 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      customs_benchmark_artifact: {
+        Row: {
+          byte_count: number
+          content_sha256: string
+          dataset_id: string
+          media_type: string
+          private_verified: boolean
+          relative_path: string
+          storage_bucket: string
+          storage_endpoint: string
+          storage_key: string
+          structured_content: Json | null
+        }
+        Insert: {
+          byte_count: number
+          content_sha256: string
+          dataset_id: string
+          media_type: string
+          private_verified: boolean
+          relative_path: string
+          storage_bucket: string
+          storage_endpoint: string
+          storage_key: string
+          structured_content?: Json | null
+        }
+        Update: {
+          byte_count?: number
+          content_sha256?: string
+          dataset_id?: string
+          media_type?: string
+          private_verified?: boolean
+          relative_path?: string
+          storage_bucket?: string
+          storage_endpoint?: string
+          storage_key?: string
+          structured_content?: Json | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "customs_benchmark_artifact_dataset_id_fkey"
+            columns: ["dataset_id"]
+            isOneToOne: false
+            referencedRelation: "customs_benchmark_dataset"
+            referencedColumns: ["dataset_id"]
+          },
+        ]
+      }
+      customs_benchmark_dataset: {
+        Row: {
+          authority_context: string
+          authority_scope: string
+          benchmark_name: string
+          dataset_id: string
+          imported_at: string
+          observation_count: number
+          original_intelligence: Json
+          source_byte_count: number
+          source_file_count: number
+          source_manifest: Json
+        }
+        Insert: {
+          authority_context: string
+          authority_scope: string
+          benchmark_name: string
+          dataset_id: string
+          imported_at?: string
+          observation_count: number
+          original_intelligence: Json
+          source_byte_count: number
+          source_file_count: number
+          source_manifest: Json
+        }
+        Update: {
+          authority_context?: string
+          authority_scope?: string
+          benchmark_name?: string
+          dataset_id?: string
+          imported_at?: string
+          observation_count?: number
+          original_intelligence?: Json
+          source_byte_count?: number
+          source_file_count?: number
+          source_manifest?: Json
+        }
+        Relationships: []
+      }
+      customs_benchmark_observation: {
+        Row: {
+          current_law_verified: boolean
+          dataset_id: string
+          evidence_status: string
+          exact_historical_candidate: boolean
+          historical_hts: string | null
+          original_record: Json
+          packet_reference: string | null
+          product_description: string | null
+          product_family: string | null
+          section: string
+          source_ordinal: number
+          style_number: string | null
+        }
+        Insert: {
+          current_law_verified?: boolean
+          dataset_id: string
+          evidence_status: string
+          exact_historical_candidate?: boolean
+          historical_hts?: string | null
+          original_record: Json
+          packet_reference?: string | null
+          product_description?: string | null
+          product_family?: string | null
+          section: string
+          source_ordinal: number
+          style_number?: string | null
+        }
+        Update: {
+          current_law_verified?: boolean
+          dataset_id?: string
+          evidence_status?: string
+          exact_historical_candidate?: boolean
+          historical_hts?: string | null
+          original_record?: Json
+          packet_reference?: string | null
+          product_description?: string | null
+          product_family?: string | null
+          section?: string
+          source_ordinal?: number
+          style_number?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "customs_benchmark_observation_dataset_id_fkey"
+            columns: ["dataset_id"]
+            isOneToOne: false
+            referencedRelation: "customs_benchmark_dataset"
+            referencedColumns: ["dataset_id"]
+          },
+        ]
+      }
+      dcp_asset: {
+        Row: {
+          checksum: string | null
+          content_type: string | null
+          created_at: string
+          file_extension: string | null
+          file_name: string
+          file_size_bytes: number | null
+          first_seen_crawl_id: string | null
+          first_withdrawn_at: string | null
+          id: string
+          last_seen_crawl_id: string | null
+          lifecycle_status: string
+          raw: Json
+          relative_folder_path: string | null
+          sku_sg_file_key: string | null
+          source_asset_id: string | null
+          source_path: string
+          source_system: string
+          style_guide_id: string
+          updated_at: string
+          withdrawn_at: string | null
+        }
+        Insert: {
+          checksum?: string | null
+          content_type?: string | null
+          created_at?: string
+          file_extension?: string | null
+          file_name: string
+          file_size_bytes?: number | null
+          first_seen_crawl_id?: string | null
+          first_withdrawn_at?: string | null
+          id?: string
+          last_seen_crawl_id?: string | null
+          lifecycle_status?: string
+          raw?: Json
+          relative_folder_path?: string | null
+          sku_sg_file_key?: string | null
+          source_asset_id?: string | null
+          source_path: string
+          source_system?: string
+          style_guide_id: string
+          updated_at?: string
+          withdrawn_at?: string | null
+        }
+        Update: {
+          checksum?: string | null
+          content_type?: string | null
+          created_at?: string
+          file_extension?: string | null
+          file_name?: string
+          file_size_bytes?: number | null
+          first_seen_crawl_id?: string | null
+          first_withdrawn_at?: string | null
+          id?: string
+          last_seen_crawl_id?: string | null
+          lifecycle_status?: string
+          raw?: Json
+          relative_folder_path?: string | null
+          sku_sg_file_key?: string | null
+          source_asset_id?: string | null
+          source_path?: string
+          source_system?: string
+          style_guide_id?: string
+          updated_at?: string
+          withdrawn_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "dcp_asset_first_seen_crawl_id_fkey"
+            columns: ["first_seen_crawl_id"]
+            isOneToOne: false
+            referencedRelation: "dcp_crawl"
+            referencedColumns: ["crawl_id"]
+          },
+          {
+            foreignKeyName: "dcp_asset_last_seen_crawl_id_fkey"
+            columns: ["last_seen_crawl_id"]
+            isOneToOne: false
+            referencedRelation: "dcp_crawl"
+            referencedColumns: ["crawl_id"]
+          },
+          {
+            foreignKeyName: "dcp_asset_style_guide_id_fkey"
+            columns: ["style_guide_id"]
+            isOneToOne: false
+            referencedRelation: "dcp_style_guide"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      dcp_asset_character_observation: {
+        Row: {
+          dcp_asset_id: string
+          dcp_character_id: string
+          fetch_status: string
+          metadata_run_id: string
+          observed_at: string
+        }
+        Insert: {
+          dcp_asset_id: string
+          dcp_character_id: string
+          fetch_status?: string
+          metadata_run_id: string
+          observed_at?: string
+        }
+        Update: {
+          dcp_asset_id?: string
+          dcp_character_id?: string
+          fetch_status?: string
+          metadata_run_id?: string
+          observed_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "dcp_asset_character_obs_asset_fk"
+            columns: ["metadata_run_id", "dcp_asset_id", "fetch_status"]
+            isOneToOne: false
+            referencedRelation: "dcp_metadata_asset"
+            referencedColumns: [
+              "metadata_run_id",
+              "dcp_asset_id",
+              "fetch_status",
+            ]
+          },
+          {
+            foreignKeyName: "dcp_asset_character_observation_dcp_character_id_fkey"
+            columns: ["dcp_character_id"]
+            isOneToOne: false
+            referencedRelation: "dcp_character"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      dcp_asset_crawl: {
+        Row: {
+          crawl_id: string
+          dcp_asset_id: string
+          observed_at: string
+          observed_row_hash: string
+        }
+        Insert: {
+          crawl_id: string
+          dcp_asset_id: string
+          observed_at?: string
+          observed_row_hash: string
+        }
+        Update: {
+          crawl_id?: string
+          dcp_asset_id?: string
+          observed_at?: string
+          observed_row_hash?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "dcp_asset_crawl_crawl_id_fkey"
+            columns: ["crawl_id"]
+            isOneToOne: false
+            referencedRelation: "dcp_crawl"
+            referencedColumns: ["crawl_id"]
+          },
+          {
+            foreignKeyName: "dcp_asset_crawl_dcp_asset_id_fkey"
+            columns: ["dcp_asset_id"]
+            isOneToOne: false
+            referencedRelation: "dcp_asset"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      dcp_asset_property_observation: {
+        Row: {
+          dcp_asset_id: string
+          dcp_property_id: string
+          fetch_status: string
+          metadata_run_id: string
+          observed_at: string
+        }
+        Insert: {
+          dcp_asset_id: string
+          dcp_property_id: string
+          fetch_status?: string
+          metadata_run_id: string
+          observed_at?: string
+        }
+        Update: {
+          dcp_asset_id?: string
+          dcp_property_id?: string
+          fetch_status?: string
+          metadata_run_id?: string
+          observed_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "dcp_asset_property_obs_asset_fk"
+            columns: ["metadata_run_id", "dcp_asset_id", "fetch_status"]
+            isOneToOne: false
+            referencedRelation: "dcp_metadata_asset"
+            referencedColumns: [
+              "metadata_run_id",
+              "dcp_asset_id",
+              "fetch_status",
+            ]
+          },
+          {
+            foreignKeyName: "dcp_asset_property_observation_dcp_property_id_fkey"
+            columns: ["dcp_property_id"]
+            isOneToOne: false
+            referencedRelation: "dcp_property"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      dcp_asset_term_observation: {
+        Row: {
+          dcp_asset_id: string
+          dcp_term_id: string
+          fetch_status: string
+          metadata_run_id: string
+          observed_at: string
+        }
+        Insert: {
+          dcp_asset_id: string
+          dcp_term_id: string
+          fetch_status?: string
+          metadata_run_id: string
+          observed_at?: string
+        }
+        Update: {
+          dcp_asset_id?: string
+          dcp_term_id?: string
+          fetch_status?: string
+          metadata_run_id?: string
+          observed_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "dcp_asset_term_obs_asset_fk"
+            columns: ["metadata_run_id", "dcp_asset_id", "fetch_status"]
+            isOneToOne: false
+            referencedRelation: "dcp_metadata_asset"
+            referencedColumns: [
+              "metadata_run_id",
+              "dcp_asset_id",
+              "fetch_status",
+            ]
+          },
+          {
+            foreignKeyName: "dcp_asset_term_observation_dcp_term_id_fkey"
+            columns: ["dcp_term_id"]
+            isOneToOne: false
+            referencedRelation: "dcp_term"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      dcp_asset_tile_observation: {
+        Row: {
+          crawl_id: string
+          crawl_section_id: string | null
+          dcp_asset_id: string
+          link_evidence: string
+          listing_kind: string
+          observed_at: string
+          portal_tile_id: string
+        }
+        Insert: {
+          crawl_id: string
+          crawl_section_id?: string | null
+          dcp_asset_id: string
+          link_evidence: string
+          listing_kind: string
+          observed_at?: string
+          portal_tile_id: string
+        }
+        Update: {
+          crawl_id?: string
+          crawl_section_id?: string | null
+          dcp_asset_id?: string
+          link_evidence?: string
+          listing_kind?: string
+          observed_at?: string
+          portal_tile_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "dcp_asset_tile_observation_crawl_id_fkey"
+            columns: ["crawl_id"]
+            isOneToOne: false
+            referencedRelation: "dcp_crawl"
+            referencedColumns: ["crawl_id"]
+          },
+          {
+            foreignKeyName: "dcp_asset_tile_observation_crawl_section_id_fkey"
+            columns: ["crawl_section_id"]
+            isOneToOne: false
+            referencedRelation: "dcp_crawl_section"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dcp_asset_tile_observation_dcp_asset_id_fkey"
+            columns: ["dcp_asset_id"]
+            isOneToOne: false
+            referencedRelation: "dcp_asset"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dcp_asset_tile_observation_portal_tile_id_fkey"
+            columns: ["portal_tile_id"]
+            isOneToOne: false
+            referencedRelation: "dcp_portal_tile"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      dcp_character: {
+        Row: {
+          core_character_id: string | null
+          created_at: string
+          display_name: string | null
+          first_seen_metadata_run_id: string | null
+          id: string
+          last_seen_metadata_run_id: string | null
+          raw: Json
+          resolution_note: string | null
+          resolved_at: string | null
+          resolved_by: string | null
+          source_id: string
+          source_system: string
+          updated_at: string
+        }
+        Insert: {
+          core_character_id?: string | null
+          created_at?: string
+          display_name?: string | null
+          first_seen_metadata_run_id?: string | null
+          id?: string
+          last_seen_metadata_run_id?: string | null
+          raw?: Json
+          resolution_note?: string | null
+          resolved_at?: string | null
+          resolved_by?: string | null
+          source_id: string
+          source_system?: string
+          updated_at?: string
+        }
+        Update: {
+          core_character_id?: string | null
+          created_at?: string
+          display_name?: string | null
+          first_seen_metadata_run_id?: string | null
+          id?: string
+          last_seen_metadata_run_id?: string | null
+          raw?: Json
+          resolution_note?: string | null
+          resolved_at?: string | null
+          resolved_by?: string | null
+          source_id?: string
+          source_system?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "dcp_character_first_seen_metadata_run_id_fkey"
+            columns: ["first_seen_metadata_run_id"]
+            isOneToOne: false
+            referencedRelation: "dcp_metadata_run"
+            referencedColumns: ["metadata_run_id"]
+          },
+          {
+            foreignKeyName: "dcp_character_last_seen_metadata_run_id_fkey"
+            columns: ["last_seen_metadata_run_id"]
+            isOneToOne: false
+            referencedRelation: "dcp_metadata_run"
+            referencedColumns: ["metadata_run_id"]
+          },
+        ]
+      }
+      dcp_chunk_ledger: {
+        Row: {
+          applied_at: string
+          chunk_number: number
+          chunk_sha256: string
+          crawl_id: string
+          rows_landed: number
+          rows_received: number
+          rows_rejected: number
+        }
+        Insert: {
+          applied_at?: string
+          chunk_number: number
+          chunk_sha256: string
+          crawl_id: string
+          rows_landed: number
+          rows_received: number
+          rows_rejected: number
+        }
+        Update: {
+          applied_at?: string
+          chunk_number?: number
+          chunk_sha256?: string
+          crawl_id?: string
+          rows_landed?: number
+          rows_received?: number
+          rows_rejected?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "dcp_chunk_ledger_crawl_id_fkey"
+            columns: ["crawl_id"]
+            isOneToOne: false
+            referencedRelation: "dcp_crawl"
+            referencedColumns: ["crawl_id"]
+          },
+        ]
+      }
+      dcp_crawl: {
+        Row: {
+          account_scope: string
+          assets_added_count: number | null
+          assets_reactivated_count: number | null
+          assets_withdrawn_count: number | null
+          baseline_crawl_id: string | null
+          baseline_required_status: string | null
+          captured_by: string
+          captured_on: string
+          crawl_id: string
+          crawler_version: string
+          created_at: string
+          distinct_assets_received: number | null
+          failure_message: string | null
+          finished_at: string | null
+          line_of_business: string
+          metadata: Json
+          notes: string | null
+          portal_base_url: string
+          private_source_commit: string
+          rows_received: number | null
+          run_kind: string
+          source_system: string
+          started_at: string
+          status: string
+          style_guides_added_count: number | null
+          style_guides_reactivated_count: number | null
+          style_guides_withdrawn_count: number | null
+          updated_at: string
+        }
+        Insert: {
+          account_scope: string
+          assets_added_count?: number | null
+          assets_reactivated_count?: number | null
+          assets_withdrawn_count?: number | null
+          baseline_crawl_id?: string | null
+          baseline_required_status?: string | null
+          captured_by: string
+          captured_on: string
+          crawl_id?: string
+          crawler_version: string
+          created_at?: string
+          distinct_assets_received?: number | null
+          failure_message?: string | null
+          finished_at?: string | null
+          line_of_business: string
+          metadata?: Json
+          notes?: string | null
+          portal_base_url: string
+          private_source_commit: string
+          rows_received?: number | null
+          run_kind?: string
+          source_system?: string
+          started_at: string
+          status?: string
+          style_guides_added_count?: number | null
+          style_guides_reactivated_count?: number | null
+          style_guides_withdrawn_count?: number | null
+          updated_at?: string
+        }
+        Update: {
+          account_scope?: string
+          assets_added_count?: number | null
+          assets_reactivated_count?: number | null
+          assets_withdrawn_count?: number | null
+          baseline_crawl_id?: string | null
+          baseline_required_status?: string | null
+          captured_by?: string
+          captured_on?: string
+          crawl_id?: string
+          crawler_version?: string
+          created_at?: string
+          distinct_assets_received?: number | null
+          failure_message?: string | null
+          finished_at?: string | null
+          line_of_business?: string
+          metadata?: Json
+          notes?: string | null
+          portal_base_url?: string
+          private_source_commit?: string
+          rows_received?: number | null
+          run_kind?: string
+          source_system?: string
+          started_at?: string
+          status?: string
+          style_guides_added_count?: number | null
+          style_guides_reactivated_count?: number | null
+          style_guides_withdrawn_count?: number | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "dcp_crawl_baseline_crawl_id_fkey"
+            columns: ["baseline_crawl_id"]
+            isOneToOne: false
+            referencedRelation: "dcp_crawl"
+            referencedColumns: ["crawl_id"]
+          },
+          {
+            foreignKeyName: "dcp_crawl_complete_baseline_fk"
+            columns: ["baseline_crawl_id", "baseline_required_status"]
+            isOneToOne: false
+            referencedRelation: "dcp_crawl"
+            referencedColumns: ["crawl_id", "status"]
+          },
+        ]
+      }
+      dcp_crawl_gap: {
+        Row: {
+          attempt_count: number
+          crawl_section_id: string
+          created_at: string
+          id: string
+          offset_from: number
+          offset_to: number
+          reason: string
+          resolution_note: string | null
+          resolved_at: string | null
+          waived_at: string | null
+          waived_by: string | null
+          waiver_reason: string | null
+        }
+        Insert: {
+          attempt_count?: number
+          crawl_section_id: string
+          created_at?: string
+          id?: string
+          offset_from: number
+          offset_to: number
+          reason: string
+          resolution_note?: string | null
+          resolved_at?: string | null
+          waived_at?: string | null
+          waived_by?: string | null
+          waiver_reason?: string | null
+        }
+        Update: {
+          attempt_count?: number
+          crawl_section_id?: string
+          created_at?: string
+          id?: string
+          offset_from?: number
+          offset_to?: number
+          reason?: string
+          resolution_note?: string | null
+          resolved_at?: string | null
+          waived_at?: string | null
+          waived_by?: string | null
+          waiver_reason?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "dcp_crawl_gap_crawl_section_id_fkey"
+            columns: ["crawl_section_id"]
+            isOneToOne: false
+            referencedRelation: "dcp_crawl_section"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      dcp_crawl_section: {
+        Row: {
+          captured_count: number
+          crawl_id: string
+          created_at: string
+          expected_count: number | null
+          finished_at: string | null
+          id: string
+          last_offset: number | null
+          listing_kind: string
+          notes: string | null
+          portal_tile_id: string
+          started_at: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          captured_count?: number
+          crawl_id: string
+          created_at?: string
+          expected_count?: number | null
+          finished_at?: string | null
+          id?: string
+          last_offset?: number | null
+          listing_kind: string
+          notes?: string | null
+          portal_tile_id: string
+          started_at?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          captured_count?: number
+          crawl_id?: string
+          created_at?: string
+          expected_count?: number | null
+          finished_at?: string | null
+          id?: string
+          last_offset?: number | null
+          listing_kind?: string
+          notes?: string | null
+          portal_tile_id?: string
+          started_at?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "dcp_crawl_section_crawl_id_fkey"
+            columns: ["crawl_id"]
+            isOneToOne: false
+            referencedRelation: "dcp_crawl"
+            referencedColumns: ["crawl_id"]
+          },
+          {
+            foreignKeyName: "dcp_crawl_section_portal_tile_id_fkey"
+            columns: ["portal_tile_id"]
+            isOneToOne: false
+            referencedRelation: "dcp_portal_tile"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      dcp_load_exception: {
+        Row: {
+          chunk_number: number | null
+          crawl_id: string
+          crawl_section_id: string | null
+          created_at: string
+          id: string
+          raw_row: Json
+          reason: string
+          reason_code: string
+          resolution_note: string | null
+          resolved_at: string | null
+          row_number: number | null
+          severity: string
+          source_path: string | null
+        }
+        Insert: {
+          chunk_number?: number | null
+          crawl_id: string
+          crawl_section_id?: string | null
+          created_at?: string
+          id?: string
+          raw_row?: Json
+          reason: string
+          reason_code: string
+          resolution_note?: string | null
+          resolved_at?: string | null
+          row_number?: number | null
+          severity?: string
+          source_path?: string | null
+        }
+        Update: {
+          chunk_number?: number | null
+          crawl_id?: string
+          crawl_section_id?: string | null
+          created_at?: string
+          id?: string
+          raw_row?: Json
+          reason?: string
+          reason_code?: string
+          resolution_note?: string | null
+          resolved_at?: string | null
+          row_number?: number | null
+          severity?: string
+          source_path?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "dcp_load_exception_crawl_id_fkey"
+            columns: ["crawl_id"]
+            isOneToOne: false
+            referencedRelation: "dcp_crawl"
+            referencedColumns: ["crawl_id"]
+          },
+          {
+            foreignKeyName: "dcp_load_exception_crawl_section_id_fkey"
+            columns: ["crawl_section_id"]
+            isOneToOne: false
+            referencedRelation: "dcp_crawl_section"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      dcp_metadata_asset: {
+        Row: {
+          attempt_count: number
+          collection_dmc_id: string | null
+          collection_main_title: string | null
+          collection_type: string | null
+          content_owner: string | null
+          content_type: string | null
+          created_at: string
+          dam_sha1: string | null
+          dc_title: string | null
+          dcp_asset_id: string
+          design_element: string | null
+          failure_code: string | null
+          failure_reason: string | null
+          fetch_status: string
+          file_size_bytes_interpreted: number | null
+          file_size_raw: string | null
+          format_raw: string | null
+          http_status: number | null
+          is_embargoed_interpreted: boolean | null
+          is_embargoed_raw: string | null
+          is_exclusive_interpreted: boolean | null
+          is_exclusive_raw: string | null
+          is_locked_interpreted: boolean | null
+          is_locked_raw: string | null
+          metadata_run_id: string
+          modified_at_interpreted: string | null
+          modified_at_raw: string | null
+          normalized_hash: string | null
+          num_pages_interpreted: number | null
+          num_pages_raw: string | null
+          raw_metadata: Json | null
+          release_date_interpreted: string | null
+          release_date_raw: string | null
+          response_bytes: number | null
+          retrieved_at: string | null
+          rights_parse_confident: boolean
+          source_crawl_id: string
+          source_hash: string | null
+          source_status: string | null
+          source_uuid: string | null
+          updated_at: string
+        }
+        Insert: {
+          attempt_count?: number
+          collection_dmc_id?: string | null
+          collection_main_title?: string | null
+          collection_type?: string | null
+          content_owner?: string | null
+          content_type?: string | null
+          created_at?: string
+          dam_sha1?: string | null
+          dc_title?: string | null
+          dcp_asset_id: string
+          design_element?: string | null
+          failure_code?: string | null
+          failure_reason?: string | null
+          fetch_status?: string
+          file_size_bytes_interpreted?: number | null
+          file_size_raw?: string | null
+          format_raw?: string | null
+          http_status?: number | null
+          is_embargoed_interpreted?: boolean | null
+          is_embargoed_raw?: string | null
+          is_exclusive_interpreted?: boolean | null
+          is_exclusive_raw?: string | null
+          is_locked_interpreted?: boolean | null
+          is_locked_raw?: string | null
+          metadata_run_id: string
+          modified_at_interpreted?: string | null
+          modified_at_raw?: string | null
+          normalized_hash?: string | null
+          num_pages_interpreted?: number | null
+          num_pages_raw?: string | null
+          raw_metadata?: Json | null
+          release_date_interpreted?: string | null
+          release_date_raw?: string | null
+          response_bytes?: number | null
+          retrieved_at?: string | null
+          rights_parse_confident?: boolean
+          source_crawl_id: string
+          source_hash?: string | null
+          source_status?: string | null
+          source_uuid?: string | null
+          updated_at?: string
+        }
+        Update: {
+          attempt_count?: number
+          collection_dmc_id?: string | null
+          collection_main_title?: string | null
+          collection_type?: string | null
+          content_owner?: string | null
+          content_type?: string | null
+          created_at?: string
+          dam_sha1?: string | null
+          dc_title?: string | null
+          dcp_asset_id?: string
+          design_element?: string | null
+          failure_code?: string | null
+          failure_reason?: string | null
+          fetch_status?: string
+          file_size_bytes_interpreted?: number | null
+          file_size_raw?: string | null
+          format_raw?: string | null
+          http_status?: number | null
+          is_embargoed_interpreted?: boolean | null
+          is_embargoed_raw?: string | null
+          is_exclusive_interpreted?: boolean | null
+          is_exclusive_raw?: string | null
+          is_locked_interpreted?: boolean | null
+          is_locked_raw?: string | null
+          metadata_run_id?: string
+          modified_at_interpreted?: string | null
+          modified_at_raw?: string | null
+          normalized_hash?: string | null
+          num_pages_interpreted?: number | null
+          num_pages_raw?: string | null
+          raw_metadata?: Json | null
+          release_date_interpreted?: string | null
+          release_date_raw?: string | null
+          response_bytes?: number | null
+          retrieved_at?: string | null
+          rights_parse_confident?: boolean
+          source_crawl_id?: string
+          source_hash?: string | null
+          source_status?: string | null
+          source_uuid?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "dcp_metadata_asset_membership_fk"
+            columns: ["source_crawl_id", "dcp_asset_id"]
+            isOneToOne: false
+            referencedRelation: "dcp_asset_crawl"
+            referencedColumns: ["crawl_id", "dcp_asset_id"]
+          },
+          {
+            foreignKeyName: "dcp_metadata_asset_run_fk"
+            columns: ["metadata_run_id", "source_crawl_id"]
+            isOneToOne: false
+            referencedRelation: "dcp_metadata_run"
+            referencedColumns: ["metadata_run_id", "source_crawl_id"]
+          },
+        ]
+      }
+      dcp_metadata_chunk_ledger: {
+        Row: {
+          applied_at: string
+          chunk_number: number
+          chunk_sha256: string
+          metadata_run_id: string
+          rows_landed: number
+          rows_received: number
+          rows_rejected: number
+        }
+        Insert: {
+          applied_at?: string
+          chunk_number: number
+          chunk_sha256: string
+          metadata_run_id: string
+          rows_landed: number
+          rows_received: number
+          rows_rejected: number
+        }
+        Update: {
+          applied_at?: string
+          chunk_number?: number
+          chunk_sha256?: string
+          metadata_run_id?: string
+          rows_landed?: number
+          rows_received?: number
+          rows_rejected?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "dcp_metadata_chunk_ledger_metadata_run_id_fkey"
+            columns: ["metadata_run_id"]
+            isOneToOne: false
+            referencedRelation: "dcp_metadata_run"
+            referencedColumns: ["metadata_run_id"]
+          },
+        ]
+      }
+      dcp_metadata_load_exception: {
+        Row: {
+          chunk_number: number | null
+          created_at: string
+          dcp_asset_id: string | null
+          id: string
+          metadata_run_id: string
+          reason: string
+          reason_code: string
+          resolution_note: string | null
+          resolved_at: string | null
+          row_number: number | null
+          severity: string
+        }
+        Insert: {
+          chunk_number?: number | null
+          created_at?: string
+          dcp_asset_id?: string | null
+          id?: string
+          metadata_run_id: string
+          reason: string
+          reason_code: string
+          resolution_note?: string | null
+          resolved_at?: string | null
+          row_number?: number | null
+          severity?: string
+        }
+        Update: {
+          chunk_number?: number | null
+          created_at?: string
+          dcp_asset_id?: string | null
+          id?: string
+          metadata_run_id?: string
+          reason?: string
+          reason_code?: string
+          resolution_note?: string | null
+          resolved_at?: string | null
+          row_number?: number | null
+          severity?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "dcp_metadata_load_exception_dcp_asset_id_fkey"
+            columns: ["dcp_asset_id"]
+            isOneToOne: false
+            referencedRelation: "dcp_asset"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dcp_metadata_load_exception_metadata_run_id_fkey"
+            columns: ["metadata_run_id"]
+            isOneToOne: false
+            referencedRelation: "dcp_metadata_run"
+            referencedColumns: ["metadata_run_id"]
+          },
+        ]
+      }
+      dcp_metadata_run: {
+        Row: {
+          assets_expected: number
+          captured_by: string
+          captured_on: string
+          crawler_version: string
+          created_at: string
+          endpoint_suffix: string
+          failure_message: string | null
+          fetches_failed: number | null
+          fetches_succeeded: number | null
+          finished_at: string | null
+          metadata: Json
+          metadata_run_id: string
+          private_source_commit: string
+          source_crawl_id: string
+          started_at: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          assets_expected: number
+          captured_by: string
+          captured_on: string
+          crawler_version: string
+          created_at?: string
+          endpoint_suffix: string
+          failure_message?: string | null
+          fetches_failed?: number | null
+          fetches_succeeded?: number | null
+          finished_at?: string | null
+          metadata?: Json
+          metadata_run_id?: string
+          private_source_commit: string
+          source_crawl_id: string
+          started_at?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          assets_expected?: number
+          captured_by?: string
+          captured_on?: string
+          crawler_version?: string
+          created_at?: string
+          endpoint_suffix?: string
+          failure_message?: string | null
+          fetches_failed?: number | null
+          fetches_succeeded?: number | null
+          finished_at?: string | null
+          metadata?: Json
+          metadata_run_id?: string
+          private_source_commit?: string
+          source_crawl_id?: string
+          started_at?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "dcp_metadata_run_source_crawl_id_fkey"
+            columns: ["source_crawl_id"]
+            isOneToOne: false
+            referencedRelation: "dcp_crawl"
+            referencedColumns: ["crawl_id"]
+          },
+        ]
+      }
+      dcp_opa_property_resolution: {
+        Row: {
+          approval_status: string
+          approved_at: string | null
+          approved_by: string | null
+          contract_asserted_studio_code: string | null
+          contract_evidence_reference: string | null
+          contract_evidence_sha256: string | null
+          created_at: string
+          creative_decision_state: string | null
+          decision_reason: string
+          decision_version: number
+          evidence_reference: string
+          evidence_sha256: string
+          resolution_id: string
+          source_property_id: string
+          source_system: string
+          source_table: string
+          supersedes_resolution_id: string | null
+        }
+        Insert: {
+          approval_status?: string
+          approved_at?: string | null
+          approved_by?: string | null
+          contract_asserted_studio_code?: string | null
+          contract_evidence_reference?: string | null
+          contract_evidence_sha256?: string | null
+          created_at?: string
+          creative_decision_state?: string | null
+          decision_reason: string
+          decision_version: number
+          evidence_reference: string
+          evidence_sha256: string
+          resolution_id?: string
+          source_property_id: string
+          source_system: string
+          source_table: string
+          supersedes_resolution_id?: string | null
+        }
+        Update: {
+          approval_status?: string
+          approved_at?: string | null
+          approved_by?: string | null
+          contract_asserted_studio_code?: string | null
+          contract_evidence_reference?: string | null
+          contract_evidence_sha256?: string | null
+          created_at?: string
+          creative_decision_state?: string | null
+          decision_reason?: string
+          decision_version?: number
+          evidence_reference?: string
+          evidence_sha256?: string
+          resolution_id?: string
+          source_property_id?: string
+          source_system?: string
+          source_table?: string
+          supersedes_resolution_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "dcp_opa_property_resolution_same_identity_supersession_fk"
+            columns: [
+              "supersedes_resolution_id",
+              "source_system",
+              "source_table",
+              "source_property_id",
+            ]
+            isOneToOne: false
+            referencedRelation: "dcp_opa_property_resolution"
+            referencedColumns: [
+              "resolution_id",
+              "source_system",
+              "source_table",
+              "source_property_id",
+            ]
+          },
+          {
+            foreignKeyName: "dcp_opa_property_resolution_supersedes_resolution_id_fkey"
+            columns: ["supersedes_resolution_id"]
+            isOneToOne: true
+            referencedRelation: "dcp_opa_property_resolution"
+            referencedColumns: ["resolution_id"]
+          },
+        ]
+      }
+      dcp_opa_property_resolution_member: {
+        Row: {
+          created_at: string
+          licensed_property_id: number | null
+          member_ordinal: number
+          resolution_id: string
+          submission_source_id: string
+          submission_source_system: string
+          submission_source_table: string
+        }
+        Insert: {
+          created_at?: string
+          licensed_property_id?: number | null
+          member_ordinal: number
+          resolution_id: string
+          submission_source_id: string
+          submission_source_system: string
+          submission_source_table: string
+        }
+        Update: {
+          created_at?: string
+          licensed_property_id?: number | null
+          member_ordinal?: number
+          resolution_id?: string
+          submission_source_id?: string
+          submission_source_system?: string
+          submission_source_table?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "dcp_opa_property_resolution_member_ne_licensed_property_id_fkey"
+            columns: ["licensed_property_id"]
+            isOneToOne: false
+            referencedRelation: "opa_property"
+            referencedColumns: ["licensed_property_id"]
+          },
+          {
+            foreignKeyName: "dcp_opa_property_resolution_member_new_resolution_id_fkey"
+            columns: ["resolution_id"]
+            isOneToOne: false
+            referencedRelation: "dcp_opa_property_resolution"
+            referencedColumns: ["resolution_id"]
+          },
+        ]
+      }
+      dcp_portal_tile: {
+        Row: {
+          core_property_id: string | null
+          created_at: string
+          display_label: string | null
+          first_seen_crawl_id: string | null
+          id: string
+          last_seen_crawl_id: string | null
+          raw: Json
+          resolution_reason: string | null
+          resolution_status: string
+          resolved_at: string | null
+          resolved_by: string | null
+          source_key: string
+          source_system: string
+          source_url: string | null
+          updated_at: string
+        }
+        Insert: {
+          core_property_id?: string | null
+          created_at?: string
+          display_label?: string | null
+          first_seen_crawl_id?: string | null
+          id?: string
+          last_seen_crawl_id?: string | null
+          raw?: Json
+          resolution_reason?: string | null
+          resolution_status?: string
+          resolved_at?: string | null
+          resolved_by?: string | null
+          source_key: string
+          source_system?: string
+          source_url?: string | null
+          updated_at?: string
+        }
+        Update: {
+          core_property_id?: string | null
+          created_at?: string
+          display_label?: string | null
+          first_seen_crawl_id?: string | null
+          id?: string
+          last_seen_crawl_id?: string | null
+          raw?: Json
+          resolution_reason?: string | null
+          resolution_status?: string
+          resolved_at?: string | null
+          resolved_by?: string | null
+          source_key?: string
+          source_system?: string
+          source_url?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "dcp_portal_tile_first_seen_crawl_id_fkey"
+            columns: ["first_seen_crawl_id"]
+            isOneToOne: false
+            referencedRelation: "dcp_crawl"
+            referencedColumns: ["crawl_id"]
+          },
+          {
+            foreignKeyName: "dcp_portal_tile_last_seen_crawl_id_fkey"
+            columns: ["last_seen_crawl_id"]
+            isOneToOne: false
+            referencedRelation: "dcp_crawl"
+            referencedColumns: ["crawl_id"]
+          },
+        ]
+      }
+      dcp_property: {
+        Row: {
+          core_property_id: string | null
+          created_at: string
+          display_name: string | null
+          first_seen_metadata_run_id: string | null
+          id: string
+          last_seen_metadata_run_id: string | null
+          raw: Json
+          resolution_note: string | null
+          resolved_at: string | null
+          resolved_by: string | null
+          source_id: string
+          source_system: string
+          updated_at: string
+        }
+        Insert: {
+          core_property_id?: string | null
+          created_at?: string
+          display_name?: string | null
+          first_seen_metadata_run_id?: string | null
+          id?: string
+          last_seen_metadata_run_id?: string | null
+          raw?: Json
+          resolution_note?: string | null
+          resolved_at?: string | null
+          resolved_by?: string | null
+          source_id: string
+          source_system?: string
+          updated_at?: string
+        }
+        Update: {
+          core_property_id?: string | null
+          created_at?: string
+          display_name?: string | null
+          first_seen_metadata_run_id?: string | null
+          id?: string
+          last_seen_metadata_run_id?: string | null
+          raw?: Json
+          resolution_note?: string | null
+          resolved_at?: string | null
+          resolved_by?: string | null
+          source_id?: string
+          source_system?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "dcp_property_first_seen_metadata_run_id_fkey"
+            columns: ["first_seen_metadata_run_id"]
+            isOneToOne: false
+            referencedRelation: "dcp_metadata_run"
+            referencedColumns: ["metadata_run_id"]
+          },
+          {
+            foreignKeyName: "dcp_property_last_seen_metadata_run_id_fkey"
+            columns: ["last_seen_metadata_run_id"]
+            isOneToOne: false
+            referencedRelation: "dcp_metadata_run"
+            referencedColumns: ["metadata_run_id"]
+          },
+        ]
+      }
+      dcp_property_licensor_resolution: {
+        Row: {
+          approval_status: string
+          approved_at: string | null
+          approved_by: string | null
+          authority_kind: string | null
+          authority_reference: string | null
+          created_at: string
+          decision_reason: string
+          decision_version: number
+          evidence_reference: string | null
+          presentation_licensor_key: string | null
+          presentation_licensor_name: string | null
+          resolution_id: string
+          resolution_status: string
+          resolved_at: string | null
+          source_hash: string
+          source_property_id: string
+          source_system: string
+          supersedes_resolution_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          approval_status?: string
+          approved_at?: string | null
+          approved_by?: string | null
+          authority_kind?: string | null
+          authority_reference?: string | null
+          created_at?: string
+          decision_reason: string
+          decision_version: number
+          evidence_reference?: string | null
+          presentation_licensor_key?: string | null
+          presentation_licensor_name?: string | null
+          resolution_id?: string
+          resolution_status: string
+          resolved_at?: string | null
+          source_hash: string
+          source_property_id: string
+          source_system: string
+          supersedes_resolution_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          approval_status?: string
+          approved_at?: string | null
+          approved_by?: string | null
+          authority_kind?: string | null
+          authority_reference?: string | null
+          created_at?: string
+          decision_reason?: string
+          decision_version?: number
+          evidence_reference?: string | null
+          presentation_licensor_key?: string | null
+          presentation_licensor_name?: string | null
+          resolution_id?: string
+          resolution_status?: string
+          resolved_at?: string | null
+          source_hash?: string
+          source_property_id?: string
+          source_system?: string
+          supersedes_resolution_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "dcp_property_licensor_resolution_supersedes_fk"
+            columns: [
+              "source_system",
+              "source_property_id",
+              "supersedes_resolution_id",
+            ]
+            isOneToOne: false
+            referencedRelation: "dcp_property_licensor_resolution"
+            referencedColumns: [
+              "source_system",
+              "source_property_id",
+              "resolution_id",
+            ]
+          },
+        ]
+      }
+      dcp_property_mg06_crosswalk: {
+        Row: {
+          confidence: string
+          created_at: string
+          dcp_source_id: string
+          mg_code: string | null
+          mg_desc: string | null
+          opa_licensed_property_id: number | null
+          provenance: string
+          updated_at: string
+        }
+        Insert: {
+          confidence: string
+          created_at?: string
+          dcp_source_id: string
+          mg_code?: string | null
+          mg_desc?: string | null
+          opa_licensed_property_id?: number | null
+          provenance: string
+          updated_at?: string
+        }
+        Update: {
+          confidence?: string
+          created_at?: string
+          dcp_source_id?: string
+          mg_code?: string | null
+          mg_desc?: string | null
+          opa_licensed_property_id?: number | null
+          provenance?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      dcp_style_guide: {
+        Row: {
+          core_style_guide_id: string | null
+          created_at: string
+          first_seen_crawl_id: string | null
+          first_withdrawn_at: string | null
+          folder_name: string
+          id: string
+          last_seen_crawl_id: string | null
+          lifecycle_status: string
+          parent_source_path: string | null
+          raw: Json
+          region: string
+          resolution_reason: string | null
+          resolution_status: string
+          resolved_at: string | null
+          resolved_by: string | null
+          sku_sg_label_key: string | null
+          source_guide_id: string | null
+          source_path: string
+          source_system: string
+          updated_at: string
+          withdrawn_at: string | null
+          year_segment: string
+        }
+        Insert: {
+          core_style_guide_id?: string | null
+          created_at?: string
+          first_seen_crawl_id?: string | null
+          first_withdrawn_at?: string | null
+          folder_name: string
+          id?: string
+          last_seen_crawl_id?: string | null
+          lifecycle_status?: string
+          parent_source_path?: string | null
+          raw?: Json
+          region: string
+          resolution_reason?: string | null
+          resolution_status?: string
+          resolved_at?: string | null
+          resolved_by?: string | null
+          sku_sg_label_key?: string | null
+          source_guide_id?: string | null
+          source_path: string
+          source_system?: string
+          updated_at?: string
+          withdrawn_at?: string | null
+          year_segment: string
+        }
+        Update: {
+          core_style_guide_id?: string | null
+          created_at?: string
+          first_seen_crawl_id?: string | null
+          first_withdrawn_at?: string | null
+          folder_name?: string
+          id?: string
+          last_seen_crawl_id?: string | null
+          lifecycle_status?: string
+          parent_source_path?: string | null
+          raw?: Json
+          region?: string
+          resolution_reason?: string | null
+          resolution_status?: string
+          resolved_at?: string | null
+          resolved_by?: string | null
+          sku_sg_label_key?: string | null
+          source_guide_id?: string | null
+          source_path?: string
+          source_system?: string
+          updated_at?: string
+          withdrawn_at?: string | null
+          year_segment?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "dcp_style_guide_first_seen_crawl_id_fkey"
+            columns: ["first_seen_crawl_id"]
+            isOneToOne: false
+            referencedRelation: "dcp_crawl"
+            referencedColumns: ["crawl_id"]
+          },
+          {
+            foreignKeyName: "dcp_style_guide_last_seen_crawl_id_fkey"
+            columns: ["last_seen_crawl_id"]
+            isOneToOne: false
+            referencedRelation: "dcp_crawl"
+            referencedColumns: ["crawl_id"]
+          },
+        ]
+      }
+      dcp_term: {
+        Row: {
+          created_at: string
+          first_seen_metadata_run_id: string | null
+          id: string
+          last_seen_metadata_run_id: string | null
+          raw: Json
+          source_system: string
+          source_value: string
+          term_kind: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          first_seen_metadata_run_id?: string | null
+          id?: string
+          last_seen_metadata_run_id?: string | null
+          raw?: Json
+          source_system?: string
+          source_value: string
+          term_kind: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          first_seen_metadata_run_id?: string | null
+          id?: string
+          last_seen_metadata_run_id?: string | null
+          raw?: Json
+          source_system?: string
+          source_value?: string
+          term_kind?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "dcp_term_first_seen_metadata_run_id_fkey"
+            columns: ["first_seen_metadata_run_id"]
+            isOneToOne: false
+            referencedRelation: "dcp_metadata_run"
+            referencedColumns: ["metadata_run_id"]
+          },
+          {
+            foreignKeyName: "dcp_term_last_seen_metadata_run_id_fkey"
+            columns: ["last_seen_metadata_run_id"]
+            isOneToOne: false
+            referencedRelation: "dcp_metadata_run"
+            referencedColumns: ["metadata_run_id"]
+          },
+        ]
       }
       deliveryLocation: {
         Row: {
@@ -10046,6 +16994,7 @@ export type Database = {
           resolution_status: string
           resolved_at: string | null
           resolved_by: string | null
+          source_active: boolean | null
           source_hash: string
           updated_at: string
         }
@@ -10068,6 +17017,7 @@ export type Database = {
           resolution_status?: string
           resolved_at?: string | null
           resolved_by?: string | null
+          source_active?: boolean | null
           source_hash: string
           updated_at?: string
         }
@@ -10090,6 +17040,7 @@ export type Database = {
           resolution_status?: string
           resolved_at?: string | null
           resolved_by?: string | null
+          source_active?: boolean | null
           source_hash?: string
           updated_at?: string
         }
@@ -10133,6 +17084,7 @@ export type Database = {
           resolution_status: string
           resolved_at: string | null
           resolved_by: string | null
+          source_active: boolean | null
           source_hash: string
           updated_at: string
         }
@@ -10155,6 +17107,7 @@ export type Database = {
           resolution_status?: string
           resolved_at?: string | null
           resolved_by?: string | null
+          source_active?: boolean | null
           source_hash: string
           updated_at?: string
         }
@@ -10177,6 +17130,7 @@ export type Database = {
           resolution_status?: string
           resolved_at?: string | null
           resolved_by?: string | null
+          source_active?: boolean | null
           source_hash?: string
           updated_at?: string
         }
@@ -10199,6 +17153,99 @@ export type Database = {
             ]
           },
         ]
+      }
+      erp_salesperson: {
+        Row: {
+          active: boolean | null
+          company_code: string
+          erp_created_at: string | null
+          erp_updated_at: string | null
+          first_seen_at: string
+          imported_at: string
+          last_seen_at: string
+          name: string | null
+          raw: Json
+          salesperson_code: string
+          source_hash: string
+          updated_at: string
+        }
+        Insert: {
+          active?: boolean | null
+          company_code: string
+          erp_created_at?: string | null
+          erp_updated_at?: string | null
+          first_seen_at?: string
+          imported_at?: string
+          last_seen_at?: string
+          name?: string | null
+          raw?: Json
+          salesperson_code: string
+          source_hash: string
+          updated_at?: string
+        }
+        Update: {
+          active?: boolean | null
+          company_code?: string
+          erp_created_at?: string | null
+          erp_updated_at?: string | null
+          first_seen_at?: string
+          imported_at?: string
+          last_seen_at?: string
+          name?: string | null
+          raw?: Json
+          salesperson_code?: string
+          source_hash?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      erp_season: {
+        Row: {
+          active: boolean | null
+          company_code: string
+          division_code: string
+          erp_created_at: string | null
+          erp_updated_at: string | null
+          first_seen_at: string
+          imported_at: string
+          last_seen_at: string
+          name: string
+          raw: Json
+          season_code: string
+          source_hash: string
+          updated_at: string
+        }
+        Insert: {
+          active?: boolean | null
+          company_code: string
+          division_code: string
+          erp_created_at?: string | null
+          erp_updated_at?: string | null
+          first_seen_at?: string
+          imported_at?: string
+          last_seen_at?: string
+          name: string
+          raw?: Json
+          season_code: string
+          source_hash: string
+          updated_at?: string
+        }
+        Update: {
+          active?: boolean | null
+          company_code?: string
+          division_code?: string
+          erp_created_at?: string | null
+          erp_updated_at?: string | null
+          first_seen_at?: string
+          imported_at?: string
+          last_seen_at?: string
+          name?: string
+          raw?: Json
+          season_code?: string
+          source_hash?: string
+          updated_at?: string
+        }
+        Relationships: []
       }
       erp_vendor: {
         Row: {
@@ -10293,33 +17340,45 @@ export type Database = {
       FactoryTime: {
         Row: {
           created_at: string
+          description: string | null
           id: number
           mass_production_days: number | null
+          name: string
           product_category: string | null
-          product_subtype: string
+          product_subtype: string | null
           resampling_days: number | null
           sampling_days: number | null
+          tags: string[]
           updated_at: string
+          updated_by: string | null
         }
         Insert: {
           created_at: string
+          description?: string | null
           id?: number
           mass_production_days?: number | null
+          name: string
           product_category?: string | null
-          product_subtype: string
+          product_subtype?: string | null
           resampling_days?: number | null
           sampling_days?: number | null
+          tags?: string[]
           updated_at: string
+          updated_by?: string | null
         }
         Update: {
           created_at?: string
+          description?: string | null
           id?: number
           mass_production_days?: number | null
+          name?: string
           product_category?: string | null
-          product_subtype?: string
+          product_subtype?: string | null
           resampling_days?: number | null
           sampling_days?: number | null
+          tags?: string[]
           updated_at?: string
+          updated_by?: string | null
         }
         Relationships: []
       }
@@ -10372,6 +17431,7 @@ export type Database = {
           grid_type: string
           id: string
           note_author: string | null
+          note_author_user_id: number | null
           note_read_only: boolean
           note_text: string | null
           row_id: string
@@ -10383,6 +17443,7 @@ export type Database = {
           grid_type: string
           id: string
           note_author?: string | null
+          note_author_user_id?: number | null
           note_read_only?: boolean
           note_text?: string | null
           row_id: string
@@ -10394,6 +17455,7 @@ export type Database = {
           grid_type?: string
           id?: string
           note_author?: string | null
+          note_author_user_id?: number | null
           note_read_only?: boolean
           note_text?: string | null
           row_id?: string
@@ -10631,6 +17693,7 @@ export type Database = {
       }
       GridViewState: {
         Row: {
+          column_group_state: Json | null
           column_state: Json | null
           created_at: string | null
           filter_model: Json | null
@@ -10642,6 +17705,7 @@ export type Database = {
           view_name: string
         }
         Insert: {
+          column_group_state?: Json | null
           column_state?: Json | null
           created_at?: string | null
           filter_model?: Json | null
@@ -10653,6 +17717,7 @@ export type Database = {
           view_name: string
         }
         Update: {
+          column_group_state?: Json | null
           column_state?: Json | null
           created_at?: string | null
           filter_model?: Json | null
@@ -10723,9 +17788,16 @@ export type Database = {
           licensor_id: string | null
           merch_group_id: string | null
           name: string | null
+          product_construction: string | null
           product_depth_id: string | null
+          product_material: string | null
           product_size_id: string | null
+          product_treatment: string | null
+          product_type: string | null
           product_type_id: string | null
+          product_type_read_at: string | null
+          product_type_rules_version: string | null
+          product_type_status: string | null
           property_id: string | null
           raw: Json
           source_id: string | null
@@ -10743,9 +17815,16 @@ export type Database = {
           licensor_id?: string | null
           merch_group_id?: string | null
           name?: string | null
+          product_construction?: string | null
           product_depth_id?: string | null
+          product_material?: string | null
           product_size_id?: string | null
+          product_treatment?: string | null
+          product_type?: string | null
           product_type_id?: string | null
+          product_type_read_at?: string | null
+          product_type_rules_version?: string | null
+          product_type_status?: string | null
           property_id?: string | null
           raw?: Json
           source_id?: string | null
@@ -10763,9 +17842,16 @@ export type Database = {
           licensor_id?: string | null
           merch_group_id?: string | null
           name?: string | null
+          product_construction?: string | null
           product_depth_id?: string | null
+          product_material?: string | null
           product_size_id?: string | null
+          product_treatment?: string | null
+          product_type?: string | null
           product_type_id?: string | null
+          product_type_read_at?: string | null
+          product_type_rules_version?: string | null
+          product_type_status?: string | null
           property_id?: string | null
           raw?: Json
           source_id?: string | null
@@ -10818,25 +17904,32 @@ export type Database = {
             referencedRelation: "item"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "item_attachment_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: false
+            referencedRelation: "item_missing_attribution"
+            referencedColumns: ["id"]
+          },
         ]
       }
       item_character_associations: {
         Row: {
-          character_id: number
+          character_id: string
           created_at: string
           id: number
           item_header_id: number
           updated_at: string
         }
         Insert: {
-          character_id: number
+          character_id: string
           created_at?: string
           id?: number
           item_header_id: number
           updated_at?: string
         }
         Update: {
-          character_id?: number
+          character_id?: string
           created_at?: string
           id?: number
           item_header_id?: number
@@ -10892,6 +17985,13 @@ export type Database = {
             columns: ["item_id"]
             isOneToOne: false
             referencedRelation: "item"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "item_detail_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: false
+            referencedRelation: "item_missing_attribution"
             referencedColumns: ["id"]
           },
         ]
@@ -10963,6 +18063,13 @@ export type Database = {
             columns: ["item_id"]
             isOneToOne: false
             referencedRelation: "item"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "item_import_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: false
+            referencedRelation: "item_missing_attribution"
             referencedColumns: ["id"]
           },
         ]
@@ -11184,6 +18291,136 @@ export type Database = {
           },
         ]
       }
+      item_user_assignment: {
+        Row: {
+          assigned_by_user_id: number
+          assignment_context: Json
+          created_at: string
+          effective_from: string
+          effective_to: string | null
+          function_key: string
+          id: number
+          rfq_item_id: number
+          user_id: number
+        }
+        Insert: {
+          assigned_by_user_id: number
+          assignment_context?: Json
+          created_at?: string
+          effective_from?: string
+          effective_to?: string | null
+          function_key: string
+          id?: never
+          rfq_item_id: number
+          user_id: number
+        }
+        Update: {
+          assigned_by_user_id?: number
+          assignment_context?: Json
+          created_at?: string
+          effective_from?: string
+          effective_to?: string | null
+          function_key?: string
+          id?: never
+          rfq_item_id?: number
+          user_id?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "item_user_assignment_rfq_item_id_fkey"
+            columns: ["rfq_item_id"]
+            isOneToOne: false
+            referencedRelation: "RFQItem"
+            referencedColumns: ["rfqItem_id"]
+          },
+        ]
+      }
+      item_workflow_action: {
+        Row: {
+          action_key: string
+          actor_auth_user_id: string | null
+          actor_identity_email: string | null
+          actor_identity_source: string
+          actor_user_id: number
+          correlation_key: string
+          fallback_reason: string | null
+          fallback_recipient_user_id: number | null
+          id: number
+          new_step_id: number
+          occurred_at: string
+          prior_step_id: number | null
+          requires_admin_review: boolean
+          rfq_item_id: number
+          routing_context: Json
+          source_action_id: number | null
+        }
+        Insert: {
+          action_key: string
+          actor_auth_user_id?: string | null
+          actor_identity_email?: string | null
+          actor_identity_source?: string
+          actor_user_id: number
+          correlation_key: string
+          fallback_reason?: string | null
+          fallback_recipient_user_id?: number | null
+          id?: never
+          new_step_id: number
+          occurred_at?: string
+          prior_step_id?: number | null
+          requires_admin_review?: boolean
+          rfq_item_id: number
+          routing_context?: Json
+          source_action_id?: number | null
+        }
+        Update: {
+          action_key?: string
+          actor_auth_user_id?: string | null
+          actor_identity_email?: string | null
+          actor_identity_source?: string
+          actor_user_id?: number
+          correlation_key?: string
+          fallback_reason?: string | null
+          fallback_recipient_user_id?: number | null
+          id?: never
+          new_step_id?: number
+          occurred_at?: string
+          prior_step_id?: number | null
+          requires_admin_review?: boolean
+          rfq_item_id?: number
+          routing_context?: Json
+          source_action_id?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "item_workflow_action_new_step_id_fkey"
+            columns: ["new_step_id"]
+            isOneToOne: false
+            referencedRelation: "RFQStep"
+            referencedColumns: ["RFQStep_id"]
+          },
+          {
+            foreignKeyName: "item_workflow_action_prior_step_id_fkey"
+            columns: ["prior_step_id"]
+            isOneToOne: false
+            referencedRelation: "RFQStep"
+            referencedColumns: ["RFQStep_id"]
+          },
+          {
+            foreignKeyName: "item_workflow_action_rfq_item_id_fkey"
+            columns: ["rfq_item_id"]
+            isOneToOne: false
+            referencedRelation: "RFQItem"
+            referencedColumns: ["rfqItem_id"]
+          },
+          {
+            foreignKeyName: "item_workflow_action_source_action_id_fkey"
+            columns: ["source_action_id", "rfq_item_id"]
+            isOneToOne: false
+            referencedRelation: "item_workflow_action"
+            referencedColumns: ["id", "rfq_item_id"]
+          },
+        ]
+      }
       itemAttachment: {
         Row: {
           attachment_display_name: string
@@ -11296,12 +18533,15 @@ export type Database = {
           carton_qty: number | null
           carton_weight_size_hed: number | null
           carton_width_size_hed: number | null
+          coldlion_synced_at: string | null
           color_code_fk: string | null
+          compan_code_fk: number | null
           compare_price_hed: number | null
           created_timedate: string | null
           created_user_fk: string | null
           dim_code_fk: string | null
           discont_status: string | null
+          div_code_fk: number | null
           ds_cat: string | null
           EAN: string | null
           GenerateUPC: string | null
@@ -11315,6 +18555,7 @@ export type Database = {
           item_cost_hed_ext: number | null
           item_depth_size_hed: number | null
           item_length_size_hed: number | null
+          item_num_id: string | null
           item_pk: number
           item_status_hed: string | null
           item_weight_size_hed: number | null
@@ -11462,12 +18703,15 @@ export type Database = {
           carton_qty?: number | null
           carton_weight_size_hed?: number | null
           carton_width_size_hed?: number | null
+          coldlion_synced_at?: string | null
           color_code_fk?: string | null
+          compan_code_fk?: number | null
           compare_price_hed?: number | null
           created_timedate?: string | null
           created_user_fk?: string | null
           dim_code_fk?: string | null
           discont_status?: string | null
+          div_code_fk?: number | null
           ds_cat?: string | null
           EAN?: string | null
           GenerateUPC?: string | null
@@ -11481,6 +18725,7 @@ export type Database = {
           item_cost_hed_ext?: number | null
           item_depth_size_hed?: number | null
           item_length_size_hed?: number | null
+          item_num_id?: string | null
           item_pk?: never
           item_status_hed?: string | null
           item_weight_size_hed?: number | null
@@ -11628,12 +18873,15 @@ export type Database = {
           carton_qty?: number | null
           carton_weight_size_hed?: number | null
           carton_width_size_hed?: number | null
+          coldlion_synced_at?: string | null
           color_code_fk?: string | null
+          compan_code_fk?: number | null
           compare_price_hed?: number | null
           created_timedate?: string | null
           created_user_fk?: string | null
           dim_code_fk?: string | null
           discont_status?: string | null
+          div_code_fk?: number | null
           ds_cat?: string | null
           EAN?: string | null
           GenerateUPC?: string | null
@@ -11647,6 +18895,7 @@ export type Database = {
           item_cost_hed_ext?: number | null
           item_depth_size_hed?: number | null
           item_length_size_hed?: number | null
+          item_num_id?: string | null
           item_pk?: never
           item_status_hed?: string | null
           item_weight_size_hed?: number | null
@@ -11818,6 +19067,9 @@ export type Database = {
           due_date: string | null
           giftwrap: string | null
           hts_num_ext_fk: string | null
+          hts_product_phrase: string | null
+          hts_product_phrase_at: string | null
+          hts_product_phrase_source: string | null
           hts2_num_ext_fk: string | null
           innerpack_qty: number | null
           is_item_active: boolean | null
@@ -12048,6 +19300,9 @@ export type Database = {
           due_date?: string | null
           giftwrap?: string | null
           hts_num_ext_fk?: string | null
+          hts_product_phrase?: string | null
+          hts_product_phrase_at?: string | null
+          hts_product_phrase_source?: string | null
           hts2_num_ext_fk?: string | null
           innerpack_qty?: number | null
           is_item_active?: boolean | null
@@ -12278,6 +19533,9 @@ export type Database = {
           due_date?: string | null
           giftwrap?: string | null
           hts_num_ext_fk?: string | null
+          hts_product_phrase?: string | null
+          hts_product_phrase_at?: string | null
+          hts_product_phrase_source?: string | null
           hts2_num_ext_fk?: string | null
           innerpack_qty?: number | null
           is_item_active?: boolean | null
@@ -12590,6 +19848,93 @@ export type Database = {
         }
         Relationships: []
       }
+      legacy_erp_item_identity: {
+        Row: {
+          division_code: string | null
+          external_id: string
+          frozen_at: string
+          id: string
+          item_description: string | null
+          mg01_code: string | null
+          mg02_code: string | null
+          mg03_code: string | null
+          mg04_code: string | null
+          mg05_code: string | null
+          mg06_code: string | null
+          style_number: string | null
+        }
+        Insert: {
+          division_code?: string | null
+          external_id: string
+          frozen_at?: string
+          id: string
+          item_description?: string | null
+          mg01_code?: string | null
+          mg02_code?: string | null
+          mg03_code?: string | null
+          mg04_code?: string | null
+          mg05_code?: string | null
+          mg06_code?: string | null
+          style_number?: string | null
+        }
+        Update: {
+          division_code?: string | null
+          external_id?: string
+          frozen_at?: string
+          id?: string
+          item_description?: string | null
+          mg01_code?: string | null
+          mg02_code?: string | null
+          mg03_code?: string | null
+          mg04_code?: string | null
+          mg05_code?: string | null
+          mg06_code?: string | null
+          style_number?: string | null
+        }
+        Relationships: []
+      }
+      license_agreement: {
+        Row: {
+          created_at: string
+          fob_royalty_rate: number | null
+          id: string
+          licensor_id: string
+          royalty_rate: number | null
+          source_code: string | null
+          source_id: string
+          source_system: string
+          source_title: string | null
+          status: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          fob_royalty_rate?: number | null
+          id?: string
+          licensor_id: string
+          royalty_rate?: number | null
+          source_code?: string | null
+          source_id: string
+          source_system?: string
+          source_title?: string | null
+          status?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          fob_royalty_rate?: number | null
+          id?: string
+          licensor_id?: string
+          royalty_rate?: number | null
+          source_code?: string | null
+          source_id?: string
+          source_system?: string
+          source_title?: string | null
+          status?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       LicenseFeedBacks: {
         Row: {
           access: string | null
@@ -12622,6 +19967,151 @@ export type Database = {
           status?: string | null
         }
         Relationships: []
+      }
+      licensing_canonical_change_history: {
+        Row: {
+          body: Json
+          duplicate_id: string
+          entity_kind: string
+          event_kind: string
+          id: string
+          plan_hash: string
+          plan_id: string | null
+          plan_status: string | null
+          recorded_at: string
+          recorded_by: string
+          refusal_reason: string | null
+          result: Json
+          rollback_hash: string | null
+          survivor_id: string
+        }
+        Insert: {
+          body: Json
+          duplicate_id: string
+          entity_kind: string
+          event_kind: string
+          id?: string
+          plan_hash: string
+          plan_id?: string | null
+          plan_status?: string | null
+          recorded_at?: string
+          recorded_by: string
+          refusal_reason?: string | null
+          result?: Json
+          rollback_hash?: string | null
+          survivor_id: string
+        }
+        Update: {
+          body?: Json
+          duplicate_id?: string
+          entity_kind?: string
+          event_kind?: string
+          id?: string
+          plan_hash?: string
+          plan_id?: string | null
+          plan_status?: string | null
+          recorded_at?: string
+          recorded_by?: string
+          refusal_reason?: string | null
+          result?: Json
+          rollback_hash?: string | null
+          survivor_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "licensing_canonical_change_history_plan_id_fkey"
+            columns: ["plan_id"]
+            isOneToOne: false
+            referencedRelation: "licensing_canonical_change_history"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      licensing_consolidation_plan: {
+        Row: {
+          applied_at: string | null
+          applied_by: string | null
+          applied_state: Json | null
+          capture_complete: boolean
+          capture_id: string
+          capture_snapshot: Json
+          collision_count: number
+          created_at: string
+          entity_operation_count: number
+          id: string
+          operations: Json
+          plan_hash: string
+          plan_schema_version: number
+          plan_status: string
+          planned_at: string
+          planned_by: string
+          refusal_reason: string | null
+          relationship_operation_count: number
+          retire_operation_count: number
+          rollback_of: string | null
+          rollback_operations: Json
+          source_scope_checked: boolean
+          source_system: string
+        }
+        Insert: {
+          applied_at?: string | null
+          applied_by?: string | null
+          applied_state?: Json | null
+          capture_complete: boolean
+          capture_id: string
+          capture_snapshot?: Json
+          collision_count?: number
+          created_at?: string
+          entity_operation_count?: number
+          id?: string
+          operations?: Json
+          plan_hash: string
+          plan_schema_version?: number
+          plan_status?: string
+          planned_at?: string
+          planned_by: string
+          refusal_reason?: string | null
+          relationship_operation_count?: number
+          retire_operation_count?: number
+          rollback_of?: string | null
+          rollback_operations?: Json
+          source_scope_checked: boolean
+          source_system: string
+        }
+        Update: {
+          applied_at?: string | null
+          applied_by?: string | null
+          applied_state?: Json | null
+          capture_complete?: boolean
+          capture_id?: string
+          capture_snapshot?: Json
+          collision_count?: number
+          created_at?: string
+          entity_operation_count?: number
+          id?: string
+          operations?: Json
+          plan_hash?: string
+          plan_schema_version?: number
+          plan_status?: string
+          planned_at?: string
+          planned_by?: string
+          refusal_reason?: string | null
+          relationship_operation_count?: number
+          retire_operation_count?: number
+          rollback_of?: string | null
+          rollback_operations?: Json
+          source_scope_checked?: boolean
+          source_system?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "licensing_consolidation_plan_rollback_of_fkey"
+            columns: ["rollback_of"]
+            isOneToOne: false
+            referencedRelation: "licensing_consolidation_plan"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       licensing_feedback: {
         Row: {
@@ -12670,6 +20160,111 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      licensing_relationship_resolution: {
+        Row: {
+          core_character_id: string | null
+          core_franchise_id: string | null
+          core_property_id: string | null
+          core_style_guide_id: string | null
+          created_at: string
+          dam_asset_id: string | null
+          evidence_kind: Database["core"]["Enums"]["relationship_evidence_kind"]
+          is_direct_source_relationship: boolean | null
+          licensor_id: string
+          relationship_kind: string
+          resolution_reason: string | null
+          resolution_status: string
+          resolved_at: string | null
+          resolved_by: string | null
+          source_evidence: string | null
+          source_left_id: string
+          source_right_id: string
+          source_system: string
+          updated_at: string
+        }
+        Insert: {
+          core_character_id?: string | null
+          core_franchise_id?: string | null
+          core_property_id?: string | null
+          core_style_guide_id?: string | null
+          created_at?: string
+          dam_asset_id?: string | null
+          evidence_kind: Database["core"]["Enums"]["relationship_evidence_kind"]
+          is_direct_source_relationship?: boolean | null
+          licensor_id: string
+          relationship_kind: string
+          resolution_reason?: string | null
+          resolution_status?: string
+          resolved_at?: string | null
+          resolved_by?: string | null
+          source_evidence?: string | null
+          source_left_id: string
+          source_right_id: string
+          source_system: string
+          updated_at?: string
+        }
+        Update: {
+          core_character_id?: string | null
+          core_franchise_id?: string | null
+          core_property_id?: string | null
+          core_style_guide_id?: string | null
+          created_at?: string
+          dam_asset_id?: string | null
+          evidence_kind?: Database["core"]["Enums"]["relationship_evidence_kind"]
+          is_direct_source_relationship?: boolean | null
+          licensor_id?: string
+          relationship_kind?: string
+          resolution_reason?: string | null
+          resolution_status?: string
+          resolved_at?: string | null
+          resolved_by?: string | null
+          source_evidence?: string | null
+          source_left_id?: string
+          source_right_id?: string
+          source_system?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      licensing_source_scope: {
+        Row: {
+          authorization_note: string | null
+          authorized_at: string | null
+          authorized_by: string | null
+          created_at: string
+          licensor_id: string
+          permitted_kind: string
+          scope_axis: string
+          source_purpose: string
+          source_system: string
+          updated_at: string
+        }
+        Insert: {
+          authorization_note?: string | null
+          authorized_at?: string | null
+          authorized_by?: string | null
+          created_at?: string
+          licensor_id: string
+          permitted_kind: string
+          scope_axis: string
+          source_purpose: string
+          source_system: string
+          updated_at?: string
+        }
+        Update: {
+          authorization_note?: string | null
+          authorized_at?: string | null
+          authorized_by?: string | null
+          created_at?: string
+          licensor_id?: string
+          permitted_kind?: string
+          scope_axis?: string
+          source_purpose?: string
+          source_system?: string
+          updated_at?: string
+        }
+        Relationships: []
       }
       licensing_status: {
         Row: {
@@ -12723,6 +20318,117 @@ export type Database = {
             columns: ["item_id"]
             isOneToOne: false
             referencedRelation: "item"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "licensing_status_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: false
+            referencedRelation: "item_missing_attribution"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      licensing_write_authorization: {
+        Row: {
+          actor: string
+          backend_pid: number
+          consumed_at: string | null
+          created_at: string
+          expires_at: string
+          id: string
+          plan_hash: string
+          plan_id: string
+          protected_columns: string[]
+          target_table: unknown
+          transaction_id: number
+          write_kind: string
+        }
+        Insert: {
+          actor: string
+          backend_pid: number
+          consumed_at?: string | null
+          created_at?: string
+          expires_at: string
+          id?: string
+          plan_hash: string
+          plan_id: string
+          protected_columns: string[]
+          target_table: unknown
+          transaction_id: number
+          write_kind: string
+        }
+        Update: {
+          actor?: string
+          backend_pid?: number
+          consumed_at?: string | null
+          created_at?: string
+          expires_at?: string
+          id?: string
+          plan_hash?: string
+          plan_id?: string
+          protected_columns?: string[]
+          target_table?: unknown
+          transaction_id?: number
+          write_kind?: string
+        }
+        Relationships: []
+      }
+      licensing_write_guard_audit: {
+        Row: {
+          actor: string
+          authorization_id: string
+          id: number
+          new_status: string | null
+          old_status: string | null
+          operation: string
+          plan_hash: string
+          plan_id: string
+          protected_columns: string[]
+          recorded_at: string
+          ruling_migration: string | null
+          target_row_id: string | null
+          target_table: unknown
+          write_kind: string
+        }
+        Insert: {
+          actor: string
+          authorization_id: string
+          id?: never
+          new_status?: string | null
+          old_status?: string | null
+          operation: string
+          plan_hash: string
+          plan_id: string
+          protected_columns: string[]
+          recorded_at?: string
+          ruling_migration?: string | null
+          target_row_id?: string | null
+          target_table: unknown
+          write_kind: string
+        }
+        Update: {
+          actor?: string
+          authorization_id?: string
+          id?: never
+          new_status?: string | null
+          old_status?: string | null
+          operation?: string
+          plan_hash?: string
+          plan_id?: string
+          protected_columns?: string[]
+          recorded_at?: string
+          ruling_migration?: string | null
+          target_row_id?: string | null
+          target_table?: unknown
+          write_kind?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "licensing_write_guard_audit_authorization_id_fkey"
+            columns: ["authorization_id"]
+            isOneToOne: false
+            referencedRelation: "licensing_write_authorization"
             referencedColumns: ["id"]
           },
         ]
@@ -12962,6 +20668,3460 @@ export type Database = {
         }
         Relationships: []
       }
+      licensor_stage_option: {
+        Row: {
+          enabled: boolean
+          licensor_name: string
+          stage_id: number
+        }
+        Insert: {
+          enabled?: boolean
+          licensor_name: string
+          stage_id: number
+        }
+        Update: {
+          enabled?: boolean
+          licensor_name?: string
+          stage_id?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "licensor_stage_option_stage_id_fkey"
+            columns: ["stage_id"]
+            isOneToOne: false
+            referencedRelation: "stage"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      licensor_submission_pdf: {
+        Row: {
+          brand_assurance_numbers: string[] | null
+          capture_id: string
+          characters: string[]
+          created_at: string
+          file_size_bytes: number
+          id: number
+          licensor_folder: string
+          nas_path: string
+          portal_system: string
+          properties: string[]
+          style_code: string | null
+          style_guides: string[]
+          sub_properties: string[]
+          submission_numbers: string[] | null
+          submission_year: number | null
+          text_length: number
+        }
+        Insert: {
+          brand_assurance_numbers?: string[] | null
+          capture_id: string
+          characters?: string[]
+          created_at?: string
+          file_size_bytes: number
+          id?: never
+          licensor_folder: string
+          nas_path: string
+          portal_system: string
+          properties?: string[]
+          style_code?: string | null
+          style_guides?: string[]
+          sub_properties?: string[]
+          submission_numbers?: string[] | null
+          submission_year?: number | null
+          text_length: number
+        }
+        Update: {
+          brand_assurance_numbers?: string[] | null
+          capture_id?: string
+          characters?: string[]
+          created_at?: string
+          file_size_bytes?: number
+          id?: never
+          licensor_folder?: string
+          nas_path?: string
+          portal_system?: string
+          properties?: string[]
+          style_code?: string | null
+          style_guides?: string[]
+          sub_properties?: string[]
+          submission_numbers?: string[] | null
+          submission_year?: number | null
+          text_length?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "licensor_submission_pdf_capture_id_fkey"
+            columns: ["capture_id"]
+            isOneToOne: false
+            referencedRelation: "licensor_submission_pdf_capture"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      licensor_submission_pdf_capture: {
+        Row: {
+          capture_key: string
+          completed_at: string | null
+          expected_file_count: number
+          extractor_commit: string | null
+          id: string
+          loaded_file_count: number
+          notes: string | null
+          reader: string
+          source_root: string
+          started_at: string
+          status: string
+          year_from: number
+          year_to: number
+        }
+        Insert: {
+          capture_key: string
+          completed_at?: string | null
+          expected_file_count: number
+          extractor_commit?: string | null
+          id?: string
+          loaded_file_count?: number
+          notes?: string | null
+          reader: string
+          source_root: string
+          started_at?: string
+          status?: string
+          year_from: number
+          year_to: number
+        }
+        Update: {
+          capture_key?: string
+          completed_at?: string | null
+          expected_file_count?: number
+          extractor_commit?: string | null
+          id?: string
+          loaded_file_count?: number
+          notes?: string | null
+          reader?: string
+          source_root?: string
+          started_at?: string
+          status?: string
+          year_from?: number
+          year_to?: number
+        }
+        Relationships: []
+      }
+      lucasfilm_dcp_asset: {
+        Row: {
+          checksum: string | null
+          content_type: string | null
+          created_at: string
+          do_not_use_reason: string | null
+          file_extension: string | null
+          file_name: string
+          file_size_bytes: number | null
+          first_seen_crawl_id: string | null
+          id: string
+          last_seen_crawl_id: string | null
+          raw: Json
+          relative_folder_path: string | null
+          sku_sg_file_key: string | null
+          source_asset_id: string | null
+          source_path: string
+          source_system: string
+          style_guide_id: string
+          updated_at: string
+        }
+        Insert: {
+          checksum?: string | null
+          content_type?: string | null
+          created_at?: string
+          do_not_use_reason?: string | null
+          file_extension?: string | null
+          file_name: string
+          file_size_bytes?: number | null
+          first_seen_crawl_id?: string | null
+          id?: string
+          last_seen_crawl_id?: string | null
+          raw?: Json
+          relative_folder_path?: string | null
+          sku_sg_file_key?: string | null
+          source_asset_id?: string | null
+          source_path: string
+          source_system?: string
+          style_guide_id: string
+          updated_at?: string
+        }
+        Update: {
+          checksum?: string | null
+          content_type?: string | null
+          created_at?: string
+          do_not_use_reason?: string | null
+          file_extension?: string | null
+          file_name?: string
+          file_size_bytes?: number | null
+          first_seen_crawl_id?: string | null
+          id?: string
+          last_seen_crawl_id?: string | null
+          raw?: Json
+          relative_folder_path?: string | null
+          sku_sg_file_key?: string | null
+          source_asset_id?: string | null
+          source_path?: string
+          source_system?: string
+          style_guide_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lucasfilm_dcp_asset_first_seen_crawl_id_fkey"
+            columns: ["first_seen_crawl_id"]
+            isOneToOne: false
+            referencedRelation: "lucasfilm_dcp_crawl"
+            referencedColumns: ["crawl_id"]
+          },
+          {
+            foreignKeyName: "lucasfilm_dcp_asset_last_seen_crawl_id_fkey"
+            columns: ["last_seen_crawl_id"]
+            isOneToOne: false
+            referencedRelation: "lucasfilm_dcp_crawl"
+            referencedColumns: ["crawl_id"]
+          },
+          {
+            foreignKeyName: "lucasfilm_dcp_asset_style_guide_id_fkey"
+            columns: ["style_guide_id"]
+            isOneToOne: false
+            referencedRelation: "lucasfilm_dcp_style_guide"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      lucasfilm_dcp_asset_character_observation: {
+        Row: {
+          fetch_status: string
+          lucasfilm_dcp_asset_id: string
+          lucasfilm_dcp_character_id: string
+          metadata_run_id: string
+          observed_at: string
+        }
+        Insert: {
+          fetch_status?: string
+          lucasfilm_dcp_asset_id: string
+          lucasfilm_dcp_character_id: string
+          metadata_run_id: string
+          observed_at?: string
+        }
+        Update: {
+          fetch_status?: string
+          lucasfilm_dcp_asset_id?: string
+          lucasfilm_dcp_character_id?: string
+          metadata_run_id?: string
+          observed_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lucasfilm_dcp_asset_character_o_lucasfilm_dcp_character_id_fkey"
+            columns: ["lucasfilm_dcp_character_id"]
+            isOneToOne: false
+            referencedRelation: "lucasfilm_dcp_character"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lucasfilm_dcp_asset_character_obs_asset_fk"
+            columns: [
+              "metadata_run_id",
+              "lucasfilm_dcp_asset_id",
+              "fetch_status",
+            ]
+            isOneToOne: false
+            referencedRelation: "lucasfilm_dcp_metadata_asset"
+            referencedColumns: [
+              "metadata_run_id",
+              "lucasfilm_dcp_asset_id",
+              "fetch_status",
+            ]
+          },
+        ]
+      }
+      lucasfilm_dcp_asset_crawl: {
+        Row: {
+          crawl_id: string
+          lucasfilm_dcp_asset_id: string
+          observed_at: string
+          observed_row_hash: string
+        }
+        Insert: {
+          crawl_id: string
+          lucasfilm_dcp_asset_id: string
+          observed_at?: string
+          observed_row_hash: string
+        }
+        Update: {
+          crawl_id?: string
+          lucasfilm_dcp_asset_id?: string
+          observed_at?: string
+          observed_row_hash?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lucasfilm_dcp_asset_crawl_crawl_id_fkey"
+            columns: ["crawl_id"]
+            isOneToOne: false
+            referencedRelation: "lucasfilm_dcp_crawl"
+            referencedColumns: ["crawl_id"]
+          },
+          {
+            foreignKeyName: "lucasfilm_dcp_asset_crawl_lucasfilm_dcp_asset_id_fkey"
+            columns: ["lucasfilm_dcp_asset_id"]
+            isOneToOne: false
+            referencedRelation: "lucasfilm_dcp_asset"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      lucasfilm_dcp_asset_property_observation: {
+        Row: {
+          fetch_status: string
+          lucasfilm_dcp_asset_id: string
+          lucasfilm_dcp_property_id: string
+          metadata_run_id: string
+          observed_at: string
+        }
+        Insert: {
+          fetch_status?: string
+          lucasfilm_dcp_asset_id: string
+          lucasfilm_dcp_property_id: string
+          metadata_run_id: string
+          observed_at?: string
+        }
+        Update: {
+          fetch_status?: string
+          lucasfilm_dcp_asset_id?: string
+          lucasfilm_dcp_property_id?: string
+          metadata_run_id?: string
+          observed_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lucasfilm_dcp_asset_property_obs_asset_fk"
+            columns: [
+              "metadata_run_id",
+              "lucasfilm_dcp_asset_id",
+              "fetch_status",
+            ]
+            isOneToOne: false
+            referencedRelation: "lucasfilm_dcp_metadata_asset"
+            referencedColumns: [
+              "metadata_run_id",
+              "lucasfilm_dcp_asset_id",
+              "fetch_status",
+            ]
+          },
+          {
+            foreignKeyName: "lucasfilm_dcp_asset_property_obs_lucasfilm_dcp_property_id_fkey"
+            columns: ["lucasfilm_dcp_property_id"]
+            isOneToOne: false
+            referencedRelation: "lucasfilm_dcp_property"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      lucasfilm_dcp_asset_term_observation: {
+        Row: {
+          fetch_status: string
+          lucasfilm_dcp_asset_id: string
+          lucasfilm_dcp_term_id: string
+          metadata_run_id: string
+          observed_at: string
+        }
+        Insert: {
+          fetch_status?: string
+          lucasfilm_dcp_asset_id: string
+          lucasfilm_dcp_term_id: string
+          metadata_run_id: string
+          observed_at?: string
+        }
+        Update: {
+          fetch_status?: string
+          lucasfilm_dcp_asset_id?: string
+          lucasfilm_dcp_term_id?: string
+          metadata_run_id?: string
+          observed_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lucasfilm_dcp_asset_term_obs_asset_fk"
+            columns: [
+              "metadata_run_id",
+              "lucasfilm_dcp_asset_id",
+              "fetch_status",
+            ]
+            isOneToOne: false
+            referencedRelation: "lucasfilm_dcp_metadata_asset"
+            referencedColumns: [
+              "metadata_run_id",
+              "lucasfilm_dcp_asset_id",
+              "fetch_status",
+            ]
+          },
+          {
+            foreignKeyName: "lucasfilm_dcp_asset_term_observation_lucasfilm_dcp_term_id_fkey"
+            columns: ["lucasfilm_dcp_term_id"]
+            isOneToOne: false
+            referencedRelation: "lucasfilm_dcp_term"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      lucasfilm_dcp_asset_tile_observation: {
+        Row: {
+          crawl_id: string
+          crawl_section_id: string | null
+          link_evidence: string
+          listing_kind: string
+          lucasfilm_dcp_asset_id: string
+          observed_at: string
+          portal_tile_id: string
+        }
+        Insert: {
+          crawl_id: string
+          crawl_section_id?: string | null
+          link_evidence: string
+          listing_kind: string
+          lucasfilm_dcp_asset_id: string
+          observed_at?: string
+          portal_tile_id: string
+        }
+        Update: {
+          crawl_id?: string
+          crawl_section_id?: string | null
+          link_evidence?: string
+          listing_kind?: string
+          lucasfilm_dcp_asset_id?: string
+          observed_at?: string
+          portal_tile_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lucasfilm_dcp_asset_tile_observatio_lucasfilm_dcp_asset_id_fkey"
+            columns: ["lucasfilm_dcp_asset_id"]
+            isOneToOne: false
+            referencedRelation: "lucasfilm_dcp_asset"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lucasfilm_dcp_asset_tile_observation_crawl_id_fkey"
+            columns: ["crawl_id"]
+            isOneToOne: false
+            referencedRelation: "lucasfilm_dcp_crawl"
+            referencedColumns: ["crawl_id"]
+          },
+          {
+            foreignKeyName: "lucasfilm_dcp_asset_tile_observation_crawl_section_id_fkey"
+            columns: ["crawl_section_id"]
+            isOneToOne: false
+            referencedRelation: "lucasfilm_dcp_crawl_section"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lucasfilm_dcp_asset_tile_observation_portal_tile_id_fkey"
+            columns: ["portal_tile_id"]
+            isOneToOne: false
+            referencedRelation: "lucasfilm_dcp_portal_tile"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      lucasfilm_dcp_character: {
+        Row: {
+          core_character_id: string | null
+          created_at: string
+          display_name: string | null
+          first_seen_metadata_run_id: string | null
+          id: string
+          last_seen_metadata_run_id: string | null
+          raw: Json
+          resolution_note: string | null
+          resolved_at: string | null
+          resolved_by: string | null
+          source_id: string
+          source_system: string
+          updated_at: string
+        }
+        Insert: {
+          core_character_id?: string | null
+          created_at?: string
+          display_name?: string | null
+          first_seen_metadata_run_id?: string | null
+          id?: string
+          last_seen_metadata_run_id?: string | null
+          raw?: Json
+          resolution_note?: string | null
+          resolved_at?: string | null
+          resolved_by?: string | null
+          source_id: string
+          source_system?: string
+          updated_at?: string
+        }
+        Update: {
+          core_character_id?: string | null
+          created_at?: string
+          display_name?: string | null
+          first_seen_metadata_run_id?: string | null
+          id?: string
+          last_seen_metadata_run_id?: string | null
+          raw?: Json
+          resolution_note?: string | null
+          resolved_at?: string | null
+          resolved_by?: string | null
+          source_id?: string
+          source_system?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lucasfilm_dcp_character_first_seen_metadata_run_id_fkey"
+            columns: ["first_seen_metadata_run_id"]
+            isOneToOne: false
+            referencedRelation: "lucasfilm_dcp_metadata_run"
+            referencedColumns: ["metadata_run_id"]
+          },
+          {
+            foreignKeyName: "lucasfilm_dcp_character_last_seen_metadata_run_id_fkey"
+            columns: ["last_seen_metadata_run_id"]
+            isOneToOne: false
+            referencedRelation: "lucasfilm_dcp_metadata_run"
+            referencedColumns: ["metadata_run_id"]
+          },
+        ]
+      }
+      lucasfilm_dcp_chunk_ledger: {
+        Row: {
+          applied_at: string
+          chunk_number: number
+          chunk_sha256: string
+          crawl_id: string
+          rows_landed: number
+          rows_received: number
+          rows_rejected: number
+        }
+        Insert: {
+          applied_at?: string
+          chunk_number: number
+          chunk_sha256: string
+          crawl_id: string
+          rows_landed: number
+          rows_received: number
+          rows_rejected: number
+        }
+        Update: {
+          applied_at?: string
+          chunk_number?: number
+          chunk_sha256?: string
+          crawl_id?: string
+          rows_landed?: number
+          rows_received?: number
+          rows_rejected?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lucasfilm_dcp_chunk_ledger_crawl_id_fkey"
+            columns: ["crawl_id"]
+            isOneToOne: false
+            referencedRelation: "lucasfilm_dcp_crawl"
+            referencedColumns: ["crawl_id"]
+          },
+        ]
+      }
+      lucasfilm_dcp_crawl: {
+        Row: {
+          account_scope: string
+          captured_by: string
+          captured_on: string
+          crawl_id: string
+          crawler_version: string
+          created_at: string
+          distinct_assets_received: number | null
+          failure_message: string | null
+          finished_at: string | null
+          line_of_business: string
+          metadata: Json
+          notes: string | null
+          portal_base_url: string
+          private_source_commit: string
+          rows_received: number | null
+          source_system: string
+          started_at: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          account_scope: string
+          captured_by: string
+          captured_on: string
+          crawl_id?: string
+          crawler_version: string
+          created_at?: string
+          distinct_assets_received?: number | null
+          failure_message?: string | null
+          finished_at?: string | null
+          line_of_business: string
+          metadata?: Json
+          notes?: string | null
+          portal_base_url: string
+          private_source_commit: string
+          rows_received?: number | null
+          source_system?: string
+          started_at: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          account_scope?: string
+          captured_by?: string
+          captured_on?: string
+          crawl_id?: string
+          crawler_version?: string
+          created_at?: string
+          distinct_assets_received?: number | null
+          failure_message?: string | null
+          finished_at?: string | null
+          line_of_business?: string
+          metadata?: Json
+          notes?: string | null
+          portal_base_url?: string
+          private_source_commit?: string
+          rows_received?: number | null
+          source_system?: string
+          started_at?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      lucasfilm_dcp_crawl_gap: {
+        Row: {
+          attempt_count: number
+          crawl_section_id: string
+          created_at: string
+          id: string
+          offset_from: number
+          offset_to: number
+          reason: string
+          resolution_note: string | null
+          resolved_at: string | null
+          waived_at: string | null
+          waived_by: string | null
+          waiver_reason: string | null
+        }
+        Insert: {
+          attempt_count?: number
+          crawl_section_id: string
+          created_at?: string
+          id?: string
+          offset_from: number
+          offset_to: number
+          reason: string
+          resolution_note?: string | null
+          resolved_at?: string | null
+          waived_at?: string | null
+          waived_by?: string | null
+          waiver_reason?: string | null
+        }
+        Update: {
+          attempt_count?: number
+          crawl_section_id?: string
+          created_at?: string
+          id?: string
+          offset_from?: number
+          offset_to?: number
+          reason?: string
+          resolution_note?: string | null
+          resolved_at?: string | null
+          waived_at?: string | null
+          waived_by?: string | null
+          waiver_reason?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lucasfilm_dcp_crawl_gap_crawl_section_id_fkey"
+            columns: ["crawl_section_id"]
+            isOneToOne: false
+            referencedRelation: "lucasfilm_dcp_crawl_section"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      lucasfilm_dcp_crawl_section: {
+        Row: {
+          captured_count: number
+          crawl_id: string
+          created_at: string
+          expected_count: number | null
+          finished_at: string | null
+          id: string
+          last_offset: number | null
+          listing_kind: string
+          notes: string | null
+          portal_tile_id: string
+          started_at: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          captured_count?: number
+          crawl_id: string
+          created_at?: string
+          expected_count?: number | null
+          finished_at?: string | null
+          id?: string
+          last_offset?: number | null
+          listing_kind: string
+          notes?: string | null
+          portal_tile_id: string
+          started_at?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          captured_count?: number
+          crawl_id?: string
+          created_at?: string
+          expected_count?: number | null
+          finished_at?: string | null
+          id?: string
+          last_offset?: number | null
+          listing_kind?: string
+          notes?: string | null
+          portal_tile_id?: string
+          started_at?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lucasfilm_dcp_crawl_section_crawl_id_fkey"
+            columns: ["crawl_id"]
+            isOneToOne: false
+            referencedRelation: "lucasfilm_dcp_crawl"
+            referencedColumns: ["crawl_id"]
+          },
+          {
+            foreignKeyName: "lucasfilm_dcp_crawl_section_portal_tile_id_fkey"
+            columns: ["portal_tile_id"]
+            isOneToOne: false
+            referencedRelation: "lucasfilm_dcp_portal_tile"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      lucasfilm_dcp_load_exception: {
+        Row: {
+          chunk_number: number | null
+          crawl_id: string
+          crawl_section_id: string | null
+          created_at: string
+          id: string
+          raw_row: Json
+          reason: string
+          reason_code: string
+          resolution_note: string | null
+          resolved_at: string | null
+          row_number: number | null
+          severity: string
+          source_path: string | null
+        }
+        Insert: {
+          chunk_number?: number | null
+          crawl_id: string
+          crawl_section_id?: string | null
+          created_at?: string
+          id?: string
+          raw_row?: Json
+          reason: string
+          reason_code: string
+          resolution_note?: string | null
+          resolved_at?: string | null
+          row_number?: number | null
+          severity?: string
+          source_path?: string | null
+        }
+        Update: {
+          chunk_number?: number | null
+          crawl_id?: string
+          crawl_section_id?: string | null
+          created_at?: string
+          id?: string
+          raw_row?: Json
+          reason?: string
+          reason_code?: string
+          resolution_note?: string | null
+          resolved_at?: string | null
+          row_number?: number | null
+          severity?: string
+          source_path?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lucasfilm_dcp_load_exception_crawl_id_fkey"
+            columns: ["crawl_id"]
+            isOneToOne: false
+            referencedRelation: "lucasfilm_dcp_crawl"
+            referencedColumns: ["crawl_id"]
+          },
+          {
+            foreignKeyName: "lucasfilm_dcp_load_exception_crawl_section_id_fkey"
+            columns: ["crawl_section_id"]
+            isOneToOne: false
+            referencedRelation: "lucasfilm_dcp_crawl_section"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      lucasfilm_dcp_metadata_asset: {
+        Row: {
+          attempt_count: number
+          collection_dmc_id: string | null
+          collection_main_title: string | null
+          collection_type: string | null
+          content_owner: string | null
+          content_type: string | null
+          created_at: string
+          dam_sha1: string | null
+          dc_title: string | null
+          design_element: string | null
+          failure_code: string | null
+          failure_reason: string | null
+          fetch_status: string
+          file_size_bytes_interpreted: number | null
+          file_size_raw: string | null
+          format_raw: string | null
+          http_status: number | null
+          is_embargoed_interpreted: boolean | null
+          is_embargoed_raw: string | null
+          is_exclusive_interpreted: boolean | null
+          is_exclusive_raw: string | null
+          is_locked_interpreted: boolean | null
+          is_locked_raw: string | null
+          lucasfilm_dcp_asset_id: string
+          metadata_run_id: string
+          modified_at_interpreted: string | null
+          modified_at_raw: string | null
+          normalized_hash: string | null
+          num_pages_interpreted: number | null
+          num_pages_raw: string | null
+          raw_metadata: Json | null
+          release_date_interpreted: string | null
+          release_date_raw: string | null
+          response_bytes: number | null
+          retrieved_at: string | null
+          rights_parse_confident: boolean
+          source_crawl_id: string
+          source_hash: string | null
+          source_status: string | null
+          source_uuid: string | null
+          updated_at: string
+        }
+        Insert: {
+          attempt_count?: number
+          collection_dmc_id?: string | null
+          collection_main_title?: string | null
+          collection_type?: string | null
+          content_owner?: string | null
+          content_type?: string | null
+          created_at?: string
+          dam_sha1?: string | null
+          dc_title?: string | null
+          design_element?: string | null
+          failure_code?: string | null
+          failure_reason?: string | null
+          fetch_status?: string
+          file_size_bytes_interpreted?: number | null
+          file_size_raw?: string | null
+          format_raw?: string | null
+          http_status?: number | null
+          is_embargoed_interpreted?: boolean | null
+          is_embargoed_raw?: string | null
+          is_exclusive_interpreted?: boolean | null
+          is_exclusive_raw?: string | null
+          is_locked_interpreted?: boolean | null
+          is_locked_raw?: string | null
+          lucasfilm_dcp_asset_id: string
+          metadata_run_id: string
+          modified_at_interpreted?: string | null
+          modified_at_raw?: string | null
+          normalized_hash?: string | null
+          num_pages_interpreted?: number | null
+          num_pages_raw?: string | null
+          raw_metadata?: Json | null
+          release_date_interpreted?: string | null
+          release_date_raw?: string | null
+          response_bytes?: number | null
+          retrieved_at?: string | null
+          rights_parse_confident?: boolean
+          source_crawl_id: string
+          source_hash?: string | null
+          source_status?: string | null
+          source_uuid?: string | null
+          updated_at?: string
+        }
+        Update: {
+          attempt_count?: number
+          collection_dmc_id?: string | null
+          collection_main_title?: string | null
+          collection_type?: string | null
+          content_owner?: string | null
+          content_type?: string | null
+          created_at?: string
+          dam_sha1?: string | null
+          dc_title?: string | null
+          design_element?: string | null
+          failure_code?: string | null
+          failure_reason?: string | null
+          fetch_status?: string
+          file_size_bytes_interpreted?: number | null
+          file_size_raw?: string | null
+          format_raw?: string | null
+          http_status?: number | null
+          is_embargoed_interpreted?: boolean | null
+          is_embargoed_raw?: string | null
+          is_exclusive_interpreted?: boolean | null
+          is_exclusive_raw?: string | null
+          is_locked_interpreted?: boolean | null
+          is_locked_raw?: string | null
+          lucasfilm_dcp_asset_id?: string
+          metadata_run_id?: string
+          modified_at_interpreted?: string | null
+          modified_at_raw?: string | null
+          normalized_hash?: string | null
+          num_pages_interpreted?: number | null
+          num_pages_raw?: string | null
+          raw_metadata?: Json | null
+          release_date_interpreted?: string | null
+          release_date_raw?: string | null
+          response_bytes?: number | null
+          retrieved_at?: string | null
+          rights_parse_confident?: boolean
+          source_crawl_id?: string
+          source_hash?: string | null
+          source_status?: string | null
+          source_uuid?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lucasfilm_dcp_metadata_asset_membership_fk"
+            columns: ["source_crawl_id", "lucasfilm_dcp_asset_id"]
+            isOneToOne: false
+            referencedRelation: "lucasfilm_dcp_asset_crawl"
+            referencedColumns: ["crawl_id", "lucasfilm_dcp_asset_id"]
+          },
+          {
+            foreignKeyName: "lucasfilm_dcp_metadata_asset_run_fk"
+            columns: ["metadata_run_id", "source_crawl_id"]
+            isOneToOne: false
+            referencedRelation: "lucasfilm_dcp_metadata_run"
+            referencedColumns: ["metadata_run_id", "source_crawl_id"]
+          },
+        ]
+      }
+      lucasfilm_dcp_metadata_chunk_ledger: {
+        Row: {
+          applied_at: string
+          chunk_number: number
+          chunk_sha256: string
+          metadata_run_id: string
+          rows_landed: number
+          rows_received: number
+          rows_rejected: number
+        }
+        Insert: {
+          applied_at?: string
+          chunk_number: number
+          chunk_sha256: string
+          metadata_run_id: string
+          rows_landed: number
+          rows_received: number
+          rows_rejected: number
+        }
+        Update: {
+          applied_at?: string
+          chunk_number?: number
+          chunk_sha256?: string
+          metadata_run_id?: string
+          rows_landed?: number
+          rows_received?: number
+          rows_rejected?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lucasfilm_dcp_metadata_chunk_ledger_metadata_run_id_fkey"
+            columns: ["metadata_run_id"]
+            isOneToOne: false
+            referencedRelation: "lucasfilm_dcp_metadata_run"
+            referencedColumns: ["metadata_run_id"]
+          },
+        ]
+      }
+      lucasfilm_dcp_metadata_load_exception: {
+        Row: {
+          chunk_number: number | null
+          created_at: string
+          id: string
+          lucasfilm_dcp_asset_id: string | null
+          metadata_run_id: string
+          reason: string
+          reason_code: string
+          resolution_note: string | null
+          resolved_at: string | null
+          row_number: number | null
+          severity: string
+        }
+        Insert: {
+          chunk_number?: number | null
+          created_at?: string
+          id?: string
+          lucasfilm_dcp_asset_id?: string | null
+          metadata_run_id: string
+          reason: string
+          reason_code: string
+          resolution_note?: string | null
+          resolved_at?: string | null
+          row_number?: number | null
+          severity?: string
+        }
+        Update: {
+          chunk_number?: number | null
+          created_at?: string
+          id?: string
+          lucasfilm_dcp_asset_id?: string | null
+          metadata_run_id?: string
+          reason?: string
+          reason_code?: string
+          resolution_note?: string | null
+          resolved_at?: string | null
+          row_number?: number | null
+          severity?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lucasfilm_dcp_metadata_load_excepti_lucasfilm_dcp_asset_id_fkey"
+            columns: ["lucasfilm_dcp_asset_id"]
+            isOneToOne: false
+            referencedRelation: "lucasfilm_dcp_asset"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lucasfilm_dcp_metadata_load_exception_metadata_run_id_fkey"
+            columns: ["metadata_run_id"]
+            isOneToOne: false
+            referencedRelation: "lucasfilm_dcp_metadata_run"
+            referencedColumns: ["metadata_run_id"]
+          },
+        ]
+      }
+      lucasfilm_dcp_metadata_run: {
+        Row: {
+          assets_expected: number
+          captured_by: string
+          captured_on: string
+          crawler_version: string
+          created_at: string
+          endpoint_suffix: string
+          failure_message: string | null
+          fetches_failed: number | null
+          fetches_succeeded: number | null
+          finished_at: string | null
+          metadata: Json
+          metadata_run_id: string
+          private_source_commit: string
+          source_crawl_id: string
+          started_at: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          assets_expected: number
+          captured_by: string
+          captured_on: string
+          crawler_version: string
+          created_at?: string
+          endpoint_suffix: string
+          failure_message?: string | null
+          fetches_failed?: number | null
+          fetches_succeeded?: number | null
+          finished_at?: string | null
+          metadata?: Json
+          metadata_run_id?: string
+          private_source_commit: string
+          source_crawl_id: string
+          started_at?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          assets_expected?: number
+          captured_by?: string
+          captured_on?: string
+          crawler_version?: string
+          created_at?: string
+          endpoint_suffix?: string
+          failure_message?: string | null
+          fetches_failed?: number | null
+          fetches_succeeded?: number | null
+          finished_at?: string | null
+          metadata?: Json
+          metadata_run_id?: string
+          private_source_commit?: string
+          source_crawl_id?: string
+          started_at?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lucasfilm_dcp_metadata_run_source_crawl_id_fkey"
+            columns: ["source_crawl_id"]
+            isOneToOne: false
+            referencedRelation: "lucasfilm_dcp_crawl"
+            referencedColumns: ["crawl_id"]
+          },
+        ]
+      }
+      lucasfilm_dcp_portal_tile: {
+        Row: {
+          core_property_id: string | null
+          created_at: string
+          display_label: string | null
+          first_seen_crawl_id: string | null
+          id: string
+          last_seen_crawl_id: string | null
+          raw: Json
+          resolution_reason: string | null
+          resolution_status: string
+          resolved_at: string | null
+          resolved_by: string | null
+          source_key: string
+          source_system: string
+          source_url: string | null
+          updated_at: string
+        }
+        Insert: {
+          core_property_id?: string | null
+          created_at?: string
+          display_label?: string | null
+          first_seen_crawl_id?: string | null
+          id?: string
+          last_seen_crawl_id?: string | null
+          raw?: Json
+          resolution_reason?: string | null
+          resolution_status?: string
+          resolved_at?: string | null
+          resolved_by?: string | null
+          source_key: string
+          source_system?: string
+          source_url?: string | null
+          updated_at?: string
+        }
+        Update: {
+          core_property_id?: string | null
+          created_at?: string
+          display_label?: string | null
+          first_seen_crawl_id?: string | null
+          id?: string
+          last_seen_crawl_id?: string | null
+          raw?: Json
+          resolution_reason?: string | null
+          resolution_status?: string
+          resolved_at?: string | null
+          resolved_by?: string | null
+          source_key?: string
+          source_system?: string
+          source_url?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lucasfilm_dcp_portal_tile_first_seen_crawl_id_fkey"
+            columns: ["first_seen_crawl_id"]
+            isOneToOne: false
+            referencedRelation: "lucasfilm_dcp_crawl"
+            referencedColumns: ["crawl_id"]
+          },
+          {
+            foreignKeyName: "lucasfilm_dcp_portal_tile_last_seen_crawl_id_fkey"
+            columns: ["last_seen_crawl_id"]
+            isOneToOne: false
+            referencedRelation: "lucasfilm_dcp_crawl"
+            referencedColumns: ["crawl_id"]
+          },
+        ]
+      }
+      lucasfilm_dcp_property: {
+        Row: {
+          core_property_id: string | null
+          created_at: string
+          display_name: string | null
+          first_seen_metadata_run_id: string | null
+          id: string
+          last_seen_metadata_run_id: string | null
+          raw: Json
+          resolution_note: string | null
+          resolved_at: string | null
+          resolved_by: string | null
+          source_id: string
+          source_system: string
+          updated_at: string
+        }
+        Insert: {
+          core_property_id?: string | null
+          created_at?: string
+          display_name?: string | null
+          first_seen_metadata_run_id?: string | null
+          id?: string
+          last_seen_metadata_run_id?: string | null
+          raw?: Json
+          resolution_note?: string | null
+          resolved_at?: string | null
+          resolved_by?: string | null
+          source_id: string
+          source_system?: string
+          updated_at?: string
+        }
+        Update: {
+          core_property_id?: string | null
+          created_at?: string
+          display_name?: string | null
+          first_seen_metadata_run_id?: string | null
+          id?: string
+          last_seen_metadata_run_id?: string | null
+          raw?: Json
+          resolution_note?: string | null
+          resolved_at?: string | null
+          resolved_by?: string | null
+          source_id?: string
+          source_system?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lucasfilm_dcp_property_first_seen_metadata_run_id_fkey"
+            columns: ["first_seen_metadata_run_id"]
+            isOneToOne: false
+            referencedRelation: "lucasfilm_dcp_metadata_run"
+            referencedColumns: ["metadata_run_id"]
+          },
+          {
+            foreignKeyName: "lucasfilm_dcp_property_last_seen_metadata_run_id_fkey"
+            columns: ["last_seen_metadata_run_id"]
+            isOneToOne: false
+            referencedRelation: "lucasfilm_dcp_metadata_run"
+            referencedColumns: ["metadata_run_id"]
+          },
+        ]
+      }
+      lucasfilm_dcp_style_guide: {
+        Row: {
+          core_style_guide_id: string | null
+          created_at: string
+          first_seen_crawl_id: string | null
+          folder_name: string
+          id: string
+          last_seen_crawl_id: string | null
+          parent_source_path: string | null
+          raw: Json
+          region: string
+          resolution_reason: string | null
+          resolution_status: string
+          resolved_at: string | null
+          resolved_by: string | null
+          sku_sg_label_key: string | null
+          source_guide_id: string | null
+          source_path: string
+          source_system: string
+          updated_at: string
+          year_segment: string
+        }
+        Insert: {
+          core_style_guide_id?: string | null
+          created_at?: string
+          first_seen_crawl_id?: string | null
+          folder_name: string
+          id?: string
+          last_seen_crawl_id?: string | null
+          parent_source_path?: string | null
+          raw?: Json
+          region: string
+          resolution_reason?: string | null
+          resolution_status?: string
+          resolved_at?: string | null
+          resolved_by?: string | null
+          sku_sg_label_key?: string | null
+          source_guide_id?: string | null
+          source_path: string
+          source_system?: string
+          updated_at?: string
+          year_segment: string
+        }
+        Update: {
+          core_style_guide_id?: string | null
+          created_at?: string
+          first_seen_crawl_id?: string | null
+          folder_name?: string
+          id?: string
+          last_seen_crawl_id?: string | null
+          parent_source_path?: string | null
+          raw?: Json
+          region?: string
+          resolution_reason?: string | null
+          resolution_status?: string
+          resolved_at?: string | null
+          resolved_by?: string | null
+          sku_sg_label_key?: string | null
+          source_guide_id?: string | null
+          source_path?: string
+          source_system?: string
+          updated_at?: string
+          year_segment?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lucasfilm_dcp_style_guide_first_seen_crawl_id_fkey"
+            columns: ["first_seen_crawl_id"]
+            isOneToOne: false
+            referencedRelation: "lucasfilm_dcp_crawl"
+            referencedColumns: ["crawl_id"]
+          },
+          {
+            foreignKeyName: "lucasfilm_dcp_style_guide_last_seen_crawl_id_fkey"
+            columns: ["last_seen_crawl_id"]
+            isOneToOne: false
+            referencedRelation: "lucasfilm_dcp_crawl"
+            referencedColumns: ["crawl_id"]
+          },
+        ]
+      }
+      lucasfilm_dcp_term: {
+        Row: {
+          created_at: string
+          first_seen_metadata_run_id: string | null
+          id: string
+          last_seen_metadata_run_id: string | null
+          raw: Json
+          source_system: string
+          source_value: string
+          term_kind: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          first_seen_metadata_run_id?: string | null
+          id?: string
+          last_seen_metadata_run_id?: string | null
+          raw?: Json
+          source_system?: string
+          source_value: string
+          term_kind: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          first_seen_metadata_run_id?: string | null
+          id?: string
+          last_seen_metadata_run_id?: string | null
+          raw?: Json
+          source_system?: string
+          source_value?: string
+          term_kind?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lucasfilm_dcp_term_first_seen_metadata_run_id_fkey"
+            columns: ["first_seen_metadata_run_id"]
+            isOneToOne: false
+            referencedRelation: "lucasfilm_dcp_metadata_run"
+            referencedColumns: ["metadata_run_id"]
+          },
+          {
+            foreignKeyName: "lucasfilm_dcp_term_last_seen_metadata_run_id_fkey"
+            columns: ["last_seen_metadata_run_id"]
+            isOneToOne: false
+            referencedRelation: "lucasfilm_dcp_metadata_run"
+            referencedColumns: ["metadata_run_id"]
+          },
+        ]
+      }
+      marvel_asgard_asset: {
+        Row: {
+          asset_id: string | null
+          display_order: number | null
+          exact_filename: string | null
+          file_extension: string | null
+          file_size_bytes: number | null
+          first_seen_capture_key: string
+          id: string
+          is_actively_observed: boolean
+          last_seen_capture_key: string
+          original_file_id: string | null
+          raw_source: Json
+          source_identity_key: string
+          style_guide_asset_id: string | null
+        }
+        Insert: {
+          asset_id?: string | null
+          display_order?: number | null
+          exact_filename?: string | null
+          file_extension?: string | null
+          file_size_bytes?: number | null
+          first_seen_capture_key: string
+          id?: string
+          is_actively_observed?: boolean
+          last_seen_capture_key: string
+          original_file_id?: string | null
+          raw_source: Json
+          source_identity_key: string
+          style_guide_asset_id?: string | null
+        }
+        Update: {
+          asset_id?: string | null
+          display_order?: number | null
+          exact_filename?: string | null
+          file_extension?: string | null
+          file_size_bytes?: number | null
+          first_seen_capture_key?: string
+          id?: string
+          is_actively_observed?: boolean
+          last_seen_capture_key?: string
+          original_file_id?: string | null
+          raw_source?: Json
+          source_identity_key?: string
+          style_guide_asset_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "marvel_asgard_asset_first_seen_capture_key_fkey"
+            columns: ["first_seen_capture_key"]
+            isOneToOne: false
+            referencedRelation: "marvel_asgard_capture"
+            referencedColumns: ["capture_key"]
+          },
+          {
+            foreignKeyName: "marvel_asgard_asset_last_seen_capture_key_fkey"
+            columns: ["last_seen_capture_key"]
+            isOneToOne: false
+            referencedRelation: "marvel_asgard_capture"
+            referencedColumns: ["capture_key"]
+          },
+        ]
+      }
+      marvel_asgard_asset_character_observation: {
+        Row: {
+          asset_id: string
+          capture_key: string
+          character_id: string
+          raw_observation: Json
+        }
+        Insert: {
+          asset_id: string
+          capture_key: string
+          character_id: string
+          raw_observation: Json
+        }
+        Update: {
+          asset_id?: string
+          capture_key?: string
+          character_id?: string
+          raw_observation?: Json
+        }
+        Relationships: [
+          {
+            foreignKeyName: "marvel_asgard_asset_character_observation_asset_id_fkey"
+            columns: ["asset_id"]
+            isOneToOne: false
+            referencedRelation: "marvel_asgard_asset"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "marvel_asgard_asset_character_observation_capture_key_fkey"
+            columns: ["capture_key"]
+            isOneToOne: false
+            referencedRelation: "marvel_asgard_capture"
+            referencedColumns: ["capture_key"]
+          },
+          {
+            foreignKeyName: "marvel_asgard_asset_character_observation_character_id_fkey"
+            columns: ["character_id"]
+            isOneToOne: false
+            referencedRelation: "marvel_asgard_character"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      marvel_asgard_asset_likeness_observation: {
+        Row: {
+          asset_id: string
+          capture_key: string
+          likeness_state: string
+          raw_observation: Json
+          source_value: string | null
+        }
+        Insert: {
+          asset_id: string
+          capture_key: string
+          likeness_state: string
+          raw_observation: Json
+          source_value?: string | null
+        }
+        Update: {
+          asset_id?: string
+          capture_key?: string
+          likeness_state?: string
+          raw_observation?: Json
+          source_value?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "marvel_asgard_asset_likeness_observation_asset_id_fkey"
+            columns: ["asset_id"]
+            isOneToOne: false
+            referencedRelation: "marvel_asgard_asset"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "marvel_asgard_asset_likeness_observation_capture_key_fkey"
+            columns: ["capture_key"]
+            isOneToOne: false
+            referencedRelation: "marvel_asgard_capture"
+            referencedColumns: ["capture_key"]
+          },
+        ]
+      }
+      marvel_asgard_asset_term_observation: {
+        Row: {
+          asset_id: string
+          capture_key: string
+          raw_combined_value: string | null
+          raw_observation: Json
+          term_id: string
+          term_kind: string
+        }
+        Insert: {
+          asset_id: string
+          capture_key: string
+          raw_combined_value?: string | null
+          raw_observation: Json
+          term_id: string
+          term_kind: string
+        }
+        Update: {
+          asset_id?: string
+          capture_key?: string
+          raw_combined_value?: string | null
+          raw_observation?: Json
+          term_id?: string
+          term_kind?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "marvel_asgard_asset_term_observation_asset_id_fkey"
+            columns: ["asset_id"]
+            isOneToOne: false
+            referencedRelation: "marvel_asgard_asset"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "marvel_asgard_asset_term_observation_capture_key_fkey"
+            columns: ["capture_key"]
+            isOneToOne: false
+            referencedRelation: "marvel_asgard_capture"
+            referencedColumns: ["capture_key"]
+          },
+          {
+            foreignKeyName: "marvel_asgard_asset_term_observation_term_id_term_kind_fkey"
+            columns: ["term_id", "term_kind"]
+            isOneToOne: false
+            referencedRelation: "marvel_asgard_term"
+            referencedColumns: ["id", "term_kind"]
+          },
+        ]
+      }
+      marvel_asgard_capture: {
+        Row: {
+          account_scope_descriptor: string
+          capture_key: string
+          completed_at: string | null
+          error_summary: Json
+          expected_counts: Json
+          is_complete: boolean
+          is_current: boolean
+          observed_counts: Json
+          raw_summary: Json
+          scraper_version: string
+          source_captured_at: string
+          source_snapshot_sha256: string
+          source_system: string
+          source_url: string
+          started_at: string
+          status: string
+        }
+        Insert: {
+          account_scope_descriptor: string
+          capture_key: string
+          completed_at?: string | null
+          error_summary?: Json
+          expected_counts: Json
+          is_complete?: boolean
+          is_current?: boolean
+          observed_counts?: Json
+          raw_summary?: Json
+          scraper_version: string
+          source_captured_at: string
+          source_snapshot_sha256: string
+          source_system?: string
+          source_url: string
+          started_at?: string
+          status?: string
+        }
+        Update: {
+          account_scope_descriptor?: string
+          capture_key?: string
+          completed_at?: string | null
+          error_summary?: Json
+          expected_counts?: Json
+          is_complete?: boolean
+          is_current?: boolean
+          observed_counts?: Json
+          raw_summary?: Json
+          scraper_version?: string
+          source_captured_at?: string
+          source_snapshot_sha256?: string
+          source_system?: string
+          source_url?: string
+          started_at?: string
+          status?: string
+        }
+        Relationships: []
+      }
+      marvel_asgard_capture_checkpoint: {
+        Row: {
+          capture_key: string
+          error_class: string | null
+          expected_asset_count: number
+          expected_page_count: number
+          first_attempted_at: string
+          guide_node_id: string
+          last_attempted_at: string
+          observed_asset_count: number
+          page_number: number
+          page_size: number
+          request_sha256: string
+          result_sha256: string | null
+          status: string
+          style_guide_id: string
+        }
+        Insert: {
+          capture_key: string
+          error_class?: string | null
+          expected_asset_count: number
+          expected_page_count: number
+          first_attempted_at?: string
+          guide_node_id: string
+          last_attempted_at?: string
+          observed_asset_count?: number
+          page_number: number
+          page_size: number
+          request_sha256: string
+          result_sha256?: string | null
+          status: string
+          style_guide_id: string
+        }
+        Update: {
+          capture_key?: string
+          error_class?: string | null
+          expected_asset_count?: number
+          expected_page_count?: number
+          first_attempted_at?: string
+          guide_node_id?: string
+          last_attempted_at?: string
+          observed_asset_count?: number
+          page_number?: number
+          page_size?: number
+          request_sha256?: string
+          result_sha256?: string | null
+          status?: string
+          style_guide_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "marvel_asgard_capture_checkpo_guide_node_id_style_guide_id_fkey"
+            columns: ["guide_node_id", "style_guide_id"]
+            isOneToOne: false
+            referencedRelation: "marvel_asgard_guide_node"
+            referencedColumns: ["id", "style_guide_id"]
+          },
+          {
+            foreignKeyName: "marvel_asgard_capture_checkpoint_capture_key_fkey"
+            columns: ["capture_key"]
+            isOneToOne: false
+            referencedRelation: "marvel_asgard_capture"
+            referencedColumns: ["capture_key"]
+          },
+          {
+            foreignKeyName: "marvel_asgard_capture_checkpoint_guide_node_id_fkey"
+            columns: ["guide_node_id"]
+            isOneToOne: false
+            referencedRelation: "marvel_asgard_guide_node"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "marvel_asgard_capture_checkpoint_style_guide_id_fkey"
+            columns: ["style_guide_id"]
+            isOneToOne: false
+            referencedRelation: "marvel_asgard_style_guide"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      marvel_asgard_capture_gap: {
+        Row: {
+          capture_key: string
+          first_observed_at: string
+          gap_reason: string
+          id: number
+          is_blocking: boolean
+          last_observed_at: string
+          object_class: string
+          resolved_at: string | null
+          source_key_or_path: string
+        }
+        Insert: {
+          capture_key: string
+          first_observed_at?: string
+          gap_reason: string
+          id?: never
+          is_blocking?: boolean
+          last_observed_at?: string
+          object_class: string
+          resolved_at?: string | null
+          source_key_or_path: string
+        }
+        Update: {
+          capture_key?: string
+          first_observed_at?: string
+          gap_reason?: string
+          id?: never
+          is_blocking?: boolean
+          last_observed_at?: string
+          object_class?: string
+          resolved_at?: string | null
+          source_key_or_path?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "marvel_asgard_capture_gap_capture_key_fkey"
+            columns: ["capture_key"]
+            isOneToOne: false
+            referencedRelation: "marvel_asgard_capture"
+            referencedColumns: ["capture_key"]
+          },
+        ]
+      }
+      marvel_asgard_character: {
+        Row: {
+          exact_label: string
+          first_seen_capture_key: string
+          id: string
+          is_actively_observed: boolean
+          last_seen_capture_key: string
+          normalized_search_label: string
+          raw_source: Json
+          source_character_key: string | null
+          source_identity_key: string
+        }
+        Insert: {
+          exact_label: string
+          first_seen_capture_key: string
+          id?: string
+          is_actively_observed?: boolean
+          last_seen_capture_key: string
+          normalized_search_label: string
+          raw_source: Json
+          source_character_key?: string | null
+          source_identity_key: string
+        }
+        Update: {
+          exact_label?: string
+          first_seen_capture_key?: string
+          id?: string
+          is_actively_observed?: boolean
+          last_seen_capture_key?: string
+          normalized_search_label?: string
+          raw_source?: Json
+          source_character_key?: string | null
+          source_identity_key?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "marvel_asgard_character_first_seen_capture_key_fkey"
+            columns: ["first_seen_capture_key"]
+            isOneToOne: false
+            referencedRelation: "marvel_asgard_capture"
+            referencedColumns: ["capture_key"]
+          },
+          {
+            foreignKeyName: "marvel_asgard_character_last_seen_capture_key_fkey"
+            columns: ["last_seen_capture_key"]
+            isOneToOne: false
+            referencedRelation: "marvel_asgard_capture"
+            referencedColumns: ["capture_key"]
+          },
+        ]
+      }
+      marvel_asgard_character_opa_resolution: {
+        Row: {
+          asgard_character_id: string
+          decided_at: string | null
+          decision_authority: string | null
+          decision_evidence: string | null
+          id: string
+          opa_character_id: number | null
+          status: string
+          supersedes_resolution_id: string | null
+        }
+        Insert: {
+          asgard_character_id: string
+          decided_at?: string | null
+          decision_authority?: string | null
+          decision_evidence?: string | null
+          id?: string
+          opa_character_id?: number | null
+          status: string
+          supersedes_resolution_id?: string | null
+        }
+        Update: {
+          asgard_character_id?: string
+          decided_at?: string | null
+          decision_authority?: string | null
+          decision_evidence?: string | null
+          id?: string
+          opa_character_id?: number | null
+          status?: string
+          supersedes_resolution_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "marvel_asgard_character_opa_resol_supersedes_resolution_id_fkey"
+            columns: ["supersedes_resolution_id"]
+            isOneToOne: false
+            referencedRelation: "marvel_asgard_character_opa_resolution"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "marvel_asgard_character_opa_resolution_asgard_character_id_fkey"
+            columns: ["asgard_character_id"]
+            isOneToOne: false
+            referencedRelation: "marvel_asgard_character"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "marvel_asgard_character_opa_resolution_opa_character_id_fkey"
+            columns: ["opa_character_id"]
+            isOneToOne: false
+            referencedRelation: "opa_character"
+            referencedColumns: ["character_id"]
+          },
+        ]
+      }
+      marvel_asgard_guide_category: {
+        Row: {
+          display_order: number
+          exact_label: string
+          first_seen_capture_key: string
+          id: string
+          is_actively_observed: boolean
+          last_seen_capture_key: string
+          observed_meaning: string | null
+          raw_source: Json
+          source_category_key: string | null
+          source_identity_key: string
+        }
+        Insert: {
+          display_order: number
+          exact_label: string
+          first_seen_capture_key: string
+          id?: string
+          is_actively_observed?: boolean
+          last_seen_capture_key: string
+          observed_meaning?: string | null
+          raw_source: Json
+          source_category_key?: string | null
+          source_identity_key: string
+        }
+        Update: {
+          display_order?: number
+          exact_label?: string
+          first_seen_capture_key?: string
+          id?: string
+          is_actively_observed?: boolean
+          last_seen_capture_key?: string
+          observed_meaning?: string | null
+          raw_source?: Json
+          source_category_key?: string | null
+          source_identity_key?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "marvel_asgard_guide_category_first_seen_capture_key_fkey"
+            columns: ["first_seen_capture_key"]
+            isOneToOne: false
+            referencedRelation: "marvel_asgard_capture"
+            referencedColumns: ["capture_key"]
+          },
+          {
+            foreignKeyName: "marvel_asgard_guide_category_last_seen_capture_key_fkey"
+            columns: ["last_seen_capture_key"]
+            isOneToOne: false
+            referencedRelation: "marvel_asgard_capture"
+            referencedColumns: ["capture_key"]
+          },
+        ]
+      }
+      marvel_asgard_guide_node: {
+        Row: {
+          depth: number
+          display_order: number
+          exact_label: string
+          first_seen_capture_key: string
+          id: string
+          is_actively_observed: boolean
+          last_seen_capture_key: string
+          materialized_source_path: string
+          parent_node_id: string | null
+          raw_source: Json
+          source_identity_key: string
+          source_node_key: string | null
+          style_guide_id: string
+        }
+        Insert: {
+          depth: number
+          display_order: number
+          exact_label: string
+          first_seen_capture_key: string
+          id?: string
+          is_actively_observed?: boolean
+          last_seen_capture_key: string
+          materialized_source_path: string
+          parent_node_id?: string | null
+          raw_source: Json
+          source_identity_key: string
+          source_node_key?: string | null
+          style_guide_id: string
+        }
+        Update: {
+          depth?: number
+          display_order?: number
+          exact_label?: string
+          first_seen_capture_key?: string
+          id?: string
+          is_actively_observed?: boolean
+          last_seen_capture_key?: string
+          materialized_source_path?: string
+          parent_node_id?: string | null
+          raw_source?: Json
+          source_identity_key?: string
+          source_node_key?: string | null
+          style_guide_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "marvel_asgard_guide_node_first_seen_capture_key_fkey"
+            columns: ["first_seen_capture_key"]
+            isOneToOne: false
+            referencedRelation: "marvel_asgard_capture"
+            referencedColumns: ["capture_key"]
+          },
+          {
+            foreignKeyName: "marvel_asgard_guide_node_last_seen_capture_key_fkey"
+            columns: ["last_seen_capture_key"]
+            isOneToOne: false
+            referencedRelation: "marvel_asgard_capture"
+            referencedColumns: ["capture_key"]
+          },
+          {
+            foreignKeyName: "marvel_asgard_guide_node_parent_node_id_style_guide_id_fkey"
+            columns: ["parent_node_id", "style_guide_id"]
+            isOneToOne: false
+            referencedRelation: "marvel_asgard_guide_node"
+            referencedColumns: ["id", "style_guide_id"]
+          },
+          {
+            foreignKeyName: "marvel_asgard_guide_node_style_guide_id_fkey"
+            columns: ["style_guide_id"]
+            isOneToOne: false
+            referencedRelation: "marvel_asgard_style_guide"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      marvel_asgard_guide_opa_property_resolution: {
+        Row: {
+          asgard_style_guide_id: string
+          decided_at: string | null
+          decision_authority: string | null
+          decision_evidence: string | null
+          id: string
+          opa_property_id: number | null
+          status: string
+          supersedes_resolution_id: string | null
+        }
+        Insert: {
+          asgard_style_guide_id: string
+          decided_at?: string | null
+          decision_authority?: string | null
+          decision_evidence?: string | null
+          id?: string
+          opa_property_id?: number | null
+          status: string
+          supersedes_resolution_id?: string | null
+        }
+        Update: {
+          asgard_style_guide_id?: string
+          decided_at?: string | null
+          decision_authority?: string | null
+          decision_evidence?: string | null
+          id?: string
+          opa_property_id?: number | null
+          status?: string
+          supersedes_resolution_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "marvel_asgard_guide_opa_property__supersedes_resolution_id_fkey"
+            columns: ["supersedes_resolution_id"]
+            isOneToOne: false
+            referencedRelation: "marvel_asgard_guide_opa_property_resolution"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "marvel_asgard_guide_opa_property_res_asgard_style_guide_id_fkey"
+            columns: ["asgard_style_guide_id"]
+            isOneToOne: false
+            referencedRelation: "marvel_asgard_style_guide"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "marvel_asgard_guide_opa_property_resolutio_opa_property_id_fkey"
+            columns: ["opa_property_id"]
+            isOneToOne: false
+            referencedRelation: "opa_property"
+            referencedColumns: ["licensed_property_id"]
+          },
+        ]
+      }
+      marvel_asgard_node_asset_observation: {
+        Row: {
+          asset_id: string
+          capture_key: string
+          exact_filename: string
+          file_extension: string | null
+          file_observation_key: string
+          file_size_bytes: number | null
+          guide_node_id: string
+          page_number: number
+          raw_observation: Json
+          raw_observation_sha256: string
+          sku_sg_file_key: string | null
+          source_display_order: number | null
+        }
+        Insert: {
+          asset_id: string
+          capture_key: string
+          exact_filename: string
+          file_extension?: string | null
+          file_observation_key: string
+          file_size_bytes?: number | null
+          guide_node_id: string
+          page_number: number
+          raw_observation: Json
+          raw_observation_sha256: string
+          sku_sg_file_key?: string | null
+          source_display_order?: number | null
+        }
+        Update: {
+          asset_id?: string
+          capture_key?: string
+          exact_filename?: string
+          file_extension?: string | null
+          file_observation_key?: string
+          file_size_bytes?: number | null
+          guide_node_id?: string
+          page_number?: number
+          raw_observation?: Json
+          raw_observation_sha256?: string
+          sku_sg_file_key?: string | null
+          source_display_order?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "marvel_asgard_node_asset_obse_capture_key_guide_node_id_pa_fkey"
+            columns: ["capture_key", "guide_node_id", "page_number"]
+            isOneToOne: false
+            referencedRelation: "marvel_asgard_capture_checkpoint"
+            referencedColumns: ["capture_key", "guide_node_id", "page_number"]
+          },
+          {
+            foreignKeyName: "marvel_asgard_node_asset_observation_asset_id_fkey"
+            columns: ["asset_id"]
+            isOneToOne: false
+            referencedRelation: "marvel_asgard_asset"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      marvel_asgard_style_guide: {
+        Row: {
+          category_id: string
+          display_order: number
+          exact_label: string
+          first_seen_capture_key: string
+          id: string
+          is_actively_observed: boolean
+          last_seen_capture_key: string
+          raw_source: Json
+          sku_sg_label_key: string | null
+          source_guide_key: string | null
+          source_identity_key: string
+        }
+        Insert: {
+          category_id: string
+          display_order: number
+          exact_label: string
+          first_seen_capture_key: string
+          id?: string
+          is_actively_observed?: boolean
+          last_seen_capture_key: string
+          raw_source: Json
+          sku_sg_label_key?: string | null
+          source_guide_key?: string | null
+          source_identity_key: string
+        }
+        Update: {
+          category_id?: string
+          display_order?: number
+          exact_label?: string
+          first_seen_capture_key?: string
+          id?: string
+          is_actively_observed?: boolean
+          last_seen_capture_key?: string
+          raw_source?: Json
+          sku_sg_label_key?: string | null
+          source_guide_key?: string | null
+          source_identity_key?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "marvel_asgard_style_guide_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "marvel_asgard_guide_category"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "marvel_asgard_style_guide_first_seen_capture_key_fkey"
+            columns: ["first_seen_capture_key"]
+            isOneToOne: false
+            referencedRelation: "marvel_asgard_capture"
+            referencedColumns: ["capture_key"]
+          },
+          {
+            foreignKeyName: "marvel_asgard_style_guide_last_seen_capture_key_fkey"
+            columns: ["last_seen_capture_key"]
+            isOneToOne: false
+            referencedRelation: "marvel_asgard_capture"
+            referencedColumns: ["capture_key"]
+          },
+        ]
+      }
+      marvel_asgard_term: {
+        Row: {
+          exact_value: string
+          first_seen_capture_key: string
+          id: string
+          is_actively_observed: boolean
+          last_seen_capture_key: string
+          normalized_search_value: string
+          raw_source: Json
+          source_identity_key: string
+          source_term_key: string | null
+          term_kind: string
+        }
+        Insert: {
+          exact_value: string
+          first_seen_capture_key: string
+          id?: string
+          is_actively_observed?: boolean
+          last_seen_capture_key: string
+          normalized_search_value: string
+          raw_source: Json
+          source_identity_key: string
+          source_term_key?: string | null
+          term_kind: string
+        }
+        Update: {
+          exact_value?: string
+          first_seen_capture_key?: string
+          id?: string
+          is_actively_observed?: boolean
+          last_seen_capture_key?: string
+          normalized_search_value?: string
+          raw_source?: Json
+          source_identity_key?: string
+          source_term_key?: string | null
+          term_kind?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "marvel_asgard_term_first_seen_capture_key_fkey"
+            columns: ["first_seen_capture_key"]
+            isOneToOne: false
+            referencedRelation: "marvel_asgard_capture"
+            referencedColumns: ["capture_key"]
+          },
+          {
+            foreignKeyName: "marvel_asgard_term_last_seen_capture_key_fkey"
+            columns: ["last_seen_capture_key"]
+            isOneToOne: false
+            referencedRelation: "marvel_asgard_capture"
+            referencedColumns: ["capture_key"]
+          },
+        ]
+      }
+      marvel_dcp_asset: {
+        Row: {
+          checksum: string | null
+          content_type: string | null
+          created_at: string
+          do_not_use_reason: string | null
+          file_extension: string | null
+          file_name: string
+          file_size_bytes: number | null
+          first_seen_crawl_id: string | null
+          id: string
+          last_seen_crawl_id: string | null
+          raw: Json
+          relative_folder_path: string | null
+          sku_sg_file_key: string | null
+          source_asset_id: string | null
+          source_path: string
+          source_system: string
+          style_guide_id: string
+          updated_at: string
+        }
+        Insert: {
+          checksum?: string | null
+          content_type?: string | null
+          created_at?: string
+          do_not_use_reason?: string | null
+          file_extension?: string | null
+          file_name: string
+          file_size_bytes?: number | null
+          first_seen_crawl_id?: string | null
+          id?: string
+          last_seen_crawl_id?: string | null
+          raw?: Json
+          relative_folder_path?: string | null
+          sku_sg_file_key?: string | null
+          source_asset_id?: string | null
+          source_path: string
+          source_system?: string
+          style_guide_id: string
+          updated_at?: string
+        }
+        Update: {
+          checksum?: string | null
+          content_type?: string | null
+          created_at?: string
+          do_not_use_reason?: string | null
+          file_extension?: string | null
+          file_name?: string
+          file_size_bytes?: number | null
+          first_seen_crawl_id?: string | null
+          id?: string
+          last_seen_crawl_id?: string | null
+          raw?: Json
+          relative_folder_path?: string | null
+          sku_sg_file_key?: string | null
+          source_asset_id?: string | null
+          source_path?: string
+          source_system?: string
+          style_guide_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "marvel_dcp_asset_first_seen_crawl_id_fkey"
+            columns: ["first_seen_crawl_id"]
+            isOneToOne: false
+            referencedRelation: "marvel_dcp_crawl"
+            referencedColumns: ["crawl_id"]
+          },
+          {
+            foreignKeyName: "marvel_dcp_asset_last_seen_crawl_id_fkey"
+            columns: ["last_seen_crawl_id"]
+            isOneToOne: false
+            referencedRelation: "marvel_dcp_crawl"
+            referencedColumns: ["crawl_id"]
+          },
+          {
+            foreignKeyName: "marvel_dcp_asset_style_guide_id_fkey"
+            columns: ["style_guide_id"]
+            isOneToOne: false
+            referencedRelation: "marvel_dcp_style_guide"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      marvel_dcp_asset_character_observation: {
+        Row: {
+          fetch_status: string
+          marvel_dcp_asset_id: string
+          marvel_dcp_character_id: string
+          metadata_run_id: string
+          observed_at: string
+        }
+        Insert: {
+          fetch_status?: string
+          marvel_dcp_asset_id: string
+          marvel_dcp_character_id: string
+          metadata_run_id: string
+          observed_at?: string
+        }
+        Update: {
+          fetch_status?: string
+          marvel_dcp_asset_id?: string
+          marvel_dcp_character_id?: string
+          metadata_run_id?: string
+          observed_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "marvel_dcp_asset_character_obs_asset_fk"
+            columns: ["metadata_run_id", "marvel_dcp_asset_id", "fetch_status"]
+            isOneToOne: false
+            referencedRelation: "marvel_dcp_metadata_asset"
+            referencedColumns: [
+              "metadata_run_id",
+              "marvel_dcp_asset_id",
+              "fetch_status",
+            ]
+          },
+          {
+            foreignKeyName: "marvel_dcp_asset_character_observa_marvel_dcp_character_id_fkey"
+            columns: ["marvel_dcp_character_id"]
+            isOneToOne: false
+            referencedRelation: "marvel_dcp_character"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      marvel_dcp_asset_crawl: {
+        Row: {
+          crawl_id: string
+          marvel_dcp_asset_id: string
+          observed_at: string
+          observed_row_hash: string
+        }
+        Insert: {
+          crawl_id: string
+          marvel_dcp_asset_id: string
+          observed_at?: string
+          observed_row_hash: string
+        }
+        Update: {
+          crawl_id?: string
+          marvel_dcp_asset_id?: string
+          observed_at?: string
+          observed_row_hash?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "marvel_dcp_asset_crawl_crawl_id_fkey"
+            columns: ["crawl_id"]
+            isOneToOne: false
+            referencedRelation: "marvel_dcp_crawl"
+            referencedColumns: ["crawl_id"]
+          },
+          {
+            foreignKeyName: "marvel_dcp_asset_crawl_marvel_dcp_asset_id_fkey"
+            columns: ["marvel_dcp_asset_id"]
+            isOneToOne: false
+            referencedRelation: "marvel_dcp_asset"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      marvel_dcp_asset_property_observation: {
+        Row: {
+          fetch_status: string
+          marvel_dcp_asset_id: string
+          marvel_dcp_property_id: string
+          metadata_run_id: string
+          observed_at: string
+        }
+        Insert: {
+          fetch_status?: string
+          marvel_dcp_asset_id: string
+          marvel_dcp_property_id: string
+          metadata_run_id: string
+          observed_at?: string
+        }
+        Update: {
+          fetch_status?: string
+          marvel_dcp_asset_id?: string
+          marvel_dcp_property_id?: string
+          metadata_run_id?: string
+          observed_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "marvel_dcp_asset_property_obs_asset_fk"
+            columns: ["metadata_run_id", "marvel_dcp_asset_id", "fetch_status"]
+            isOneToOne: false
+            referencedRelation: "marvel_dcp_metadata_asset"
+            referencedColumns: [
+              "metadata_run_id",
+              "marvel_dcp_asset_id",
+              "fetch_status",
+            ]
+          },
+          {
+            foreignKeyName: "marvel_dcp_asset_property_observati_marvel_dcp_property_id_fkey"
+            columns: ["marvel_dcp_property_id"]
+            isOneToOne: false
+            referencedRelation: "marvel_dcp_property"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      marvel_dcp_asset_term_observation: {
+        Row: {
+          fetch_status: string
+          marvel_dcp_asset_id: string
+          marvel_dcp_term_id: string
+          metadata_run_id: string
+          observed_at: string
+        }
+        Insert: {
+          fetch_status?: string
+          marvel_dcp_asset_id: string
+          marvel_dcp_term_id: string
+          metadata_run_id: string
+          observed_at?: string
+        }
+        Update: {
+          fetch_status?: string
+          marvel_dcp_asset_id?: string
+          marvel_dcp_term_id?: string
+          metadata_run_id?: string
+          observed_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "marvel_dcp_asset_term_obs_asset_fk"
+            columns: ["metadata_run_id", "marvel_dcp_asset_id", "fetch_status"]
+            isOneToOne: false
+            referencedRelation: "marvel_dcp_metadata_asset"
+            referencedColumns: [
+              "metadata_run_id",
+              "marvel_dcp_asset_id",
+              "fetch_status",
+            ]
+          },
+          {
+            foreignKeyName: "marvel_dcp_asset_term_observation_marvel_dcp_term_id_fkey"
+            columns: ["marvel_dcp_term_id"]
+            isOneToOne: false
+            referencedRelation: "marvel_dcp_term"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      marvel_dcp_asset_tile_observation: {
+        Row: {
+          crawl_id: string
+          crawl_section_id: string | null
+          link_evidence: string
+          listing_kind: string
+          marvel_dcp_asset_id: string
+          observed_at: string
+          portal_tile_id: string
+        }
+        Insert: {
+          crawl_id: string
+          crawl_section_id?: string | null
+          link_evidence: string
+          listing_kind: string
+          marvel_dcp_asset_id: string
+          observed_at?: string
+          portal_tile_id: string
+        }
+        Update: {
+          crawl_id?: string
+          crawl_section_id?: string | null
+          link_evidence?: string
+          listing_kind?: string
+          marvel_dcp_asset_id?: string
+          observed_at?: string
+          portal_tile_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "marvel_dcp_asset_tile_observation_crawl_id_fkey"
+            columns: ["crawl_id"]
+            isOneToOne: false
+            referencedRelation: "marvel_dcp_crawl"
+            referencedColumns: ["crawl_id"]
+          },
+          {
+            foreignKeyName: "marvel_dcp_asset_tile_observation_crawl_section_id_fkey"
+            columns: ["crawl_section_id"]
+            isOneToOne: false
+            referencedRelation: "marvel_dcp_crawl_section"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "marvel_dcp_asset_tile_observation_marvel_dcp_asset_id_fkey"
+            columns: ["marvel_dcp_asset_id"]
+            isOneToOne: false
+            referencedRelation: "marvel_dcp_asset"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "marvel_dcp_asset_tile_observation_portal_tile_id_fkey"
+            columns: ["portal_tile_id"]
+            isOneToOne: false
+            referencedRelation: "marvel_dcp_portal_tile"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      marvel_dcp_character: {
+        Row: {
+          core_character_id: string | null
+          created_at: string
+          display_name: string | null
+          first_seen_metadata_run_id: string | null
+          id: string
+          last_seen_metadata_run_id: string | null
+          raw: Json
+          resolution_note: string | null
+          resolved_at: string | null
+          resolved_by: string | null
+          source_id: string
+          source_system: string
+          updated_at: string
+        }
+        Insert: {
+          core_character_id?: string | null
+          created_at?: string
+          display_name?: string | null
+          first_seen_metadata_run_id?: string | null
+          id?: string
+          last_seen_metadata_run_id?: string | null
+          raw?: Json
+          resolution_note?: string | null
+          resolved_at?: string | null
+          resolved_by?: string | null
+          source_id: string
+          source_system?: string
+          updated_at?: string
+        }
+        Update: {
+          core_character_id?: string | null
+          created_at?: string
+          display_name?: string | null
+          first_seen_metadata_run_id?: string | null
+          id?: string
+          last_seen_metadata_run_id?: string | null
+          raw?: Json
+          resolution_note?: string | null
+          resolved_at?: string | null
+          resolved_by?: string | null
+          source_id?: string
+          source_system?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "marvel_dcp_character_first_seen_metadata_run_id_fkey"
+            columns: ["first_seen_metadata_run_id"]
+            isOneToOne: false
+            referencedRelation: "marvel_dcp_metadata_run"
+            referencedColumns: ["metadata_run_id"]
+          },
+          {
+            foreignKeyName: "marvel_dcp_character_last_seen_metadata_run_id_fkey"
+            columns: ["last_seen_metadata_run_id"]
+            isOneToOne: false
+            referencedRelation: "marvel_dcp_metadata_run"
+            referencedColumns: ["metadata_run_id"]
+          },
+        ]
+      }
+      marvel_dcp_chunk_ledger: {
+        Row: {
+          applied_at: string
+          chunk_number: number
+          chunk_sha256: string
+          crawl_id: string
+          rows_landed: number
+          rows_received: number
+          rows_rejected: number
+        }
+        Insert: {
+          applied_at?: string
+          chunk_number: number
+          chunk_sha256: string
+          crawl_id: string
+          rows_landed: number
+          rows_received: number
+          rows_rejected: number
+        }
+        Update: {
+          applied_at?: string
+          chunk_number?: number
+          chunk_sha256?: string
+          crawl_id?: string
+          rows_landed?: number
+          rows_received?: number
+          rows_rejected?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "marvel_dcp_chunk_ledger_crawl_id_fkey"
+            columns: ["crawl_id"]
+            isOneToOne: false
+            referencedRelation: "marvel_dcp_crawl"
+            referencedColumns: ["crawl_id"]
+          },
+        ]
+      }
+      marvel_dcp_crawl: {
+        Row: {
+          account_scope: string
+          captured_by: string
+          captured_on: string
+          crawl_id: string
+          crawler_version: string
+          created_at: string
+          distinct_assets_received: number | null
+          failure_message: string | null
+          finished_at: string | null
+          line_of_business: string
+          metadata: Json
+          notes: string | null
+          portal_base_url: string
+          private_source_commit: string
+          rows_received: number | null
+          source_system: string
+          started_at: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          account_scope: string
+          captured_by: string
+          captured_on: string
+          crawl_id?: string
+          crawler_version: string
+          created_at?: string
+          distinct_assets_received?: number | null
+          failure_message?: string | null
+          finished_at?: string | null
+          line_of_business: string
+          metadata?: Json
+          notes?: string | null
+          portal_base_url: string
+          private_source_commit: string
+          rows_received?: number | null
+          source_system?: string
+          started_at: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          account_scope?: string
+          captured_by?: string
+          captured_on?: string
+          crawl_id?: string
+          crawler_version?: string
+          created_at?: string
+          distinct_assets_received?: number | null
+          failure_message?: string | null
+          finished_at?: string | null
+          line_of_business?: string
+          metadata?: Json
+          notes?: string | null
+          portal_base_url?: string
+          private_source_commit?: string
+          rows_received?: number | null
+          source_system?: string
+          started_at?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      marvel_dcp_crawl_gap: {
+        Row: {
+          attempt_count: number
+          crawl_section_id: string
+          created_at: string
+          id: string
+          offset_from: number
+          offset_to: number
+          reason: string
+          resolution_note: string | null
+          resolved_at: string | null
+          waived_at: string | null
+          waived_by: string | null
+          waiver_reason: string | null
+        }
+        Insert: {
+          attempt_count?: number
+          crawl_section_id: string
+          created_at?: string
+          id?: string
+          offset_from: number
+          offset_to: number
+          reason: string
+          resolution_note?: string | null
+          resolved_at?: string | null
+          waived_at?: string | null
+          waived_by?: string | null
+          waiver_reason?: string | null
+        }
+        Update: {
+          attempt_count?: number
+          crawl_section_id?: string
+          created_at?: string
+          id?: string
+          offset_from?: number
+          offset_to?: number
+          reason?: string
+          resolution_note?: string | null
+          resolved_at?: string | null
+          waived_at?: string | null
+          waived_by?: string | null
+          waiver_reason?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "marvel_dcp_crawl_gap_crawl_section_id_fkey"
+            columns: ["crawl_section_id"]
+            isOneToOne: false
+            referencedRelation: "marvel_dcp_crawl_section"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      marvel_dcp_crawl_section: {
+        Row: {
+          captured_count: number
+          crawl_id: string
+          created_at: string
+          expected_count: number | null
+          finished_at: string | null
+          id: string
+          last_offset: number | null
+          listing_kind: string
+          notes: string | null
+          portal_tile_id: string
+          started_at: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          captured_count?: number
+          crawl_id: string
+          created_at?: string
+          expected_count?: number | null
+          finished_at?: string | null
+          id?: string
+          last_offset?: number | null
+          listing_kind: string
+          notes?: string | null
+          portal_tile_id: string
+          started_at?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          captured_count?: number
+          crawl_id?: string
+          created_at?: string
+          expected_count?: number | null
+          finished_at?: string | null
+          id?: string
+          last_offset?: number | null
+          listing_kind?: string
+          notes?: string | null
+          portal_tile_id?: string
+          started_at?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "marvel_dcp_crawl_section_crawl_id_fkey"
+            columns: ["crawl_id"]
+            isOneToOne: false
+            referencedRelation: "marvel_dcp_crawl"
+            referencedColumns: ["crawl_id"]
+          },
+          {
+            foreignKeyName: "marvel_dcp_crawl_section_portal_tile_id_fkey"
+            columns: ["portal_tile_id"]
+            isOneToOne: false
+            referencedRelation: "marvel_dcp_portal_tile"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      marvel_dcp_load_exception: {
+        Row: {
+          chunk_number: number | null
+          crawl_id: string
+          crawl_section_id: string | null
+          created_at: string
+          id: string
+          raw_row: Json
+          reason: string
+          reason_code: string
+          resolution_note: string | null
+          resolved_at: string | null
+          row_number: number | null
+          severity: string
+          source_path: string | null
+        }
+        Insert: {
+          chunk_number?: number | null
+          crawl_id: string
+          crawl_section_id?: string | null
+          created_at?: string
+          id?: string
+          raw_row?: Json
+          reason: string
+          reason_code: string
+          resolution_note?: string | null
+          resolved_at?: string | null
+          row_number?: number | null
+          severity?: string
+          source_path?: string | null
+        }
+        Update: {
+          chunk_number?: number | null
+          crawl_id?: string
+          crawl_section_id?: string | null
+          created_at?: string
+          id?: string
+          raw_row?: Json
+          reason?: string
+          reason_code?: string
+          resolution_note?: string | null
+          resolved_at?: string | null
+          row_number?: number | null
+          severity?: string
+          source_path?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "marvel_dcp_load_exception_crawl_id_fkey"
+            columns: ["crawl_id"]
+            isOneToOne: false
+            referencedRelation: "marvel_dcp_crawl"
+            referencedColumns: ["crawl_id"]
+          },
+          {
+            foreignKeyName: "marvel_dcp_load_exception_crawl_section_id_fkey"
+            columns: ["crawl_section_id"]
+            isOneToOne: false
+            referencedRelation: "marvel_dcp_crawl_section"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      marvel_dcp_metadata_asset: {
+        Row: {
+          attempt_count: number
+          collection_dmc_id: string | null
+          collection_main_title: string | null
+          collection_type: string | null
+          content_owner: string | null
+          content_type: string | null
+          created_at: string
+          dam_sha1: string | null
+          dc_title: string | null
+          design_element: string | null
+          failure_code: string | null
+          failure_reason: string | null
+          fetch_status: string
+          file_size_bytes_interpreted: number | null
+          file_size_raw: string | null
+          format_raw: string | null
+          http_status: number | null
+          is_embargoed_interpreted: boolean | null
+          is_embargoed_raw: string | null
+          is_exclusive_interpreted: boolean | null
+          is_exclusive_raw: string | null
+          is_locked_interpreted: boolean | null
+          is_locked_raw: string | null
+          marvel_dcp_asset_id: string
+          metadata_run_id: string
+          modified_at_interpreted: string | null
+          modified_at_raw: string | null
+          normalized_hash: string | null
+          num_pages_interpreted: number | null
+          num_pages_raw: string | null
+          raw_metadata: Json | null
+          release_date_interpreted: string | null
+          release_date_raw: string | null
+          response_bytes: number | null
+          retrieved_at: string | null
+          rights_parse_confident: boolean
+          source_crawl_id: string
+          source_hash: string | null
+          source_status: string | null
+          source_uuid: string | null
+          updated_at: string
+        }
+        Insert: {
+          attempt_count?: number
+          collection_dmc_id?: string | null
+          collection_main_title?: string | null
+          collection_type?: string | null
+          content_owner?: string | null
+          content_type?: string | null
+          created_at?: string
+          dam_sha1?: string | null
+          dc_title?: string | null
+          design_element?: string | null
+          failure_code?: string | null
+          failure_reason?: string | null
+          fetch_status?: string
+          file_size_bytes_interpreted?: number | null
+          file_size_raw?: string | null
+          format_raw?: string | null
+          http_status?: number | null
+          is_embargoed_interpreted?: boolean | null
+          is_embargoed_raw?: string | null
+          is_exclusive_interpreted?: boolean | null
+          is_exclusive_raw?: string | null
+          is_locked_interpreted?: boolean | null
+          is_locked_raw?: string | null
+          marvel_dcp_asset_id: string
+          metadata_run_id: string
+          modified_at_interpreted?: string | null
+          modified_at_raw?: string | null
+          normalized_hash?: string | null
+          num_pages_interpreted?: number | null
+          num_pages_raw?: string | null
+          raw_metadata?: Json | null
+          release_date_interpreted?: string | null
+          release_date_raw?: string | null
+          response_bytes?: number | null
+          retrieved_at?: string | null
+          rights_parse_confident?: boolean
+          source_crawl_id: string
+          source_hash?: string | null
+          source_status?: string | null
+          source_uuid?: string | null
+          updated_at?: string
+        }
+        Update: {
+          attempt_count?: number
+          collection_dmc_id?: string | null
+          collection_main_title?: string | null
+          collection_type?: string | null
+          content_owner?: string | null
+          content_type?: string | null
+          created_at?: string
+          dam_sha1?: string | null
+          dc_title?: string | null
+          design_element?: string | null
+          failure_code?: string | null
+          failure_reason?: string | null
+          fetch_status?: string
+          file_size_bytes_interpreted?: number | null
+          file_size_raw?: string | null
+          format_raw?: string | null
+          http_status?: number | null
+          is_embargoed_interpreted?: boolean | null
+          is_embargoed_raw?: string | null
+          is_exclusive_interpreted?: boolean | null
+          is_exclusive_raw?: string | null
+          is_locked_interpreted?: boolean | null
+          is_locked_raw?: string | null
+          marvel_dcp_asset_id?: string
+          metadata_run_id?: string
+          modified_at_interpreted?: string | null
+          modified_at_raw?: string | null
+          normalized_hash?: string | null
+          num_pages_interpreted?: number | null
+          num_pages_raw?: string | null
+          raw_metadata?: Json | null
+          release_date_interpreted?: string | null
+          release_date_raw?: string | null
+          response_bytes?: number | null
+          retrieved_at?: string | null
+          rights_parse_confident?: boolean
+          source_crawl_id?: string
+          source_hash?: string | null
+          source_status?: string | null
+          source_uuid?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "marvel_dcp_metadata_asset_membership_fk"
+            columns: ["source_crawl_id", "marvel_dcp_asset_id"]
+            isOneToOne: false
+            referencedRelation: "marvel_dcp_asset_crawl"
+            referencedColumns: ["crawl_id", "marvel_dcp_asset_id"]
+          },
+          {
+            foreignKeyName: "marvel_dcp_metadata_asset_run_fk"
+            columns: ["metadata_run_id", "source_crawl_id"]
+            isOneToOne: false
+            referencedRelation: "marvel_dcp_metadata_run"
+            referencedColumns: ["metadata_run_id", "source_crawl_id"]
+          },
+        ]
+      }
+      marvel_dcp_metadata_chunk_ledger: {
+        Row: {
+          applied_at: string
+          chunk_number: number
+          chunk_sha256: string
+          metadata_run_id: string
+          rows_landed: number
+          rows_received: number
+          rows_rejected: number
+        }
+        Insert: {
+          applied_at?: string
+          chunk_number: number
+          chunk_sha256: string
+          metadata_run_id: string
+          rows_landed: number
+          rows_received: number
+          rows_rejected: number
+        }
+        Update: {
+          applied_at?: string
+          chunk_number?: number
+          chunk_sha256?: string
+          metadata_run_id?: string
+          rows_landed?: number
+          rows_received?: number
+          rows_rejected?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "marvel_dcp_metadata_chunk_ledger_metadata_run_id_fkey"
+            columns: ["metadata_run_id"]
+            isOneToOne: false
+            referencedRelation: "marvel_dcp_metadata_run"
+            referencedColumns: ["metadata_run_id"]
+          },
+        ]
+      }
+      marvel_dcp_metadata_load_exception: {
+        Row: {
+          chunk_number: number | null
+          created_at: string
+          id: string
+          marvel_dcp_asset_id: string | null
+          metadata_run_id: string
+          reason: string
+          reason_code: string
+          resolution_note: string | null
+          resolved_at: string | null
+          row_number: number | null
+          severity: string
+        }
+        Insert: {
+          chunk_number?: number | null
+          created_at?: string
+          id?: string
+          marvel_dcp_asset_id?: string | null
+          metadata_run_id: string
+          reason: string
+          reason_code: string
+          resolution_note?: string | null
+          resolved_at?: string | null
+          row_number?: number | null
+          severity?: string
+        }
+        Update: {
+          chunk_number?: number | null
+          created_at?: string
+          id?: string
+          marvel_dcp_asset_id?: string | null
+          metadata_run_id?: string
+          reason?: string
+          reason_code?: string
+          resolution_note?: string | null
+          resolved_at?: string | null
+          row_number?: number | null
+          severity?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "marvel_dcp_metadata_load_exception_marvel_dcp_asset_id_fkey"
+            columns: ["marvel_dcp_asset_id"]
+            isOneToOne: false
+            referencedRelation: "marvel_dcp_asset"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "marvel_dcp_metadata_load_exception_metadata_run_id_fkey"
+            columns: ["metadata_run_id"]
+            isOneToOne: false
+            referencedRelation: "marvel_dcp_metadata_run"
+            referencedColumns: ["metadata_run_id"]
+          },
+        ]
+      }
+      marvel_dcp_metadata_run: {
+        Row: {
+          assets_expected: number
+          captured_by: string
+          captured_on: string
+          crawler_version: string
+          created_at: string
+          endpoint_suffix: string
+          failure_message: string | null
+          fetches_failed: number | null
+          fetches_succeeded: number | null
+          finished_at: string | null
+          metadata: Json
+          metadata_run_id: string
+          private_source_commit: string
+          source_crawl_id: string
+          started_at: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          assets_expected: number
+          captured_by: string
+          captured_on: string
+          crawler_version: string
+          created_at?: string
+          endpoint_suffix: string
+          failure_message?: string | null
+          fetches_failed?: number | null
+          fetches_succeeded?: number | null
+          finished_at?: string | null
+          metadata?: Json
+          metadata_run_id?: string
+          private_source_commit: string
+          source_crawl_id: string
+          started_at?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          assets_expected?: number
+          captured_by?: string
+          captured_on?: string
+          crawler_version?: string
+          created_at?: string
+          endpoint_suffix?: string
+          failure_message?: string | null
+          fetches_failed?: number | null
+          fetches_succeeded?: number | null
+          finished_at?: string | null
+          metadata?: Json
+          metadata_run_id?: string
+          private_source_commit?: string
+          source_crawl_id?: string
+          started_at?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "marvel_dcp_metadata_run_source_crawl_id_fkey"
+            columns: ["source_crawl_id"]
+            isOneToOne: false
+            referencedRelation: "marvel_dcp_crawl"
+            referencedColumns: ["crawl_id"]
+          },
+        ]
+      }
+      marvel_dcp_portal_tile: {
+        Row: {
+          core_property_id: string | null
+          created_at: string
+          display_label: string | null
+          first_seen_crawl_id: string | null
+          id: string
+          last_seen_crawl_id: string | null
+          raw: Json
+          resolution_reason: string | null
+          resolution_status: string
+          resolved_at: string | null
+          resolved_by: string | null
+          source_key: string
+          source_system: string
+          source_url: string | null
+          updated_at: string
+        }
+        Insert: {
+          core_property_id?: string | null
+          created_at?: string
+          display_label?: string | null
+          first_seen_crawl_id?: string | null
+          id?: string
+          last_seen_crawl_id?: string | null
+          raw?: Json
+          resolution_reason?: string | null
+          resolution_status?: string
+          resolved_at?: string | null
+          resolved_by?: string | null
+          source_key: string
+          source_system?: string
+          source_url?: string | null
+          updated_at?: string
+        }
+        Update: {
+          core_property_id?: string | null
+          created_at?: string
+          display_label?: string | null
+          first_seen_crawl_id?: string | null
+          id?: string
+          last_seen_crawl_id?: string | null
+          raw?: Json
+          resolution_reason?: string | null
+          resolution_status?: string
+          resolved_at?: string | null
+          resolved_by?: string | null
+          source_key?: string
+          source_system?: string
+          source_url?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "marvel_dcp_portal_tile_first_seen_crawl_id_fkey"
+            columns: ["first_seen_crawl_id"]
+            isOneToOne: false
+            referencedRelation: "marvel_dcp_crawl"
+            referencedColumns: ["crawl_id"]
+          },
+          {
+            foreignKeyName: "marvel_dcp_portal_tile_last_seen_crawl_id_fkey"
+            columns: ["last_seen_crawl_id"]
+            isOneToOne: false
+            referencedRelation: "marvel_dcp_crawl"
+            referencedColumns: ["crawl_id"]
+          },
+        ]
+      }
+      marvel_dcp_property: {
+        Row: {
+          core_property_id: string | null
+          created_at: string
+          display_name: string | null
+          first_seen_metadata_run_id: string | null
+          id: string
+          last_seen_metadata_run_id: string | null
+          raw: Json
+          resolution_note: string | null
+          resolved_at: string | null
+          resolved_by: string | null
+          source_id: string
+          source_system: string
+          updated_at: string
+        }
+        Insert: {
+          core_property_id?: string | null
+          created_at?: string
+          display_name?: string | null
+          first_seen_metadata_run_id?: string | null
+          id?: string
+          last_seen_metadata_run_id?: string | null
+          raw?: Json
+          resolution_note?: string | null
+          resolved_at?: string | null
+          resolved_by?: string | null
+          source_id: string
+          source_system?: string
+          updated_at?: string
+        }
+        Update: {
+          core_property_id?: string | null
+          created_at?: string
+          display_name?: string | null
+          first_seen_metadata_run_id?: string | null
+          id?: string
+          last_seen_metadata_run_id?: string | null
+          raw?: Json
+          resolution_note?: string | null
+          resolved_at?: string | null
+          resolved_by?: string | null
+          source_id?: string
+          source_system?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "marvel_dcp_property_first_seen_metadata_run_id_fkey"
+            columns: ["first_seen_metadata_run_id"]
+            isOneToOne: false
+            referencedRelation: "marvel_dcp_metadata_run"
+            referencedColumns: ["metadata_run_id"]
+          },
+          {
+            foreignKeyName: "marvel_dcp_property_last_seen_metadata_run_id_fkey"
+            columns: ["last_seen_metadata_run_id"]
+            isOneToOne: false
+            referencedRelation: "marvel_dcp_metadata_run"
+            referencedColumns: ["metadata_run_id"]
+          },
+        ]
+      }
+      marvel_dcp_style_guide: {
+        Row: {
+          core_style_guide_id: string | null
+          created_at: string
+          first_seen_crawl_id: string | null
+          folder_name: string
+          id: string
+          last_seen_crawl_id: string | null
+          parent_source_path: string | null
+          raw: Json
+          region: string
+          resolution_reason: string | null
+          resolution_status: string
+          resolved_at: string | null
+          resolved_by: string | null
+          sku_sg_label_key: string | null
+          source_guide_id: string | null
+          source_path: string
+          source_system: string
+          updated_at: string
+          year_segment: string
+        }
+        Insert: {
+          core_style_guide_id?: string | null
+          created_at?: string
+          first_seen_crawl_id?: string | null
+          folder_name: string
+          id?: string
+          last_seen_crawl_id?: string | null
+          parent_source_path?: string | null
+          raw?: Json
+          region: string
+          resolution_reason?: string | null
+          resolution_status?: string
+          resolved_at?: string | null
+          resolved_by?: string | null
+          sku_sg_label_key?: string | null
+          source_guide_id?: string | null
+          source_path: string
+          source_system?: string
+          updated_at?: string
+          year_segment: string
+        }
+        Update: {
+          core_style_guide_id?: string | null
+          created_at?: string
+          first_seen_crawl_id?: string | null
+          folder_name?: string
+          id?: string
+          last_seen_crawl_id?: string | null
+          parent_source_path?: string | null
+          raw?: Json
+          region?: string
+          resolution_reason?: string | null
+          resolution_status?: string
+          resolved_at?: string | null
+          resolved_by?: string | null
+          sku_sg_label_key?: string | null
+          source_guide_id?: string | null
+          source_path?: string
+          source_system?: string
+          updated_at?: string
+          year_segment?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "marvel_dcp_style_guide_first_seen_crawl_id_fkey"
+            columns: ["first_seen_crawl_id"]
+            isOneToOne: false
+            referencedRelation: "marvel_dcp_crawl"
+            referencedColumns: ["crawl_id"]
+          },
+          {
+            foreignKeyName: "marvel_dcp_style_guide_last_seen_crawl_id_fkey"
+            columns: ["last_seen_crawl_id"]
+            isOneToOne: false
+            referencedRelation: "marvel_dcp_crawl"
+            referencedColumns: ["crawl_id"]
+          },
+        ]
+      }
+      marvel_dcp_term: {
+        Row: {
+          created_at: string
+          first_seen_metadata_run_id: string | null
+          id: string
+          last_seen_metadata_run_id: string | null
+          raw: Json
+          source_system: string
+          source_value: string
+          term_kind: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          first_seen_metadata_run_id?: string | null
+          id?: string
+          last_seen_metadata_run_id?: string | null
+          raw?: Json
+          source_system?: string
+          source_value: string
+          term_kind: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          first_seen_metadata_run_id?: string | null
+          id?: string
+          last_seen_metadata_run_id?: string | null
+          raw?: Json
+          source_system?: string
+          source_value?: string
+          term_kind?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "marvel_dcp_term_first_seen_metadata_run_id_fkey"
+            columns: ["first_seen_metadata_run_id"]
+            isOneToOne: false
+            referencedRelation: "marvel_dcp_metadata_run"
+            referencedColumns: ["metadata_run_id"]
+          },
+          {
+            foreignKeyName: "marvel_dcp_term_last_seen_metadata_run_id_fkey"
+            columns: ["last_seen_metadata_run_id"]
+            isOneToOne: false
+            referencedRelation: "marvel_dcp_metadata_run"
+            referencedColumns: ["metadata_run_id"]
+          },
+        ]
+      }
       merch_group_header: {
         Row: {
           company_code: string
@@ -13033,6 +24193,7 @@ export type Database = {
           resolved_by: string | null
           restriction_labels: Json
           scope_paths: Json
+          sku_sg_file_key: string | null
           source_captured_at: string
           source_hash: string
           source_url: string
@@ -13058,6 +24219,7 @@ export type Database = {
           resolved_by?: string | null
           restriction_labels: Json
           scope_paths: Json
+          sku_sg_file_key?: string | null
           source_captured_at: string
           source_hash: string
           source_url: string
@@ -13083,6 +24245,7 @@ export type Database = {
           resolved_by?: string | null
           restriction_labels?: Json
           scope_paths?: Json
+          sku_sg_file_key?: string | null
           source_captured_at?: string
           source_hash?: string
           source_url?: string
@@ -13147,6 +24310,57 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "nbcu_character"
             referencedColumns: ["capture_id", "character_key"]
+          },
+        ]
+      }
+      nbcu_asset_ip_family: {
+        Row: {
+          asset_source_key: string
+          capture_id: string
+          evidence_type: string
+          evidence_value: string
+          ip_family_key: string
+          ip_family_label: string
+          raw: Json
+          source_captured_at: string
+          source_url: string
+        }
+        Insert: {
+          asset_source_key: string
+          capture_id: string
+          evidence_type: string
+          evidence_value: string
+          ip_family_key: string
+          ip_family_label: string
+          raw: Json
+          source_captured_at: string
+          source_url: string
+        }
+        Update: {
+          asset_source_key?: string
+          capture_id?: string
+          evidence_type?: string
+          evidence_value?: string
+          ip_family_key?: string
+          ip_family_label?: string
+          raw?: Json
+          source_captured_at?: string
+          source_url?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "nbcu_asset_ip_family_asset_fkey"
+            columns: ["capture_id", "asset_source_key"]
+            isOneToOne: false
+            referencedRelation: "nbcu_asset"
+            referencedColumns: ["capture_id", "asset_source_key"]
+          },
+          {
+            foreignKeyName: "nbcu_asset_ip_family_family_fkey"
+            columns: ["capture_id", "ip_family_key"]
+            isOneToOne: false
+            referencedRelation: "nbcu_ip_family"
+            referencedColumns: ["capture_id", "ip_family_key"]
           },
         ]
       }
@@ -13445,6 +24659,83 @@ export type Database = {
           },
         ]
       }
+      nbcu_entity_lifecycle: {
+        Row: {
+          change_signal: string
+          entity_key: string
+          entity_kind: string
+          first_seen_at: string
+          first_seen_capture_id: string
+          first_withdrawn_at: string | null
+          identity_basis: string
+          last_changed_capture_id: string
+          last_seen_at: string
+          last_seen_capture_id: string
+          status: string
+          withdrawn_at: string | null
+          withdrawn_capture_id: string | null
+        }
+        Insert: {
+          change_signal: string
+          entity_key: string
+          entity_kind: string
+          first_seen_at: string
+          first_seen_capture_id: string
+          first_withdrawn_at?: string | null
+          identity_basis: string
+          last_changed_capture_id: string
+          last_seen_at: string
+          last_seen_capture_id: string
+          status?: string
+          withdrawn_at?: string | null
+          withdrawn_capture_id?: string | null
+        }
+        Update: {
+          change_signal?: string
+          entity_key?: string
+          entity_kind?: string
+          first_seen_at?: string
+          first_seen_capture_id?: string
+          first_withdrawn_at?: string | null
+          identity_basis?: string
+          last_changed_capture_id?: string
+          last_seen_at?: string
+          last_seen_capture_id?: string
+          status?: string
+          withdrawn_at?: string | null
+          withdrawn_capture_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "nbcu_entity_lifecycle_first_seen_capture_id_fkey"
+            columns: ["first_seen_capture_id"]
+            isOneToOne: false
+            referencedRelation: "nbcu_lifecycle_publication"
+            referencedColumns: ["published_capture_id"]
+          },
+          {
+            foreignKeyName: "nbcu_entity_lifecycle_last_changed_capture_id_fkey"
+            columns: ["last_changed_capture_id"]
+            isOneToOne: false
+            referencedRelation: "nbcu_lifecycle_publication"
+            referencedColumns: ["published_capture_id"]
+          },
+          {
+            foreignKeyName: "nbcu_entity_lifecycle_last_seen_capture_id_fkey"
+            columns: ["last_seen_capture_id"]
+            isOneToOne: false
+            referencedRelation: "nbcu_lifecycle_publication"
+            referencedColumns: ["published_capture_id"]
+          },
+          {
+            foreignKeyName: "nbcu_entity_lifecycle_withdrawn_capture_id_fkey"
+            columns: ["withdrawn_capture_id"]
+            isOneToOne: false
+            referencedRelation: "nbcu_lifecycle_publication"
+            referencedColumns: ["published_capture_id"]
+          },
+        ]
+      }
       nbcu_ip_family: {
         Row: {
           capture_id: string
@@ -13534,6 +24825,54 @@ export type Database = {
           },
         ]
       }
+      nbcu_lifecycle_publication: {
+        Row: {
+          baseline_capture_id: string | null
+          counts: Json
+          derivation_contract: string
+          mode: string
+          published_at: string
+          published_capture_id: string
+          scope_sha256: string
+          source_captured_at: string
+        }
+        Insert: {
+          baseline_capture_id?: string | null
+          counts?: Json
+          derivation_contract: string
+          mode: string
+          published_at?: string
+          published_capture_id: string
+          scope_sha256: string
+          source_captured_at: string
+        }
+        Update: {
+          baseline_capture_id?: string | null
+          counts?: Json
+          derivation_contract?: string
+          mode?: string
+          published_at?: string
+          published_capture_id?: string
+          scope_sha256?: string
+          source_captured_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "nbcu_lifecycle_publication_baseline_capture_id_fkey"
+            columns: ["baseline_capture_id"]
+            isOneToOne: false
+            referencedRelation: "nbcu_lifecycle_publication"
+            referencedColumns: ["published_capture_id"]
+          },
+          {
+            foreignKeyName: "nbcu_lifecycle_publication_published_capture_id_fkey"
+            columns: ["published_capture_id"]
+            isOneToOne: true
+            referencedRelation: "nbcu_capture"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       nbcu_property: {
         Row: {
           capture_id: string
@@ -13603,11 +24942,11 @@ export type Database = {
         Row: {
           capture_id: string
           character_key: string
-          character_label: string
+          character_label: string | null
           evidence_type: string
           evidence_value: string
           property_key: string
-          property_label: string
+          property_label: string | null
           raw: Json
           source_captured_at: string
           source_url: string
@@ -13615,11 +24954,11 @@ export type Database = {
         Insert: {
           capture_id: string
           character_key: string
-          character_label: string
+          character_label?: string | null
           evidence_type: string
           evidence_value: string
           property_key: string
-          property_label: string
+          property_label?: string | null
           raw: Json
           source_captured_at: string
           source_url: string
@@ -13627,11 +24966,11 @@ export type Database = {
         Update: {
           capture_id?: string
           character_key?: string
-          character_label?: string
+          character_label?: string | null
           evidence_type?: string
           evidence_value?: string
           property_key?: string
-          property_label?: string
+          property_label?: string | null
           raw?: Json
           source_captured_at?: string
           source_url?: string
@@ -13650,50 +24989,6 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "nbcu_property"
             referencedColumns: ["capture_id", "property_key"]
-          },
-        ]
-      }
-      nbcu_right: {
-        Row: {
-          business_title: string
-          capture_id: string
-          global_rule_applied: boolean
-          ordinal: number
-          raw: Json
-          restriction_text: string | null
-          right_key: string
-          rights_scope: string
-          source_document: string
-        }
-        Insert: {
-          business_title: string
-          capture_id: string
-          global_rule_applied?: boolean
-          ordinal: number
-          raw: Json
-          restriction_text?: string | null
-          right_key: string
-          rights_scope: string
-          source_document: string
-        }
-        Update: {
-          business_title?: string
-          capture_id?: string
-          global_rule_applied?: boolean
-          ordinal?: number
-          raw?: Json
-          restriction_text?: string | null
-          right_key?: string
-          rights_scope?: string
-          source_document?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "nbcu_right_capture_id_fkey"
-            columns: ["capture_id"]
-            isOneToOne: false
-            referencedRelation: "nbcu_capture"
-            referencedColumns: ["id"]
           },
         ]
       }
@@ -13758,6 +25053,7 @@ export type Database = {
           resolution_status: string
           resolved_at: string | null
           resolved_by: string | null
+          sku_sg_label_key: string | null
           source_captured_at: string
           source_url: string
           style_guide_key: string
@@ -13774,6 +25070,7 @@ export type Database = {
           resolution_status?: string
           resolved_at?: string | null
           resolved_by?: string | null
+          sku_sg_label_key?: string | null
           source_captured_at: string
           source_url: string
           style_guide_key: string
@@ -13790,6 +25087,7 @@ export type Database = {
           resolution_status?: string
           resolved_at?: string | null
           resolved_by?: string | null
+          sku_sg_label_key?: string | null
           source_captured_at?: string
           source_url?: string
           style_guide_key?: string
@@ -13857,12 +25155,281 @@ export type Database = {
           },
         ]
       }
+      opa_capture: {
+        Row: {
+          capture_key: string
+          created_by: string
+          errors: Json
+          expected_cross_scope_property_count: number
+          expected_duplicate_pair_count: number
+          expected_relationship_count: number
+          expected_scope_count: number
+          expected_scope_membership_count: number
+          expected_unique_character_count: number
+          expected_unique_property_count: number
+          id: string
+          load_completed_at: string | null
+          load_started_at: string
+          observed_cross_scope_property_count: number | null
+          observed_duplicate_pair_count: number | null
+          observed_relationship_count: number | null
+          observed_relationship_sha256: string | null
+          observed_scope_membership_count: number | null
+          observed_unique_character_count: number | null
+          observed_unique_property_count: number | null
+          source_captured_at: string
+          source_commit_sha: string
+          source_manifest_sha256: string
+          source_repository: string
+          status: string
+        }
+        Insert: {
+          capture_key: string
+          created_by: string
+          errors?: Json
+          expected_cross_scope_property_count: number
+          expected_duplicate_pair_count?: number
+          expected_relationship_count: number
+          expected_scope_count: number
+          expected_scope_membership_count: number
+          expected_unique_character_count: number
+          expected_unique_property_count: number
+          id?: string
+          load_completed_at?: string | null
+          load_started_at?: string
+          observed_cross_scope_property_count?: number | null
+          observed_duplicate_pair_count?: number | null
+          observed_relationship_count?: number | null
+          observed_relationship_sha256?: string | null
+          observed_scope_membership_count?: number | null
+          observed_unique_character_count?: number | null
+          observed_unique_property_count?: number | null
+          source_captured_at: string
+          source_commit_sha: string
+          source_manifest_sha256: string
+          source_repository: string
+          status?: string
+        }
+        Update: {
+          capture_key?: string
+          created_by?: string
+          errors?: Json
+          expected_cross_scope_property_count?: number
+          expected_duplicate_pair_count?: number
+          expected_relationship_count?: number
+          expected_scope_count?: number
+          expected_scope_membership_count?: number
+          expected_unique_character_count?: number
+          expected_unique_property_count?: number
+          id?: string
+          load_completed_at?: string | null
+          load_started_at?: string
+          observed_cross_scope_property_count?: number | null
+          observed_duplicate_pair_count?: number | null
+          observed_relationship_count?: number | null
+          observed_relationship_sha256?: string | null
+          observed_scope_membership_count?: number | null
+          observed_unique_character_count?: number | null
+          observed_unique_property_count?: number | null
+          source_captured_at?: string
+          source_commit_sha?: string
+          source_manifest_sha256?: string
+          source_repository?: string
+          status?: string
+        }
+        Relationships: []
+      }
+      opa_capture_scope: {
+        Row: {
+          authenticated_at: string | null
+          authentication_evidence_sha256: string | null
+          branch: string
+          capture_id: string
+          expected_character_count: number
+          expected_duplicate_pair_count: number
+          expected_property_count: number
+          expected_relationship_count: number
+          expected_relationship_sha256: string
+          failure: Json | null
+          finished_at: string | null
+          lob: string
+          observed_character_count: number | null
+          observed_duplicate_pair_count: number | null
+          observed_property_count: number | null
+          observed_relationship_count: number | null
+          observed_relationship_sha256: string | null
+          region: string
+          scope_key: string
+          source_sha256: string
+          status: string
+          submission_type: string
+          template_id: string
+          workflow_id: string
+        }
+        Insert: {
+          authenticated_at?: string | null
+          authentication_evidence_sha256?: string | null
+          branch: string
+          capture_id: string
+          expected_character_count: number
+          expected_duplicate_pair_count?: number
+          expected_property_count: number
+          expected_relationship_count: number
+          expected_relationship_sha256: string
+          failure?: Json | null
+          finished_at?: string | null
+          lob: string
+          observed_character_count?: number | null
+          observed_duplicate_pair_count?: number | null
+          observed_property_count?: number | null
+          observed_relationship_count?: number | null
+          observed_relationship_sha256?: string | null
+          region: string
+          scope_key: string
+          source_sha256: string
+          status?: string
+          submission_type: string
+          template_id: string
+          workflow_id: string
+        }
+        Update: {
+          authenticated_at?: string | null
+          authentication_evidence_sha256?: string | null
+          branch?: string
+          capture_id?: string
+          expected_character_count?: number
+          expected_duplicate_pair_count?: number
+          expected_property_count?: number
+          expected_relationship_count?: number
+          expected_relationship_sha256?: string
+          failure?: Json | null
+          finished_at?: string | null
+          lob?: string
+          observed_character_count?: number | null
+          observed_duplicate_pair_count?: number | null
+          observed_property_count?: number | null
+          observed_relationship_count?: number | null
+          observed_relationship_sha256?: string | null
+          region?: string
+          scope_key?: string
+          source_sha256?: string
+          status?: string
+          submission_type?: string
+          template_id?: string
+          workflow_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "opa_capture_scope_capture_id_fkey"
+            columns: ["capture_id"]
+            isOneToOne: false
+            referencedRelation: "opa_capture"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      opa_character: {
+        Row: {
+          character_id: number
+          character_name: string
+          core_character_id: string | null
+          first_seen_at: string
+          first_withdrawn_at: string | null
+          last_seen_at: string
+          resolution_reason: string | null
+          resolution_status: string
+          resolved_at: string | null
+          resolved_by: string | null
+          status: string
+          updated_at: string
+          withdrawn_at: string | null
+        }
+        Insert: {
+          character_id: number
+          character_name: string
+          core_character_id?: string | null
+          first_seen_at?: string
+          first_withdrawn_at?: string | null
+          last_seen_at?: string
+          resolution_reason?: string | null
+          resolution_status?: string
+          resolved_at?: string | null
+          resolved_by?: string | null
+          status?: string
+          updated_at?: string
+          withdrawn_at?: string | null
+        }
+        Update: {
+          character_id?: number
+          character_name?: string
+          core_character_id?: string | null
+          first_seen_at?: string
+          first_withdrawn_at?: string | null
+          last_seen_at?: string
+          resolution_reason?: string | null
+          resolution_status?: string
+          resolved_at?: string | null
+          resolved_by?: string | null
+          status?: string
+          updated_at?: string
+          withdrawn_at?: string | null
+        }
+        Relationships: []
+      }
+      opa_property: {
+        Row: {
+          core_property_id: string | null
+          first_seen_at: string
+          first_withdrawn_at: string | null
+          last_seen_at: string
+          licensed_property_id: number
+          property_name: string
+          resolution_reason: string | null
+          resolution_status: string
+          resolved_at: string | null
+          resolved_by: string | null
+          status: string
+          updated_at: string
+          withdrawn_at: string | null
+        }
+        Insert: {
+          core_property_id?: string | null
+          first_seen_at?: string
+          first_withdrawn_at?: string | null
+          last_seen_at?: string
+          licensed_property_id: number
+          property_name: string
+          resolution_reason?: string | null
+          resolution_status?: string
+          resolved_at?: string | null
+          resolved_by?: string | null
+          status?: string
+          updated_at?: string
+          withdrawn_at?: string | null
+        }
+        Update: {
+          core_property_id?: string | null
+          first_seen_at?: string
+          first_withdrawn_at?: string | null
+          last_seen_at?: string
+          licensed_property_id?: number
+          property_name?: string
+          resolution_reason?: string | null
+          resolution_status?: string
+          resolved_at?: string | null
+          resolved_by?: string | null
+          status?: string
+          updated_at?: string
+          withdrawn_at?: string | null
+        }
+        Relationships: []
+      }
       opa_property_character: {
         Row: {
           brand_property_id: number
           captured_at: string
           character_id: number
-          character_name: string
+          character_name: string | null
           entitlement_scope: string
           first_seen_at: string
           imported_at: string
@@ -13871,21 +25438,24 @@ export type Database = {
           line_of_business: string
           option_source_id: number
           property_id: string | null
-          property_name: string
+          property_name: string | null
           raw: Json
+          regionName: string | null
           resolution_reason: string | null
           resolution_status: string
           resolved_at: string | null
           resolved_by: string | null
           source_hash: string
           source_url: string
+          templateId: number | null
           updated_at: string
+          workflowId: number | null
         }
         Insert: {
           brand_property_id: number
           captured_at: string
           character_id: number
-          character_name: string
+          character_name?: string | null
           entitlement_scope?: string
           first_seen_at?: string
           imported_at?: string
@@ -13894,21 +25464,24 @@ export type Database = {
           line_of_business?: string
           option_source_id: number
           property_id?: string | null
-          property_name: string
+          property_name?: string | null
           raw: Json
+          regionName?: string | null
           resolution_reason?: string | null
           resolution_status?: string
           resolved_at?: string | null
           resolved_by?: string | null
           source_hash: string
           source_url: string
+          templateId?: number | null
           updated_at?: string
+          workflowId?: number | null
         }
         Update: {
           brand_property_id?: number
           captured_at?: string
           character_id?: number
-          character_name?: string
+          character_name?: string | null
           entitlement_scope?: string
           first_seen_at?: string
           imported_at?: string
@@ -13917,17 +25490,345 @@ export type Database = {
           line_of_business?: string
           option_source_id?: number
           property_id?: string | null
-          property_name?: string
+          property_name?: string | null
           raw?: Json
+          regionName?: string | null
           resolution_reason?: string | null
           resolution_status?: string
           resolved_at?: string | null
           resolved_by?: string | null
           source_hash?: string
           source_url?: string
+          templateId?: number | null
           updated_at?: string
+          workflowId?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "plm_opa_property_character_character_fk"
+            columns: ["character_id"]
+            isOneToOne: false
+            referencedRelation: "opa_character"
+            referencedColumns: ["character_id"]
+          },
+          {
+            foreignKeyName: "plm_opa_property_character_property_fk"
+            columns: ["licensed_property_id"]
+            isOneToOne: false
+            referencedRelation: "opa_property"
+            referencedColumns: ["licensed_property_id"]
+          },
+        ]
+      }
+      opa_property_character_capture: {
+        Row: {
+          brand_property_id: number | null
+          capture_id: string
+          character_id: number | null
+          character_name: string | null
+          chunk_key: string
+          chunk_sha256: string
+          licensed_property_id: number
+          observation_id: string
+          observed_at: string
+          option_source_id: number
+          property_name: string
+          scope_key: string
+          source_row_sha256: string
+        }
+        Insert: {
+          brand_property_id?: number | null
+          capture_id: string
+          character_id?: number | null
+          character_name?: string | null
+          chunk_key: string
+          chunk_sha256: string
+          licensed_property_id: number
+          observation_id?: string
+          observed_at?: string
+          option_source_id: number
+          property_name: string
+          scope_key: string
+          source_row_sha256: string
+        }
+        Update: {
+          brand_property_id?: number | null
+          capture_id?: string
+          character_id?: number | null
+          character_name?: string | null
+          chunk_key?: string
+          chunk_sha256?: string
+          licensed_property_id?: number
+          observation_id?: string
+          observed_at?: string
+          option_source_id?: number
+          property_name?: string
+          scope_key?: string
+          source_row_sha256?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "opa_property_character_capture_capture_id_scope_key_fkey"
+            columns: ["capture_id", "scope_key"]
+            isOneToOne: false
+            referencedRelation: "opa_capture_scope"
+            referencedColumns: ["capture_id", "scope_key"]
+          },
+        ]
+      }
+      opa_property_compliance_capture: {
+        Row: {
+          account_scope_sha256: string
+          approval_status: string
+          approved_at: string | null
+          approved_by: string | null
+          authenticated_at: string
+          authentication_evidence_sha256: string
+          branch_code: string
+          capture_id: string
+          capture_key: string
+          capture_started_at: string
+          compliance_capture_id: string
+          compliant_file_sha256: string
+          created_by: string
+          duplicate_relationship_count: number
+          evidence_reference: string
+          expected_compliant_property_count: number
+          expected_compliant_relationship_count: number
+          expected_membership_sha256: string
+          expected_show_all_property_count: number
+          expected_show_all_relationship_count: number
+          line_of_business_id: number
+          load_completed_at: string | null
+          load_started_at: string
+          observed_compliant_relationship_count: number
+          observed_show_all_relationship_count: number
+          paired_validation_sha256: string
+          product_type_code: string
+          property_subset_verified: boolean
+          region_code: string
+          rejection_reason: string | null
+          relationship_subset_verified: boolean
+          show_all_file_sha256: string
+          source_captured_at: string
+          source_commit_sha: string
+          source_manifest_sha256: string
+          source_repository: string
+          status: string
+          template_id: number
+          workflow_id: number
+        }
+        Insert: {
+          account_scope_sha256: string
+          approval_status?: string
+          approved_at?: string | null
+          approved_by?: string | null
+          authenticated_at: string
+          authentication_evidence_sha256: string
+          branch_code: string
+          capture_id: string
+          capture_key: string
+          capture_started_at: string
+          compliance_capture_id?: string
+          compliant_file_sha256: string
+          created_by: string
+          duplicate_relationship_count: number
+          evidence_reference: string
+          expected_compliant_property_count: number
+          expected_compliant_relationship_count: number
+          expected_membership_sha256: string
+          expected_show_all_property_count: number
+          expected_show_all_relationship_count: number
+          line_of_business_id: number
+          load_completed_at?: string | null
+          load_started_at?: string
+          observed_compliant_relationship_count: number
+          observed_show_all_relationship_count: number
+          paired_validation_sha256: string
+          product_type_code: string
+          property_subset_verified: boolean
+          region_code: string
+          rejection_reason?: string | null
+          relationship_subset_verified: boolean
+          show_all_file_sha256: string
+          source_captured_at: string
+          source_commit_sha: string
+          source_manifest_sha256: string
+          source_repository: string
+          status?: string
+          template_id: number
+          workflow_id: number
+        }
+        Update: {
+          account_scope_sha256?: string
+          approval_status?: string
+          approved_at?: string | null
+          approved_by?: string | null
+          authenticated_at?: string
+          authentication_evidence_sha256?: string
+          branch_code?: string
+          capture_id?: string
+          capture_key?: string
+          capture_started_at?: string
+          compliance_capture_id?: string
+          compliant_file_sha256?: string
+          created_by?: string
+          duplicate_relationship_count?: number
+          evidence_reference?: string
+          expected_compliant_property_count?: number
+          expected_compliant_relationship_count?: number
+          expected_membership_sha256?: string
+          expected_show_all_property_count?: number
+          expected_show_all_relationship_count?: number
+          line_of_business_id?: number
+          load_completed_at?: string | null
+          load_started_at?: string
+          observed_compliant_relationship_count?: number
+          observed_show_all_relationship_count?: number
+          paired_validation_sha256?: string
+          product_type_code?: string
+          property_subset_verified?: boolean
+          region_code?: string
+          rejection_reason?: string | null
+          relationship_subset_verified?: boolean
+          show_all_file_sha256?: string
+          source_captured_at?: string
+          source_commit_sha?: string
+          source_manifest_sha256?: string
+          source_repository?: string
+          status?: string
+          template_id?: number
+          workflow_id?: number
         }
         Relationships: []
+      }
+      opa_property_scope_membership: {
+        Row: {
+          approval_status: string
+          approved_at: string | null
+          approved_by: string | null
+          branch_code: string
+          capture_id: string
+          compliance_capture_id: string | null
+          compliance_status: string
+          created_at: string
+          evidence_reference: string
+          evidence_sha256: string
+          licensed_property_id: number
+          line_of_business_id: number
+          membership_id: string
+          product_type_code: string
+          region_code: string
+          source_captured_at: string
+          template_id: number
+          workflow_id: number
+        }
+        Insert: {
+          approval_status?: string
+          approved_at?: string | null
+          approved_by?: string | null
+          branch_code: string
+          capture_id: string
+          compliance_capture_id?: string | null
+          compliance_status?: string
+          created_at?: string
+          evidence_reference: string
+          evidence_sha256: string
+          licensed_property_id: number
+          line_of_business_id: number
+          membership_id?: string
+          product_type_code: string
+          region_code: string
+          source_captured_at: string
+          template_id: number
+          workflow_id: number
+        }
+        Update: {
+          approval_status?: string
+          approved_at?: string | null
+          approved_by?: string | null
+          branch_code?: string
+          capture_id?: string
+          compliance_capture_id?: string | null
+          compliance_status?: string
+          created_at?: string
+          evidence_reference?: string
+          evidence_sha256?: string
+          licensed_property_id?: number
+          line_of_business_id?: number
+          membership_id?: string
+          product_type_code?: string
+          region_code?: string
+          source_captured_at?: string
+          template_id?: number
+          workflow_id?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "opa_compliance_membership_capture_fk"
+            columns: ["compliance_capture_id"]
+            isOneToOne: false
+            referencedRelation: "opa_property_compliance_capture"
+            referencedColumns: ["compliance_capture_id"]
+          },
+          {
+            foreignKeyName: "opa_property_scope_membership_licensed_property_id_fkey"
+            columns: ["licensed_property_id"]
+            isOneToOne: false
+            referencedRelation: "opa_property"
+            referencedColumns: ["licensed_property_id"]
+          },
+        ]
+      }
+      opa_property_studio_resolution: {
+        Row: {
+          created_at: string
+          licensed_property_id: number
+          provenance_reference: string | null
+          provenance_type: string
+          resolution_id: string
+          resolution_reason: string | null
+          resolution_status: string
+          resolved_at: string
+          resolved_by: string
+          studio_code: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          licensed_property_id: number
+          provenance_reference?: string | null
+          provenance_type: string
+          resolution_id?: string
+          resolution_reason?: string | null
+          resolution_status: string
+          resolved_at?: string
+          resolved_by: string
+          studio_code?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          licensed_property_id?: number
+          provenance_reference?: string | null
+          provenance_type?: string
+          resolution_id?: string
+          resolution_reason?: string | null
+          resolution_status?: string
+          resolved_at?: string
+          resolved_by?: string
+          studio_code?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "opa_property_studio_resolution_licensed_property_id_fkey"
+            columns: ["licensed_property_id"]
+            isOneToOne: false
+            referencedRelation: "opa_property"
+            referencedColumns: ["licensed_property_id"]
+          },
+        ]
       }
       OrderLeadTime: {
         Row: {
@@ -13962,6 +25863,1069 @@ export type Database = {
           product_type_id_fk?: number | null
           sampling_time?: number | null
           total_lead_time?: number | null
+        }
+        Relationships: []
+      }
+      peanuts_animation_title: {
+        Row: {
+          asset_count: number
+          capture_id: string
+          is_multi_select: boolean
+          raw: Json
+          source_field_label: string
+          source_field_name: string
+          source_value_id: string | null
+          value_key: string
+          value_label: string
+        }
+        Insert: {
+          asset_count: number
+          capture_id: string
+          is_multi_select: boolean
+          raw: Json
+          source_field_label: string
+          source_field_name: string
+          source_value_id?: string | null
+          value_key: string
+          value_label: string
+        }
+        Update: {
+          asset_count?: number
+          capture_id?: string
+          is_multi_select?: boolean
+          raw?: Json
+          source_field_label?: string
+          source_field_name?: string
+          source_value_id?: string | null
+          value_key?: string
+          value_label?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "peanuts_animation_title_capture_fkey"
+            columns: ["capture_id"]
+            isOneToOne: false
+            referencedRelation: "peanuts_capture"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      peanuts_art_program: {
+        Row: {
+          asset_count: number
+          capture_id: string
+          is_multi_select: boolean
+          raw: Json
+          source_field_label: string
+          source_field_name: string
+          source_value_id: string | null
+          value_key: string
+          value_label: string
+        }
+        Insert: {
+          asset_count: number
+          capture_id: string
+          is_multi_select: boolean
+          raw: Json
+          source_field_label: string
+          source_field_name: string
+          source_value_id?: string | null
+          value_key: string
+          value_label: string
+        }
+        Update: {
+          asset_count?: number
+          capture_id?: string
+          is_multi_select?: boolean
+          raw?: Json
+          source_field_label?: string
+          source_field_name?: string
+          source_value_id?: string | null
+          value_key?: string
+          value_label?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "peanuts_art_program_capture_fkey"
+            columns: ["capture_id"]
+            isOneToOne: false
+            referencedRelation: "peanuts_capture"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      peanuts_asset: {
+        Row: {
+          asset_type_key: string | null
+          capture_id: string
+          checksum: string | null
+          comic_strip_type: string | null
+          content_type: string | null
+          description: string | null
+          era_label: string | null
+          file_ext: string | null
+          file_name: string
+          file_size_bytes: number | null
+          initiative_key: string | null
+          is_current_version: boolean | null
+          licensing_status_key: string | null
+          metadata_template_id: string | null
+          object_type: string | null
+          publication_date_text: string | null
+          raw: Json
+          rendition_base_url: string | null
+          sku_sg_file_key: string | null
+          source_created_at: string | null
+          source_file_id: string | null
+          source_object_id: string
+          source_updated_at: string | null
+          style_guide_key: string | null
+          title: string | null
+          version_number: number | null
+        }
+        Insert: {
+          asset_type_key?: string | null
+          capture_id: string
+          checksum?: string | null
+          comic_strip_type?: string | null
+          content_type?: string | null
+          description?: string | null
+          era_label?: string | null
+          file_ext?: string | null
+          file_name: string
+          file_size_bytes?: number | null
+          initiative_key?: string | null
+          is_current_version?: boolean | null
+          licensing_status_key?: string | null
+          metadata_template_id?: string | null
+          object_type?: string | null
+          publication_date_text?: string | null
+          raw: Json
+          rendition_base_url?: string | null
+          sku_sg_file_key?: string | null
+          source_created_at?: string | null
+          source_file_id?: string | null
+          source_object_id: string
+          source_updated_at?: string | null
+          style_guide_key?: string | null
+          title?: string | null
+          version_number?: number | null
+        }
+        Update: {
+          asset_type_key?: string | null
+          capture_id?: string
+          checksum?: string | null
+          comic_strip_type?: string | null
+          content_type?: string | null
+          description?: string | null
+          era_label?: string | null
+          file_ext?: string | null
+          file_name?: string
+          file_size_bytes?: number | null
+          initiative_key?: string | null
+          is_current_version?: boolean | null
+          licensing_status_key?: string | null
+          metadata_template_id?: string | null
+          object_type?: string | null
+          publication_date_text?: string | null
+          raw?: Json
+          rendition_base_url?: string | null
+          sku_sg_file_key?: string | null
+          source_created_at?: string | null
+          source_file_id?: string | null
+          source_object_id?: string
+          source_updated_at?: string | null
+          style_guide_key?: string | null
+          title?: string | null
+          version_number?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "peanuts_asset_asset_type_fkey"
+            columns: ["capture_id", "asset_type_key"]
+            isOneToOne: false
+            referencedRelation: "peanuts_asset_type"
+            referencedColumns: ["capture_id", "value_key"]
+          },
+          {
+            foreignKeyName: "peanuts_asset_capture_fkey"
+            columns: ["capture_id"]
+            isOneToOne: false
+            referencedRelation: "peanuts_capture"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "peanuts_asset_initiative_fkey"
+            columns: ["capture_id", "initiative_key"]
+            isOneToOne: false
+            referencedRelation: "peanuts_initiative"
+            referencedColumns: ["capture_id", "value_key"]
+          },
+          {
+            foreignKeyName: "peanuts_asset_licensing_status_fkey"
+            columns: ["capture_id", "licensing_status_key"]
+            isOneToOne: false
+            referencedRelation: "peanuts_licensing_status"
+            referencedColumns: ["capture_id", "value_key"]
+          },
+          {
+            foreignKeyName: "peanuts_asset_style_guide_fkey"
+            columns: ["capture_id", "style_guide_key"]
+            isOneToOne: false
+            referencedRelation: "peanuts_style_guide"
+            referencedColumns: ["capture_id", "value_key"]
+          },
+        ]
+      }
+      peanuts_asset_animation_title: {
+        Row: {
+          animation_title_key: string
+          capture_id: string
+          raw: Json
+          source_object_id: string
+        }
+        Insert: {
+          animation_title_key: string
+          capture_id: string
+          raw: Json
+          source_object_id: string
+        }
+        Update: {
+          animation_title_key?: string
+          capture_id?: string
+          raw?: Json
+          source_object_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "peanuts_asset_animation_title_asset_fkey"
+            columns: ["capture_id", "source_object_id"]
+            isOneToOne: false
+            referencedRelation: "peanuts_asset"
+            referencedColumns: ["capture_id", "source_object_id"]
+          },
+          {
+            foreignKeyName: "peanuts_asset_animation_title_value_fkey"
+            columns: ["capture_id", "animation_title_key"]
+            isOneToOne: false
+            referencedRelation: "peanuts_animation_title"
+            referencedColumns: ["capture_id", "value_key"]
+          },
+        ]
+      }
+      peanuts_asset_art_program: {
+        Row: {
+          art_program_key: string
+          capture_id: string
+          raw: Json
+          source_object_id: string
+        }
+        Insert: {
+          art_program_key: string
+          capture_id: string
+          raw: Json
+          source_object_id: string
+        }
+        Update: {
+          art_program_key?: string
+          capture_id?: string
+          raw?: Json
+          source_object_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "peanuts_asset_art_program_asset_fkey"
+            columns: ["capture_id", "source_object_id"]
+            isOneToOne: false
+            referencedRelation: "peanuts_asset"
+            referencedColumns: ["capture_id", "source_object_id"]
+          },
+          {
+            foreignKeyName: "peanuts_asset_art_program_value_fkey"
+            columns: ["capture_id", "art_program_key"]
+            isOneToOne: false
+            referencedRelation: "peanuts_art_program"
+            referencedColumns: ["capture_id", "value_key"]
+          },
+        ]
+      }
+      peanuts_asset_character: {
+        Row: {
+          capture_id: string
+          character_key: string
+          raw: Json
+          source_object_id: string
+        }
+        Insert: {
+          capture_id: string
+          character_key: string
+          raw: Json
+          source_object_id: string
+        }
+        Update: {
+          capture_id?: string
+          character_key?: string
+          raw?: Json
+          source_object_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "peanuts_asset_character_asset_fkey"
+            columns: ["capture_id", "source_object_id"]
+            isOneToOne: false
+            referencedRelation: "peanuts_asset"
+            referencedColumns: ["capture_id", "source_object_id"]
+          },
+          {
+            foreignKeyName: "peanuts_asset_character_value_fkey"
+            columns: ["capture_id", "character_key"]
+            isOneToOne: false
+            referencedRelation: "peanuts_character"
+            referencedColumns: ["capture_id", "value_key"]
+          },
+        ]
+      }
+      peanuts_asset_holiday: {
+        Row: {
+          capture_id: string
+          holiday_key: string
+          raw: Json
+          source_object_id: string
+        }
+        Insert: {
+          capture_id: string
+          holiday_key: string
+          raw: Json
+          source_object_id: string
+        }
+        Update: {
+          capture_id?: string
+          holiday_key?: string
+          raw?: Json
+          source_object_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "peanuts_asset_holiday_asset_fkey"
+            columns: ["capture_id", "source_object_id"]
+            isOneToOne: false
+            referencedRelation: "peanuts_asset"
+            referencedColumns: ["capture_id", "source_object_id"]
+          },
+          {
+            foreignKeyName: "peanuts_asset_holiday_value_fkey"
+            columns: ["capture_id", "holiday_key"]
+            isOneToOne: false
+            referencedRelation: "peanuts_holiday"
+            referencedColumns: ["capture_id", "value_key"]
+          },
+        ]
+      }
+      peanuts_asset_keyword: {
+        Row: {
+          capture_id: string
+          keyword_key: string
+          keyword_label: string
+          raw: Json
+          source_object_id: string
+        }
+        Insert: {
+          capture_id: string
+          keyword_key: string
+          keyword_label: string
+          raw: Json
+          source_object_id: string
+        }
+        Update: {
+          capture_id?: string
+          keyword_key?: string
+          keyword_label?: string
+          raw?: Json
+          source_object_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "peanuts_asset_keyword_asset_fkey"
+            columns: ["capture_id", "source_object_id"]
+            isOneToOne: false
+            referencedRelation: "peanuts_asset"
+            referencedColumns: ["capture_id", "source_object_id"]
+          },
+        ]
+      }
+      peanuts_asset_relationship: {
+        Row: {
+          capture_id: string
+          child_object_id: string
+          link_type: string
+          parent_object_id: string
+          raw: Json
+          source_relationship_id: string
+        }
+        Insert: {
+          capture_id: string
+          child_object_id: string
+          link_type: string
+          parent_object_id: string
+          raw: Json
+          source_relationship_id: string
+        }
+        Update: {
+          capture_id?: string
+          child_object_id?: string
+          link_type?: string
+          parent_object_id?: string
+          raw?: Json
+          source_relationship_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "peanuts_asset_relationship_child_fkey"
+            columns: ["capture_id", "child_object_id"]
+            isOneToOne: false
+            referencedRelation: "peanuts_asset"
+            referencedColumns: ["capture_id", "source_object_id"]
+          },
+          {
+            foreignKeyName: "peanuts_asset_relationship_parent_fkey"
+            columns: ["capture_id", "parent_object_id"]
+            isOneToOne: false
+            referencedRelation: "peanuts_asset"
+            referencedColumns: ["capture_id", "source_object_id"]
+          },
+        ]
+      }
+      peanuts_asset_type: {
+        Row: {
+          asset_count: number
+          capture_id: string
+          is_multi_select: boolean
+          raw: Json
+          source_field_label: string
+          source_field_name: string
+          source_value_id: string | null
+          value_key: string
+          value_label: string
+        }
+        Insert: {
+          asset_count: number
+          capture_id: string
+          is_multi_select: boolean
+          raw: Json
+          source_field_label: string
+          source_field_name: string
+          source_value_id?: string | null
+          value_key: string
+          value_label: string
+        }
+        Update: {
+          asset_count?: number
+          capture_id?: string
+          is_multi_select?: boolean
+          raw?: Json
+          source_field_label?: string
+          source_field_name?: string
+          source_value_id?: string | null
+          value_key?: string
+          value_label?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "peanuts_asset_type_capture_fkey"
+            columns: ["capture_id"]
+            isOneToOne: false
+            referencedRelation: "peanuts_capture"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      peanuts_capture: {
+        Row: {
+          api_endpoint: string
+          assets_captured: number
+          assets_unreachable: number
+          capture_key: string
+          created_by: string
+          deep_paging_partitioned: boolean
+          error_summary: Json
+          expected_counts: Json
+          id: string
+          load_completed_at: string | null
+          load_started_at: string
+          media_downloaded: number
+          observed_counts: Json
+          portal_base_url: string
+          portal_reported_asset_total: number
+          raw_summary: Json
+          read_commit_sha: string | null
+          relationship_graph_walked: boolean
+          source_captured_at: string
+          source_commit_sha: string
+          source_customer_id: string
+          source_manifest_sha256: string
+          source_repository: string
+          status: string
+          vocabularies_loaded_from_source: boolean
+        }
+        Insert: {
+          api_endpoint: string
+          assets_captured: number
+          assets_unreachable: number
+          capture_key: string
+          created_by: string
+          deep_paging_partitioned?: boolean
+          error_summary?: Json
+          expected_counts: Json
+          id?: string
+          load_completed_at?: string | null
+          load_started_at?: string
+          media_downloaded?: number
+          observed_counts?: Json
+          portal_base_url: string
+          portal_reported_asset_total: number
+          raw_summary: Json
+          read_commit_sha?: string | null
+          relationship_graph_walked?: boolean
+          source_captured_at: string
+          source_commit_sha: string
+          source_customer_id: string
+          source_manifest_sha256: string
+          source_repository: string
+          status?: string
+          vocabularies_loaded_from_source?: boolean
+        }
+        Update: {
+          api_endpoint?: string
+          assets_captured?: number
+          assets_unreachable?: number
+          capture_key?: string
+          created_by?: string
+          deep_paging_partitioned?: boolean
+          error_summary?: Json
+          expected_counts?: Json
+          id?: string
+          load_completed_at?: string | null
+          load_started_at?: string
+          media_downloaded?: number
+          observed_counts?: Json
+          portal_base_url?: string
+          portal_reported_asset_total?: number
+          raw_summary?: Json
+          read_commit_sha?: string | null
+          relationship_graph_walked?: boolean
+          source_captured_at?: string
+          source_commit_sha?: string
+          source_customer_id?: string
+          source_manifest_sha256?: string
+          source_repository?: string
+          status?: string
+          vocabularies_loaded_from_source?: boolean
+        }
+        Relationships: []
+      }
+      peanuts_character: {
+        Row: {
+          asset_count: number
+          capture_id: string
+          is_multi_select: boolean
+          raw: Json
+          source_field_label: string
+          source_field_name: string
+          source_value_id: string | null
+          value_key: string
+          value_label: string
+        }
+        Insert: {
+          asset_count: number
+          capture_id: string
+          is_multi_select: boolean
+          raw: Json
+          source_field_label: string
+          source_field_name: string
+          source_value_id?: string | null
+          value_key: string
+          value_label: string
+        }
+        Update: {
+          asset_count?: number
+          capture_id?: string
+          is_multi_select?: boolean
+          raw?: Json
+          source_field_label?: string
+          source_field_name?: string
+          source_value_id?: string | null
+          value_key?: string
+          value_label?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "peanuts_character_capture_fkey"
+            columns: ["capture_id"]
+            isOneToOne: false
+            referencedRelation: "peanuts_capture"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      peanuts_entity_lifecycle: {
+        Row: {
+          change_signal: string
+          entity_key: string
+          entity_kind: string
+          first_seen_at: string
+          first_seen_capture_id: string
+          first_withdrawn_at: string | null
+          last_changed_capture_id: string
+          last_seen_at: string
+          last_seen_capture_id: string
+          retired_at: string | null
+          status: string
+          withdrawn_at: string | null
+          withdrawn_capture_id: string | null
+        }
+        Insert: {
+          change_signal: string
+          entity_key: string
+          entity_kind: string
+          first_seen_at: string
+          first_seen_capture_id: string
+          first_withdrawn_at?: string | null
+          last_changed_capture_id: string
+          last_seen_at: string
+          last_seen_capture_id: string
+          retired_at?: string | null
+          status?: string
+          withdrawn_at?: string | null
+          withdrawn_capture_id?: string | null
+        }
+        Update: {
+          change_signal?: string
+          entity_key?: string
+          entity_kind?: string
+          first_seen_at?: string
+          first_seen_capture_id?: string
+          first_withdrawn_at?: string | null
+          last_changed_capture_id?: string
+          last_seen_at?: string
+          last_seen_capture_id?: string
+          retired_at?: string | null
+          status?: string
+          withdrawn_at?: string | null
+          withdrawn_capture_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "peanuts_entity_lifecycle_first_seen_capture_id_fkey"
+            columns: ["first_seen_capture_id"]
+            isOneToOne: false
+            referencedRelation: "peanuts_lifecycle_publication"
+            referencedColumns: ["published_capture_id"]
+          },
+          {
+            foreignKeyName: "peanuts_entity_lifecycle_last_changed_capture_id_fkey"
+            columns: ["last_changed_capture_id"]
+            isOneToOne: false
+            referencedRelation: "peanuts_lifecycle_publication"
+            referencedColumns: ["published_capture_id"]
+          },
+          {
+            foreignKeyName: "peanuts_entity_lifecycle_last_seen_capture_id_fkey"
+            columns: ["last_seen_capture_id"]
+            isOneToOne: false
+            referencedRelation: "peanuts_lifecycle_publication"
+            referencedColumns: ["published_capture_id"]
+          },
+          {
+            foreignKeyName: "peanuts_entity_lifecycle_withdrawn_capture_id_fkey"
+            columns: ["withdrawn_capture_id"]
+            isOneToOne: false
+            referencedRelation: "peanuts_lifecycle_publication"
+            referencedColumns: ["published_capture_id"]
+          },
+        ]
+      }
+      peanuts_holiday: {
+        Row: {
+          asset_count: number
+          capture_id: string
+          is_multi_select: boolean
+          raw: Json
+          source_field_label: string
+          source_field_name: string
+          source_value_id: string | null
+          value_key: string
+          value_label: string
+        }
+        Insert: {
+          asset_count: number
+          capture_id: string
+          is_multi_select: boolean
+          raw: Json
+          source_field_label: string
+          source_field_name: string
+          source_value_id?: string | null
+          value_key: string
+          value_label: string
+        }
+        Update: {
+          asset_count?: number
+          capture_id?: string
+          is_multi_select?: boolean
+          raw?: Json
+          source_field_label?: string
+          source_field_name?: string
+          source_value_id?: string | null
+          value_key?: string
+          value_label?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "peanuts_holiday_capture_fkey"
+            columns: ["capture_id"]
+            isOneToOne: false
+            referencedRelation: "peanuts_capture"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      peanuts_initiative: {
+        Row: {
+          asset_count: number
+          capture_id: string
+          is_multi_select: boolean
+          raw: Json
+          source_field_label: string
+          source_field_name: string
+          source_value_id: string | null
+          value_key: string
+          value_label: string
+        }
+        Insert: {
+          asset_count: number
+          capture_id: string
+          is_multi_select: boolean
+          raw: Json
+          source_field_label: string
+          source_field_name: string
+          source_value_id?: string | null
+          value_key: string
+          value_label: string
+        }
+        Update: {
+          asset_count?: number
+          capture_id?: string
+          is_multi_select?: boolean
+          raw?: Json
+          source_field_label?: string
+          source_field_name?: string
+          source_value_id?: string | null
+          value_key?: string
+          value_label?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "peanuts_initiative_capture_fkey"
+            columns: ["capture_id"]
+            isOneToOne: false
+            referencedRelation: "peanuts_capture"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      peanuts_licensing_status: {
+        Row: {
+          asset_count: number
+          capture_id: string
+          is_multi_select: boolean
+          raw: Json
+          source_field_label: string
+          source_field_name: string
+          source_value_id: string | null
+          value_key: string
+          value_label: string
+        }
+        Insert: {
+          asset_count: number
+          capture_id: string
+          is_multi_select: boolean
+          raw: Json
+          source_field_label: string
+          source_field_name: string
+          source_value_id?: string | null
+          value_key: string
+          value_label: string
+        }
+        Update: {
+          asset_count?: number
+          capture_id?: string
+          is_multi_select?: boolean
+          raw?: Json
+          source_field_label?: string
+          source_field_name?: string
+          source_value_id?: string | null
+          value_key?: string
+          value_label?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "peanuts_licensing_status_capture_fkey"
+            columns: ["capture_id"]
+            isOneToOne: false
+            referencedRelation: "peanuts_capture"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      peanuts_lifecycle_publication: {
+        Row: {
+          baseline_capture_id: string | null
+          counts: Json
+          derivation_contract: string
+          mode: string
+          published_at: string
+          published_capture_id: string
+          scope_sha256: string
+          source_captured_at: string
+        }
+        Insert: {
+          baseline_capture_id?: string | null
+          counts?: Json
+          derivation_contract: string
+          mode: string
+          published_at?: string
+          published_capture_id: string
+          scope_sha256: string
+          source_captured_at: string
+        }
+        Update: {
+          baseline_capture_id?: string | null
+          counts?: Json
+          derivation_contract?: string
+          mode?: string
+          published_at?: string
+          published_capture_id?: string
+          scope_sha256?: string
+          source_captured_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "peanuts_lifecycle_publication_baseline_capture_id_fkey"
+            columns: ["baseline_capture_id"]
+            isOneToOne: false
+            referencedRelation: "peanuts_lifecycle_publication"
+            referencedColumns: ["published_capture_id"]
+          },
+          {
+            foreignKeyName: "peanuts_lifecycle_publication_published_capture_id_fkey"
+            columns: ["published_capture_id"]
+            isOneToOne: true
+            referencedRelation: "peanuts_capture"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      peanuts_metadata_field: {
+        Row: {
+          capture_id: string
+          field_type: string
+          is_facetable: boolean
+          is_multi_select: boolean
+          raw: Json
+          source_definition_id: string
+          source_field_label: string
+          source_field_name: string
+          source_vocabulary_id: string | null
+        }
+        Insert: {
+          capture_id: string
+          field_type: string
+          is_facetable: boolean
+          is_multi_select: boolean
+          raw: Json
+          source_definition_id: string
+          source_field_label: string
+          source_field_name: string
+          source_vocabulary_id?: string | null
+        }
+        Update: {
+          capture_id?: string
+          field_type?: string
+          is_facetable?: boolean
+          is_multi_select?: boolean
+          raw?: Json
+          source_definition_id?: string
+          source_field_label?: string
+          source_field_name?: string
+          source_vocabulary_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "peanuts_metadata_field_capture_fkey"
+            columns: ["capture_id"]
+            isOneToOne: false
+            referencedRelation: "peanuts_capture"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      peanuts_style_guide: {
+        Row: {
+          asset_count: number
+          capture_id: string
+          is_multi_select: boolean
+          raw: Json
+          sku_sg_label_key: string | null
+          source_field_label: string
+          source_field_name: string
+          source_value_id: string | null
+          value_key: string
+          value_label: string
+        }
+        Insert: {
+          asset_count: number
+          capture_id: string
+          is_multi_select: boolean
+          raw: Json
+          sku_sg_label_key?: string | null
+          source_field_label: string
+          source_field_name: string
+          source_value_id?: string | null
+          value_key: string
+          value_label: string
+        }
+        Update: {
+          asset_count?: number
+          capture_id?: string
+          is_multi_select?: boolean
+          raw?: Json
+          sku_sg_label_key?: string | null
+          source_field_label?: string
+          source_field_name?: string
+          source_value_id?: string | null
+          value_key?: string
+          value_label?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "peanuts_style_guide_capture_fkey"
+            columns: ["capture_id"]
+            isOneToOne: false
+            referencedRelation: "peanuts_capture"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      peanuts_style_guide_art_program: {
+        Row: {
+          art_program_key: string
+          asset_count: number
+          capture_id: string
+          derivation_note: string
+          relationship_truth: string
+          style_guide_key: string
+        }
+        Insert: {
+          art_program_key: string
+          asset_count: number
+          capture_id: string
+          derivation_note: string
+          relationship_truth: string
+          style_guide_key: string
+        }
+        Update: {
+          art_program_key?: string
+          asset_count?: number
+          capture_id?: string
+          derivation_note?: string
+          relationship_truth?: string
+          style_guide_key?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "peanuts_style_guide_art_program_guide_fkey"
+            columns: ["capture_id", "style_guide_key"]
+            isOneToOne: false
+            referencedRelation: "peanuts_style_guide"
+            referencedColumns: ["capture_id", "value_key"]
+          },
+          {
+            foreignKeyName: "peanuts_style_guide_art_program_value_fkey"
+            columns: ["capture_id", "art_program_key"]
+            isOneToOne: false
+            referencedRelation: "peanuts_art_program"
+            referencedColumns: ["capture_id", "value_key"]
+          },
+        ]
+      }
+      peanuts_style_guide_character: {
+        Row: {
+          asset_count: number
+          capture_id: string
+          character_key: string
+          derivation_note: string
+          relationship_truth: string
+          style_guide_key: string
+        }
+        Insert: {
+          asset_count: number
+          capture_id: string
+          character_key: string
+          derivation_note: string
+          relationship_truth: string
+          style_guide_key: string
+        }
+        Update: {
+          asset_count?: number
+          capture_id?: string
+          character_key?: string
+          derivation_note?: string
+          relationship_truth?: string
+          style_guide_key?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "peanuts_style_guide_character_character_fkey"
+            columns: ["capture_id", "character_key"]
+            isOneToOne: false
+            referencedRelation: "peanuts_character"
+            referencedColumns: ["capture_id", "value_key"]
+          },
+          {
+            foreignKeyName: "peanuts_style_guide_character_guide_fkey"
+            columns: ["capture_id", "style_guide_key"]
+            isOneToOne: false
+            referencedRelation: "peanuts_style_guide"
+            referencedColumns: ["capture_id", "value_key"]
+          },
+        ]
+      }
+      peanuts_submission_property_option: {
+        Row: {
+          exact_label: string
+          loaded_at: string
+          option_key: string
+          ordinal: number
+          raw: Json
+          source_captured_at: string
+          source_field: string
+        }
+        Insert: {
+          exact_label: string
+          loaded_at?: string
+          option_key: string
+          ordinal: number
+          raw?: Json
+          source_captured_at: string
+          source_field: string
+        }
+        Update: {
+          exact_label?: string
+          loaded_at?: string
+          option_key?: string
+          ordinal?: number
+          raw?: Json
+          source_captured_at?: string
+          source_field?: string
         }
         Relationships: []
       }
@@ -14021,7 +26985,7 @@ export type Database = {
       pmt_asset_brand: {
         Row: {
           asset_id: string
-          brand_source_id: number
+          brand_source_id: string
           capture_id: string
           imported_at: string
           source_evidence: string
@@ -14029,7 +26993,7 @@ export type Database = {
         }
         Insert: {
           asset_id: string
-          brand_source_id: number
+          brand_source_id: string
           capture_id: string
           imported_at?: string
           source_evidence?: string
@@ -14037,7 +27001,7 @@ export type Database = {
         }
         Update: {
           asset_id?: string
-          brand_source_id?: number
+          brand_source_id?: string
           capture_id?: string
           imported_at?: string
           source_evidence?: string
@@ -14071,7 +27035,7 @@ export type Database = {
         Row: {
           asset_id: string
           capture_id: string
-          character_source_id: number
+          character_source_id: string
           imported_at: string
           source_evidence: string
           source_hash: string
@@ -14079,7 +27043,7 @@ export type Database = {
         Insert: {
           asset_id: string
           capture_id: string
-          character_source_id: number
+          character_source_id: string
           imported_at?: string
           source_evidence?: string
           source_hash: string
@@ -14087,7 +27051,7 @@ export type Database = {
         Update: {
           asset_id?: string
           capture_id?: string
-          character_source_id?: number
+          character_source_id?: string
           imported_at?: string
           source_evidence?: string
           source_hash?: string
@@ -14120,7 +27084,7 @@ export type Database = {
         Row: {
           asset_id: string
           capture_id: string
-          collection_source_id: number
+          collection_source_id: string
           imported_at: string
           source_evidence: string
           source_hash: string
@@ -14128,7 +27092,7 @@ export type Database = {
         Insert: {
           asset_id: string
           capture_id: string
-          collection_source_id: number
+          collection_source_id: string
           imported_at?: string
           source_evidence?: string
           source_hash: string
@@ -14136,7 +27100,7 @@ export type Database = {
         Update: {
           asset_id?: string
           capture_id?: string
-          collection_source_id?: number
+          collection_source_id?: string
           imported_at?: string
           source_evidence?: string
           source_hash?: string
@@ -14169,7 +27133,7 @@ export type Database = {
         Row: {
           asset_id: string
           capture_id: string
-          franchise_source_id: number
+          franchise_source_id: string
           imported_at: string
           source_evidence: string
           source_hash: string
@@ -14177,7 +27141,7 @@ export type Database = {
         Insert: {
           asset_id: string
           capture_id: string
-          franchise_source_id: number
+          franchise_source_id: string
           imported_at?: string
           source_evidence?: string
           source_hash: string
@@ -14185,7 +27149,7 @@ export type Database = {
         Update: {
           asset_id?: string
           capture_id?: string
-          franchise_source_id?: number
+          franchise_source_id?: string
           imported_at?: string
           source_evidence?: string
           source_hash?: string
@@ -14214,12 +27178,97 @@ export type Database = {
           },
         ]
       }
+      pmt_asset_metadata_value: {
+        Row: {
+          asset_id: string
+          capture_id: string
+          data_type: string | null
+          display_value: string | null
+          domain_id: string | null
+          imported_at: string
+          language: string | null
+          metadata_category_id: string | null
+          metadata_category_name: string | null
+          metadata_element_id: string
+          metadata_element_name: string | null
+          raw_value: Json | null
+          source_column_name: string | null
+          source_hash: string
+          source_path: string | null
+          source_table_name: string | null
+          source_value: string | null
+          value_ordinal: number
+        }
+        Insert: {
+          asset_id: string
+          capture_id: string
+          data_type?: string | null
+          display_value?: string | null
+          domain_id?: string | null
+          imported_at?: string
+          language?: string | null
+          metadata_category_id?: string | null
+          metadata_category_name?: string | null
+          metadata_element_id: string
+          metadata_element_name?: string | null
+          raw_value?: Json | null
+          source_column_name?: string | null
+          source_hash: string
+          source_path?: string | null
+          source_table_name?: string | null
+          source_value?: string | null
+          value_ordinal: number
+        }
+        Update: {
+          asset_id?: string
+          capture_id?: string
+          data_type?: string | null
+          display_value?: string | null
+          domain_id?: string | null
+          imported_at?: string
+          language?: string | null
+          metadata_category_id?: string | null
+          metadata_category_name?: string | null
+          metadata_element_id?: string
+          metadata_element_name?: string | null
+          raw_value?: Json | null
+          source_column_name?: string | null
+          source_hash?: string
+          source_path?: string | null
+          source_table_name?: string | null
+          source_value?: string | null
+          value_ordinal?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pmt_amv_asset_fkey"
+            columns: ["capture_id", "asset_id"]
+            isOneToOne: false
+            referencedRelation: "pmt_asset"
+            referencedColumns: ["capture_id", "asset_id"]
+          },
+          {
+            foreignKeyName: "pmt_amv_element_fkey"
+            columns: ["capture_id", "metadata_element_id"]
+            isOneToOne: false
+            referencedRelation: "pmt_metadata_element"
+            referencedColumns: ["capture_id", "metadata_element_id"]
+          },
+          {
+            foreignKeyName: "pmt_asset_metadata_value_capture_id_fkey"
+            columns: ["capture_id"]
+            isOneToOne: false
+            referencedRelation: "pmt_capture"
+            referencedColumns: ["capture_id"]
+          },
+        ]
+      }
       pmt_asset_property: {
         Row: {
           asset_id: string
           capture_id: string
           imported_at: string
-          property_source_id: number
+          property_source_id: string
           source_evidence: string
           source_hash: string
         }
@@ -14227,7 +27276,7 @@ export type Database = {
           asset_id: string
           capture_id: string
           imported_at?: string
-          property_source_id: number
+          property_source_id: string
           source_evidence?: string
           source_hash: string
         }
@@ -14235,7 +27284,7 @@ export type Database = {
           asset_id?: string
           capture_id?: string
           imported_at?: string
-          property_source_id?: number
+          property_source_id?: string
           source_evidence?: string
           source_hash?: string
         }
@@ -14268,7 +27317,7 @@ export type Database = {
           asset_id: string
           capture_id: string
           imported_at: string
-          licensed_property_source_id: number
+          licensed_property_source_id: string
           source_evidence: string
           source_hash: string
         }
@@ -14276,7 +27325,7 @@ export type Database = {
           asset_id: string
           capture_id: string
           imported_at?: string
-          licensed_property_source_id: number
+          licensed_property_source_id: string
           source_evidence?: string
           source_hash: string
         }
@@ -14284,7 +27333,7 @@ export type Database = {
           asset_id?: string
           capture_id?: string
           imported_at?: string
-          licensed_property_source_id?: number
+          licensed_property_source_id?: string
           source_evidence?: string
           source_hash?: string
         }
@@ -14366,8 +27415,8 @@ export type Database = {
           imported_at: string
           mapping_status: string
           notes: string | null
-          paramount_property_name: string
-          property_source_id: number
+          paramount_property_name: string | null
+          property_source_id: string
           reported_asset_count: number
           source_evidence: string
           source_hash: string
@@ -14378,8 +27427,8 @@ export type Database = {
           imported_at?: string
           mapping_status?: string
           notes?: string | null
-          paramount_property_name: string
-          property_source_id: number
+          paramount_property_name?: string | null
+          property_source_id: string
           reported_asset_count?: number
           source_evidence?: string
           source_hash: string
@@ -14390,8 +27439,8 @@ export type Database = {
           imported_at?: string
           mapping_status?: string
           notes?: string | null
-          paramount_property_name?: string
-          property_source_id?: number
+          paramount_property_name?: string | null
+          property_source_id?: string
           reported_asset_count?: number
           source_evidence?: string
           source_hash?: string
@@ -14423,7 +27472,7 @@ export type Database = {
       pmt_brand: {
         Row: {
           brand_name: string
-          brand_source_id: number
+          brand_source_id: string
           capture_id: string
           imported_at: string
           raw: Json
@@ -14431,7 +27480,7 @@ export type Database = {
         }
         Insert: {
           brand_name: string
-          brand_source_id: number
+          brand_source_id: string
           capture_id: string
           imported_at?: string
           raw?: Json
@@ -14439,7 +27488,7 @@ export type Database = {
         }
         Update: {
           brand_name?: string
-          brand_source_id?: number
+          brand_source_id?: string
           capture_id?: string
           imported_at?: string
           raw?: Json
@@ -14640,7 +27689,7 @@ export type Database = {
         Row: {
           capture_id: string
           character_name: string
-          character_source_id: number
+          character_source_id: string
           core_character_id: string | null
           imported_at: string
           raw: Json
@@ -14653,7 +27702,7 @@ export type Database = {
         Insert: {
           capture_id: string
           character_name: string
-          character_source_id: number
+          character_source_id: string
           core_character_id?: string | null
           imported_at?: string
           raw?: Json
@@ -14666,7 +27715,7 @@ export type Database = {
         Update: {
           capture_id?: string
           character_name?: string
-          character_source_id?: number
+          character_source_id?: string
           core_character_id?: string | null
           imported_at?: string
           raw?: Json
@@ -14690,27 +27739,24 @@ export type Database = {
         Row: {
           capture_id: string
           collection_name: string
-          collection_source_id: number
+          collection_source_id: string
           imported_at: string
-          paramount_term: string
           raw: Json
           source_hash: string
         }
         Insert: {
           capture_id: string
           collection_name: string
-          collection_source_id: number
+          collection_source_id: string
           imported_at?: string
-          paramount_term: string
           raw?: Json
           source_hash: string
         }
         Update: {
           capture_id?: string
           collection_name?: string
-          collection_source_id?: number
+          collection_source_id?: string
           imported_at?: string
-          paramount_term?: string
           raw?: Json
           source_hash?: string
         }
@@ -14728,7 +27774,7 @@ export type Database = {
         Row: {
           capture_id: string
           franchise_name: string
-          franchise_source_id: number
+          franchise_source_id: string
           imported_at: string
           raw: Json
           source_hash: string
@@ -14736,7 +27782,7 @@ export type Database = {
         Insert: {
           capture_id: string
           franchise_name: string
-          franchise_source_id: number
+          franchise_source_id: string
           imported_at?: string
           raw?: Json
           source_hash: string
@@ -14744,7 +27790,7 @@ export type Database = {
         Update: {
           capture_id?: string
           franchise_name?: string
-          franchise_source_id?: number
+          franchise_source_id?: string
           imported_at?: string
           raw?: Json
           source_hash?: string
@@ -14759,6 +27805,53 @@ export type Database = {
           },
         ]
       }
+      pmt_metadata_element: {
+        Row: {
+          capture_id: string
+          domain_id: string | null
+          imported_at: string
+          metadata_category_id: string | null
+          metadata_category_name: string | null
+          metadata_element_id: string
+          metadata_element_name: string | null
+          source_column_name: string | null
+          source_hash: string
+          source_table_name: string | null
+        }
+        Insert: {
+          capture_id: string
+          domain_id?: string | null
+          imported_at?: string
+          metadata_category_id?: string | null
+          metadata_category_name?: string | null
+          metadata_element_id: string
+          metadata_element_name?: string | null
+          source_column_name?: string | null
+          source_hash: string
+          source_table_name?: string | null
+        }
+        Update: {
+          capture_id?: string
+          domain_id?: string | null
+          imported_at?: string
+          metadata_category_id?: string | null
+          metadata_category_name?: string | null
+          metadata_element_id?: string
+          metadata_element_name?: string | null
+          source_column_name?: string | null
+          source_hash?: string
+          source_table_name?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pmt_metadata_element_capture_id_fkey"
+            columns: ["capture_id"]
+            isOneToOne: false
+            referencedRelation: "pmt_capture"
+            referencedColumns: ["capture_id"]
+          },
+        ]
+      }
       pmt_property: {
         Row: {
           capture_id: string
@@ -14766,7 +27859,7 @@ export type Database = {
           imported_at: string
           is_licensed_selection: boolean
           property_name: string
-          property_source_id: number
+          property_source_id: string
           raw: Json
           resolution_reason: string | null
           resolution_status: string
@@ -14780,7 +27873,7 @@ export type Database = {
           imported_at?: string
           is_licensed_selection?: boolean
           property_name: string
-          property_source_id: number
+          property_source_id: string
           raw?: Json
           resolution_reason?: string | null
           resolution_status?: string
@@ -14794,7 +27887,7 @@ export type Database = {
           imported_at?: string
           is_licensed_selection?: boolean
           property_name?: string
-          property_source_id?: number
+          property_source_id?: string
           raw?: Json
           resolution_reason?: string | null
           resolution_status?: string
@@ -14820,8 +27913,8 @@ export type Database = {
           failure_message: string | null
           imported_at: string
           page_count: number
-          property_name: string
-          property_source_id: number
+          property_name: string | null
+          property_source_id: string
           reported_asset_count: number
           source_hash: string
         }
@@ -14832,8 +27925,8 @@ export type Database = {
           failure_message?: string | null
           imported_at?: string
           page_count: number
-          property_name: string
-          property_source_id: number
+          property_name?: string | null
+          property_source_id: string
           reported_asset_count: number
           source_hash: string
         }
@@ -14844,8 +27937,8 @@ export type Database = {
           failure_message?: string | null
           imported_at?: string
           page_count?: number
-          property_name?: string
-          property_source_id?: number
+          property_name?: string | null
+          property_source_id?: string
           reported_asset_count?: number
           source_hash?: string
         }
@@ -14869,28 +27962,28 @@ export type Database = {
       pmt_property_character: {
         Row: {
           capture_id: string
-          character_source_id: number
+          character_source_id: string
           evidence_asset_count: number
           imported_at: string
-          property_source_id: number
+          property_source_id: string
           source_evidence: string
           source_hash: string
         }
         Insert: {
           capture_id: string
-          character_source_id: number
+          character_source_id: string
           evidence_asset_count?: number
           imported_at?: string
-          property_source_id: number
+          property_source_id: string
           source_evidence?: string
           source_hash: string
         }
         Update: {
           capture_id?: string
-          character_source_id?: number
+          character_source_id?: string
           evidence_asset_count?: number
           imported_at?: string
-          property_source_id?: number
+          property_source_id?: string
           source_evidence?: string
           source_hash?: string
         }
@@ -14921,28 +28014,28 @@ export type Database = {
       pmt_property_collection: {
         Row: {
           capture_id: string
-          collection_source_id: number
+          collection_source_id: string
           evidence_asset_count: number
           imported_at: string
-          property_source_id: number
+          property_source_id: string
           source_evidence: string
           source_hash: string
         }
         Insert: {
           capture_id: string
-          collection_source_id: number
+          collection_source_id: string
           evidence_asset_count?: number
           imported_at?: string
-          property_source_id: number
+          property_source_id: string
           source_evidence?: string
           source_hash: string
         }
         Update: {
           capture_id?: string
-          collection_source_id?: number
+          collection_source_id?: string
           evidence_asset_count?: number
           imported_at?: string
-          property_source_id?: number
+          property_source_id?: string
           source_evidence?: string
           source_hash?: string
         }
@@ -14975,30 +28068,30 @@ export type Database = {
           capture_id: string
           evidence_asset_count: number
           evidence_kind: string
-          franchise_source_id: number
+          franchise_source_id: string
           imported_at: string
           is_direct_source_relationship: boolean
-          property_source_id: number
+          property_source_id: string
           source_hash: string
         }
         Insert: {
           capture_id: string
           evidence_asset_count?: number
           evidence_kind?: string
-          franchise_source_id: number
+          franchise_source_id: string
           imported_at?: string
           is_direct_source_relationship?: boolean
-          property_source_id: number
+          property_source_id: string
           source_hash: string
         }
         Update: {
           capture_id?: string
           evidence_asset_count?: number
           evidence_kind?: string
-          franchise_source_id?: number
+          franchise_source_id?: string
           imported_at?: string
           is_direct_source_relationship?: boolean
-          property_source_id?: number
+          property_source_id?: string
           source_hash?: string
         }
         Relationships: [
@@ -15130,6 +28223,241 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "pmt_capture"
             referencedColumns: ["capture_id"]
+          },
+        ]
+      }
+      pmt_trackerplus_submission_capture: {
+        Row: {
+          capture_key: string
+          chunk_ledger: Json
+          created_by: string
+          errors: Json
+          expected_property_count: number
+          expected_property_manifest_sha256: string
+          id: string
+          load_completed_at: string | null
+          load_started_at: string
+          observed_property_count: number
+          observed_property_manifest_sha256: string | null
+          source_captured_at: string
+          source_commit_sha: string
+          source_manifest_sha256: string
+          source_repository: string
+          status: string
+        }
+        Insert: {
+          capture_key: string
+          chunk_ledger?: Json
+          created_by: string
+          errors?: Json
+          expected_property_count: number
+          expected_property_manifest_sha256: string
+          id: string
+          load_completed_at?: string | null
+          load_started_at?: string
+          observed_property_count?: number
+          observed_property_manifest_sha256?: string | null
+          source_captured_at: string
+          source_commit_sha: string
+          source_manifest_sha256: string
+          source_repository: string
+          status?: string
+        }
+        Update: {
+          capture_key?: string
+          chunk_ledger?: Json
+          created_by?: string
+          errors?: Json
+          expected_property_count?: number
+          expected_property_manifest_sha256?: string
+          id?: string
+          load_completed_at?: string | null
+          load_started_at?: string
+          observed_property_count?: number
+          observed_property_manifest_sha256?: string | null
+          source_captured_at?: string
+          source_commit_sha?: string
+          source_manifest_sha256?: string
+          source_repository?: string
+          status?: string
+        }
+        Relationships: []
+      }
+      pmt_trackerplus_submission_property: {
+        Row: {
+          capture_id: string
+          exact_label: string
+          identity_method: string
+          ordinal: number
+          property_local_key: string
+          raw: Json
+          source_field: string
+        }
+        Insert: {
+          capture_id: string
+          exact_label: string
+          identity_method?: string
+          ordinal: number
+          property_local_key: string
+          raw: Json
+          source_field: string
+        }
+        Update: {
+          capture_id?: string
+          exact_label?: string
+          identity_method?: string
+          ordinal?: number
+          property_local_key?: string
+          raw?: Json
+          source_field?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pmt_trackerplus_submission_property_capture_id_fkey"
+            columns: ["capture_id"]
+            isOneToOne: false
+            referencedRelation: "pmt_trackerplus_submission_capture"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      prod_order_milestone_schedule: {
+        Row: {
+          actual_date: string | null
+          anchor_date: string | null
+          anchor_type: string | null
+          computed_at: string
+          estimated_date: string | null
+          factory_time_id: number | null
+          first_past_due_at: string | null
+          id: number
+          mass_production_days: number | null
+          needed_date: string | null
+          prod_order_header_id: number
+          sampling_days: number | null
+          sku: string
+          stage_id: number | null
+          stage_name: string
+          status: string
+          template_source: string | null
+        }
+        Insert: {
+          actual_date?: string | null
+          anchor_date?: string | null
+          anchor_type?: string | null
+          computed_at?: string
+          estimated_date?: string | null
+          factory_time_id?: number | null
+          first_past_due_at?: string | null
+          id?: never
+          mass_production_days?: number | null
+          needed_date?: string | null
+          prod_order_header_id: number
+          sampling_days?: number | null
+          sku?: string
+          stage_id?: number | null
+          stage_name: string
+          status: string
+          template_source?: string | null
+        }
+        Update: {
+          actual_date?: string | null
+          anchor_date?: string | null
+          anchor_type?: string | null
+          computed_at?: string
+          estimated_date?: string | null
+          factory_time_id?: number | null
+          first_past_due_at?: string | null
+          id?: never
+          mass_production_days?: number | null
+          needed_date?: string | null
+          prod_order_header_id?: number
+          sampling_days?: number | null
+          sku?: string
+          stage_id?: number | null
+          stage_name?: string
+          status?: string
+          template_source?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "prod_order_milestone_schedule_factory_time_id_fkey"
+            columns: ["factory_time_id"]
+            isOneToOne: false
+            referencedRelation: "FactoryTime"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "prod_order_milestone_schedule_prod_order_header_id_fkey"
+            columns: ["prod_order_header_id"]
+            isOneToOne: false
+            referencedRelation: "ProdOrderHeader"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      prod_stage_option: {
+        Row: {
+          needs_linesheet: boolean
+          prod_order_header_id: number
+          updated_at: string
+          updated_by: number | null
+        }
+        Insert: {
+          needs_linesheet?: boolean
+          prod_order_header_id: number
+          updated_at?: string
+          updated_by?: number | null
+        }
+        Update: {
+          needs_linesheet?: boolean
+          prod_order_header_id?: number
+          updated_at?: string
+          updated_by?: number | null
+        }
+        Relationships: []
+      }
+      prod_stage_progress: {
+        Row: {
+          done_at: string | null
+          failed: boolean
+          failed_reason: string | null
+          id: number
+          prod_order_header_id: number
+          sku: string | null
+          stage_id: number
+          updated_at: string
+          updated_by: number | null
+        }
+        Insert: {
+          done_at?: string | null
+          failed?: boolean
+          failed_reason?: string | null
+          id?: never
+          prod_order_header_id: number
+          sku?: string | null
+          stage_id: number
+          updated_at?: string
+          updated_by?: number | null
+        }
+        Update: {
+          done_at?: string | null
+          failed?: boolean
+          failed_reason?: string | null
+          id?: never
+          prod_order_header_id?: number
+          sku?: string | null
+          stage_id?: number
+          updated_at?: string
+          updated_by?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "prod_stage_progress_stage_id_fkey"
+            columns: ["stage_id"]
+            isOneToOne: false
+            referencedRelation: "stage"
+            referencedColumns: ["id"]
           },
         ]
       }
@@ -15751,24 +29079,74 @@ export type Database = {
         }
         Relationships: []
       }
+      product_type_factory_time: {
+        Row: {
+          assigned_at: string
+          assigned_by: string
+          factory_time_id: number
+          id: number
+          mg_category: string
+          mg01_code: string
+          mg02_code: string
+          previous_factory_time_id: number | null
+        }
+        Insert: {
+          assigned_at?: string
+          assigned_by: string
+          factory_time_id: number
+          id?: never
+          mg_category: string
+          mg01_code: string
+          mg02_code: string
+          previous_factory_time_id?: number | null
+        }
+        Update: {
+          assigned_at?: string
+          assigned_by?: string
+          factory_time_id?: number
+          id?: never
+          mg_category?: string
+          mg01_code?: string
+          mg02_code?: string
+          previous_factory_time_id?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "product_type_factory_time_factory_time_id_fkey"
+            columns: ["factory_time_id"]
+            isOneToOne: false
+            referencedRelation: "FactoryTime"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       production_lane_canary: {
         Row: {
           applied_at: string
           applied_by: string
           id: number
           note: string
+          step1_acceptance_note: string | null
+          step6_train_note_a: string | null
+          step6_train_note_b: string | null
         }
         Insert: {
           applied_at?: string
           applied_by?: string
           id?: never
           note: string
+          step1_acceptance_note?: string | null
+          step6_train_note_a?: string | null
+          step6_train_note_b?: string | null
         }
         Update: {
           applied_at?: string
           applied_by?: string
           id?: never
           note?: string
+          step1_acceptance_note?: string | null
+          step6_train_note_a?: string | null
+          step6_train_note_b?: string | null
         }
         Relationships: []
       }
@@ -15992,6 +29370,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "production_order_line_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: false
+            referencedRelation: "item_missing_attribution"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "production_order_line_production_order_id_fkey"
             columns: ["production_order_id"]
             isOneToOne: false
@@ -16081,6 +29466,56 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      production_po_legacy_admission: {
+        Row: {
+          admitted_at: string
+          normalized_po: string
+          order_id: string
+          review_receipt_sha256: string
+          source_evidence_sha256: string
+          used_at: string | null
+        }
+        Insert: {
+          admitted_at?: string
+          normalized_po: string
+          order_id: string
+          review_receipt_sha256: string
+          source_evidence_sha256: string
+          used_at?: string | null
+        }
+        Update: {
+          admitted_at?: string
+          normalized_po?: string
+          order_id?: string
+          review_receipt_sha256?: string
+          source_evidence_sha256?: string
+          used_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "production_po_legacy_admission_normalized_po_fkey"
+            columns: ["normalized_po"]
+            isOneToOne: false
+            referencedRelation: "production_po_reservation"
+            referencedColumns: ["normalized_po"]
+          },
+        ]
+      }
+      production_po_reservation: {
+        Row: {
+          normalized_po: string
+          reserved_at: string
+        }
+        Insert: {
+          normalized_po: string
+          reserved_at?: string
+        }
+        Update: {
+          normalized_po?: string
+          reserved_at?: string
+        }
+        Relationships: []
       }
       ProductNickname: {
         Row: {
@@ -16343,6 +29778,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "rfq_item_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: false
+            referencedRelation: "item_missing_attribution"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "rfq_item_rfq_group_id_fkey"
             columns: ["rfq_group_id"]
             isOneToOne: false
@@ -16442,6 +29884,9 @@ export type Database = {
       }
       RFQItem: {
         Row: {
+          hts_product_phrase: string | null
+          hts_product_phrase_at: string | null
+          hts_product_phrase_source: string | null
           rfq_container_id_fk: number | null
           rfqItem_active: number | null
           rfqItem_adam_fix: string | null
@@ -16472,6 +29917,8 @@ export type Database = {
           rfqItem_factories_step_at: string | null
           rfqItem_fob_cost: string | null
           rfqItem_freight: string | null
+          rfqItem_gen_fob_buyer_margin: number | null
+          rfqItem_gen_fob_buyer_target: number | null
           rfqItem_gen_fob_entered_margin: number | null
           rfqItem_gen_fob_entered_sell_price: number | null
           rfqItem_gen_fob_margin: string | null
@@ -16480,6 +29927,8 @@ export type Database = {
           rfqItem_gen_fob_royalty: string | null
           rfqItem_gen_fob_sellprice: string | null
           rfqItem_gen_ldp_margin: string | null
+          rfqItem_gen_mddp_buyer_margin: number | null
+          rfqItem_gen_mddp_buyer_target: number | null
           rfqItem_gen_mddp_entered_margin: number | null
           rfqItem_gen_mddp_entered_sell_price: number | null
           rfqItem_gen_mddp_margin: string | null
@@ -16487,6 +29936,8 @@ export type Database = {
           rfqItem_gen_mddp_pricesale: string | null
           rfqItem_gen_mddp_royalty: string | null
           rfqItem_gen_mddp_sellprice: string | null
+          rfqItem_gen_poe_buyer_margin: number | null
+          rfqItem_gen_poe_buyer_target: number | null
           rfqItem_gen_poe_entered_margin: number | null
           rfqItem_gen_poe_entered_sell_price: number | null
           rfqItem_gen_poe_margin: string | null
@@ -16494,6 +29945,8 @@ export type Database = {
           rfqItem_gen_poe_pricesale: string | null
           rfqItem_gen_poe_royalty: string | null
           rfqItem_gen_poe_sellprice: string | null
+          rfqItem_gen_whse_buyer_margin: number | null
+          rfqItem_gen_whse_buyer_target: number | null
           rfqItem_gen_whse_entered_margin: number | null
           rfqItem_gen_whse_entered_sell_price: number | null
           rfqItem_gen_whse_margin: string | null
@@ -16504,6 +29957,8 @@ export type Database = {
           rfqItem_id: number
           rfqItem_is_landed_cost_manual: boolean
           rfqItem_landed_cost: string | null
+          rfqItem_lic_fob_buyer_margin: number | null
+          rfqItem_lic_fob_buyer_target: number | null
           rfqItem_lic_fob_entered_margin: number | null
           rfqItem_lic_fob_entered_sell_price: number | null
           rfqItem_lic_fob_margin: string | null
@@ -16511,6 +29966,8 @@ export type Database = {
           rfqItem_lic_fob_pricesale: string | null
           rfqItem_lic_fob_royalty: string | null
           rfqItem_lic_fob_sellprice: string | null
+          rfqItem_lic_mddp_buyer_margin: number | null
+          rfqItem_lic_mddp_buyer_target: number | null
           rfqItem_lic_mddp_entered_margin: number | null
           rfqItem_lic_mddp_entered_sell_price: number | null
           rfqItem_lic_mddp_margin: string | null
@@ -16518,6 +29975,8 @@ export type Database = {
           rfqItem_lic_mddp_pricesale: string | null
           rfqItem_lic_mddp_royalty: string | null
           rfqItem_lic_mddp_sellprice: string | null
+          rfqItem_lic_poe_buyer_margin: number | null
+          rfqItem_lic_poe_buyer_target: number | null
           rfqItem_lic_poe_entered_margin: number | null
           rfqItem_lic_poe_entered_sell_price: number | null
           rfqItem_lic_poe_margin: string | null
@@ -16525,6 +29984,8 @@ export type Database = {
           rfqItem_lic_poe_pricesale: string | null
           rfqItem_lic_poe_royalty: string | null
           rfqItem_lic_poe_sellprice: string | null
+          rfqItem_lic_whse_buyer_margin: number | null
+          rfqItem_lic_whse_buyer_target: number | null
           rfqItem_lic_whse_entered_margin: number | null
           rfqItem_lic_whse_entered_sell_price: number | null
           rfqItem_lic_whse_margin: string | null
@@ -16559,6 +30020,9 @@ export type Database = {
           rfqItem_wholesale: string | null
         }
         Insert: {
+          hts_product_phrase?: string | null
+          hts_product_phrase_at?: string | null
+          hts_product_phrase_source?: string | null
           rfq_container_id_fk?: number | null
           rfqItem_active?: number | null
           rfqItem_adam_fix?: string | null
@@ -16589,6 +30053,8 @@ export type Database = {
           rfqItem_factories_step_at?: string | null
           rfqItem_fob_cost?: string | null
           rfqItem_freight?: string | null
+          rfqItem_gen_fob_buyer_margin?: number | null
+          rfqItem_gen_fob_buyer_target?: number | null
           rfqItem_gen_fob_entered_margin?: number | null
           rfqItem_gen_fob_entered_sell_price?: number | null
           rfqItem_gen_fob_margin?: string | null
@@ -16597,6 +30063,8 @@ export type Database = {
           rfqItem_gen_fob_royalty?: string | null
           rfqItem_gen_fob_sellprice?: string | null
           rfqItem_gen_ldp_margin?: string | null
+          rfqItem_gen_mddp_buyer_margin?: number | null
+          rfqItem_gen_mddp_buyer_target?: number | null
           rfqItem_gen_mddp_entered_margin?: number | null
           rfqItem_gen_mddp_entered_sell_price?: number | null
           rfqItem_gen_mddp_margin?: string | null
@@ -16604,6 +30072,8 @@ export type Database = {
           rfqItem_gen_mddp_pricesale?: string | null
           rfqItem_gen_mddp_royalty?: string | null
           rfqItem_gen_mddp_sellprice?: string | null
+          rfqItem_gen_poe_buyer_margin?: number | null
+          rfqItem_gen_poe_buyer_target?: number | null
           rfqItem_gen_poe_entered_margin?: number | null
           rfqItem_gen_poe_entered_sell_price?: number | null
           rfqItem_gen_poe_margin?: string | null
@@ -16611,6 +30081,8 @@ export type Database = {
           rfqItem_gen_poe_pricesale?: string | null
           rfqItem_gen_poe_royalty?: string | null
           rfqItem_gen_poe_sellprice?: string | null
+          rfqItem_gen_whse_buyer_margin?: number | null
+          rfqItem_gen_whse_buyer_target?: number | null
           rfqItem_gen_whse_entered_margin?: number | null
           rfqItem_gen_whse_entered_sell_price?: number | null
           rfqItem_gen_whse_margin?: string | null
@@ -16621,6 +30093,8 @@ export type Database = {
           rfqItem_id?: number
           rfqItem_is_landed_cost_manual?: boolean
           rfqItem_landed_cost?: string | null
+          rfqItem_lic_fob_buyer_margin?: number | null
+          rfqItem_lic_fob_buyer_target?: number | null
           rfqItem_lic_fob_entered_margin?: number | null
           rfqItem_lic_fob_entered_sell_price?: number | null
           rfqItem_lic_fob_margin?: string | null
@@ -16628,6 +30102,8 @@ export type Database = {
           rfqItem_lic_fob_pricesale?: string | null
           rfqItem_lic_fob_royalty?: string | null
           rfqItem_lic_fob_sellprice?: string | null
+          rfqItem_lic_mddp_buyer_margin?: number | null
+          rfqItem_lic_mddp_buyer_target?: number | null
           rfqItem_lic_mddp_entered_margin?: number | null
           rfqItem_lic_mddp_entered_sell_price?: number | null
           rfqItem_lic_mddp_margin?: string | null
@@ -16635,6 +30111,8 @@ export type Database = {
           rfqItem_lic_mddp_pricesale?: string | null
           rfqItem_lic_mddp_royalty?: string | null
           rfqItem_lic_mddp_sellprice?: string | null
+          rfqItem_lic_poe_buyer_margin?: number | null
+          rfqItem_lic_poe_buyer_target?: number | null
           rfqItem_lic_poe_entered_margin?: number | null
           rfqItem_lic_poe_entered_sell_price?: number | null
           rfqItem_lic_poe_margin?: string | null
@@ -16642,6 +30120,8 @@ export type Database = {
           rfqItem_lic_poe_pricesale?: string | null
           rfqItem_lic_poe_royalty?: string | null
           rfqItem_lic_poe_sellprice?: string | null
+          rfqItem_lic_whse_buyer_margin?: number | null
+          rfqItem_lic_whse_buyer_target?: number | null
           rfqItem_lic_whse_entered_margin?: number | null
           rfqItem_lic_whse_entered_sell_price?: number | null
           rfqItem_lic_whse_margin?: string | null
@@ -16676,6 +30156,9 @@ export type Database = {
           rfqItem_wholesale?: string | null
         }
         Update: {
+          hts_product_phrase?: string | null
+          hts_product_phrase_at?: string | null
+          hts_product_phrase_source?: string | null
           rfq_container_id_fk?: number | null
           rfqItem_active?: number | null
           rfqItem_adam_fix?: string | null
@@ -16706,6 +30189,8 @@ export type Database = {
           rfqItem_factories_step_at?: string | null
           rfqItem_fob_cost?: string | null
           rfqItem_freight?: string | null
+          rfqItem_gen_fob_buyer_margin?: number | null
+          rfqItem_gen_fob_buyer_target?: number | null
           rfqItem_gen_fob_entered_margin?: number | null
           rfqItem_gen_fob_entered_sell_price?: number | null
           rfqItem_gen_fob_margin?: string | null
@@ -16714,6 +30199,8 @@ export type Database = {
           rfqItem_gen_fob_royalty?: string | null
           rfqItem_gen_fob_sellprice?: string | null
           rfqItem_gen_ldp_margin?: string | null
+          rfqItem_gen_mddp_buyer_margin?: number | null
+          rfqItem_gen_mddp_buyer_target?: number | null
           rfqItem_gen_mddp_entered_margin?: number | null
           rfqItem_gen_mddp_entered_sell_price?: number | null
           rfqItem_gen_mddp_margin?: string | null
@@ -16721,6 +30208,8 @@ export type Database = {
           rfqItem_gen_mddp_pricesale?: string | null
           rfqItem_gen_mddp_royalty?: string | null
           rfqItem_gen_mddp_sellprice?: string | null
+          rfqItem_gen_poe_buyer_margin?: number | null
+          rfqItem_gen_poe_buyer_target?: number | null
           rfqItem_gen_poe_entered_margin?: number | null
           rfqItem_gen_poe_entered_sell_price?: number | null
           rfqItem_gen_poe_margin?: string | null
@@ -16728,6 +30217,8 @@ export type Database = {
           rfqItem_gen_poe_pricesale?: string | null
           rfqItem_gen_poe_royalty?: string | null
           rfqItem_gen_poe_sellprice?: string | null
+          rfqItem_gen_whse_buyer_margin?: number | null
+          rfqItem_gen_whse_buyer_target?: number | null
           rfqItem_gen_whse_entered_margin?: number | null
           rfqItem_gen_whse_entered_sell_price?: number | null
           rfqItem_gen_whse_margin?: string | null
@@ -16738,6 +30229,8 @@ export type Database = {
           rfqItem_id?: number
           rfqItem_is_landed_cost_manual?: boolean
           rfqItem_landed_cost?: string | null
+          rfqItem_lic_fob_buyer_margin?: number | null
+          rfqItem_lic_fob_buyer_target?: number | null
           rfqItem_lic_fob_entered_margin?: number | null
           rfqItem_lic_fob_entered_sell_price?: number | null
           rfqItem_lic_fob_margin?: string | null
@@ -16745,6 +30238,8 @@ export type Database = {
           rfqItem_lic_fob_pricesale?: string | null
           rfqItem_lic_fob_royalty?: string | null
           rfqItem_lic_fob_sellprice?: string | null
+          rfqItem_lic_mddp_buyer_margin?: number | null
+          rfqItem_lic_mddp_buyer_target?: number | null
           rfqItem_lic_mddp_entered_margin?: number | null
           rfqItem_lic_mddp_entered_sell_price?: number | null
           rfqItem_lic_mddp_margin?: string | null
@@ -16752,6 +30247,8 @@ export type Database = {
           rfqItem_lic_mddp_pricesale?: string | null
           rfqItem_lic_mddp_royalty?: string | null
           rfqItem_lic_mddp_sellprice?: string | null
+          rfqItem_lic_poe_buyer_margin?: number | null
+          rfqItem_lic_poe_buyer_target?: number | null
           rfqItem_lic_poe_entered_margin?: number | null
           rfqItem_lic_poe_entered_sell_price?: number | null
           rfqItem_lic_poe_margin?: string | null
@@ -16759,6 +30256,8 @@ export type Database = {
           rfqItem_lic_poe_pricesale?: string | null
           rfqItem_lic_poe_royalty?: string | null
           rfqItem_lic_poe_sellprice?: string | null
+          rfqItem_lic_whse_buyer_margin?: number | null
+          rfqItem_lic_whse_buyer_target?: number | null
           rfqItem_lic_whse_entered_margin?: number | null
           rfqItem_lic_whse_entered_sell_price?: number | null
           rfqItem_lic_whse_margin?: string | null
@@ -17405,6 +30904,1789 @@ export type Database = {
         }
         Relationships: []
       }
+      sega_asset: {
+        Row: {
+          artist_author: string | null
+          asset_source_id: string
+          can_download: boolean | null
+          can_view: boolean | null
+          capture_id: string
+          description: string | null
+          file_name: string
+          file_size_kb: number | null
+          height: number | null
+          is_expired: boolean | null
+          raw: Json
+          source_created_at: string | null
+          source_expires_at: string | null
+          source_hash: string
+          thumbnail_path: string | null
+          width: number | null
+        }
+        Insert: {
+          artist_author?: string | null
+          asset_source_id: string
+          can_download?: boolean | null
+          can_view?: boolean | null
+          capture_id: string
+          description?: string | null
+          file_name: string
+          file_size_kb?: number | null
+          height?: number | null
+          is_expired?: boolean | null
+          raw: Json
+          source_created_at?: string | null
+          source_expires_at?: string | null
+          source_hash: string
+          thumbnail_path?: string | null
+          width?: number | null
+        }
+        Update: {
+          artist_author?: string | null
+          asset_source_id?: string
+          can_download?: boolean | null
+          can_view?: boolean | null
+          capture_id?: string
+          description?: string | null
+          file_name?: string
+          file_size_kb?: number | null
+          height?: number | null
+          is_expired?: boolean | null
+          raw?: Json
+          source_created_at?: string | null
+          source_expires_at?: string | null
+          source_hash?: string
+          thumbnail_path?: string | null
+          width?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sega_asset_capture_fkey"
+            columns: ["capture_id"]
+            isOneToOne: false
+            referencedRelation: "sega_capture"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      sega_asset_catalog: {
+        Row: {
+          asset_source_id: string
+          capture_id: string
+          catalog_source_id: string
+          raw: Json
+        }
+        Insert: {
+          asset_source_id: string
+          capture_id: string
+          catalog_source_id: string
+          raw: Json
+        }
+        Update: {
+          asset_source_id?: string
+          capture_id?: string
+          catalog_source_id?: string
+          raw?: Json
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sega_asset_catalog_asset_fkey"
+            columns: ["capture_id", "asset_source_id"]
+            isOneToOne: false
+            referencedRelation: "sega_asset"
+            referencedColumns: ["capture_id", "asset_source_id"]
+          },
+          {
+            foreignKeyName: "sega_asset_catalog_catalog_fkey"
+            columns: ["capture_id", "catalog_source_id"]
+            isOneToOne: false
+            referencedRelation: "sega_catalog"
+            referencedColumns: ["capture_id", "catalog_source_id"]
+          },
+        ]
+      }
+      sega_asset_property: {
+        Row: {
+          asset_source_id: string
+          capture_id: string
+          evidence_type: string
+          property_source_id: string
+          raw: Json
+        }
+        Insert: {
+          asset_source_id: string
+          capture_id: string
+          evidence_type?: string
+          property_source_id: string
+          raw: Json
+        }
+        Update: {
+          asset_source_id?: string
+          capture_id?: string
+          evidence_type?: string
+          property_source_id?: string
+          raw?: Json
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sega_asset_property_asset_fkey"
+            columns: ["capture_id", "asset_source_id"]
+            isOneToOne: false
+            referencedRelation: "sega_asset"
+            referencedColumns: ["capture_id", "asset_source_id"]
+          },
+          {
+            foreignKeyName: "sega_asset_property_property_fkey"
+            columns: ["capture_id", "property_source_id"]
+            isOneToOne: false
+            referencedRelation: "sega_property"
+            referencedColumns: ["capture_id", "property_source_id"]
+          },
+        ]
+      }
+      sega_asset_property_inferred: {
+        Row: {
+          asset_source_id: string
+          capture_id: string
+          catalog_source_id: string
+          confidence: number
+          evidence_key: string
+          match_method: string
+          matched_catalog_key: string
+          matched_property_key: string
+          property_source_id: string
+          raw: Json
+          relationship_truth: string
+          rule_version: string
+        }
+        Insert: {
+          asset_source_id: string
+          capture_id: string
+          catalog_source_id: string
+          confidence: number
+          evidence_key: string
+          match_method: string
+          matched_catalog_key: string
+          matched_property_key: string
+          property_source_id: string
+          raw: Json
+          relationship_truth?: string
+          rule_version: string
+        }
+        Update: {
+          asset_source_id?: string
+          capture_id?: string
+          catalog_source_id?: string
+          confidence?: number
+          evidence_key?: string
+          match_method?: string
+          matched_catalog_key?: string
+          matched_property_key?: string
+          property_source_id?: string
+          raw?: Json
+          relationship_truth?: string
+          rule_version?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sega_asset_property_inferred_asset_fkey"
+            columns: ["capture_id", "asset_source_id"]
+            isOneToOne: false
+            referencedRelation: "sega_asset"
+            referencedColumns: ["capture_id", "asset_source_id"]
+          },
+          {
+            foreignKeyName: "sega_asset_property_inferred_capture_fkey"
+            columns: ["capture_id"]
+            isOneToOne: false
+            referencedRelation: "sega_capture"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sega_asset_property_inferred_catalog_fkey"
+            columns: ["capture_id", "catalog_source_id"]
+            isOneToOne: false
+            referencedRelation: "sega_catalog"
+            referencedColumns: ["capture_id", "catalog_source_id"]
+          },
+          {
+            foreignKeyName: "sega_asset_property_inferred_property_fkey"
+            columns: ["capture_id", "property_source_id"]
+            isOneToOne: false
+            referencedRelation: "sega_property"
+            referencedColumns: ["capture_id", "property_source_id"]
+          },
+        ]
+      }
+      sega_asset_tag: {
+        Row: {
+          asset_source_id: string
+          capture_id: string
+          raw: Json
+          tag_source_key: string
+        }
+        Insert: {
+          asset_source_id: string
+          capture_id: string
+          raw: Json
+          tag_source_key: string
+        }
+        Update: {
+          asset_source_id?: string
+          capture_id?: string
+          raw?: Json
+          tag_source_key?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sega_asset_tag_asset_fkey"
+            columns: ["capture_id", "asset_source_id"]
+            isOneToOne: false
+            referencedRelation: "sega_asset"
+            referencedColumns: ["capture_id", "asset_source_id"]
+          },
+          {
+            foreignKeyName: "sega_asset_tag_tag_fkey"
+            columns: ["capture_id", "tag_source_key"]
+            isOneToOne: false
+            referencedRelation: "sega_tag"
+            referencedColumns: ["capture_id", "tag_source_key"]
+          },
+        ]
+      }
+      sega_capture: {
+        Row: {
+          asset_paging_terminal: boolean
+          capture_key: string
+          created_by: string
+          error_summary: Json
+          expected_counts: Json
+          id: string
+          ip_associations_complete: boolean
+          ip_paging_terminal: boolean
+          is_limited: boolean
+          load_completed_at: string | null
+          load_started_at: string
+          media_downloaded: number
+          observed_counts: Json
+          portal_base_url: string
+          raw_summary: Json
+          read_commit_sha: string | null
+          source_captured_at: string
+          source_commit_sha: string
+          source_manifest_sha256: string
+          source_repository: string
+          status: string
+        }
+        Insert: {
+          asset_paging_terminal?: boolean
+          capture_key: string
+          created_by: string
+          error_summary?: Json
+          expected_counts: Json
+          id?: string
+          ip_associations_complete?: boolean
+          ip_paging_terminal?: boolean
+          is_limited?: boolean
+          load_completed_at?: string | null
+          load_started_at?: string
+          media_downloaded?: number
+          observed_counts?: Json
+          portal_base_url: string
+          raw_summary: Json
+          read_commit_sha?: string | null
+          source_captured_at: string
+          source_commit_sha: string
+          source_manifest_sha256: string
+          source_repository: string
+          status?: string
+        }
+        Update: {
+          asset_paging_terminal?: boolean
+          capture_key?: string
+          created_by?: string
+          error_summary?: Json
+          expected_counts?: Json
+          id?: string
+          ip_associations_complete?: boolean
+          ip_paging_terminal?: boolean
+          is_limited?: boolean
+          load_completed_at?: string | null
+          load_started_at?: string
+          media_downloaded?: number
+          observed_counts?: Json
+          portal_base_url?: string
+          raw_summary?: Json
+          read_commit_sha?: string | null
+          source_captured_at?: string
+          source_commit_sha?: string
+          source_manifest_sha256?: string
+          source_repository?: string
+          status?: string
+        }
+        Relationships: []
+      }
+      sega_catalog: {
+        Row: {
+          can_delete: boolean | null
+          can_edit: boolean | null
+          capture_id: string
+          catalog_label: string
+          catalog_source_id: string
+          hierarchy_depth: number
+          hierarchy_path: string
+          is_expired: boolean | null
+          parent_catalog_source_id: string | null
+          raw: Json
+          source_hash: string
+        }
+        Insert: {
+          can_delete?: boolean | null
+          can_edit?: boolean | null
+          capture_id: string
+          catalog_label: string
+          catalog_source_id: string
+          hierarchy_depth: number
+          hierarchy_path: string
+          is_expired?: boolean | null
+          parent_catalog_source_id?: string | null
+          raw: Json
+          source_hash: string
+        }
+        Update: {
+          can_delete?: boolean | null
+          can_edit?: boolean | null
+          capture_id?: string
+          catalog_label?: string
+          catalog_source_id?: string
+          hierarchy_depth?: number
+          hierarchy_path?: string
+          is_expired?: boolean | null
+          parent_catalog_source_id?: string | null
+          raw?: Json
+          source_hash?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sega_catalog_capture_fkey"
+            columns: ["capture_id"]
+            isOneToOne: false
+            referencedRelation: "sega_capture"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sega_catalog_parent_fkey"
+            columns: ["capture_id", "parent_catalog_source_id"]
+            isOneToOne: false
+            referencedRelation: "sega_catalog"
+            referencedColumns: ["capture_id", "catalog_source_id"]
+          },
+        ]
+      }
+      sega_character_candidate: {
+        Row: {
+          candidate_label: string
+          capture_id: string
+          character_candidate_key: string
+          inference_method: string
+          normalized_candidate_label: string
+          raw: Json
+          rule_version: string
+        }
+        Insert: {
+          candidate_label: string
+          capture_id: string
+          character_candidate_key: string
+          inference_method: string
+          normalized_candidate_label: string
+          raw: Json
+          rule_version: string
+        }
+        Update: {
+          candidate_label?: string
+          capture_id?: string
+          character_candidate_key?: string
+          inference_method?: string
+          normalized_candidate_label?: string
+          raw?: Json
+          rule_version?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sega_character_candidate_capture_fkey"
+            columns: ["capture_id"]
+            isOneToOne: false
+            referencedRelation: "sega_capture"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      sega_character_evidence: {
+        Row: {
+          asset_source_id: string | null
+          capture_id: string
+          catalog_source_id: string | null
+          character_candidate_key: string
+          confidence: number
+          evidence_key: string
+          evidence_type: string
+          evidence_value: string
+          raw: Json
+          relationship_truth: string
+        }
+        Insert: {
+          asset_source_id?: string | null
+          capture_id: string
+          catalog_source_id?: string | null
+          character_candidate_key: string
+          confidence: number
+          evidence_key: string
+          evidence_type: string
+          evidence_value: string
+          raw: Json
+          relationship_truth?: string
+        }
+        Update: {
+          asset_source_id?: string | null
+          capture_id?: string
+          catalog_source_id?: string | null
+          character_candidate_key?: string
+          confidence?: number
+          evidence_key?: string
+          evidence_type?: string
+          evidence_value?: string
+          raw?: Json
+          relationship_truth?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sega_character_evidence_asset_fkey"
+            columns: ["capture_id", "asset_source_id"]
+            isOneToOne: false
+            referencedRelation: "sega_asset"
+            referencedColumns: ["capture_id", "asset_source_id"]
+          },
+          {
+            foreignKeyName: "sega_character_evidence_candidate_fkey"
+            columns: ["capture_id", "character_candidate_key"]
+            isOneToOne: false
+            referencedRelation: "sega_character_candidate"
+            referencedColumns: ["capture_id", "character_candidate_key"]
+          },
+          {
+            foreignKeyName: "sega_character_evidence_catalog_fkey"
+            columns: ["capture_id", "catalog_source_id"]
+            isOneToOne: false
+            referencedRelation: "sega_catalog"
+            referencedColumns: ["capture_id", "catalog_source_id"]
+          },
+        ]
+      }
+      sega_character_property_inferred: {
+        Row: {
+          capture_id: string
+          character_candidate_key: string
+          confidence: number
+          evidence_key: string
+          match_method: string
+          property_source_id: string
+          raw: Json
+          relationship_truth: string
+          rule_version: string
+        }
+        Insert: {
+          capture_id: string
+          character_candidate_key: string
+          confidence: number
+          evidence_key: string
+          match_method: string
+          property_source_id: string
+          raw: Json
+          relationship_truth?: string
+          rule_version: string
+        }
+        Update: {
+          capture_id?: string
+          character_candidate_key?: string
+          confidence?: number
+          evidence_key?: string
+          match_method?: string
+          property_source_id?: string
+          raw?: Json
+          relationship_truth?: string
+          rule_version?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sega_character_property_inferred_candidate_fkey"
+            columns: ["capture_id", "character_candidate_key"]
+            isOneToOne: false
+            referencedRelation: "sega_character_candidate"
+            referencedColumns: ["capture_id", "character_candidate_key"]
+          },
+          {
+            foreignKeyName: "sega_character_property_inferred_evidence_fkey"
+            columns: ["capture_id", "character_candidate_key", "evidence_key"]
+            isOneToOne: false
+            referencedRelation: "sega_character_evidence"
+            referencedColumns: [
+              "capture_id",
+              "character_candidate_key",
+              "evidence_key",
+            ]
+          },
+          {
+            foreignKeyName: "sega_character_property_inferred_property_fkey"
+            columns: ["capture_id", "property_source_id"]
+            isOneToOne: false
+            referencedRelation: "sega_property"
+            referencedColumns: ["capture_id", "property_source_id"]
+          },
+        ]
+      }
+      sega_property: {
+        Row: {
+          capture_id: string
+          ip_components_text: string | null
+          language: string | null
+          primary_source_id: string | null
+          property_label: string
+          property_source_id: string
+          property_type: string | null
+          raw: Json
+          source_hash: string
+          source_status: string | null
+          source_url: string
+        }
+        Insert: {
+          capture_id: string
+          ip_components_text?: string | null
+          language?: string | null
+          primary_source_id?: string | null
+          property_label: string
+          property_source_id: string
+          property_type?: string | null
+          raw: Json
+          source_hash: string
+          source_status?: string | null
+          source_url: string
+        }
+        Update: {
+          capture_id?: string
+          ip_components_text?: string | null
+          language?: string | null
+          primary_source_id?: string | null
+          property_label?: string
+          property_source_id?: string
+          property_type?: string | null
+          raw?: Json
+          source_hash?: string
+          source_status?: string | null
+          source_url?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sega_property_capture_id_fkey"
+            columns: ["capture_id"]
+            isOneToOne: false
+            referencedRelation: "sega_capture"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      sega_property_licensor: {
+        Row: {
+          capture_id: string
+          licensor_label: string
+          licensor_ordinal: number
+          normalized_licensor_label: string
+          property_source_id: string
+          raw: Json
+        }
+        Insert: {
+          capture_id: string
+          licensor_label: string
+          licensor_ordinal: number
+          normalized_licensor_label: string
+          property_source_id: string
+          raw: Json
+        }
+        Update: {
+          capture_id?: string
+          licensor_label?: string
+          licensor_ordinal?: number
+          normalized_licensor_label?: string
+          property_source_id?: string
+          raw?: Json
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sega_property_licensor_property_fkey"
+            columns: ["capture_id", "property_source_id"]
+            isOneToOne: false
+            referencedRelation: "sega_property"
+            referencedColumns: ["capture_id", "property_source_id"]
+          },
+        ]
+      }
+      sega_style_guide_candidate: {
+        Row: {
+          candidate_label: string
+          capture_id: string
+          catalog_source_id: string
+          classification_type: string
+          confidence: number
+          evidence_type: string
+          evidence_value: string
+          raw: Json
+          rule_version: string
+        }
+        Insert: {
+          candidate_label: string
+          capture_id: string
+          catalog_source_id: string
+          classification_type: string
+          confidence: number
+          evidence_type?: string
+          evidence_value: string
+          raw: Json
+          rule_version: string
+        }
+        Update: {
+          candidate_label?: string
+          capture_id?: string
+          catalog_source_id?: string
+          classification_type?: string
+          confidence?: number
+          evidence_type?: string
+          evidence_value?: string
+          raw?: Json
+          rule_version?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sega_style_guide_candidate_catalog_fkey"
+            columns: ["capture_id", "catalog_source_id"]
+            isOneToOne: true
+            referencedRelation: "sega_catalog"
+            referencedColumns: ["capture_id", "catalog_source_id"]
+          },
+        ]
+      }
+      sega_style_guide_property_inferred: {
+        Row: {
+          capture_id: string
+          catalog_source_id: string
+          confidence: number
+          evidence_catalog_source_id: string
+          evidence_key: string
+          match_method: string
+          property_source_id: string
+          raw: Json
+          relationship_truth: string
+          rule_version: string
+        }
+        Insert: {
+          capture_id: string
+          catalog_source_id: string
+          confidence: number
+          evidence_catalog_source_id: string
+          evidence_key: string
+          match_method: string
+          property_source_id: string
+          raw: Json
+          relationship_truth?: string
+          rule_version: string
+        }
+        Update: {
+          capture_id?: string
+          catalog_source_id?: string
+          confidence?: number
+          evidence_catalog_source_id?: string
+          evidence_key?: string
+          match_method?: string
+          property_source_id?: string
+          raw?: Json
+          relationship_truth?: string
+          rule_version?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sega_style_guide_property_inferred_candidate_fkey"
+            columns: ["capture_id", "catalog_source_id"]
+            isOneToOne: false
+            referencedRelation: "sega_style_guide_candidate"
+            referencedColumns: ["capture_id", "catalog_source_id"]
+          },
+          {
+            foreignKeyName: "sega_style_guide_property_inferred_catalog_fkey"
+            columns: ["capture_id", "evidence_catalog_source_id"]
+            isOneToOne: false
+            referencedRelation: "sega_catalog"
+            referencedColumns: ["capture_id", "catalog_source_id"]
+          },
+          {
+            foreignKeyName: "sega_style_guide_property_inferred_property_fkey"
+            columns: ["capture_id", "property_source_id"]
+            isOneToOne: false
+            referencedRelation: "sega_property"
+            referencedColumns: ["capture_id", "property_source_id"]
+          },
+        ]
+      }
+      sega_submission_capture: {
+        Row: {
+          capture_key: string
+          created_by: string
+          error_summary: Json
+          expected_counts: Json
+          id: string
+          load_completed_at: string | null
+          load_started_at: string
+          no_submission_created: boolean
+          observed_counts: Json
+          raw_summary: Json
+          save_clicked: boolean
+          selected_contract_source_id: string
+          source_captured_at: string
+          source_commit_sha: string
+          source_hash: string
+          source_repository: string
+          source_url: string
+          status: string
+          submission_list_after_hash: string
+          submission_list_before_hash: string
+        }
+        Insert: {
+          capture_key: string
+          created_by: string
+          error_summary?: Json
+          expected_counts: Json
+          id?: string
+          load_completed_at?: string | null
+          load_started_at?: string
+          no_submission_created: boolean
+          observed_counts?: Json
+          raw_summary: Json
+          save_clicked: boolean
+          selected_contract_source_id: string
+          source_captured_at: string
+          source_commit_sha: string
+          source_hash: string
+          source_repository: string
+          source_url: string
+          status?: string
+          submission_list_after_hash: string
+          submission_list_before_hash: string
+        }
+        Update: {
+          capture_key?: string
+          created_by?: string
+          error_summary?: Json
+          expected_counts?: Json
+          id?: string
+          load_completed_at?: string | null
+          load_started_at?: string
+          no_submission_created?: boolean
+          observed_counts?: Json
+          raw_summary?: Json
+          save_clicked?: boolean
+          selected_contract_source_id?: string
+          source_captured_at?: string
+          source_commit_sha?: string
+          source_hash?: string
+          source_repository?: string
+          source_url?: string
+          status?: string
+          submission_list_after_hash?: string
+          submission_list_before_hash?: string
+        }
+        Relationships: []
+      }
+      sega_submission_property: {
+        Row: {
+          property_label: string
+          property_source_id: string
+          raw: Json
+          source_hash: string
+          source_url: string
+          submission_capture_id: string
+        }
+        Insert: {
+          property_label: string
+          property_source_id: string
+          raw: Json
+          source_hash: string
+          source_url: string
+          submission_capture_id: string
+        }
+        Update: {
+          property_label?: string
+          property_source_id?: string
+          raw?: Json
+          source_hash?: string
+          source_url?: string
+          submission_capture_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sega_submission_property_capture_fkey"
+            columns: ["submission_capture_id"]
+            isOneToOne: false
+            referencedRelation: "sega_submission_capture"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      sega_tag: {
+        Row: {
+          capture_id: string
+          identity_method: string
+          normalized_tag_label: string
+          raw: Json
+          tag_label: string
+          tag_source_id: string | null
+          tag_source_key: string
+        }
+        Insert: {
+          capture_id: string
+          identity_method: string
+          normalized_tag_label: string
+          raw: Json
+          tag_label: string
+          tag_source_id?: string | null
+          tag_source_key: string
+        }
+        Update: {
+          capture_id?: string
+          identity_method?: string
+          normalized_tag_label?: string
+          raw?: Json
+          tag_label?: string
+          tag_source_id?: string | null
+          tag_source_key?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sega_tag_capture_fkey"
+            columns: ["capture_id"]
+            isOneToOne: false
+            referencedRelation: "sega_capture"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      sesame_art_style: {
+        Row: {
+          asset_count: number
+          capture_id: string
+          field_generation: string
+          raw: Json
+          value_key: string
+          value_label: string
+        }
+        Insert: {
+          asset_count: number
+          capture_id: string
+          field_generation: string
+          raw: Json
+          value_key: string
+          value_label: string
+        }
+        Update: {
+          asset_count?: number
+          capture_id?: string
+          field_generation?: string
+          raw?: Json
+          value_key?: string
+          value_label?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sesame_art_style_capture_fkey"
+            columns: ["capture_id"]
+            isOneToOne: false
+            referencedRelation: "sesame_capture"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      sesame_asset: {
+        Row: {
+          asset_name: string
+          asset_source_id: number
+          asset_status_label: string | null
+          capture_id: string
+          copyright_notice: string | null
+          description: string | null
+          file_size_bytes: number | null
+          file_type_label: string | null
+          original_file_name: string | null
+          pixel_height: number | null
+          pixel_width: number | null
+          raw: Json
+          raw_keyword_text: string | null
+          sku_sg_file_key: string | null
+          source_created_at: string | null
+          source_hash: string
+          source_imported_at: string | null
+          source_md5: string | null
+          source_modified_at: string | null
+          title: string | null
+          usage_rights_label: string | null
+          usage_terms: string | null
+        }
+        Insert: {
+          asset_name: string
+          asset_source_id: number
+          asset_status_label?: string | null
+          capture_id: string
+          copyright_notice?: string | null
+          description?: string | null
+          file_size_bytes?: number | null
+          file_type_label?: string | null
+          original_file_name?: string | null
+          pixel_height?: number | null
+          pixel_width?: number | null
+          raw: Json
+          raw_keyword_text?: string | null
+          sku_sg_file_key?: string | null
+          source_created_at?: string | null
+          source_hash: string
+          source_imported_at?: string | null
+          source_md5?: string | null
+          source_modified_at?: string | null
+          title?: string | null
+          usage_rights_label?: string | null
+          usage_terms?: string | null
+        }
+        Update: {
+          asset_name?: string
+          asset_source_id?: number
+          asset_status_label?: string | null
+          capture_id?: string
+          copyright_notice?: string | null
+          description?: string | null
+          file_size_bytes?: number | null
+          file_type_label?: string | null
+          original_file_name?: string | null
+          pixel_height?: number | null
+          pixel_width?: number | null
+          raw?: Json
+          raw_keyword_text?: string | null
+          sku_sg_file_key?: string | null
+          source_created_at?: string | null
+          source_hash?: string
+          source_imported_at?: string | null
+          source_md5?: string | null
+          source_modified_at?: string | null
+          title?: string | null
+          usage_rights_label?: string | null
+          usage_terms?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sesame_asset_capture_fkey"
+            columns: ["capture_id"]
+            isOneToOne: false
+            referencedRelation: "sesame_capture"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      sesame_asset_art_style: {
+        Row: {
+          asset_source_id: number
+          capture_id: string
+          field_generation: string
+          raw: Json
+          relationship_truth: string
+          value_key: string
+          value_ordinal: number
+        }
+        Insert: {
+          asset_source_id: number
+          capture_id: string
+          field_generation: string
+          raw: Json
+          relationship_truth?: string
+          value_key: string
+          value_ordinal: number
+        }
+        Update: {
+          asset_source_id?: number
+          capture_id?: string
+          field_generation?: string
+          raw?: Json
+          relationship_truth?: string
+          value_key?: string
+          value_ordinal?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sesame_asset_art_style_asset_fkey"
+            columns: ["capture_id", "asset_source_id"]
+            isOneToOne: false
+            referencedRelation: "sesame_asset"
+            referencedColumns: ["capture_id", "asset_source_id"]
+          },
+          {
+            foreignKeyName: "sesame_asset_art_style_value_fkey"
+            columns: ["capture_id", "field_generation", "value_key"]
+            isOneToOne: false
+            referencedRelation: "sesame_art_style"
+            referencedColumns: ["capture_id", "field_generation", "value_key"]
+          },
+        ]
+      }
+      sesame_asset_asset_type: {
+        Row: {
+          asset_source_id: number
+          capture_id: string
+          field_generation: string
+          raw: Json
+          relationship_truth: string
+          value_key: string
+          value_ordinal: number
+        }
+        Insert: {
+          asset_source_id: number
+          capture_id: string
+          field_generation: string
+          raw: Json
+          relationship_truth?: string
+          value_key: string
+          value_ordinal: number
+        }
+        Update: {
+          asset_source_id?: number
+          capture_id?: string
+          field_generation?: string
+          raw?: Json
+          relationship_truth?: string
+          value_key?: string
+          value_ordinal?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sesame_asset_asset_type_asset_fkey"
+            columns: ["capture_id", "asset_source_id"]
+            isOneToOne: false
+            referencedRelation: "sesame_asset"
+            referencedColumns: ["capture_id", "asset_source_id"]
+          },
+          {
+            foreignKeyName: "sesame_asset_asset_type_value_fkey"
+            columns: ["capture_id", "field_generation", "value_key"]
+            isOneToOne: false
+            referencedRelation: "sesame_asset_type"
+            referencedColumns: ["capture_id", "field_generation", "value_key"]
+          },
+        ]
+      }
+      sesame_asset_brand: {
+        Row: {
+          asset_source_id: number
+          capture_id: string
+          field_generation: string
+          raw: Json
+          relationship_truth: string
+          value_key: string
+          value_ordinal: number
+        }
+        Insert: {
+          asset_source_id: number
+          capture_id: string
+          field_generation: string
+          raw: Json
+          relationship_truth?: string
+          value_key: string
+          value_ordinal: number
+        }
+        Update: {
+          asset_source_id?: number
+          capture_id?: string
+          field_generation?: string
+          raw?: Json
+          relationship_truth?: string
+          value_key?: string
+          value_ordinal?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sesame_asset_brand_asset_fkey"
+            columns: ["capture_id", "asset_source_id"]
+            isOneToOne: false
+            referencedRelation: "sesame_asset"
+            referencedColumns: ["capture_id", "asset_source_id"]
+          },
+          {
+            foreignKeyName: "sesame_asset_brand_value_fkey"
+            columns: ["capture_id", "field_generation", "value_key"]
+            isOneToOne: false
+            referencedRelation: "sesame_brand"
+            referencedColumns: ["capture_id", "field_generation", "value_key"]
+          },
+        ]
+      }
+      sesame_asset_category: {
+        Row: {
+          asset_source_id: number
+          capture_id: string
+          category_source_id: number
+          raw: Json
+          relationship_truth: string
+        }
+        Insert: {
+          asset_source_id: number
+          capture_id: string
+          category_source_id: number
+          raw: Json
+          relationship_truth?: string
+        }
+        Update: {
+          asset_source_id?: number
+          capture_id?: string
+          category_source_id?: number
+          raw?: Json
+          relationship_truth?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sesame_asset_category_asset_fkey"
+            columns: ["capture_id", "asset_source_id"]
+            isOneToOne: false
+            referencedRelation: "sesame_asset"
+            referencedColumns: ["capture_id", "asset_source_id"]
+          },
+          {
+            foreignKeyName: "sesame_asset_category_category_fkey"
+            columns: ["capture_id", "category_source_id"]
+            isOneToOne: false
+            referencedRelation: "sesame_category"
+            referencedColumns: ["capture_id", "category_source_id"]
+          },
+        ]
+      }
+      sesame_asset_character: {
+        Row: {
+          asset_source_id: number
+          capture_id: string
+          field_generation: string
+          raw: Json
+          relationship_truth: string
+          value_key: string
+          value_ordinal: number
+        }
+        Insert: {
+          asset_source_id: number
+          capture_id: string
+          field_generation: string
+          raw: Json
+          relationship_truth?: string
+          value_key: string
+          value_ordinal: number
+        }
+        Update: {
+          asset_source_id?: number
+          capture_id?: string
+          field_generation?: string
+          raw?: Json
+          relationship_truth?: string
+          value_key?: string
+          value_ordinal?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sesame_asset_character_asset_fkey"
+            columns: ["capture_id", "asset_source_id"]
+            isOneToOne: false
+            referencedRelation: "sesame_asset"
+            referencedColumns: ["capture_id", "asset_source_id"]
+          },
+          {
+            foreignKeyName: "sesame_asset_character_value_fkey"
+            columns: ["capture_id", "field_generation", "value_key"]
+            isOneToOne: false
+            referencedRelation: "sesame_character"
+            referencedColumns: ["capture_id", "field_generation", "value_key"]
+          },
+        ]
+      }
+      sesame_asset_style_guide: {
+        Row: {
+          asset_source_id: number
+          capture_id: string
+          field_generation: string
+          raw: Json
+          relationship_truth: string
+          value_key: string
+          value_ordinal: number
+        }
+        Insert: {
+          asset_source_id: number
+          capture_id: string
+          field_generation: string
+          raw: Json
+          relationship_truth?: string
+          value_key: string
+          value_ordinal: number
+        }
+        Update: {
+          asset_source_id?: number
+          capture_id?: string
+          field_generation?: string
+          raw?: Json
+          relationship_truth?: string
+          value_key?: string
+          value_ordinal?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sesame_asset_style_guide_asset_fkey"
+            columns: ["capture_id", "asset_source_id"]
+            isOneToOne: false
+            referencedRelation: "sesame_asset"
+            referencedColumns: ["capture_id", "asset_source_id"]
+          },
+          {
+            foreignKeyName: "sesame_asset_style_guide_value_fkey"
+            columns: ["capture_id", "field_generation", "value_key"]
+            isOneToOne: false
+            referencedRelation: "sesame_style_guide"
+            referencedColumns: ["capture_id", "field_generation", "value_key"]
+          },
+        ]
+      }
+      sesame_asset_sub_brand: {
+        Row: {
+          asset_source_id: number
+          capture_id: string
+          field_generation: string
+          raw: Json
+          relationship_truth: string
+          value_key: string
+          value_ordinal: number
+        }
+        Insert: {
+          asset_source_id: number
+          capture_id: string
+          field_generation: string
+          raw: Json
+          relationship_truth?: string
+          value_key: string
+          value_ordinal: number
+        }
+        Update: {
+          asset_source_id?: number
+          capture_id?: string
+          field_generation?: string
+          raw?: Json
+          relationship_truth?: string
+          value_key?: string
+          value_ordinal?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sesame_asset_sub_brand_asset_fkey"
+            columns: ["capture_id", "asset_source_id"]
+            isOneToOne: false
+            referencedRelation: "sesame_asset"
+            referencedColumns: ["capture_id", "asset_source_id"]
+          },
+          {
+            foreignKeyName: "sesame_asset_sub_brand_value_fkey"
+            columns: ["capture_id", "field_generation", "value_key"]
+            isOneToOne: false
+            referencedRelation: "sesame_sub_brand"
+            referencedColumns: ["capture_id", "field_generation", "value_key"]
+          },
+        ]
+      }
+      sesame_asset_theme: {
+        Row: {
+          asset_source_id: number
+          capture_id: string
+          field_generation: string
+          raw: Json
+          relationship_truth: string
+          value_key: string
+          value_ordinal: number
+        }
+        Insert: {
+          asset_source_id: number
+          capture_id: string
+          field_generation: string
+          raw: Json
+          relationship_truth?: string
+          value_key: string
+          value_ordinal: number
+        }
+        Update: {
+          asset_source_id?: number
+          capture_id?: string
+          field_generation?: string
+          raw?: Json
+          relationship_truth?: string
+          value_key?: string
+          value_ordinal?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sesame_asset_theme_asset_fkey"
+            columns: ["capture_id", "asset_source_id"]
+            isOneToOne: false
+            referencedRelation: "sesame_asset"
+            referencedColumns: ["capture_id", "asset_source_id"]
+          },
+          {
+            foreignKeyName: "sesame_asset_theme_value_fkey"
+            columns: ["capture_id", "field_generation", "value_key"]
+            isOneToOne: false
+            referencedRelation: "sesame_theme"
+            referencedColumns: ["capture_id", "field_generation", "value_key"]
+          },
+        ]
+      }
+      sesame_asset_type: {
+        Row: {
+          asset_count: number
+          capture_id: string
+          field_generation: string
+          raw: Json
+          value_key: string
+          value_label: string
+        }
+        Insert: {
+          asset_count: number
+          capture_id: string
+          field_generation: string
+          raw: Json
+          value_key: string
+          value_label: string
+        }
+        Update: {
+          asset_count?: number
+          capture_id?: string
+          field_generation?: string
+          raw?: Json
+          value_key?: string
+          value_label?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sesame_asset_type_capture_fkey"
+            columns: ["capture_id"]
+            isOneToOne: false
+            referencedRelation: "sesame_capture"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      sesame_brand: {
+        Row: {
+          asset_count: number
+          capture_id: string
+          field_generation: string
+          raw: Json
+          value_key: string
+          value_label: string
+        }
+        Insert: {
+          asset_count: number
+          capture_id: string
+          field_generation: string
+          raw: Json
+          value_key: string
+          value_label: string
+        }
+        Update: {
+          asset_count?: number
+          capture_id?: string
+          field_generation?: string
+          raw?: Json
+          value_key?: string
+          value_label?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sesame_brand_capture_fkey"
+            columns: ["capture_id"]
+            isOneToOne: false
+            referencedRelation: "sesame_capture"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      sesame_capture: {
+        Row: {
+          capture_key: string
+          categories_visited: number
+          category_tree_walked: boolean
+          created_by: string
+          error_summary: Json
+          expected_counts: Json
+          guide_character_rows_excluded: number
+          id: string
+          load_completed_at: string | null
+          load_started_at: string
+          media_downloaded: number
+          multivalue_parse_verified: boolean
+          observed_counts: Json
+          pagination_verified: boolean
+          portal_base_url: string
+          portal_slug: string
+          raw_summary: Json
+          read_commit_sha: string | null
+          source_captured_at: string
+          source_commit_sha: string
+          source_manifest_sha256: string
+          source_repository: string
+          status: string
+        }
+        Insert: {
+          capture_key: string
+          categories_visited?: number
+          category_tree_walked?: boolean
+          created_by: string
+          error_summary?: Json
+          expected_counts: Json
+          guide_character_rows_excluded?: number
+          id?: string
+          load_completed_at?: string | null
+          load_started_at?: string
+          media_downloaded?: number
+          multivalue_parse_verified?: boolean
+          observed_counts?: Json
+          pagination_verified?: boolean
+          portal_base_url: string
+          portal_slug: string
+          raw_summary: Json
+          read_commit_sha?: string | null
+          source_captured_at: string
+          source_commit_sha: string
+          source_manifest_sha256: string
+          source_repository: string
+          status?: string
+        }
+        Update: {
+          capture_key?: string
+          categories_visited?: number
+          category_tree_walked?: boolean
+          created_by?: string
+          error_summary?: Json
+          expected_counts?: Json
+          guide_character_rows_excluded?: number
+          id?: string
+          load_completed_at?: string | null
+          load_started_at?: string
+          media_downloaded?: number
+          multivalue_parse_verified?: boolean
+          observed_counts?: Json
+          pagination_verified?: boolean
+          portal_base_url?: string
+          portal_slug?: string
+          raw_summary?: Json
+          read_commit_sha?: string | null
+          source_captured_at?: string
+          source_commit_sha?: string
+          source_manifest_sha256?: string
+          source_repository?: string
+          status?: string
+        }
+        Relationships: []
+      }
+      sesame_category: {
+        Row: {
+          capture_id: string
+          category_label: string
+          category_path: string
+          category_source_id: number
+          child_count: number
+          depth: number
+          in_licensee_portal: boolean
+          is_guide_level: boolean
+          parent_category_source_id: number | null
+          raw: Json
+        }
+        Insert: {
+          capture_id: string
+          category_label: string
+          category_path: string
+          category_source_id: number
+          child_count: number
+          depth: number
+          in_licensee_portal: boolean
+          is_guide_level: boolean
+          parent_category_source_id?: number | null
+          raw: Json
+        }
+        Update: {
+          capture_id?: string
+          category_label?: string
+          category_path?: string
+          category_source_id?: number
+          child_count?: number
+          depth?: number
+          in_licensee_portal?: boolean
+          is_guide_level?: boolean
+          parent_category_source_id?: number | null
+          raw?: Json
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sesame_category_capture_fkey"
+            columns: ["capture_id"]
+            isOneToOne: false
+            referencedRelation: "sesame_capture"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sesame_category_parent_fkey"
+            columns: ["capture_id", "parent_category_source_id"]
+            isOneToOne: false
+            referencedRelation: "sesame_category"
+            referencedColumns: ["capture_id", "category_source_id"]
+          },
+        ]
+      }
+      sesame_character: {
+        Row: {
+          asset_count: number
+          capture_id: string
+          field_generation: string
+          raw: Json
+          value_key: string
+          value_label: string
+        }
+        Insert: {
+          asset_count: number
+          capture_id: string
+          field_generation: string
+          raw: Json
+          value_key: string
+          value_label: string
+        }
+        Update: {
+          asset_count?: number
+          capture_id?: string
+          field_generation?: string
+          raw?: Json
+          value_key?: string
+          value_label?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sesame_character_capture_fkey"
+            columns: ["capture_id"]
+            isOneToOne: false
+            referencedRelation: "sesame_capture"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      sesame_style_guide: {
+        Row: {
+          asset_count: number
+          capture_id: string
+          field_generation: string
+          guide_family: string | null
+          is_colon_nested: boolean
+          raw: Json
+          sku_sg_label_key: string | null
+          value_key: string
+          value_label: string
+        }
+        Insert: {
+          asset_count: number
+          capture_id: string
+          field_generation?: string
+          guide_family?: string | null
+          is_colon_nested: boolean
+          raw: Json
+          sku_sg_label_key?: string | null
+          value_key: string
+          value_label: string
+        }
+        Update: {
+          asset_count?: number
+          capture_id?: string
+          field_generation?: string
+          guide_family?: string | null
+          is_colon_nested?: boolean
+          raw?: Json
+          sku_sg_label_key?: string | null
+          value_key?: string
+          value_label?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sesame_style_guide_capture_fkey"
+            columns: ["capture_id"]
+            isOneToOne: false
+            referencedRelation: "sesame_capture"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      sesame_style_guide_character: {
+        Row: {
+          asset_count: number
+          capture_id: string
+          character_field_generation: string
+          character_value_key: string
+          derivation_method: string
+          guide_field_generation: string
+          guide_value_key: string
+          raw: Json
+          relationship_truth: string
+          rule_version: string
+        }
+        Insert: {
+          asset_count: number
+          capture_id: string
+          character_field_generation?: string
+          character_value_key: string
+          derivation_method?: string
+          guide_field_generation?: string
+          guide_value_key: string
+          raw: Json
+          relationship_truth?: string
+          rule_version: string
+        }
+        Update: {
+          asset_count?: number
+          capture_id?: string
+          character_field_generation?: string
+          character_value_key?: string
+          derivation_method?: string
+          guide_field_generation?: string
+          guide_value_key?: string
+          raw?: Json
+          relationship_truth?: string
+          rule_version?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sesame_style_guide_character_character_fkey"
+            columns: [
+              "capture_id",
+              "character_field_generation",
+              "character_value_key",
+            ]
+            isOneToOne: false
+            referencedRelation: "sesame_character"
+            referencedColumns: ["capture_id", "field_generation", "value_key"]
+          },
+          {
+            foreignKeyName: "sesame_style_guide_character_guide_fkey"
+            columns: ["capture_id", "guide_field_generation", "guide_value_key"]
+            isOneToOne: false
+            referencedRelation: "sesame_style_guide"
+            referencedColumns: ["capture_id", "field_generation", "value_key"]
+          },
+        ]
+      }
+      sesame_sub_brand: {
+        Row: {
+          asset_count: number
+          capture_id: string
+          field_generation: string
+          raw: Json
+          value_key: string
+          value_label: string
+        }
+        Insert: {
+          asset_count: number
+          capture_id: string
+          field_generation: string
+          raw: Json
+          value_key: string
+          value_label: string
+        }
+        Update: {
+          asset_count?: number
+          capture_id?: string
+          field_generation?: string
+          raw?: Json
+          value_key?: string
+          value_label?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sesame_sub_brand_capture_fkey"
+            columns: ["capture_id"]
+            isOneToOne: false
+            referencedRelation: "sesame_capture"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      sesame_submission_property_option: {
+        Row: {
+          exact_label: string
+          loaded_at: string
+          option_key: string
+          ordinal: number
+          raw: Json
+          source_captured_at: string
+          source_field: string
+        }
+        Insert: {
+          exact_label: string
+          loaded_at?: string
+          option_key: string
+          ordinal: number
+          raw?: Json
+          source_captured_at: string
+          source_field: string
+        }
+        Update: {
+          exact_label?: string
+          loaded_at?: string
+          option_key?: string
+          ordinal?: number
+          raw?: Json
+          source_captured_at?: string
+          source_field?: string
+        }
+        Relationships: []
+      }
+      sesame_theme: {
+        Row: {
+          asset_count: number
+          capture_id: string
+          field_generation: string
+          raw: Json
+          value_key: string
+          value_label: string
+        }
+        Insert: {
+          asset_count: number
+          capture_id: string
+          field_generation: string
+          raw: Json
+          value_key: string
+          value_label: string
+        }
+        Update: {
+          asset_count?: number
+          capture_id?: string
+          field_generation?: string
+          raw?: Json
+          value_key?: string
+          value_label?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sesame_theme_capture_fkey"
+            columns: ["capture_id"]
+            isOneToOne: false
+            referencedRelation: "sesame_capture"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       ShippingPort: {
         Row: {
           CountryCode: string | null
@@ -17426,6 +32708,226 @@ export type Database = {
           PortCode?: string | null
           PortDesc?: string | null
           UNLcode?: string | null
+        }
+        Relationships: []
+      }
+      source_resolution: {
+        Row: {
+          core_character_id: string | null
+          core_franchise_id: string | null
+          core_licensor_id: string | null
+          core_property_id: string | null
+          core_style_guide_id: string | null
+          created_at: string
+          dam_asset_id: string | null
+          entity_kind: string
+          resolution_reason: string | null
+          resolution_status: string
+          resolved_at: string | null
+          resolved_by: string | null
+          source_id: string
+          source_system: string
+          updated_at: string
+        }
+        Insert: {
+          core_character_id?: string | null
+          core_franchise_id?: string | null
+          core_licensor_id?: string | null
+          core_property_id?: string | null
+          core_style_guide_id?: string | null
+          created_at?: string
+          dam_asset_id?: string | null
+          entity_kind: string
+          resolution_reason?: string | null
+          resolution_status?: string
+          resolved_at?: string | null
+          resolved_by?: string | null
+          source_id: string
+          source_system: string
+          updated_at?: string
+        }
+        Update: {
+          core_character_id?: string | null
+          core_franchise_id?: string | null
+          core_licensor_id?: string | null
+          core_property_id?: string | null
+          core_style_guide_id?: string | null
+          created_at?: string
+          dam_asset_id?: string | null
+          entity_kind?: string
+          resolution_reason?: string | null
+          resolution_status?: string
+          resolved_at?: string | null
+          resolved_by?: string | null
+          source_id?: string
+          source_system?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      stage: {
+        Row: {
+          active: boolean
+          applies_to: string
+          counts_toward_total: boolean
+          default_duration: number | null
+          done_signal: string | null
+          duration_varies_by: string | null
+          id: number
+          list_id: number
+          name: string
+          pending_label: string
+          position: number
+          shown_on_tracker: boolean
+          tracker_position: number | null
+          updated_at: string
+          updated_by: number | null
+        }
+        Insert: {
+          active?: boolean
+          applies_to?: string
+          counts_toward_total?: boolean
+          default_duration?: number | null
+          done_signal?: string | null
+          duration_varies_by?: string | null
+          id?: never
+          list_id: number
+          name: string
+          pending_label: string
+          position: number
+          shown_on_tracker?: boolean
+          tracker_position?: number | null
+          updated_at?: string
+          updated_by?: number | null
+        }
+        Update: {
+          active?: boolean
+          applies_to?: string
+          counts_toward_total?: boolean
+          default_duration?: number | null
+          done_signal?: string | null
+          duration_varies_by?: string | null
+          id?: never
+          list_id?: number
+          name?: string
+          pending_label?: string
+          position?: number
+          shown_on_tracker?: boolean
+          tracker_position?: number | null
+          updated_at?: string
+          updated_by?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "stage_list_id_fkey"
+            columns: ["list_id"]
+            isOneToOne: false
+            referencedRelation: "stage_list"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      stage_dependency: {
+        Row: {
+          allowed_early_days: number | null
+          depends_on_stage_id: number
+          kind: string
+          stage_id: number
+        }
+        Insert: {
+          allowed_early_days?: number | null
+          depends_on_stage_id: number
+          kind: string
+          stage_id: number
+        }
+        Update: {
+          allowed_early_days?: number | null
+          depends_on_stage_id?: number
+          kind?: string
+          stage_id?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "stage_dependency_depends_on_stage_id_fkey"
+            columns: ["depends_on_stage_id"]
+            isOneToOne: false
+            referencedRelation: "stage"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "stage_dependency_stage_id_fkey"
+            columns: ["stage_id"]
+            isOneToOne: false
+            referencedRelation: "stage"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      stage_duration: {
+        Row: {
+          duration: number | null
+          id: number
+          scope_kind: string
+          scope_value: string
+          stage_id: number
+        }
+        Insert: {
+          duration?: number | null
+          id?: never
+          scope_kind: string
+          scope_value: string
+          stage_id: number
+        }
+        Update: {
+          duration?: number | null
+          id?: never
+          scope_kind?: string
+          scope_value?: string
+          stage_id?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "stage_duration_stage_id_fkey"
+            columns: ["stage_id"]
+            isOneToOne: false
+            referencedRelation: "stage"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      stage_list: {
+        Row: {
+          created_at: string
+          duration_unit: string
+          id: number
+          key: string
+          maintainers: number[]
+          name: string
+          position: number
+          updated_at: string
+          version: number
+        }
+        Insert: {
+          created_at?: string
+          duration_unit: string
+          id?: never
+          key: string
+          maintainers?: number[]
+          name: string
+          position: number
+          updated_at?: string
+          version?: number
+        }
+        Update: {
+          created_at?: string
+          duration_unit?: string
+          id?: never
+          key?: string
+          maintainers?: number[]
+          name?: string
+          position?: number
+          updated_at?: string
+          version?: number
         }
         Relationships: []
       }
@@ -17772,6 +33274,13 @@ export type Database = {
             columns: ["plm_item_id"]
             isOneToOne: false
             referencedRelation: "item"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "style_tracker_item_bridge_plm_item_id_fkey"
+            columns: ["plm_item_id"]
+            isOneToOne: false
+            referencedRelation: "item_missing_attribution"
             referencedColumns: ["id"]
           },
         ]
@@ -18304,6 +33813,1241 @@ export type Database = {
           },
         ]
       }
+      twentieth_century_dcp_asset: {
+        Row: {
+          checksum: string | null
+          content_type: string | null
+          created_at: string
+          do_not_use_reason: string | null
+          file_extension: string | null
+          file_name: string
+          file_size_bytes: number | null
+          first_seen_crawl_id: string | null
+          id: string
+          last_seen_crawl_id: string | null
+          raw: Json
+          relative_folder_path: string | null
+          source_asset_id: string | null
+          source_path: string
+          source_system: string
+          style_guide_id: string
+          updated_at: string
+        }
+        Insert: {
+          checksum?: string | null
+          content_type?: string | null
+          created_at?: string
+          do_not_use_reason?: string | null
+          file_extension?: string | null
+          file_name: string
+          file_size_bytes?: number | null
+          first_seen_crawl_id?: string | null
+          id?: string
+          last_seen_crawl_id?: string | null
+          raw?: Json
+          relative_folder_path?: string | null
+          source_asset_id?: string | null
+          source_path: string
+          source_system?: string
+          style_guide_id: string
+          updated_at?: string
+        }
+        Update: {
+          checksum?: string | null
+          content_type?: string | null
+          created_at?: string
+          do_not_use_reason?: string | null
+          file_extension?: string | null
+          file_name?: string
+          file_size_bytes?: number | null
+          first_seen_crawl_id?: string | null
+          id?: string
+          last_seen_crawl_id?: string | null
+          raw?: Json
+          relative_folder_path?: string | null
+          source_asset_id?: string | null
+          source_path?: string
+          source_system?: string
+          style_guide_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "twentieth_century_dcp_asset_first_seen_crawl_id_fkey"
+            columns: ["first_seen_crawl_id"]
+            isOneToOne: false
+            referencedRelation: "twentieth_century_dcp_crawl"
+            referencedColumns: ["crawl_id"]
+          },
+          {
+            foreignKeyName: "twentieth_century_dcp_asset_last_seen_crawl_id_fkey"
+            columns: ["last_seen_crawl_id"]
+            isOneToOne: false
+            referencedRelation: "twentieth_century_dcp_crawl"
+            referencedColumns: ["crawl_id"]
+          },
+          {
+            foreignKeyName: "twentieth_century_dcp_asset_style_guide_id_fkey"
+            columns: ["style_guide_id"]
+            isOneToOne: false
+            referencedRelation: "twentieth_century_dcp_style_guide"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      twentieth_century_dcp_asset_character_observation: {
+        Row: {
+          fetch_status: string
+          metadata_run_id: string
+          observed_at: string
+          twentieth_century_dcp_asset_id: string
+          twentieth_century_dcp_character_id: string
+        }
+        Insert: {
+          fetch_status?: string
+          metadata_run_id: string
+          observed_at?: string
+          twentieth_century_dcp_asset_id: string
+          twentieth_century_dcp_character_id: string
+        }
+        Update: {
+          fetch_status?: string
+          metadata_run_id?: string
+          observed_at?: string
+          twentieth_century_dcp_asset_id?: string
+          twentieth_century_dcp_character_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "twentieth_century_dcp_asset_c_twentieth_century_dcp_charac_fkey"
+            columns: ["twentieth_century_dcp_character_id"]
+            isOneToOne: false
+            referencedRelation: "twentieth_century_dcp_character"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "twentieth_century_dcp_asset_character_obs_asset_fk"
+            columns: [
+              "metadata_run_id",
+              "twentieth_century_dcp_asset_id",
+              "fetch_status",
+            ]
+            isOneToOne: false
+            referencedRelation: "twentieth_century_dcp_metadata_asset"
+            referencedColumns: [
+              "metadata_run_id",
+              "twentieth_century_dcp_asset_id",
+              "fetch_status",
+            ]
+          },
+        ]
+      }
+      twentieth_century_dcp_asset_crawl: {
+        Row: {
+          crawl_id: string
+          observed_at: string
+          observed_row_hash: string
+          twentieth_century_dcp_asset_id: string
+        }
+        Insert: {
+          crawl_id: string
+          observed_at?: string
+          observed_row_hash: string
+          twentieth_century_dcp_asset_id: string
+        }
+        Update: {
+          crawl_id?: string
+          observed_at?: string
+          observed_row_hash?: string
+          twentieth_century_dcp_asset_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "twentieth_century_dcp_asset_c_twentieth_century_dcp_asset__fkey"
+            columns: ["twentieth_century_dcp_asset_id"]
+            isOneToOne: false
+            referencedRelation: "twentieth_century_dcp_asset"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "twentieth_century_dcp_asset_crawl_crawl_id_fkey"
+            columns: ["crawl_id"]
+            isOneToOne: false
+            referencedRelation: "twentieth_century_dcp_crawl"
+            referencedColumns: ["crawl_id"]
+          },
+        ]
+      }
+      twentieth_century_dcp_asset_property_observation: {
+        Row: {
+          fetch_status: string
+          metadata_run_id: string
+          observed_at: string
+          twentieth_century_dcp_asset_id: string
+          twentieth_century_dcp_property_id: string
+        }
+        Insert: {
+          fetch_status?: string
+          metadata_run_id: string
+          observed_at?: string
+          twentieth_century_dcp_asset_id: string
+          twentieth_century_dcp_property_id: string
+        }
+        Update: {
+          fetch_status?: string
+          metadata_run_id?: string
+          observed_at?: string
+          twentieth_century_dcp_asset_id?: string
+          twentieth_century_dcp_property_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "twentieth_century_dcp_asset_p_twentieth_century_dcp_proper_fkey"
+            columns: ["twentieth_century_dcp_property_id"]
+            isOneToOne: false
+            referencedRelation: "twentieth_century_dcp_property"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "twentieth_century_dcp_asset_property_obs_asset_fk"
+            columns: [
+              "metadata_run_id",
+              "twentieth_century_dcp_asset_id",
+              "fetch_status",
+            ]
+            isOneToOne: false
+            referencedRelation: "twentieth_century_dcp_metadata_asset"
+            referencedColumns: [
+              "metadata_run_id",
+              "twentieth_century_dcp_asset_id",
+              "fetch_status",
+            ]
+          },
+        ]
+      }
+      twentieth_century_dcp_asset_term_observation: {
+        Row: {
+          fetch_status: string
+          metadata_run_id: string
+          observed_at: string
+          twentieth_century_dcp_asset_id: string
+          twentieth_century_dcp_term_id: string
+        }
+        Insert: {
+          fetch_status?: string
+          metadata_run_id: string
+          observed_at?: string
+          twentieth_century_dcp_asset_id: string
+          twentieth_century_dcp_term_id: string
+        }
+        Update: {
+          fetch_status?: string
+          metadata_run_id?: string
+          observed_at?: string
+          twentieth_century_dcp_asset_id?: string
+          twentieth_century_dcp_term_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "twentieth_century_dcp_asset_t_twentieth_century_dcp_term_i_fkey"
+            columns: ["twentieth_century_dcp_term_id"]
+            isOneToOne: false
+            referencedRelation: "twentieth_century_dcp_term"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "twentieth_century_dcp_asset_term_obs_asset_fk"
+            columns: [
+              "metadata_run_id",
+              "twentieth_century_dcp_asset_id",
+              "fetch_status",
+            ]
+            isOneToOne: false
+            referencedRelation: "twentieth_century_dcp_metadata_asset"
+            referencedColumns: [
+              "metadata_run_id",
+              "twentieth_century_dcp_asset_id",
+              "fetch_status",
+            ]
+          },
+        ]
+      }
+      twentieth_century_dcp_asset_tile_observation: {
+        Row: {
+          crawl_id: string
+          crawl_section_id: string | null
+          link_evidence: string
+          listing_kind: string
+          observed_at: string
+          portal_tile_id: string
+          twentieth_century_dcp_asset_id: string
+        }
+        Insert: {
+          crawl_id: string
+          crawl_section_id?: string | null
+          link_evidence: string
+          listing_kind: string
+          observed_at?: string
+          portal_tile_id: string
+          twentieth_century_dcp_asset_id: string
+        }
+        Update: {
+          crawl_id?: string
+          crawl_section_id?: string | null
+          link_evidence?: string
+          listing_kind?: string
+          observed_at?: string
+          portal_tile_id?: string
+          twentieth_century_dcp_asset_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "twentieth_century_dcp_asset_t_twentieth_century_dcp_asset__fkey"
+            columns: ["twentieth_century_dcp_asset_id"]
+            isOneToOne: false
+            referencedRelation: "twentieth_century_dcp_asset"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "twentieth_century_dcp_asset_tile_observat_crawl_section_id_fkey"
+            columns: ["crawl_section_id"]
+            isOneToOne: false
+            referencedRelation: "twentieth_century_dcp_crawl_section"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "twentieth_century_dcp_asset_tile_observatio_portal_tile_id_fkey"
+            columns: ["portal_tile_id"]
+            isOneToOne: false
+            referencedRelation: "twentieth_century_dcp_portal_tile"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "twentieth_century_dcp_asset_tile_observation_crawl_id_fkey"
+            columns: ["crawl_id"]
+            isOneToOne: false
+            referencedRelation: "twentieth_century_dcp_crawl"
+            referencedColumns: ["crawl_id"]
+          },
+        ]
+      }
+      twentieth_century_dcp_character: {
+        Row: {
+          core_character_id: string | null
+          created_at: string
+          display_name: string | null
+          first_seen_metadata_run_id: string | null
+          id: string
+          last_seen_metadata_run_id: string | null
+          raw: Json
+          resolution_note: string | null
+          resolved_at: string | null
+          resolved_by: string | null
+          source_id: string
+          source_system: string
+          updated_at: string
+        }
+        Insert: {
+          core_character_id?: string | null
+          created_at?: string
+          display_name?: string | null
+          first_seen_metadata_run_id?: string | null
+          id?: string
+          last_seen_metadata_run_id?: string | null
+          raw?: Json
+          resolution_note?: string | null
+          resolved_at?: string | null
+          resolved_by?: string | null
+          source_id: string
+          source_system?: string
+          updated_at?: string
+        }
+        Update: {
+          core_character_id?: string | null
+          created_at?: string
+          display_name?: string | null
+          first_seen_metadata_run_id?: string | null
+          id?: string
+          last_seen_metadata_run_id?: string | null
+          raw?: Json
+          resolution_note?: string | null
+          resolved_at?: string | null
+          resolved_by?: string | null
+          source_id?: string
+          source_system?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "twentieth_century_dcp_character_first_seen_metadata_run_id_fkey"
+            columns: ["first_seen_metadata_run_id"]
+            isOneToOne: false
+            referencedRelation: "twentieth_century_dcp_metadata_run"
+            referencedColumns: ["metadata_run_id"]
+          },
+          {
+            foreignKeyName: "twentieth_century_dcp_character_last_seen_metadata_run_id_fkey"
+            columns: ["last_seen_metadata_run_id"]
+            isOneToOne: false
+            referencedRelation: "twentieth_century_dcp_metadata_run"
+            referencedColumns: ["metadata_run_id"]
+          },
+        ]
+      }
+      twentieth_century_dcp_chunk_ledger: {
+        Row: {
+          applied_at: string
+          chunk_number: number
+          chunk_sha256: string
+          crawl_id: string
+          rows_landed: number
+          rows_received: number
+          rows_rejected: number
+        }
+        Insert: {
+          applied_at?: string
+          chunk_number: number
+          chunk_sha256: string
+          crawl_id: string
+          rows_landed: number
+          rows_received: number
+          rows_rejected: number
+        }
+        Update: {
+          applied_at?: string
+          chunk_number?: number
+          chunk_sha256?: string
+          crawl_id?: string
+          rows_landed?: number
+          rows_received?: number
+          rows_rejected?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "twentieth_century_dcp_chunk_ledger_crawl_id_fkey"
+            columns: ["crawl_id"]
+            isOneToOne: false
+            referencedRelation: "twentieth_century_dcp_crawl"
+            referencedColumns: ["crawl_id"]
+          },
+        ]
+      }
+      twentieth_century_dcp_crawl: {
+        Row: {
+          account_scope: string
+          captured_by: string
+          captured_on: string
+          crawl_id: string
+          crawler_version: string
+          created_at: string
+          distinct_assets_received: number | null
+          failure_message: string | null
+          finished_at: string | null
+          line_of_business: string
+          metadata: Json
+          notes: string | null
+          portal_base_url: string
+          private_source_commit: string
+          rows_received: number | null
+          source_system: string
+          started_at: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          account_scope: string
+          captured_by: string
+          captured_on: string
+          crawl_id?: string
+          crawler_version: string
+          created_at?: string
+          distinct_assets_received?: number | null
+          failure_message?: string | null
+          finished_at?: string | null
+          line_of_business: string
+          metadata?: Json
+          notes?: string | null
+          portal_base_url: string
+          private_source_commit: string
+          rows_received?: number | null
+          source_system?: string
+          started_at: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          account_scope?: string
+          captured_by?: string
+          captured_on?: string
+          crawl_id?: string
+          crawler_version?: string
+          created_at?: string
+          distinct_assets_received?: number | null
+          failure_message?: string | null
+          finished_at?: string | null
+          line_of_business?: string
+          metadata?: Json
+          notes?: string | null
+          portal_base_url?: string
+          private_source_commit?: string
+          rows_received?: number | null
+          source_system?: string
+          started_at?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      twentieth_century_dcp_crawl_gap: {
+        Row: {
+          attempt_count: number
+          crawl_section_id: string
+          created_at: string
+          id: string
+          offset_from: number
+          offset_to: number
+          reason: string
+          resolution_note: string | null
+          resolved_at: string | null
+          waived_at: string | null
+          waived_by: string | null
+          waiver_reason: string | null
+        }
+        Insert: {
+          attempt_count?: number
+          crawl_section_id: string
+          created_at?: string
+          id?: string
+          offset_from: number
+          offset_to: number
+          reason: string
+          resolution_note?: string | null
+          resolved_at?: string | null
+          waived_at?: string | null
+          waived_by?: string | null
+          waiver_reason?: string | null
+        }
+        Update: {
+          attempt_count?: number
+          crawl_section_id?: string
+          created_at?: string
+          id?: string
+          offset_from?: number
+          offset_to?: number
+          reason?: string
+          resolution_note?: string | null
+          resolved_at?: string | null
+          waived_at?: string | null
+          waived_by?: string | null
+          waiver_reason?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "twentieth_century_dcp_crawl_gap_crawl_section_id_fkey"
+            columns: ["crawl_section_id"]
+            isOneToOne: false
+            referencedRelation: "twentieth_century_dcp_crawl_section"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      twentieth_century_dcp_crawl_section: {
+        Row: {
+          captured_count: number
+          crawl_id: string
+          created_at: string
+          expected_count: number | null
+          finished_at: string | null
+          id: string
+          last_offset: number | null
+          listing_kind: string
+          notes: string | null
+          portal_tile_id: string
+          started_at: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          captured_count?: number
+          crawl_id: string
+          created_at?: string
+          expected_count?: number | null
+          finished_at?: string | null
+          id?: string
+          last_offset?: number | null
+          listing_kind: string
+          notes?: string | null
+          portal_tile_id: string
+          started_at?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          captured_count?: number
+          crawl_id?: string
+          created_at?: string
+          expected_count?: number | null
+          finished_at?: string | null
+          id?: string
+          last_offset?: number | null
+          listing_kind?: string
+          notes?: string | null
+          portal_tile_id?: string
+          started_at?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "twentieth_century_dcp_crawl_section_crawl_id_fkey"
+            columns: ["crawl_id"]
+            isOneToOne: false
+            referencedRelation: "twentieth_century_dcp_crawl"
+            referencedColumns: ["crawl_id"]
+          },
+          {
+            foreignKeyName: "twentieth_century_dcp_crawl_section_portal_tile_id_fkey"
+            columns: ["portal_tile_id"]
+            isOneToOne: false
+            referencedRelation: "twentieth_century_dcp_portal_tile"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      twentieth_century_dcp_load_exception: {
+        Row: {
+          chunk_number: number | null
+          crawl_id: string
+          crawl_section_id: string | null
+          created_at: string
+          id: string
+          raw_row: Json
+          reason: string
+          reason_code: string
+          resolution_note: string | null
+          resolved_at: string | null
+          row_number: number | null
+          severity: string
+          source_path: string | null
+        }
+        Insert: {
+          chunk_number?: number | null
+          crawl_id: string
+          crawl_section_id?: string | null
+          created_at?: string
+          id?: string
+          raw_row?: Json
+          reason: string
+          reason_code: string
+          resolution_note?: string | null
+          resolved_at?: string | null
+          row_number?: number | null
+          severity?: string
+          source_path?: string | null
+        }
+        Update: {
+          chunk_number?: number | null
+          crawl_id?: string
+          crawl_section_id?: string | null
+          created_at?: string
+          id?: string
+          raw_row?: Json
+          reason?: string
+          reason_code?: string
+          resolution_note?: string | null
+          resolved_at?: string | null
+          row_number?: number | null
+          severity?: string
+          source_path?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "twentieth_century_dcp_load_exception_crawl_id_fkey"
+            columns: ["crawl_id"]
+            isOneToOne: false
+            referencedRelation: "twentieth_century_dcp_crawl"
+            referencedColumns: ["crawl_id"]
+          },
+          {
+            foreignKeyName: "twentieth_century_dcp_load_exception_crawl_section_id_fkey"
+            columns: ["crawl_section_id"]
+            isOneToOne: false
+            referencedRelation: "twentieth_century_dcp_crawl_section"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      twentieth_century_dcp_metadata_asset: {
+        Row: {
+          attempt_count: number
+          collection_dmc_id: string | null
+          collection_main_title: string | null
+          collection_type: string | null
+          content_owner: string | null
+          content_type: string | null
+          created_at: string
+          dam_sha1: string | null
+          dc_title: string | null
+          design_element: string | null
+          failure_code: string | null
+          failure_reason: string | null
+          fetch_status: string
+          file_size_bytes_interpreted: number | null
+          file_size_raw: string | null
+          format_raw: string | null
+          http_status: number | null
+          is_embargoed_interpreted: boolean | null
+          is_embargoed_raw: string | null
+          is_exclusive_interpreted: boolean | null
+          is_exclusive_raw: string | null
+          is_locked_interpreted: boolean | null
+          is_locked_raw: string | null
+          metadata_run_id: string
+          modified_at_interpreted: string | null
+          modified_at_raw: string | null
+          normalized_hash: string | null
+          num_pages_interpreted: number | null
+          num_pages_raw: string | null
+          raw_metadata: Json | null
+          release_date_interpreted: string | null
+          release_date_raw: string | null
+          response_bytes: number | null
+          retrieved_at: string | null
+          rights_parse_confident: boolean
+          source_crawl_id: string
+          source_hash: string | null
+          source_status: string | null
+          source_uuid: string | null
+          twentieth_century_dcp_asset_id: string
+          updated_at: string
+        }
+        Insert: {
+          attempt_count?: number
+          collection_dmc_id?: string | null
+          collection_main_title?: string | null
+          collection_type?: string | null
+          content_owner?: string | null
+          content_type?: string | null
+          created_at?: string
+          dam_sha1?: string | null
+          dc_title?: string | null
+          design_element?: string | null
+          failure_code?: string | null
+          failure_reason?: string | null
+          fetch_status?: string
+          file_size_bytes_interpreted?: number | null
+          file_size_raw?: string | null
+          format_raw?: string | null
+          http_status?: number | null
+          is_embargoed_interpreted?: boolean | null
+          is_embargoed_raw?: string | null
+          is_exclusive_interpreted?: boolean | null
+          is_exclusive_raw?: string | null
+          is_locked_interpreted?: boolean | null
+          is_locked_raw?: string | null
+          metadata_run_id: string
+          modified_at_interpreted?: string | null
+          modified_at_raw?: string | null
+          normalized_hash?: string | null
+          num_pages_interpreted?: number | null
+          num_pages_raw?: string | null
+          raw_metadata?: Json | null
+          release_date_interpreted?: string | null
+          release_date_raw?: string | null
+          response_bytes?: number | null
+          retrieved_at?: string | null
+          rights_parse_confident?: boolean
+          source_crawl_id: string
+          source_hash?: string | null
+          source_status?: string | null
+          source_uuid?: string | null
+          twentieth_century_dcp_asset_id: string
+          updated_at?: string
+        }
+        Update: {
+          attempt_count?: number
+          collection_dmc_id?: string | null
+          collection_main_title?: string | null
+          collection_type?: string | null
+          content_owner?: string | null
+          content_type?: string | null
+          created_at?: string
+          dam_sha1?: string | null
+          dc_title?: string | null
+          design_element?: string | null
+          failure_code?: string | null
+          failure_reason?: string | null
+          fetch_status?: string
+          file_size_bytes_interpreted?: number | null
+          file_size_raw?: string | null
+          format_raw?: string | null
+          http_status?: number | null
+          is_embargoed_interpreted?: boolean | null
+          is_embargoed_raw?: string | null
+          is_exclusive_interpreted?: boolean | null
+          is_exclusive_raw?: string | null
+          is_locked_interpreted?: boolean | null
+          is_locked_raw?: string | null
+          metadata_run_id?: string
+          modified_at_interpreted?: string | null
+          modified_at_raw?: string | null
+          normalized_hash?: string | null
+          num_pages_interpreted?: number | null
+          num_pages_raw?: string | null
+          raw_metadata?: Json | null
+          release_date_interpreted?: string | null
+          release_date_raw?: string | null
+          response_bytes?: number | null
+          retrieved_at?: string | null
+          rights_parse_confident?: boolean
+          source_crawl_id?: string
+          source_hash?: string | null
+          source_status?: string | null
+          source_uuid?: string | null
+          twentieth_century_dcp_asset_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "twentieth_century_dcp_metadata_asset_membership_fk"
+            columns: ["source_crawl_id", "twentieth_century_dcp_asset_id"]
+            isOneToOne: false
+            referencedRelation: "twentieth_century_dcp_asset_crawl"
+            referencedColumns: ["crawl_id", "twentieth_century_dcp_asset_id"]
+          },
+          {
+            foreignKeyName: "twentieth_century_dcp_metadata_asset_run_fk"
+            columns: ["metadata_run_id", "source_crawl_id"]
+            isOneToOne: false
+            referencedRelation: "twentieth_century_dcp_metadata_run"
+            referencedColumns: ["metadata_run_id", "source_crawl_id"]
+          },
+        ]
+      }
+      twentieth_century_dcp_metadata_chunk_ledger: {
+        Row: {
+          applied_at: string
+          chunk_number: number
+          chunk_sha256: string
+          metadata_run_id: string
+          rows_landed: number
+          rows_received: number
+          rows_rejected: number
+        }
+        Insert: {
+          applied_at?: string
+          chunk_number: number
+          chunk_sha256: string
+          metadata_run_id: string
+          rows_landed: number
+          rows_received: number
+          rows_rejected: number
+        }
+        Update: {
+          applied_at?: string
+          chunk_number?: number
+          chunk_sha256?: string
+          metadata_run_id?: string
+          rows_landed?: number
+          rows_received?: number
+          rows_rejected?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "twentieth_century_dcp_metadata_chunk_ledge_metadata_run_id_fkey"
+            columns: ["metadata_run_id"]
+            isOneToOne: false
+            referencedRelation: "twentieth_century_dcp_metadata_run"
+            referencedColumns: ["metadata_run_id"]
+          },
+        ]
+      }
+      twentieth_century_dcp_metadata_load_exception: {
+        Row: {
+          chunk_number: number | null
+          created_at: string
+          id: string
+          metadata_run_id: string
+          reason: string
+          reason_code: string
+          resolution_note: string | null
+          resolved_at: string | null
+          row_number: number | null
+          severity: string
+          twentieth_century_dcp_asset_id: string | null
+        }
+        Insert: {
+          chunk_number?: number | null
+          created_at?: string
+          id?: string
+          metadata_run_id: string
+          reason: string
+          reason_code: string
+          resolution_note?: string | null
+          resolved_at?: string | null
+          row_number?: number | null
+          severity?: string
+          twentieth_century_dcp_asset_id?: string | null
+        }
+        Update: {
+          chunk_number?: number | null
+          created_at?: string
+          id?: string
+          metadata_run_id?: string
+          reason?: string
+          reason_code?: string
+          resolution_note?: string | null
+          resolved_at?: string | null
+          row_number?: number | null
+          severity?: string
+          twentieth_century_dcp_asset_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "twentieth_century_dcp_metadat_twentieth_century_dcp_asset__fkey"
+            columns: ["twentieth_century_dcp_asset_id"]
+            isOneToOne: false
+            referencedRelation: "twentieth_century_dcp_asset"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "twentieth_century_dcp_metadata_load_except_metadata_run_id_fkey"
+            columns: ["metadata_run_id"]
+            isOneToOne: false
+            referencedRelation: "twentieth_century_dcp_metadata_run"
+            referencedColumns: ["metadata_run_id"]
+          },
+        ]
+      }
+      twentieth_century_dcp_metadata_run: {
+        Row: {
+          assets_expected: number
+          captured_by: string
+          captured_on: string
+          crawler_version: string
+          created_at: string
+          endpoint_suffix: string
+          failure_message: string | null
+          fetches_failed: number | null
+          fetches_succeeded: number | null
+          finished_at: string | null
+          metadata: Json
+          metadata_run_id: string
+          private_source_commit: string
+          source_crawl_id: string
+          started_at: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          assets_expected: number
+          captured_by: string
+          captured_on: string
+          crawler_version: string
+          created_at?: string
+          endpoint_suffix: string
+          failure_message?: string | null
+          fetches_failed?: number | null
+          fetches_succeeded?: number | null
+          finished_at?: string | null
+          metadata?: Json
+          metadata_run_id?: string
+          private_source_commit: string
+          source_crawl_id: string
+          started_at?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          assets_expected?: number
+          captured_by?: string
+          captured_on?: string
+          crawler_version?: string
+          created_at?: string
+          endpoint_suffix?: string
+          failure_message?: string | null
+          fetches_failed?: number | null
+          fetches_succeeded?: number | null
+          finished_at?: string | null
+          metadata?: Json
+          metadata_run_id?: string
+          private_source_commit?: string
+          source_crawl_id?: string
+          started_at?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "twentieth_century_dcp_metadata_run_source_crawl_id_fkey"
+            columns: ["source_crawl_id"]
+            isOneToOne: false
+            referencedRelation: "twentieth_century_dcp_crawl"
+            referencedColumns: ["crawl_id"]
+          },
+        ]
+      }
+      twentieth_century_dcp_portal_tile: {
+        Row: {
+          core_property_id: string | null
+          created_at: string
+          display_label: string | null
+          first_seen_crawl_id: string | null
+          id: string
+          last_seen_crawl_id: string | null
+          raw: Json
+          resolution_reason: string | null
+          resolution_status: string
+          resolved_at: string | null
+          resolved_by: string | null
+          source_key: string
+          source_system: string
+          source_url: string | null
+          updated_at: string
+        }
+        Insert: {
+          core_property_id?: string | null
+          created_at?: string
+          display_label?: string | null
+          first_seen_crawl_id?: string | null
+          id?: string
+          last_seen_crawl_id?: string | null
+          raw?: Json
+          resolution_reason?: string | null
+          resolution_status?: string
+          resolved_at?: string | null
+          resolved_by?: string | null
+          source_key: string
+          source_system?: string
+          source_url?: string | null
+          updated_at?: string
+        }
+        Update: {
+          core_property_id?: string | null
+          created_at?: string
+          display_label?: string | null
+          first_seen_crawl_id?: string | null
+          id?: string
+          last_seen_crawl_id?: string | null
+          raw?: Json
+          resolution_reason?: string | null
+          resolution_status?: string
+          resolved_at?: string | null
+          resolved_by?: string | null
+          source_key?: string
+          source_system?: string
+          source_url?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "twentieth_century_dcp_portal_tile_first_seen_crawl_id_fkey"
+            columns: ["first_seen_crawl_id"]
+            isOneToOne: false
+            referencedRelation: "twentieth_century_dcp_crawl"
+            referencedColumns: ["crawl_id"]
+          },
+          {
+            foreignKeyName: "twentieth_century_dcp_portal_tile_last_seen_crawl_id_fkey"
+            columns: ["last_seen_crawl_id"]
+            isOneToOne: false
+            referencedRelation: "twentieth_century_dcp_crawl"
+            referencedColumns: ["crawl_id"]
+          },
+        ]
+      }
+      twentieth_century_dcp_property: {
+        Row: {
+          core_property_id: string | null
+          created_at: string
+          display_name: string | null
+          first_seen_metadata_run_id: string | null
+          id: string
+          last_seen_metadata_run_id: string | null
+          raw: Json
+          resolution_note: string | null
+          resolved_at: string | null
+          resolved_by: string | null
+          source_id: string
+          source_system: string
+          updated_at: string
+        }
+        Insert: {
+          core_property_id?: string | null
+          created_at?: string
+          display_name?: string | null
+          first_seen_metadata_run_id?: string | null
+          id?: string
+          last_seen_metadata_run_id?: string | null
+          raw?: Json
+          resolution_note?: string | null
+          resolved_at?: string | null
+          resolved_by?: string | null
+          source_id: string
+          source_system?: string
+          updated_at?: string
+        }
+        Update: {
+          core_property_id?: string | null
+          created_at?: string
+          display_name?: string | null
+          first_seen_metadata_run_id?: string | null
+          id?: string
+          last_seen_metadata_run_id?: string | null
+          raw?: Json
+          resolution_note?: string | null
+          resolved_at?: string | null
+          resolved_by?: string | null
+          source_id?: string
+          source_system?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "twentieth_century_dcp_property_first_seen_metadata_run_id_fkey"
+            columns: ["first_seen_metadata_run_id"]
+            isOneToOne: false
+            referencedRelation: "twentieth_century_dcp_metadata_run"
+            referencedColumns: ["metadata_run_id"]
+          },
+          {
+            foreignKeyName: "twentieth_century_dcp_property_last_seen_metadata_run_id_fkey"
+            columns: ["last_seen_metadata_run_id"]
+            isOneToOne: false
+            referencedRelation: "twentieth_century_dcp_metadata_run"
+            referencedColumns: ["metadata_run_id"]
+          },
+        ]
+      }
+      twentieth_century_dcp_style_guide: {
+        Row: {
+          core_style_guide_id: string | null
+          created_at: string
+          first_seen_crawl_id: string | null
+          folder_name: string
+          id: string
+          last_seen_crawl_id: string | null
+          parent_source_path: string | null
+          raw: Json
+          region: string
+          resolution_reason: string | null
+          resolution_status: string
+          resolved_at: string | null
+          resolved_by: string | null
+          source_guide_id: string | null
+          source_path: string
+          source_system: string
+          updated_at: string
+          year_segment: string
+        }
+        Insert: {
+          core_style_guide_id?: string | null
+          created_at?: string
+          first_seen_crawl_id?: string | null
+          folder_name: string
+          id?: string
+          last_seen_crawl_id?: string | null
+          parent_source_path?: string | null
+          raw?: Json
+          region: string
+          resolution_reason?: string | null
+          resolution_status?: string
+          resolved_at?: string | null
+          resolved_by?: string | null
+          source_guide_id?: string | null
+          source_path: string
+          source_system?: string
+          updated_at?: string
+          year_segment: string
+        }
+        Update: {
+          core_style_guide_id?: string | null
+          created_at?: string
+          first_seen_crawl_id?: string | null
+          folder_name?: string
+          id?: string
+          last_seen_crawl_id?: string | null
+          parent_source_path?: string | null
+          raw?: Json
+          region?: string
+          resolution_reason?: string | null
+          resolution_status?: string
+          resolved_at?: string | null
+          resolved_by?: string | null
+          source_guide_id?: string | null
+          source_path?: string
+          source_system?: string
+          updated_at?: string
+          year_segment?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "twentieth_century_dcp_style_guide_first_seen_crawl_id_fkey"
+            columns: ["first_seen_crawl_id"]
+            isOneToOne: false
+            referencedRelation: "twentieth_century_dcp_crawl"
+            referencedColumns: ["crawl_id"]
+          },
+          {
+            foreignKeyName: "twentieth_century_dcp_style_guide_last_seen_crawl_id_fkey"
+            columns: ["last_seen_crawl_id"]
+            isOneToOne: false
+            referencedRelation: "twentieth_century_dcp_crawl"
+            referencedColumns: ["crawl_id"]
+          },
+        ]
+      }
+      twentieth_century_dcp_term: {
+        Row: {
+          created_at: string
+          first_seen_metadata_run_id: string | null
+          id: string
+          last_seen_metadata_run_id: string | null
+          raw: Json
+          source_system: string
+          source_value: string
+          term_kind: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          first_seen_metadata_run_id?: string | null
+          id?: string
+          last_seen_metadata_run_id?: string | null
+          raw?: Json
+          source_system?: string
+          source_value: string
+          term_kind: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          first_seen_metadata_run_id?: string | null
+          id?: string
+          last_seen_metadata_run_id?: string | null
+          raw?: Json
+          source_system?: string
+          source_value?: string
+          term_kind?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "twentieth_century_dcp_term_first_seen_metadata_run_id_fkey"
+            columns: ["first_seen_metadata_run_id"]
+            isOneToOne: false
+            referencedRelation: "twentieth_century_dcp_metadata_run"
+            referencedColumns: ["metadata_run_id"]
+          },
+          {
+            foreignKeyName: "twentieth_century_dcp_term_last_seen_metadata_run_id_fkey"
+            columns: ["last_seen_metadata_run_id"]
+            isOneToOne: false
+            referencedRelation: "twentieth_century_dcp_metadata_run"
+            referencedColumns: ["metadata_run_id"]
+          },
+        ]
+      }
       UDFComponent: {
         Row: {
           UDFComponent_id: number
@@ -18508,212 +35252,388 @@ export type Database = {
         }
         Relationships: []
       }
-      wb_asset: {
+      wb_asset_canonical_property_edge: {
         Row: {
-          asset_source_id: string
-          captured_date: string
-          character_labels: string
-          created_date: string | null
+          assertion_type: string
+          canonical_property_id: string
+          evidence_hash: string
+          evidence_source: string
+          first_seen_at: string
+          last_seen_at: string
+          observed_at: string
+          source_active: boolean
+          source_entity_id: string
+          updated_at: string
+          within_entitlement: boolean
+        }
+        Insert: {
+          assertion_type: string
+          canonical_property_id: string
+          evidence_hash: string
+          evidence_source: string
+          first_seen_at?: string
+          last_seen_at?: string
+          observed_at: string
+          source_active: boolean
+          source_entity_id: string
+          updated_at?: string
+          within_entitlement: boolean
+        }
+        Update: {
+          assertion_type?: string
+          canonical_property_id?: string
+          evidence_hash?: string
+          evidence_source?: string
+          first_seen_at?: string
+          last_seen_at?: string
+          observed_at?: string
+          source_active?: boolean
+          source_entity_id?: string
+          updated_at?: string
+          within_entitlement?: boolean
+        }
+        Relationships: [
+          {
+            foreignKeyName: "wb_asset_canonical_property_edge_source_entity_id_fkey"
+            columns: ["source_entity_id"]
+            isOneToOne: false
+            referencedRelation: "wb_asset_normalized"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      wb_asset_character_normalized: {
+        Row: {
+          asset_id: string
+          capture_chunk: number
+          capture_id: string
+          character_id: string
+          first_seen_at: string
+          last_seen_at: string
+          raw: Json
+          source_hash: string
+          source_url: string
+          updated_at: string
+        }
+        Insert: {
+          asset_id: string
+          capture_chunk?: number
+          capture_id: string
+          character_id: string
+          first_seen_at?: string
+          last_seen_at?: string
+          raw: Json
+          source_hash: string
+          source_url: string
+          updated_at?: string
+        }
+        Update: {
+          asset_id?: string
+          capture_chunk?: number
+          capture_id?: string
+          character_id?: string
+          first_seen_at?: string
+          last_seen_at?: string
+          raw?: Json
+          source_hash?: string
+          source_url?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "wb_asset_character_normalized_asset_id_fkey"
+            columns: ["asset_id"]
+            isOneToOne: false
+            referencedRelation: "wb_asset_normalized"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "wb_asset_character_normalized_capture_id_capture_chunk_fkey"
+            columns: ["capture_id", "capture_chunk"]
+            isOneToOne: false
+            referencedRelation: "wb_capture"
+            referencedColumns: ["capture_id", "chunk_number"]
+          },
+          {
+            foreignKeyName: "wb_asset_character_normalized_character_id_fkey"
+            columns: ["character_id"]
+            isOneToOne: false
+            referencedRelation: "wb_character_normalized"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      wb_asset_franchise: {
+        Row: {
+          asset_id: string
+          capture_chunk: number
+          capture_id: string
+          first_seen_at: string
+          franchise_id: string
+          last_seen_at: string
+          raw: Json
+          source_hash: string
+          source_url: string
+          updated_at: string
+        }
+        Insert: {
+          asset_id: string
+          capture_chunk?: number
+          capture_id: string
+          first_seen_at?: string
+          franchise_id: string
+          last_seen_at?: string
+          raw: Json
+          source_hash: string
+          source_url: string
+          updated_at?: string
+        }
+        Update: {
+          asset_id?: string
+          capture_chunk?: number
+          capture_id?: string
+          first_seen_at?: string
+          franchise_id?: string
+          last_seen_at?: string
+          raw?: Json
+          source_hash?: string
+          source_url?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "wb_asset_franchise_asset_id_fkey"
+            columns: ["asset_id"]
+            isOneToOne: false
+            referencedRelation: "wb_asset_normalized"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "wb_asset_franchise_capture_id_capture_chunk_fkey"
+            columns: ["capture_id", "capture_chunk"]
+            isOneToOne: false
+            referencedRelation: "wb_capture"
+            referencedColumns: ["capture_id", "chunk_number"]
+          },
+          {
+            foreignKeyName: "wb_asset_franchise_franchise_id_fkey"
+            columns: ["franchise_id"]
+            isOneToOne: false
+            referencedRelation: "wb_franchise"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      wb_asset_normalized: {
+        Row: {
+          capture_chunk: number
+          capture_id: string
+          change_signal: string | null
           file_name: string
           file_size_bytes: number | null
           first_seen_at: string
-          franchise_labels: string
+          first_withdrawn_at: string | null
+          id: string
           imported_at: string
           last_seen_at: string
-          modified_date: string | null
-          property_labels: string
           raw: Json
           season: string | null
+          sku_sg_file_key: string | null
+          source_created_at: string | null
           source_hash: string
+          source_id: string
+          source_modified_at: string | null
+          source_namespace: string
           source_path: string
           source_url: string
-          style_guide_natural_key: string | null
-          style_guide_source_id: string
+          status: string
           updated_at: string
           warner_asset_id: string | null
+          withdrawn_at: string | null
         }
         Insert: {
-          asset_source_id: string
-          captured_date: string
-          character_labels: string
-          created_date?: string | null
+          capture_chunk?: number
+          capture_id: string
+          change_signal?: string | null
           file_name: string
           file_size_bytes?: number | null
           first_seen_at?: string
-          franchise_labels: string
+          first_withdrawn_at?: string | null
+          id?: string
           imported_at?: string
           last_seen_at?: string
-          modified_date?: string | null
-          property_labels: string
           raw: Json
           season?: string | null
+          sku_sg_file_key?: string | null
+          source_created_at?: string | null
           source_hash: string
+          source_id: string
+          source_modified_at?: string | null
+          source_namespace: string
           source_path: string
           source_url: string
-          style_guide_natural_key?: string | null
-          style_guide_source_id?: string
+          status?: string
           updated_at?: string
           warner_asset_id?: string | null
+          withdrawn_at?: string | null
         }
         Update: {
-          asset_source_id?: string
-          captured_date?: string
-          character_labels?: string
-          created_date?: string | null
+          capture_chunk?: number
+          capture_id?: string
+          change_signal?: string | null
           file_name?: string
           file_size_bytes?: number | null
           first_seen_at?: string
-          franchise_labels?: string
+          first_withdrawn_at?: string | null
+          id?: string
           imported_at?: string
           last_seen_at?: string
-          modified_date?: string | null
-          property_labels?: string
           raw?: Json
           season?: string | null
+          sku_sg_file_key?: string | null
+          source_created_at?: string | null
           source_hash?: string
+          source_id?: string
+          source_modified_at?: string | null
+          source_namespace?: string
           source_path?: string
           source_url?: string
-          style_guide_natural_key?: string | null
-          style_guide_source_id?: string
+          status?: string
           updated_at?: string
           warner_asset_id?: string | null
+          withdrawn_at?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "wb_asset_normalized_capture_id_capture_chunk_fkey"
+            columns: ["capture_id", "capture_chunk"]
+            isOneToOne: false
+            referencedRelation: "wb_capture"
+            referencedColumns: ["capture_id", "chunk_number"]
+          },
+        ]
       }
-      wb_asset_character: {
+      wb_asset_property: {
         Row: {
-          asset_source_id: string
-          captured_date: string
-          character_label: string
-          character_source_id: string
-          file_name: string
+          asset_id: string
+          capture_chunk: number
+          capture_id: string
           first_seen_at: string
-          imported_at: string
           last_seen_at: string
+          property_id: string
           raw: Json
           source_hash: string
           source_url: string
           updated_at: string
         }
         Insert: {
-          asset_source_id: string
-          captured_date: string
-          character_label: string
-          character_source_id: string
-          file_name: string
+          asset_id: string
+          capture_chunk?: number
+          capture_id: string
           first_seen_at?: string
-          imported_at?: string
           last_seen_at?: string
+          property_id: string
           raw: Json
           source_hash: string
           source_url: string
           updated_at?: string
         }
         Update: {
-          asset_source_id?: string
-          captured_date?: string
-          character_label?: string
-          character_source_id?: string
-          file_name?: string
+          asset_id?: string
+          capture_chunk?: number
+          capture_id?: string
           first_seen_at?: string
-          imported_at?: string
           last_seen_at?: string
+          property_id?: string
           raw?: Json
           source_hash?: string
           source_url?: string
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "wb_asset_property_asset_id_fkey"
+            columns: ["asset_id"]
+            isOneToOne: false
+            referencedRelation: "wb_asset_normalized"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "wb_asset_property_capture_id_capture_chunk_fkey"
+            columns: ["capture_id", "capture_chunk"]
+            isOneToOne: false
+            referencedRelation: "wb_capture"
+            referencedColumns: ["capture_id", "chunk_number"]
+          },
+          {
+            foreignKeyName: "wb_asset_property_property_id_fkey"
+            columns: ["property_id"]
+            isOneToOne: false
+            referencedRelation: "wb_property"
+            referencedColumns: ["id"]
+          },
+        ]
       }
-      wb_asset_franchise_property: {
+      wb_asset_style_guide_normalized: {
         Row: {
-          asset_source_id: string
-          captured_date: string
-          file_name: string
+          asset_id: string
+          capture_chunk: number
+          capture_id: string
           first_seen_at: string
-          franchise_property_label: string
-          franchise_property_source_id: string
-          imported_at: string
           last_seen_at: string
           raw: Json
           source_hash: string
           source_url: string
+          style_guide_id: string
           updated_at: string
         }
         Insert: {
-          asset_source_id: string
-          captured_date: string
-          file_name: string
+          asset_id: string
+          capture_chunk?: number
+          capture_id: string
           first_seen_at?: string
-          franchise_property_label: string
-          franchise_property_source_id?: string
-          imported_at?: string
           last_seen_at?: string
           raw: Json
           source_hash: string
           source_url: string
+          style_guide_id: string
           updated_at?: string
         }
         Update: {
-          asset_source_id?: string
-          captured_date?: string
-          file_name?: string
+          asset_id?: string
+          capture_chunk?: number
+          capture_id?: string
           first_seen_at?: string
-          franchise_property_label?: string
-          franchise_property_source_id?: string
-          imported_at?: string
           last_seen_at?: string
           raw?: Json
           source_hash?: string
           source_url?: string
+          style_guide_id?: string
           updated_at?: string
         }
-        Relationships: []
-      }
-      wb_asset_style_guide: {
-        Row: {
-          asset_source_id: string
-          captured_date: string
-          file_name: string
-          first_seen_at: string
-          imported_at: string
-          last_seen_at: string
-          raw: Json
-          source_hash: string
-          source_url: string
-          style_guide_natural_key: string
-          style_guide_source_id: string
-          updated_at: string
-        }
-        Insert: {
-          asset_source_id: string
-          captured_date: string
-          file_name: string
-          first_seen_at?: string
-          imported_at?: string
-          last_seen_at?: string
-          raw: Json
-          source_hash: string
-          source_url: string
-          style_guide_natural_key: string
-          style_guide_source_id?: string
-          updated_at?: string
-        }
-        Update: {
-          asset_source_id?: string
-          captured_date?: string
-          file_name?: string
-          first_seen_at?: string
-          imported_at?: string
-          last_seen_at?: string
-          raw?: Json
-          source_hash?: string
-          source_url?: string
-          style_guide_natural_key?: string
-          style_guide_source_id?: string
-          updated_at?: string
-        }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "wb_asset_style_guide_normalized_asset_id_fkey"
+            columns: ["asset_id"]
+            isOneToOne: false
+            referencedRelation: "wb_asset_normalized"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "wb_asset_style_guide_normalized_capture_id_capture_chunk_fkey"
+            columns: ["capture_id", "capture_chunk"]
+            isOneToOne: false
+            referencedRelation: "wb_capture"
+            referencedColumns: ["capture_id", "chunk_number"]
+          },
+          {
+            foreignKeyName: "wb_asset_style_guide_normalized_style_guide_id_fkey"
+            columns: ["style_guide_id"]
+            isOneToOne: false
+            referencedRelation: "wb_style_guide_normalized"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       wb_capture: {
         Row: {
@@ -18784,108 +35704,384 @@ export type Database = {
         }
         Relationships: []
       }
-      wb_character: {
+      wb_character_canonical_property_edge: {
         Row: {
-          captured_date: string
+          assertion_type: string
+          canonical_property_id: string
+          evidence_hash: string
+          evidence_source: string
           first_seen_at: string
+          last_seen_at: string
+          observed_at: string
+          source_active: boolean
+          source_entity_id: string
+          updated_at: string
+          within_entitlement: boolean
+        }
+        Insert: {
+          assertion_type: string
+          canonical_property_id: string
+          evidence_hash: string
+          evidence_source: string
+          first_seen_at?: string
+          last_seen_at?: string
+          observed_at: string
+          source_active: boolean
+          source_entity_id: string
+          updated_at?: string
+          within_entitlement: boolean
+        }
+        Update: {
+          assertion_type?: string
+          canonical_property_id?: string
+          evidence_hash?: string
+          evidence_source?: string
+          first_seen_at?: string
+          last_seen_at?: string
+          observed_at?: string
+          source_active?: boolean
+          source_entity_id?: string
+          updated_at?: string
+          within_entitlement?: boolean
+        }
+        Relationships: [
+          {
+            foreignKeyName: "wb_character_canonical_property_edge_source_entity_id_fkey"
+            columns: ["source_entity_id"]
+            isOneToOne: false
+            referencedRelation: "wb_character_normalized"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      wb_character_normalized: {
+        Row: {
+          capture_chunk: number
+          capture_id: string
+          change_signal: string | null
+          core_character_id: string | null
+          fallback_key: string | null
+          first_seen_at: string
+          first_withdrawn_at: string | null
+          id: string
+          identity_method: string
+          imported_at: string
+          label: string
+          last_seen_at: string
+          raw: Json
+          resolution_reason: string | null
+          resolution_status: string
+          resolved_at: string | null
+          resolved_by: string | null
+          source_hash: string
+          source_id: string | null
+          source_namespace: string
+          source_term: string
+          source_url: string
+          status: string
+          updated_at: string
+          withdrawn_at: string | null
+        }
+        Insert: {
+          capture_chunk?: number
+          capture_id: string
+          change_signal?: string | null
+          core_character_id?: string | null
+          fallback_key?: string | null
+          first_seen_at?: string
+          first_withdrawn_at?: string | null
+          id?: string
+          identity_method: string
+          imported_at?: string
+          label: string
+          last_seen_at?: string
+          raw: Json
+          resolution_reason?: string | null
+          resolution_status?: string
+          resolved_at?: string | null
+          resolved_by?: string | null
+          source_hash: string
+          source_id?: string | null
+          source_namespace: string
+          source_term?: string
+          source_url: string
+          status?: string
+          updated_at?: string
+          withdrawn_at?: string | null
+        }
+        Update: {
+          capture_chunk?: number
+          capture_id?: string
+          change_signal?: string | null
+          core_character_id?: string | null
+          fallback_key?: string | null
+          first_seen_at?: string
+          first_withdrawn_at?: string | null
+          id?: string
+          identity_method?: string
+          imported_at?: string
+          label?: string
+          last_seen_at?: string
+          raw?: Json
+          resolution_reason?: string | null
+          resolution_status?: string
+          resolved_at?: string | null
+          resolved_by?: string | null
+          source_hash?: string
+          source_id?: string | null
+          source_namespace?: string
+          source_term?: string
+          source_url?: string
+          status?: string
+          updated_at?: string
+          withdrawn_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "wb_character_normalized_capture_id_capture_chunk_fkey"
+            columns: ["capture_id", "capture_chunk"]
+            isOneToOne: false
+            referencedRelation: "wb_capture"
+            referencedColumns: ["capture_id", "chunk_number"]
+          },
+        ]
+      }
+      wb_franchise: {
+        Row: {
+          capture_chunk: number
+          capture_id: string
+          change_signal: string | null
+          fallback_key: string | null
+          first_seen_at: string
+          first_withdrawn_at: string | null
+          id: string
+          identity_method: string
           imported_at: string
           label: string
           last_seen_at: string
           raw: Json
           source_hash: string
-          source_id: string
+          source_id: string | null
+          source_namespace: string
           source_term: string
           source_url: string
+          status: string
           updated_at: string
-          visible_asset_count: number | null
+          withdrawn_at: string | null
         }
         Insert: {
-          captured_date: string
+          capture_chunk?: number
+          capture_id: string
+          change_signal?: string | null
+          fallback_key?: string | null
           first_seen_at?: string
+          first_withdrawn_at?: string | null
+          id?: string
+          identity_method: string
           imported_at?: string
           label: string
           last_seen_at?: string
           raw: Json
           source_hash: string
-          source_id?: string
-          source_term: string
+          source_id?: string | null
+          source_namespace: string
+          source_term?: string
           source_url: string
+          status?: string
           updated_at?: string
-          visible_asset_count?: number | null
+          withdrawn_at?: string | null
         }
         Update: {
-          captured_date?: string
+          capture_chunk?: number
+          capture_id?: string
+          change_signal?: string | null
+          fallback_key?: string | null
           first_seen_at?: string
+          first_withdrawn_at?: string | null
+          id?: string
+          identity_method?: string
           imported_at?: string
           label?: string
           last_seen_at?: string
           raw?: Json
           source_hash?: string
-          source_id?: string
+          source_id?: string | null
+          source_namespace?: string
           source_term?: string
           source_url?: string
+          status?: string
           updated_at?: string
-          visible_asset_count?: number | null
+          withdrawn_at?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "wb_franchise_capture_id_capture_chunk_fkey"
+            columns: ["capture_id", "capture_chunk"]
+            isOneToOne: false
+            referencedRelation: "wb_capture"
+            referencedColumns: ["capture_id", "chunk_number"]
+          },
+        ]
       }
-      wb_franchise_property: {
+      wb_franchise_property_evidence: {
         Row: {
-          captured_date: string
+          capture_chunk: number
+          capture_id: string
+          evidence_source: string
+          evidence_type: string
           first_seen_at: string
+          franchise_id: string
+          last_seen_at: string
+          property_id: string
+          raw: Json
+          source_hash: string
+          source_url: string
+          updated_at: string
+        }
+        Insert: {
+          capture_chunk?: number
+          capture_id: string
+          evidence_source: string
+          evidence_type: string
+          first_seen_at?: string
+          franchise_id: string
+          last_seen_at?: string
+          property_id: string
+          raw: Json
+          source_hash: string
+          source_url: string
+          updated_at?: string
+        }
+        Update: {
+          capture_chunk?: number
+          capture_id?: string
+          evidence_source?: string
+          evidence_type?: string
+          first_seen_at?: string
+          franchise_id?: string
+          last_seen_at?: string
+          property_id?: string
+          raw?: Json
+          source_hash?: string
+          source_url?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "wb_franchise_property_evidence_capture_id_capture_chunk_fkey"
+            columns: ["capture_id", "capture_chunk"]
+            isOneToOne: false
+            referencedRelation: "wb_capture"
+            referencedColumns: ["capture_id", "chunk_number"]
+          },
+          {
+            foreignKeyName: "wb_franchise_property_evidence_franchise_id_fkey"
+            columns: ["franchise_id"]
+            isOneToOne: false
+            referencedRelation: "wb_franchise"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "wb_franchise_property_evidence_property_id_fkey"
+            columns: ["property_id"]
+            isOneToOne: false
+            referencedRelation: "wb_property"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      wb_property: {
+        Row: {
+          capture_chunk: number
+          capture_id: string
+          change_signal: string | null
+          fallback_key: string | null
+          first_seen_at: string
+          first_withdrawn_at: string | null
+          id: string
+          identity_method: string
           imported_at: string
           label: string
           last_seen_at: string
           raw: Json
           source_hash: string
-          source_id: string
+          source_id: string | null
+          source_namespace: string
           source_term: string
           source_url: string
+          status: string
           updated_at: string
-          visible_asset_count: number | null
+          withdrawn_at: string | null
         }
         Insert: {
-          captured_date: string
+          capture_chunk?: number
+          capture_id: string
+          change_signal?: string | null
+          fallback_key?: string | null
           first_seen_at?: string
+          first_withdrawn_at?: string | null
+          id?: string
+          identity_method: string
           imported_at?: string
           label: string
           last_seen_at?: string
           raw: Json
           source_hash: string
-          source_id?: string
-          source_term: string
+          source_id?: string | null
+          source_namespace: string
+          source_term?: string
           source_url: string
+          status?: string
           updated_at?: string
-          visible_asset_count?: number | null
+          withdrawn_at?: string | null
         }
         Update: {
-          captured_date?: string
+          capture_chunk?: number
+          capture_id?: string
+          change_signal?: string | null
+          fallback_key?: string | null
           first_seen_at?: string
+          first_withdrawn_at?: string | null
+          id?: string
+          identity_method?: string
           imported_at?: string
           label?: string
           last_seen_at?: string
           raw?: Json
           source_hash?: string
-          source_id?: string
+          source_id?: string | null
+          source_namespace?: string
           source_term?: string
           source_url?: string
+          status?: string
           updated_at?: string
-          visible_asset_count?: number | null
+          withdrawn_at?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "wb_property_capture_id_capture_chunk_fkey"
+            columns: ["capture_id", "capture_chunk"]
+            isOneToOne: false
+            referencedRelation: "wb_capture"
+            referencedColumns: ["capture_id", "chunk_number"]
+          },
+        ]
       }
-      wb_property_character: {
+      wb_property_character_normalized: {
         Row: {
-          captured_at: string
+          capture_chunk: number
+          capture_id: string
+          character_id: string
           character_label: string
-          character_source_id: string
+          character_source_id: string | null
+          core_property_id: string | null
+          evidence_type: string
           first_seen_at: string
-          id_fallback: boolean
-          imported_at: string
+          identity_fallback: boolean
           last_seen_at: string
-          property_id: string | null
+          property_id: string
           property_label: string
-          property_source_id: string
+          property_source_id: string | null
           raw: Json
           resolution_reason: string | null
           resolution_status: string
@@ -18896,97 +36092,2682 @@ export type Database = {
           updated_at: string
         }
         Insert: {
-          captured_at: string
+          capture_chunk?: number
+          capture_id: string
+          character_id: string
+          character_label: string
+          character_source_id?: string | null
+          core_property_id?: string | null
+          evidence_type?: string
+          first_seen_at?: string
+          identity_fallback: boolean
+          last_seen_at?: string
+          property_id: string
+          property_label: string
+          property_source_id?: string | null
+          raw: Json
+          resolution_reason?: string | null
+          resolution_status?: string
+          resolved_at?: string | null
+          resolved_by?: string | null
+          source_hash: string
+          source_url: string
+          updated_at?: string
+        }
+        Update: {
+          capture_chunk?: number
+          capture_id?: string
+          character_id?: string
+          character_label?: string
+          character_source_id?: string | null
+          core_property_id?: string | null
+          evidence_type?: string
+          first_seen_at?: string
+          identity_fallback?: boolean
+          last_seen_at?: string
+          property_id?: string
+          property_label?: string
+          property_source_id?: string | null
+          raw?: Json
+          resolution_reason?: string | null
+          resolution_status?: string
+          resolved_at?: string | null
+          resolved_by?: string | null
+          source_hash?: string
+          source_url?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "wb_property_character_normalized_capture_id_capture_chunk_fkey"
+            columns: ["capture_id", "capture_chunk"]
+            isOneToOne: false
+            referencedRelation: "wb_capture"
+            referencedColumns: ["capture_id", "chunk_number"]
+          },
+          {
+            foreignKeyName: "wb_property_character_normalized_character_id_fkey"
+            columns: ["character_id"]
+            isOneToOne: false
+            referencedRelation: "wb_character_normalized"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "wb_property_character_normalized_property_id_fkey"
+            columns: ["property_id"]
+            isOneToOne: false
+            referencedRelation: "wb_property"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      wb_style_guide_canonical_property_edge: {
+        Row: {
+          assertion_type: string
+          canonical_property_id: string
+          evidence_hash: string
+          evidence_source: string
+          first_seen_at: string
+          last_seen_at: string
+          observed_at: string
+          source_active: boolean
+          source_entity_id: string
+          updated_at: string
+          within_entitlement: boolean
+        }
+        Insert: {
+          assertion_type: string
+          canonical_property_id: string
+          evidence_hash: string
+          evidence_source: string
+          first_seen_at?: string
+          last_seen_at?: string
+          observed_at: string
+          source_active: boolean
+          source_entity_id: string
+          updated_at?: string
+          within_entitlement: boolean
+        }
+        Update: {
+          assertion_type?: string
+          canonical_property_id?: string
+          evidence_hash?: string
+          evidence_source?: string
+          first_seen_at?: string
+          last_seen_at?: string
+          observed_at?: string
+          source_active?: boolean
+          source_entity_id?: string
+          updated_at?: string
+          within_entitlement?: boolean
+        }
+        Relationships: [
+          {
+            foreignKeyName: "wb_style_guide_canonical_property_edge_source_entity_id_fkey"
+            columns: ["source_entity_id"]
+            isOneToOne: false
+            referencedRelation: "wb_style_guide_normalized"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      wb_style_guide_normalized: {
+        Row: {
+          capture_chunk: number
+          capture_id: string
+          change_signal: string | null
+          fallback_key: string | null
+          first_seen_at: string
+          first_withdrawn_at: string | null
+          id: string
+          identity_method: string
+          imported_at: string
+          label: string
+          last_seen_at: string
+          raw: Json
+          sku_sg_label_key: string | null
+          source_hash: string
+          source_id: string | null
+          source_namespace: string
+          source_term: string
+          source_url: string
+          status: string
+          updated_at: string
+          withdrawn_at: string | null
+        }
+        Insert: {
+          capture_chunk?: number
+          capture_id: string
+          change_signal?: string | null
+          fallback_key?: string | null
+          first_seen_at?: string
+          first_withdrawn_at?: string | null
+          id?: string
+          identity_method: string
+          imported_at?: string
+          label: string
+          last_seen_at?: string
+          raw: Json
+          sku_sg_label_key?: string | null
+          source_hash: string
+          source_id?: string | null
+          source_namespace: string
+          source_term?: string
+          source_url: string
+          status?: string
+          updated_at?: string
+          withdrawn_at?: string | null
+        }
+        Update: {
+          capture_chunk?: number
+          capture_id?: string
+          change_signal?: string | null
+          fallback_key?: string | null
+          first_seen_at?: string
+          first_withdrawn_at?: string | null
+          id?: string
+          identity_method?: string
+          imported_at?: string
+          label?: string
+          last_seen_at?: string
+          raw?: Json
+          sku_sg_label_key?: string | null
+          source_hash?: string
+          source_id?: string | null
+          source_namespace?: string
+          source_term?: string
+          source_url?: string
+          status?: string
+          updated_at?: string
+          withdrawn_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "wb_style_guide_normalized_capture_id_capture_chunk_fkey"
+            columns: ["capture_id", "capture_chunk"]
+            isOneToOne: false
+            referencedRelation: "wb_capture"
+            referencedColumns: ["capture_id", "chunk_number"]
+          },
+        ]
+      }
+      wildbrain_asset: {
+        Row: {
+          asset_category_source_id: string | null
+          asset_name: string
+          asset_nature_source_id: string | null
+          asset_source_id: string
+          asset_uuid: string
+          capture_id: string
+          creative_group_source_id: string | null
+          era_source_id: string
+          file_size_bytes: number | null
+          original_file_name: string | null
+          page_count: number | null
+          raw: Json
+          raw_keyword_text: string | null
+          source_created_at: string | null
+          source_hash: string
+          source_modified_at: string | null
+          universe_label: string
+        }
+        Insert: {
+          asset_category_source_id?: string | null
+          asset_name: string
+          asset_nature_source_id?: string | null
+          asset_source_id: string
+          asset_uuid: string
+          capture_id: string
+          creative_group_source_id?: string | null
+          era_source_id: string
+          file_size_bytes?: number | null
+          original_file_name?: string | null
+          page_count?: number | null
+          raw: Json
+          raw_keyword_text?: string | null
+          source_created_at?: string | null
+          source_hash: string
+          source_modified_at?: string | null
+          universe_label: string
+        }
+        Update: {
+          asset_category_source_id?: string | null
+          asset_name?: string
+          asset_nature_source_id?: string | null
+          asset_source_id?: string
+          asset_uuid?: string
+          capture_id?: string
+          creative_group_source_id?: string | null
+          era_source_id?: string
+          file_size_bytes?: number | null
+          original_file_name?: string | null
+          page_count?: number | null
+          raw?: Json
+          raw_keyword_text?: string | null
+          source_created_at?: string | null
+          source_hash?: string
+          source_modified_at?: string | null
+          universe_label?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "wildbrain_asset_capture_id_fkey"
+            columns: ["capture_id"]
+            isOneToOne: false
+            referencedRelation: "wildbrain_capture"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "wildbrain_asset_category_fk"
+            columns: ["capture_id", "asset_category_source_id"]
+            isOneToOne: false
+            referencedRelation: "wildbrain_asset_category"
+            referencedColumns: ["capture_id", "asset_category_source_id"]
+          },
+          {
+            foreignKeyName: "wildbrain_asset_creative_group_fk"
+            columns: ["capture_id", "creative_group_source_id"]
+            isOneToOne: false
+            referencedRelation: "wildbrain_creative_group"
+            referencedColumns: ["capture_id", "creative_group_source_id"]
+          },
+          {
+            foreignKeyName: "wildbrain_asset_era_fk"
+            columns: ["capture_id", "era_source_id"]
+            isOneToOne: false
+            referencedRelation: "wildbrain_era"
+            referencedColumns: ["capture_id", "era_source_id"]
+          },
+          {
+            foreignKeyName: "wildbrain_asset_nature_fk"
+            columns: ["capture_id", "asset_nature_source_id"]
+            isOneToOne: false
+            referencedRelation: "wildbrain_asset_nature"
+            referencedColumns: ["capture_id", "asset_nature_source_id"]
+          },
+        ]
+      }
+      wildbrain_asset_category: {
+        Row: {
+          asset_category_label: string
+          asset_category_source_id: string
+          capture_id: string
+          normalized_asset_category_label: string
+          raw: Json
+        }
+        Insert: {
+          asset_category_label: string
+          asset_category_source_id: string
+          capture_id: string
+          normalized_asset_category_label: string
+          raw: Json
+        }
+        Update: {
+          asset_category_label?: string
+          asset_category_source_id?: string
+          capture_id?: string
+          normalized_asset_category_label?: string
+          raw?: Json
+        }
+        Relationships: [
+          {
+            foreignKeyName: "wildbrain_asset_category_capture_id_fkey"
+            columns: ["capture_id"]
+            isOneToOne: false
+            referencedRelation: "wildbrain_capture"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      wildbrain_asset_character: {
+        Row: {
+          asset_source_id: string
+          capture_id: string
+          character_source_id: string
+          raw: Json
+          relationship_truth: string
+        }
+        Insert: {
+          asset_source_id: string
+          capture_id: string
+          character_source_id: string
+          raw: Json
+          relationship_truth?: string
+        }
+        Update: {
+          asset_source_id?: string
+          capture_id?: string
+          character_source_id?: string
+          raw?: Json
+          relationship_truth?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "wildbrain_asset_character_asset_fk"
+            columns: ["capture_id", "asset_source_id"]
+            isOneToOne: false
+            referencedRelation: "wildbrain_asset"
+            referencedColumns: ["capture_id", "asset_source_id"]
+          },
+          {
+            foreignKeyName: "wildbrain_asset_character_capture_id_fkey"
+            columns: ["capture_id"]
+            isOneToOne: false
+            referencedRelation: "wildbrain_capture"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "wildbrain_asset_character_character_fk"
+            columns: ["capture_id", "character_source_id"]
+            isOneToOne: false
+            referencedRelation: "wildbrain_character"
+            referencedColumns: ["capture_id", "character_source_id"]
+          },
+        ]
+      }
+      wildbrain_asset_guide: {
+        Row: {
+          alias_label: string
+          asset_source_id: string
+          capture_id: string
+          guide_key: string
+          raw: Json
+          relationship_truth: string
+        }
+        Insert: {
+          alias_label: string
+          asset_source_id: string
+          capture_id: string
+          guide_key: string
+          raw: Json
+          relationship_truth?: string
+        }
+        Update: {
+          alias_label?: string
+          asset_source_id?: string
+          capture_id?: string
+          guide_key?: string
+          raw?: Json
+          relationship_truth?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "wildbrain_asset_guide_alias_fk"
+            columns: ["capture_id", "guide_key", "alias_label"]
+            isOneToOne: false
+            referencedRelation: "wildbrain_guide_alias"
+            referencedColumns: ["capture_id", "guide_key", "alias_label"]
+          },
+          {
+            foreignKeyName: "wildbrain_asset_guide_asset_fk"
+            columns: ["capture_id", "asset_source_id"]
+            isOneToOne: false
+            referencedRelation: "wildbrain_asset"
+            referencedColumns: ["capture_id", "asset_source_id"]
+          },
+          {
+            foreignKeyName: "wildbrain_asset_guide_capture_id_fkey"
+            columns: ["capture_id"]
+            isOneToOne: false
+            referencedRelation: "wildbrain_capture"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "wildbrain_asset_guide_guide_fk"
+            columns: ["capture_id", "guide_key"]
+            isOneToOne: false
+            referencedRelation: "wildbrain_guide"
+            referencedColumns: ["capture_id", "guide_key"]
+          },
+        ]
+      }
+      wildbrain_asset_nature: {
+        Row: {
+          asset_nature_label: string
+          asset_nature_source_id: string
+          capture_id: string
+          media_type: string | null
+          raw: Json
+        }
+        Insert: {
+          asset_nature_label: string
+          asset_nature_source_id: string
+          capture_id: string
+          media_type?: string | null
+          raw: Json
+        }
+        Update: {
+          asset_nature_label?: string
+          asset_nature_source_id?: string
+          capture_id?: string
+          media_type?: string | null
+          raw?: Json
+        }
+        Relationships: [
+          {
+            foreignKeyName: "wildbrain_asset_nature_capture_id_fkey"
+            columns: ["capture_id"]
+            isOneToOne: false
+            referencedRelation: "wildbrain_capture"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      wildbrain_capture: {
+        Row: {
+          capture_key: string
+          created_by: string
+          error_summary: Json
+          expected_counts: Json
+          id: string
+          load_completed_at: string | null
+          load_started_at: string
+          media_downloaded: number
+          observed_counts: Json
+          pagination_verified: boolean
+          portal_base_url: string
+          raw_summary: Json
+          read_commit_sha: string | null
+          reported_total: number | null
+          source_captured_at: string
+          source_commit_sha: string
+          source_manifest_sha256: string
+          source_repository: string
+          status: string
+          truncated_child_lists: number
+        }
+        Insert: {
+          capture_key: string
+          created_by: string
+          error_summary?: Json
+          expected_counts: Json
+          id?: string
+          load_completed_at?: string | null
+          load_started_at?: string
+          media_downloaded?: number
+          observed_counts?: Json
+          pagination_verified?: boolean
+          portal_base_url: string
+          raw_summary: Json
+          read_commit_sha?: string | null
+          reported_total?: number | null
+          source_captured_at: string
+          source_commit_sha: string
+          source_manifest_sha256: string
+          source_repository: string
+          status?: string
+          truncated_child_lists?: number
+        }
+        Update: {
+          capture_key?: string
+          created_by?: string
+          error_summary?: Json
+          expected_counts?: Json
+          id?: string
+          load_completed_at?: string | null
+          load_started_at?: string
+          media_downloaded?: number
+          observed_counts?: Json
+          pagination_verified?: boolean
+          portal_base_url?: string
+          raw_summary?: Json
+          read_commit_sha?: string | null
+          reported_total?: number | null
+          source_captured_at?: string
+          source_commit_sha?: string
+          source_manifest_sha256?: string
+          source_repository?: string
+          status?: string
+          truncated_child_lists?: number
+        }
+        Relationships: []
+      }
+      wildbrain_character: {
+        Row: {
+          capture_id: string
           character_label: string
           character_source_id: string
+          core_character_id: string | null
+          in_source_dictionary: boolean
+          normalized_character_label: string
+          raw: Json
+          resolution_reason: string | null
+          resolution_status: string
+          resolved_at: string | null
+          resolved_by: string | null
+        }
+        Insert: {
+          capture_id: string
+          character_label: string
+          character_source_id: string
+          core_character_id?: string | null
+          in_source_dictionary: boolean
+          normalized_character_label: string
+          raw: Json
+          resolution_reason?: string | null
+          resolution_status?: string
+          resolved_at?: string | null
+          resolved_by?: string | null
+        }
+        Update: {
+          capture_id?: string
+          character_label?: string
+          character_source_id?: string
+          core_character_id?: string | null
+          in_source_dictionary?: boolean
+          normalized_character_label?: string
+          raw?: Json
+          resolution_reason?: string | null
+          resolution_status?: string
+          resolved_at?: string | null
+          resolved_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "wildbrain_character_capture_id_fkey"
+            columns: ["capture_id"]
+            isOneToOne: false
+            referencedRelation: "wildbrain_capture"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      wildbrain_creative_group: {
+        Row: {
+          capture_id: string
+          creative_group_label: string
+          creative_group_source_id: string
+          normalized_creative_group_label: string
+          raw: Json
+        }
+        Insert: {
+          capture_id: string
+          creative_group_label: string
+          creative_group_source_id: string
+          normalized_creative_group_label: string
+          raw: Json
+        }
+        Update: {
+          capture_id?: string
+          creative_group_label?: string
+          creative_group_source_id?: string
+          normalized_creative_group_label?: string
+          raw?: Json
+        }
+        Relationships: [
+          {
+            foreignKeyName: "wildbrain_creative_group_capture_id_fkey"
+            columns: ["capture_id"]
+            isOneToOne: false
+            referencedRelation: "wildbrain_capture"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      wildbrain_entity_lifecycle: {
+        Row: {
+          change_signal: string
+          entity_key: string
+          entity_kind: string
+          first_seen_at: string
+          first_seen_capture_id: string
+          first_withdrawn_at: string | null
+          last_changed_capture_id: string
+          last_seen_at: string
+          last_seen_capture_id: string
+          status: string
+          withdrawn_at: string | null
+          withdrawn_capture_id: string | null
+        }
+        Insert: {
+          change_signal: string
+          entity_key: string
+          entity_kind: string
+          first_seen_at: string
+          first_seen_capture_id: string
+          first_withdrawn_at?: string | null
+          last_changed_capture_id: string
+          last_seen_at: string
+          last_seen_capture_id: string
+          status?: string
+          withdrawn_at?: string | null
+          withdrawn_capture_id?: string | null
+        }
+        Update: {
+          change_signal?: string
+          entity_key?: string
+          entity_kind?: string
           first_seen_at?: string
-          id_fallback: boolean
-          imported_at?: string
+          first_seen_capture_id?: string
+          first_withdrawn_at?: string | null
+          last_changed_capture_id?: string
           last_seen_at?: string
-          property_id?: string | null
+          last_seen_capture_id?: string
+          status?: string
+          withdrawn_at?: string | null
+          withdrawn_capture_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "wildbrain_entity_lifecycle_first_seen_capture_id_fkey"
+            columns: ["first_seen_capture_id"]
+            isOneToOne: false
+            referencedRelation: "wildbrain_lifecycle_publication"
+            referencedColumns: ["capture_id"]
+          },
+          {
+            foreignKeyName: "wildbrain_entity_lifecycle_last_changed_capture_id_fkey"
+            columns: ["last_changed_capture_id"]
+            isOneToOne: false
+            referencedRelation: "wildbrain_lifecycle_publication"
+            referencedColumns: ["capture_id"]
+          },
+          {
+            foreignKeyName: "wildbrain_entity_lifecycle_last_seen_capture_id_fkey"
+            columns: ["last_seen_capture_id"]
+            isOneToOne: false
+            referencedRelation: "wildbrain_lifecycle_publication"
+            referencedColumns: ["capture_id"]
+          },
+          {
+            foreignKeyName: "wildbrain_entity_lifecycle_withdrawn_capture_id_fkey"
+            columns: ["withdrawn_capture_id"]
+            isOneToOne: false
+            referencedRelation: "wildbrain_lifecycle_publication"
+            referencedColumns: ["capture_id"]
+          },
+        ]
+      }
+      wildbrain_era: {
+        Row: {
+          capture_id: string
+          era_label: string
+          era_source_id: string
+          is_root: boolean
+          normalized_era_label: string
+          parent_era_source_id: string | null
+          raw: Json
+        }
+        Insert: {
+          capture_id: string
+          era_label: string
+          era_source_id: string
+          is_root: boolean
+          normalized_era_label: string
+          parent_era_source_id?: string | null
+          raw: Json
+        }
+        Update: {
+          capture_id?: string
+          era_label?: string
+          era_source_id?: string
+          is_root?: boolean
+          normalized_era_label?: string
+          parent_era_source_id?: string | null
+          raw?: Json
+        }
+        Relationships: [
+          {
+            foreignKeyName: "wildbrain_era_capture_id_fkey"
+            columns: ["capture_id"]
+            isOneToOne: false
+            referencedRelation: "wildbrain_capture"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "wildbrain_era_parent_fk"
+            columns: ["capture_id", "parent_era_source_id"]
+            isOneToOne: false
+            referencedRelation: "wildbrain_era"
+            referencedColumns: ["capture_id", "era_source_id"]
+          },
+        ]
+      }
+      wildbrain_guide: {
+        Row: {
+          capture_id: string
+          derivation_method: string
+          guide_key: string
+          guide_label: string
+          normalized_guide_label: string
+          raw: Json
+          relationship_truth: string
+          rule_version: string
+        }
+        Insert: {
+          capture_id: string
+          derivation_method?: string
+          guide_key: string
+          guide_label: string
+          normalized_guide_label: string
+          raw: Json
+          relationship_truth?: string
+          rule_version: string
+        }
+        Update: {
+          capture_id?: string
+          derivation_method?: string
+          guide_key?: string
+          guide_label?: string
+          normalized_guide_label?: string
+          raw?: Json
+          relationship_truth?: string
+          rule_version?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "wildbrain_guide_capture_id_fkey"
+            columns: ["capture_id"]
+            isOneToOne: false
+            referencedRelation: "wildbrain_capture"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      wildbrain_guide_alias: {
+        Row: {
+          alias_label: string
+          asset_count: number
+          capture_id: string
+          guide_key: string
+          raw: Json
+          relationship_truth: string
+        }
+        Insert: {
+          alias_label: string
+          asset_count: number
+          capture_id: string
+          guide_key: string
+          raw: Json
+          relationship_truth?: string
+        }
+        Update: {
+          alias_label?: string
+          asset_count?: number
+          capture_id?: string
+          guide_key?: string
+          raw?: Json
+          relationship_truth?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "wildbrain_guide_alias_capture_id_fkey"
+            columns: ["capture_id"]
+            isOneToOne: false
+            referencedRelation: "wildbrain_capture"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "wildbrain_guide_alias_guide_fk"
+            columns: ["capture_id", "guide_key"]
+            isOneToOne: false
+            referencedRelation: "wildbrain_guide"
+            referencedColumns: ["capture_id", "guide_key"]
+          },
+        ]
+      }
+      wildbrain_lifecycle_publication: {
+        Row: {
+          baseline_capture_id: string | null
+          capture_id: string
+          counts: Json
+          derivation_contract: string
+          guide_rule_versions: string
+          mode: string
+          published_at: string
+          scope_sha256: string
+          source_captured_at: string
+        }
+        Insert: {
+          baseline_capture_id?: string | null
+          capture_id: string
+          counts?: Json
+          derivation_contract: string
+          guide_rule_versions: string
+          mode: string
+          published_at?: string
+          scope_sha256: string
+          source_captured_at: string
+        }
+        Update: {
+          baseline_capture_id?: string | null
+          capture_id?: string
+          counts?: Json
+          derivation_contract?: string
+          guide_rule_versions?: string
+          mode?: string
+          published_at?: string
+          scope_sha256?: string
+          source_captured_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "wildbrain_lifecycle_publication_baseline_capture_id_fkey"
+            columns: ["baseline_capture_id"]
+            isOneToOne: false
+            referencedRelation: "wildbrain_lifecycle_publication"
+            referencedColumns: ["capture_id"]
+          },
+          {
+            foreignKeyName: "wildbrain_lifecycle_publication_capture_id_fkey"
+            columns: ["capture_id"]
+            isOneToOne: true
+            referencedRelation: "wildbrain_capture"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      wildbrain_submission_property_option: {
+        Row: {
+          exact_label: string
+          loaded_at: string
+          option_key: string
+          ordinal: number
+          raw: Json
+          source_captured_at: string
+          source_field: string
+        }
+        Insert: {
+          exact_label: string
+          loaded_at?: string
+          option_key: string
+          ordinal: number
+          raw?: Json
+          source_captured_at: string
+          source_field: string
+        }
+        Update: {
+          exact_label?: string
+          loaded_at?: string
+          option_key?: string
+          ordinal?: number
+          raw?: Json
+          source_captured_at?: string
+          source_field?: string
+        }
+        Relationships: []
+      }
+      wwe_asset: {
+        Row: {
+          asset_kind: string | null
+          asset_source_id: string
+          capture_id: string
+          copyright_notice: string | null
+          copyright_status: string | null
+          creator_label: string | null
+          extension: string | null
+          file_name: string
+          height: number | null
+          library_source_id: string
+          raw: Json
+          source_created_at: string | null
+          source_hash: string
+          source_modified_at: string | null
+          source_status: string | null
+          title: string | null
+          width: number | null
+        }
+        Insert: {
+          asset_kind?: string | null
+          asset_source_id: string
+          capture_id: string
+          copyright_notice?: string | null
+          copyright_status?: string | null
+          creator_label?: string | null
+          extension?: string | null
+          file_name: string
+          height?: number | null
+          library_source_id: string
+          raw: Json
+          source_created_at?: string | null
+          source_hash: string
+          source_modified_at?: string | null
+          source_status?: string | null
+          title?: string | null
+          width?: number | null
+        }
+        Update: {
+          asset_kind?: string | null
+          asset_source_id?: string
+          capture_id?: string
+          copyright_notice?: string | null
+          copyright_status?: string | null
+          creator_label?: string | null
+          extension?: string | null
+          file_name?: string
+          height?: number | null
+          library_source_id?: string
+          raw?: Json
+          source_created_at?: string | null
+          source_hash?: string
+          source_modified_at?: string | null
+          source_status?: string | null
+          title?: string | null
+          width?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "wwe_asset_library_fkey"
+            columns: ["capture_id", "library_source_id"]
+            isOneToOne: false
+            referencedRelation: "wwe_asset_library"
+            referencedColumns: ["capture_id", "library_source_id"]
+          },
+        ]
+      }
+      wwe_asset_folder: {
+        Row: {
+          capture_id: string
+          folder_depth: number
+          folder_label: string
+          folder_path: string
+          folder_source_id: string
+          parent_folder_source_id: string | null
+          raw: Json
+        }
+        Insert: {
+          capture_id: string
+          folder_depth: number
+          folder_label: string
+          folder_path: string
+          folder_source_id: string
+          parent_folder_source_id?: string | null
+          raw: Json
+        }
+        Update: {
+          capture_id?: string
+          folder_depth?: number
+          folder_label?: string
+          folder_path?: string
+          folder_source_id?: string
+          parent_folder_source_id?: string | null
+          raw?: Json
+        }
+        Relationships: [
+          {
+            foreignKeyName: "wwe_asset_folder_capture_fkey"
+            columns: ["capture_id"]
+            isOneToOne: false
+            referencedRelation: "wwe_creative_capture"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "wwe_asset_folder_parent_fkey"
+            columns: ["capture_id", "parent_folder_source_id"]
+            isOneToOne: false
+            referencedRelation: "wwe_asset_folder"
+            referencedColumns: ["capture_id", "folder_source_id"]
+          },
+        ]
+      }
+      wwe_asset_folder_member: {
+        Row: {
+          asset_source_id: string
+          capture_id: string
+          folder_source_id: string
+          raw: Json
+        }
+        Insert: {
+          asset_source_id: string
+          capture_id: string
+          folder_source_id: string
+          raw: Json
+        }
+        Update: {
+          asset_source_id?: string
+          capture_id?: string
+          folder_source_id?: string
+          raw?: Json
+        }
+        Relationships: [
+          {
+            foreignKeyName: "wwe_asset_folder_member_asset_fkey"
+            columns: ["capture_id", "asset_source_id"]
+            isOneToOne: false
+            referencedRelation: "wwe_asset"
+            referencedColumns: ["capture_id", "asset_source_id"]
+          },
+          {
+            foreignKeyName: "wwe_asset_folder_member_folder_fkey"
+            columns: ["capture_id", "folder_source_id"]
+            isOneToOne: false
+            referencedRelation: "wwe_asset_folder"
+            referencedColumns: ["capture_id", "folder_source_id"]
+          },
+        ]
+      }
+      wwe_asset_library: {
+        Row: {
+          asset_count: number | null
+          brand_source_id: string
+          capture_id: string
+          library_kind: string | null
+          library_label: string
+          library_source_id: string
+          raw: Json
+        }
+        Insert: {
+          asset_count?: number | null
+          brand_source_id: string
+          capture_id: string
+          library_kind?: string | null
+          library_label: string
+          library_source_id: string
+          raw: Json
+        }
+        Update: {
+          asset_count?: number | null
+          brand_source_id?: string
+          capture_id?: string
+          library_kind?: string | null
+          library_label?: string
+          library_source_id?: string
+          raw?: Json
+        }
+        Relationships: [
+          {
+            foreignKeyName: "wwe_asset_library_brand_fkey"
+            columns: ["capture_id", "brand_source_id"]
+            isOneToOne: false
+            referencedRelation: "wwe_creative_brand"
+            referencedColumns: ["capture_id", "brand_source_id"]
+          },
+        ]
+      }
+      wwe_asset_property_inferred: {
+        Row: {
+          asset_source_id: string
+          capture_id: string
+          confidence: number
+          match_method: string
+          property_source_id: string
+          raw: Json
+          relationship_truth: string
+          rule_version: string
+        }
+        Insert: {
+          asset_source_id: string
+          capture_id: string
+          confidence: number
+          match_method: string
+          property_source_id: string
+          raw: Json
+          relationship_truth?: string
+          rule_version: string
+        }
+        Update: {
+          asset_source_id?: string
+          capture_id?: string
+          confidence?: number
+          match_method?: string
+          property_source_id?: string
+          raw?: Json
+          relationship_truth?: string
+          rule_version?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "wwe_asset_property_inferred_asset_fkey"
+            columns: ["capture_id", "asset_source_id"]
+            isOneToOne: false
+            referencedRelation: "wwe_asset"
+            referencedColumns: ["capture_id", "asset_source_id"]
+          },
+        ]
+      }
+      wwe_asset_style_guide_inferred: {
+        Row: {
+          asset_source_id: string
+          capture_id: string
+          confidence: number
+          guideline_source_id: string
+          match_method: string
+          raw: Json
+          relationship_truth: string
+          rule_version: string
+        }
+        Insert: {
+          asset_source_id: string
+          capture_id: string
+          confidence: number
+          guideline_source_id: string
+          match_method: string
+          raw: Json
+          relationship_truth?: string
+          rule_version: string
+        }
+        Update: {
+          asset_source_id?: string
+          capture_id?: string
+          confidence?: number
+          guideline_source_id?: string
+          match_method?: string
+          raw?: Json
+          relationship_truth?: string
+          rule_version?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "wwe_asset_style_guide_inferred_asset_fkey"
+            columns: ["capture_id", "asset_source_id"]
+            isOneToOne: false
+            referencedRelation: "wwe_asset"
+            referencedColumns: ["capture_id", "asset_source_id"]
+          },
+          {
+            foreignKeyName: "wwe_asset_style_guide_inferred_guide_fkey"
+            columns: ["capture_id", "guideline_source_id"]
+            isOneToOne: false
+            referencedRelation: "wwe_style_guide"
+            referencedColumns: ["capture_id", "guideline_source_id"]
+          },
+        ]
+      }
+      wwe_asset_tag: {
+        Row: {
+          asset_source_id: string
+          capture_id: string
+          raw: Json
+          tag_source: string
+          tag_source_key: string
+          tag_value: string | null
+        }
+        Insert: {
+          asset_source_id: string
+          capture_id: string
+          raw: Json
+          tag_source: string
+          tag_source_key: string
+          tag_value?: string | null
+        }
+        Update: {
+          asset_source_id?: string
+          capture_id?: string
+          raw?: Json
+          tag_source?: string
+          tag_source_key?: string
+          tag_value?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "wwe_asset_tag_asset_fkey"
+            columns: ["capture_id", "asset_source_id"]
+            isOneToOne: false
+            referencedRelation: "wwe_asset"
+            referencedColumns: ["capture_id", "asset_source_id"]
+          },
+          {
+            foreignKeyName: "wwe_asset_tag_tag_fkey"
+            columns: ["capture_id", "tag_source_key"]
+            isOneToOne: false
+            referencedRelation: "wwe_tag"
+            referencedColumns: ["capture_id", "tag_source_key"]
+          },
+        ]
+      }
+      wwe_character_candidate: {
+        Row: {
+          candidate_label: string
+          capture_id: string
+          character_candidate_key: string
+          inference_method: string
+          normalized_candidate_label: string
+          raw: Json
+          rule_version: string
+        }
+        Insert: {
+          candidate_label: string
+          capture_id: string
+          character_candidate_key: string
+          inference_method: string
+          normalized_candidate_label: string
+          raw: Json
+          rule_version: string
+        }
+        Update: {
+          candidate_label?: string
+          capture_id?: string
+          character_candidate_key?: string
+          inference_method?: string
+          normalized_candidate_label?: string
+          raw?: Json
+          rule_version?: string
+        }
+        Relationships: []
+      }
+      wwe_character_evidence: {
+        Row: {
+          asset_source_id: string | null
+          capture_id: string
+          character_candidate_key: string
+          confidence: number
+          evidence_key: string
+          evidence_type: string
+          evidence_value: string
+          folder_source_id: string | null
+          match_method: string
+          raw: Json
+          relationship_truth: string
+          rule_version: string
+          submission_number: string | null
+        }
+        Insert: {
+          asset_source_id?: string | null
+          capture_id: string
+          character_candidate_key: string
+          confidence: number
+          evidence_key: string
+          evidence_type: string
+          evidence_value: string
+          folder_source_id?: string | null
+          match_method: string
+          raw: Json
+          relationship_truth?: string
+          rule_version: string
+          submission_number?: string | null
+        }
+        Update: {
+          asset_source_id?: string | null
+          capture_id?: string
+          character_candidate_key?: string
+          confidence?: number
+          evidence_key?: string
+          evidence_type?: string
+          evidence_value?: string
+          folder_source_id?: string | null
+          match_method?: string
+          raw?: Json
+          relationship_truth?: string
+          rule_version?: string
+          submission_number?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "wwe_character_evidence_candidate_fkey"
+            columns: ["capture_id", "character_candidate_key"]
+            isOneToOne: false
+            referencedRelation: "wwe_character_candidate"
+            referencedColumns: ["capture_id", "character_candidate_key"]
+          },
+          {
+            foreignKeyName: "wwe_character_evidence_submission_fkey"
+            columns: ["capture_id", "submission_number"]
+            isOneToOne: false
+            referencedRelation: "wwe_submission"
+            referencedColumns: ["capture_id", "submission_number"]
+          },
+        ]
+      }
+      wwe_character_property_inferred: {
+        Row: {
+          capture_id: string
+          character_candidate_key: string
+          confidence: number
+          match_method: string
+          property_source_id: string
+          raw: Json
+          relationship_truth: string
+          rule_version: string
+        }
+        Insert: {
+          capture_id: string
+          character_candidate_key: string
+          confidence: number
+          match_method: string
+          property_source_id: string
+          raw: Json
+          relationship_truth?: string
+          rule_version: string
+        }
+        Update: {
+          capture_id?: string
+          character_candidate_key?: string
+          confidence?: number
+          match_method?: string
+          property_source_id?: string
+          raw?: Json
+          relationship_truth?: string
+          rule_version?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "wwe_character_property_inferred_candidate_fkey"
+            columns: ["capture_id", "character_candidate_key"]
+            isOneToOne: false
+            referencedRelation: "wwe_character_candidate"
+            referencedColumns: ["capture_id", "character_candidate_key"]
+          },
+        ]
+      }
+      wwe_contract: {
+        Row: {
+          capture_id: string
+          contract_label: string
+          contract_source_id: string
+          raw: Json
+        }
+        Insert: {
+          capture_id: string
+          contract_label: string
+          contract_source_id: string
+          raw: Json
+        }
+        Update: {
+          capture_id?: string
+          contract_label?: string
+          contract_source_id?: string
+          raw?: Json
+        }
+        Relationships: [
+          {
+            foreignKeyName: "wwe_contract_capture_id_fkey"
+            columns: ["capture_id"]
+            isOneToOne: false
+            referencedRelation: "wwe_submission_capture"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      wwe_contract_property: {
+        Row: {
+          capture_id: string
+          contract_source_id: string
+          property_source_id: string
+          raw: Json
+        }
+        Insert: {
+          capture_id: string
+          contract_source_id: string
+          property_source_id: string
+          raw: Json
+        }
+        Update: {
+          capture_id?: string
+          contract_source_id?: string
+          property_source_id?: string
+          raw?: Json
+        }
+        Relationships: [
+          {
+            foreignKeyName: "wwe_contract_property_contract_fkey"
+            columns: ["capture_id", "contract_source_id"]
+            isOneToOne: false
+            referencedRelation: "wwe_contract"
+            referencedColumns: ["capture_id", "contract_source_id"]
+          },
+          {
+            foreignKeyName: "wwe_contract_property_property_fkey"
+            columns: ["capture_id", "property_source_id"]
+            isOneToOne: false
+            referencedRelation: "wwe_property"
+            referencedColumns: ["capture_id", "property_source_id"]
+          },
+        ]
+      }
+      wwe_creative_brand: {
+        Row: {
+          brand_label: string
+          brand_source_id: string
+          capture_id: string
+          raw: Json
+        }
+        Insert: {
+          brand_label: string
+          brand_source_id: string
+          capture_id: string
+          raw: Json
+        }
+        Update: {
+          brand_label?: string
+          brand_source_id?: string
+          capture_id?: string
+          raw?: Json
+        }
+        Relationships: [
+          {
+            foreignKeyName: "wwe_creative_brand_capture_id_fkey"
+            columns: ["capture_id"]
+            isOneToOne: false
+            referencedRelation: "wwe_creative_capture"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      wwe_creative_capture: {
+        Row: {
+          asset_paging_terminal: boolean
+          brand_paging_terminal: boolean
+          capture_key: string
+          created_by: string
+          error_summary: Json
+          expected_counts: Json
+          folder_paging_terminal: boolean
+          guidelines_reported: number
+          guidelines_visible: number
+          id: string
+          load_completed_at: string | null
+          load_started_at: string
+          observed_counts: Json
+          portal_base_url: string
+          raw_summary: Json
+          read_commit_sha: string | null
+          source_captured_at: string
+          source_commit_sha: string
+          source_manifest_sha256: string
+          source_repository: string
+          status: string
+        }
+        Insert: {
+          asset_paging_terminal?: boolean
+          brand_paging_terminal?: boolean
+          capture_key: string
+          created_by: string
+          error_summary?: Json
+          expected_counts: Json
+          folder_paging_terminal?: boolean
+          guidelines_reported: number
+          guidelines_visible: number
+          id?: string
+          load_completed_at?: string | null
+          load_started_at?: string
+          observed_counts?: Json
+          portal_base_url: string
+          raw_summary: Json
+          read_commit_sha?: string | null
+          source_captured_at: string
+          source_commit_sha: string
+          source_manifest_sha256: string
+          source_repository: string
+          status?: string
+        }
+        Update: {
+          asset_paging_terminal?: boolean
+          brand_paging_terminal?: boolean
+          capture_key?: string
+          created_by?: string
+          error_summary?: Json
+          expected_counts?: Json
+          folder_paging_terminal?: boolean
+          guidelines_reported?: number
+          guidelines_visible?: number
+          id?: string
+          load_completed_at?: string | null
+          load_started_at?: string
+          observed_counts?: Json
+          portal_base_url?: string
+          raw_summary?: Json
+          read_commit_sha?: string | null
+          source_captured_at?: string
+          source_commit_sha?: string
+          source_manifest_sha256?: string
+          source_repository?: string
+          status?: string
+        }
+        Relationships: []
+      }
+      wwe_product_entitlement: {
+        Row: {
+          article_label: string | null
+          capture_id: string
+          category_label: string | null
+          contract_source_id: string
+          id: string
+          product_label: string
+          property_source_id: string
+          raw: Json
+          sub_category_label: string | null
+        }
+        Insert: {
+          article_label?: string | null
+          capture_id: string
+          category_label?: string | null
+          contract_source_id: string
+          id?: string
+          product_label: string
+          property_source_id: string
+          raw: Json
+          sub_category_label?: string | null
+        }
+        Update: {
+          article_label?: string | null
+          capture_id?: string
+          category_label?: string | null
+          contract_source_id?: string
+          id?: string
+          product_label?: string
+          property_source_id?: string
+          raw?: Json
+          sub_category_label?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "wwe_product_entitlement_capture_id_fkey"
+            columns: ["capture_id"]
+            isOneToOne: false
+            referencedRelation: "wwe_submission_capture"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "wwe_product_entitlement_contract_fkey"
+            columns: ["capture_id", "contract_source_id"]
+            isOneToOne: false
+            referencedRelation: "wwe_contract"
+            referencedColumns: ["capture_id", "contract_source_id"]
+          },
+          {
+            foreignKeyName: "wwe_product_entitlement_property_fkey"
+            columns: ["capture_id", "property_source_id"]
+            isOneToOne: false
+            referencedRelation: "wwe_property"
+            referencedColumns: ["capture_id", "property_source_id"]
+          },
+        ]
+      }
+      wwe_property: {
+        Row: {
+          capture_id: string
+          license_type_label: string | null
+          parent_property_source_id: string | null
           property_label: string
           property_source_id: string
           raw: Json
-          resolution_reason?: string | null
-          resolution_status?: string
-          resolved_at?: string | null
-          resolved_by?: string | null
           source_hash: string
           source_url: string
-          updated_at?: string
+        }
+        Insert: {
+          capture_id: string
+          license_type_label?: string | null
+          parent_property_source_id?: string | null
+          property_label: string
+          property_source_id: string
+          raw: Json
+          source_hash: string
+          source_url: string
         }
         Update: {
-          captured_at?: string
-          character_label?: string
-          character_source_id?: string
-          first_seen_at?: string
-          id_fallback?: boolean
-          imported_at?: string
-          last_seen_at?: string
-          property_id?: string | null
+          capture_id?: string
+          license_type_label?: string | null
+          parent_property_source_id?: string | null
           property_label?: string
           property_source_id?: string
           raw?: Json
-          resolution_reason?: string | null
-          resolution_status?: string
-          resolved_at?: string | null
-          resolved_by?: string | null
           source_hash?: string
           source_url?: string
-          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "wwe_property_capture_id_fkey"
+            columns: ["capture_id"]
+            isOneToOne: false
+            referencedRelation: "wwe_submission_capture"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "wwe_property_parent_fkey"
+            columns: ["capture_id", "parent_property_source_id"]
+            isOneToOne: false
+            referencedRelation: "wwe_property"
+            referencedColumns: ["capture_id", "property_source_id"]
+          },
+        ]
+      }
+      wwe_style_guide: {
+        Row: {
+          brand_source_id: string
+          capture_id: string
+          guideline_label: string
+          guideline_source_id: string
+          page_count: number | null
+          raw: Json
+          source_url: string
+        }
+        Insert: {
+          brand_source_id: string
+          capture_id: string
+          guideline_label: string
+          guideline_source_id: string
+          page_count?: number | null
+          raw: Json
+          source_url: string
+        }
+        Update: {
+          brand_source_id?: string
+          capture_id?: string
+          guideline_label?: string
+          guideline_source_id?: string
+          page_count?: number | null
+          raw?: Json
+          source_url?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "wwe_style_guide_brand_fkey"
+            columns: ["capture_id", "brand_source_id"]
+            isOneToOne: false
+            referencedRelation: "wwe_creative_brand"
+            referencedColumns: ["capture_id", "brand_source_id"]
+          },
+        ]
+      }
+      wwe_style_guide_page: {
+        Row: {
+          capture_id: string
+          guideline_source_id: string
+          page_ordinal: number
+          page_source_id: string
+          page_title: string | null
+          raw: Json
+        }
+        Insert: {
+          capture_id: string
+          guideline_source_id: string
+          page_ordinal: number
+          page_source_id: string
+          page_title?: string | null
+          raw: Json
+        }
+        Update: {
+          capture_id?: string
+          guideline_source_id?: string
+          page_ordinal?: number
+          page_source_id?: string
+          page_title?: string | null
+          raw?: Json
+        }
+        Relationships: [
+          {
+            foreignKeyName: "wwe_style_guide_page_guide_fkey"
+            columns: ["capture_id", "guideline_source_id"]
+            isOneToOne: false
+            referencedRelation: "wwe_style_guide"
+            referencedColumns: ["capture_id", "guideline_source_id"]
+          },
+        ]
+      }
+      wwe_style_guide_property_inferred: {
+        Row: {
+          capture_id: string
+          confidence: number
+          guideline_source_id: string
+          match_method: string
+          property_source_id: string
+          raw: Json
+          relationship_truth: string
+          rule_version: string
+        }
+        Insert: {
+          capture_id: string
+          confidence: number
+          guideline_source_id: string
+          match_method: string
+          property_source_id: string
+          raw: Json
+          relationship_truth?: string
+          rule_version: string
+        }
+        Update: {
+          capture_id?: string
+          confidence?: number
+          guideline_source_id?: string
+          match_method?: string
+          property_source_id?: string
+          raw?: Json
+          relationship_truth?: string
+          rule_version?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "wwe_style_guide_property_inferred_guide_fkey"
+            columns: ["capture_id", "guideline_source_id"]
+            isOneToOne: false
+            referencedRelation: "wwe_style_guide"
+            referencedColumns: ["capture_id", "guideline_source_id"]
+          },
+        ]
+      }
+      wwe_submission: {
+        Row: {
+          capture_id: string
+          company_label: string | null
+          contract_label: string | null
+          date_submitted: string | null
+          licensor_label: string
+          raw: Json
+          response_date: string | null
+          samples: string | null
+          sku: string | null
+          source_url: string
+          status: string | null
+          submission_code: string | null
+          submission_number: string
+          submission_type: string | null
+          submitted_by: string | null
+        }
+        Insert: {
+          capture_id: string
+          company_label?: string | null
+          contract_label?: string | null
+          date_submitted?: string | null
+          licensor_label: string
+          raw: Json
+          response_date?: string | null
+          samples?: string | null
+          sku?: string | null
+          source_url: string
+          status?: string | null
+          submission_code?: string | null
+          submission_number: string
+          submission_type?: string | null
+          submitted_by?: string | null
+        }
+        Update: {
+          capture_id?: string
+          company_label?: string | null
+          contract_label?: string | null
+          date_submitted?: string | null
+          licensor_label?: string
+          raw?: Json
+          response_date?: string | null
+          samples?: string | null
+          sku?: string | null
+          source_url?: string
+          status?: string | null
+          submission_code?: string | null
+          submission_number?: string
+          submission_type?: string | null
+          submitted_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "wwe_submission_capture_id_fkey"
+            columns: ["capture_id"]
+            isOneToOne: false
+            referencedRelation: "wwe_submission_capture"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      wwe_submission_capture: {
+        Row: {
+          capture_key: string
+          created_by: string
+          error_summary: Json
+          expected_counts: Json
+          id: string
+          load_completed_at: string | null
+          load_started_at: string
+          observed_counts: Json
+          raw_summary: Json
+          source_captured_at: string
+          source_commit_sha: string
+          source_hash: string
+          source_repository: string
+          source_url: string
+          status: string
+        }
+        Insert: {
+          capture_key: string
+          created_by: string
+          error_summary?: Json
+          expected_counts: Json
+          id?: string
+          load_completed_at?: string | null
+          load_started_at?: string
+          observed_counts?: Json
+          raw_summary: Json
+          source_captured_at: string
+          source_commit_sha: string
+          source_hash: string
+          source_repository: string
+          source_url: string
+          status?: string
+        }
+        Update: {
+          capture_key?: string
+          created_by?: string
+          error_summary?: Json
+          expected_counts?: Json
+          id?: string
+          load_completed_at?: string | null
+          load_started_at?: string
+          observed_counts?: Json
+          raw_summary?: Json
+          source_captured_at?: string
+          source_commit_sha?: string
+          source_hash?: string
+          source_repository?: string
+          source_url?: string
+          status?: string
         }
         Relationships: []
       }
-      wb_style_guide: {
+      wwe_submission_comment: {
         Row: {
-          captured_date: string
-          first_seen_at: string
-          imported_at: string
-          last_seen_at: string
+          author: string | null
+          body: string
+          capture_id: string
+          comment_hash: string
+          posted_on: string | null
           raw: Json
-          source_hash: string
-          source_id: string
-          source_term: string
-          source_url: string
-          style_guide_natural_key: string
-          updated_at: string
-          visible_asset_count: number | null
+          stage: string | null
+          submission_number: string
         }
         Insert: {
-          captured_date: string
-          first_seen_at?: string
-          imported_at?: string
-          last_seen_at?: string
+          author?: string | null
+          body: string
+          capture_id: string
+          comment_hash: string
+          posted_on?: string | null
           raw: Json
-          source_hash: string
-          source_id?: string
-          source_term: string
-          source_url: string
-          style_guide_natural_key: string
-          updated_at?: string
-          visible_asset_count?: number | null
+          stage?: string | null
+          submission_number: string
         }
         Update: {
-          captured_date?: string
-          first_seen_at?: string
-          imported_at?: string
-          last_seen_at?: string
+          author?: string | null
+          body?: string
+          capture_id?: string
+          comment_hash?: string
+          posted_on?: string | null
           raw?: Json
-          source_hash?: string
-          source_id?: string
-          source_term?: string
-          source_url?: string
-          style_guide_natural_key?: string
-          updated_at?: string
-          visible_asset_count?: number | null
+          stage?: string | null
+          submission_number?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "wwe_submission_comment_submission_fkey"
+            columns: ["capture_id", "submission_number"]
+            isOneToOne: false
+            referencedRelation: "wwe_submission"
+            referencedColumns: ["capture_id", "submission_number"]
+          },
+        ]
+      }
+      wwe_submission_image: {
+        Row: {
+          capture_id: string
+          image_source_id: string
+          raw: Json
+          stage: string | null
+          submission_number: string
+        }
+        Insert: {
+          capture_id: string
+          image_source_id: string
+          raw: Json
+          stage?: string | null
+          submission_number: string
+        }
+        Update: {
+          capture_id?: string
+          image_source_id?: string
+          raw?: Json
+          stage?: string | null
+          submission_number?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "wwe_submission_image_submission_fkey"
+            columns: ["capture_id", "submission_number"]
+            isOneToOne: false
+            referencedRelation: "wwe_submission"
+            referencedColumns: ["capture_id", "submission_number"]
+          },
+        ]
+      }
+      wwe_submission_ip: {
+        Row: {
+          capture_id: string
+          ip_label: string
+          ip_ordinal: number
+          normalized_ip_label: string
+          raw: Json
+          submission_number: string
+        }
+        Insert: {
+          capture_id: string
+          ip_label: string
+          ip_ordinal: number
+          normalized_ip_label: string
+          raw: Json
+          submission_number: string
+        }
+        Update: {
+          capture_id?: string
+          ip_label?: string
+          ip_ordinal?: number
+          normalized_ip_label?: string
+          raw?: Json
+          submission_number?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "wwe_submission_ip_submission_fkey"
+            columns: ["capture_id", "submission_number"]
+            isOneToOne: false
+            referencedRelation: "wwe_submission"
+            referencedColumns: ["capture_id", "submission_number"]
+          },
+        ]
+      }
+      wwe_submission_stage: {
+        Row: {
+          capture_id: string
+          raw: Json
+          revision_number: number | null
+          stage_label: string
+          stage_ordinal: number
+          stage_status: string | null
+          submission_number: string
+        }
+        Insert: {
+          capture_id: string
+          raw: Json
+          revision_number?: number | null
+          stage_label: string
+          stage_ordinal: number
+          stage_status?: string | null
+          submission_number: string
+        }
+        Update: {
+          capture_id?: string
+          raw?: Json
+          revision_number?: number | null
+          stage_label?: string
+          stage_ordinal?: number
+          stage_status?: string | null
+          submission_number?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "wwe_submission_stage_submission_fkey"
+            columns: ["capture_id", "submission_number"]
+            isOneToOne: false
+            referencedRelation: "wwe_submission"
+            referencedColumns: ["capture_id", "submission_number"]
+          },
+        ]
+      }
+      wwe_tag: {
+        Row: {
+          capture_id: string
+          normalized_tag_label: string
+          raw: Json
+          tag_label: string
+          tag_source_key: string
+        }
+        Insert: {
+          capture_id: string
+          normalized_tag_label: string
+          raw: Json
+          tag_label: string
+          tag_source_key: string
+        }
+        Update: {
+          capture_id?: string
+          normalized_tag_label?: string
+          raw?: Json
+          tag_label?: string
+          tag_source_key?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "wwe_tag_capture_id_fkey"
+            columns: ["capture_id"]
+            isOneToOne: false
+            referencedRelation: "wwe_creative_capture"
+            referencedColumns: ["id"]
+          },
+        ]
       }
     }
     Views: {
-      [_ in never]: never
+      asset_file_style_guide_index: {
+        Row: {
+          core_style_guide_id: string | null
+          file_name_norm: string | null
+          matched_file_name: string | null
+          source_style_guide_key: string | null
+          source_system: string | null
+          style_guide_label: string | null
+        }
+        Relationships: []
+      }
+      asset_file_style_guide_keys: {
+        Row: {
+          core_style_guide_id: string | null
+          file_name_norm: string | null
+          matched_file_name: string | null
+          source_style_guide_key: string | null
+          source_system: string | null
+          style_guide_label: string | null
+          style_guide_label_key: string | null
+        }
+        Relationships: []
+      }
+      coldlion_item_detail: {
+        Row: {
+          active: string | null
+          actual_dims: string | null
+          carton_height: number | null
+          carton_length: number | null
+          carton_qty: number | null
+          carton_weight: number | null
+          carton_width: number | null
+          company_code: string | null
+          division_code: string | null
+          erp_created_at: string | null
+          erp_updated_at: string | null
+          hts_number: string | null
+          inner_pack_qty: number | null
+          item_available: string | null
+          item_cost: number | null
+          item_discontinued: string | null
+          item_height: number | null
+          item_length: number | null
+          item_no: string | null
+          item_pkey: string | null
+          item_price_a: number | null
+          item_price_b: number | null
+          item_price_c: number | null
+          item_price_d: number | null
+          item_status: string | null
+          item_volume: number | null
+          item_weight: number | null
+          item_width: number | null
+          label_code: string | null
+          last_seen_at: string | null
+          nmfc_code: string | null
+          pre_pack_code: string | null
+          retail_price: number | null
+          royalty_code: string | null
+          royalty_code2: string | null
+          sales_person_code1: string | null
+          sales_person_code2: string | null
+          season_code: string | null
+          selling_price: number | null
+          upc: string | null
+        }
+        Insert: {
+          active?: string | null
+          actual_dims?: string | null
+          carton_height?: number | null
+          carton_length?: number | null
+          carton_qty?: number | null
+          carton_weight?: number | null
+          carton_width?: number | null
+          company_code?: string | null
+          division_code?: string | null
+          erp_created_at?: string | null
+          erp_updated_at?: string | null
+          hts_number?: string | null
+          inner_pack_qty?: number | null
+          item_available?: string | null
+          item_cost?: number | null
+          item_discontinued?: string | null
+          item_height?: number | null
+          item_length?: number | null
+          item_no?: string | null
+          item_pkey?: string | null
+          item_price_a?: number | null
+          item_price_b?: number | null
+          item_price_c?: number | null
+          item_price_d?: number | null
+          item_status?: string | null
+          item_volume?: number | null
+          item_weight?: number | null
+          item_width?: number | null
+          label_code?: string | null
+          last_seen_at?: string | null
+          nmfc_code?: string | null
+          pre_pack_code?: string | null
+          retail_price?: number | null
+          royalty_code?: string | null
+          royalty_code2?: string | null
+          sales_person_code1?: string | null
+          sales_person_code2?: string | null
+          season_code?: string | null
+          selling_price?: number | null
+          upc?: string | null
+        }
+        Update: {
+          active?: string | null
+          actual_dims?: string | null
+          carton_height?: number | null
+          carton_length?: number | null
+          carton_qty?: number | null
+          carton_weight?: number | null
+          carton_width?: number | null
+          company_code?: string | null
+          division_code?: string | null
+          erp_created_at?: string | null
+          erp_updated_at?: string | null
+          hts_number?: string | null
+          inner_pack_qty?: number | null
+          item_available?: string | null
+          item_cost?: number | null
+          item_discontinued?: string | null
+          item_height?: number | null
+          item_length?: number | null
+          item_no?: string | null
+          item_pkey?: string | null
+          item_price_a?: number | null
+          item_price_b?: number | null
+          item_price_c?: number | null
+          item_price_d?: number | null
+          item_status?: string | null
+          item_volume?: number | null
+          item_weight?: number | null
+          item_width?: number | null
+          label_code?: string | null
+          last_seen_at?: string | null
+          nmfc_code?: string | null
+          pre_pack_code?: string | null
+          retail_price?: number | null
+          royalty_code?: string | null
+          royalty_code2?: string | null
+          sales_person_code1?: string | null
+          sales_person_code2?: string | null
+          season_code?: string | null
+          selling_price?: number | null
+          upc?: string | null
+        }
+        Relationships: []
+      }
+      coldlion_item_header: {
+        Row: {
+          active: string | null
+          annual_sample_date: string | null
+          annual_sample_qty: number | null
+          annual_sample_sent_date: string | null
+          brand_assurance_no: string | null
+          carton_height: number | null
+          carton_length: number | null
+          carton_qty: number | null
+          carton_weight: number | null
+          carton_width: number | null
+          character_likeness: string | null
+          character_list: string | null
+          company_code: string | null
+          compare_price: number | null
+          contract_sample_date: string | null
+          contract_sample_qty: number | null
+          contract_sample_sent_date: string | null
+          design_no: string | null
+          division_code: string | null
+          erp_created_at: string | null
+          erp_updated_at: string | null
+          has_image: string | null
+          hts_number: string | null
+          hts_number2: string | null
+          inner_pack_qty: number | null
+          item_available: string | null
+          item_cost: number | null
+          item_desc: string | null
+          item_discontinued: string | null
+          item_display_desc: string | null
+          item_height: number | null
+          item_length: number | null
+          item_no: string | null
+          item_price_a: number | null
+          item_price_b: number | null
+          item_price_c: number | null
+          item_price_d: number | null
+          item_status: string | null
+          item_volume: number | null
+          item_weight: number | null
+          item_width: number | null
+          last_seen_at: string | null
+          mfg_lead_time: number | null
+          mg_category: string | null
+          movie_art: string | null
+          non_inventory_item: string | null
+          origin_country: string | null
+          po_lead_time: number | null
+          prepro_approved: string | null
+          prepro_approved_date: string | null
+          product_manager: string | null
+          retail_price: number | null
+          royalty_code: string | null
+          royalty_code2: string | null
+          sales_person_code1: string | null
+          sales_person_code2: string | null
+          season_code: string | null
+          selling_price: number | null
+        }
+        Insert: {
+          active?: string | null
+          annual_sample_date?: string | null
+          annual_sample_qty?: number | null
+          annual_sample_sent_date?: string | null
+          brand_assurance_no?: string | null
+          carton_height?: number | null
+          carton_length?: number | null
+          carton_qty?: number | null
+          carton_weight?: number | null
+          carton_width?: number | null
+          character_likeness?: string | null
+          character_list?: string | null
+          company_code?: string | null
+          compare_price?: number | null
+          contract_sample_date?: string | null
+          contract_sample_qty?: number | null
+          contract_sample_sent_date?: string | null
+          design_no?: string | null
+          division_code?: string | null
+          erp_created_at?: string | null
+          erp_updated_at?: string | null
+          has_image?: string | null
+          hts_number?: string | null
+          hts_number2?: string | null
+          inner_pack_qty?: number | null
+          item_available?: string | null
+          item_cost?: number | null
+          item_desc?: string | null
+          item_discontinued?: string | null
+          item_display_desc?: string | null
+          item_height?: number | null
+          item_length?: number | null
+          item_no?: string | null
+          item_price_a?: number | null
+          item_price_b?: number | null
+          item_price_c?: number | null
+          item_price_d?: number | null
+          item_status?: string | null
+          item_volume?: number | null
+          item_weight?: number | null
+          item_width?: number | null
+          last_seen_at?: string | null
+          mfg_lead_time?: number | null
+          mg_category?: string | null
+          movie_art?: string | null
+          non_inventory_item?: string | null
+          origin_country?: string | null
+          po_lead_time?: number | null
+          prepro_approved?: string | null
+          prepro_approved_date?: string | null
+          product_manager?: string | null
+          retail_price?: number | null
+          royalty_code?: string | null
+          royalty_code2?: string | null
+          sales_person_code1?: string | null
+          sales_person_code2?: string | null
+          season_code?: string | null
+          selling_price?: number | null
+        }
+        Update: {
+          active?: string | null
+          annual_sample_date?: string | null
+          annual_sample_qty?: number | null
+          annual_sample_sent_date?: string | null
+          brand_assurance_no?: string | null
+          carton_height?: number | null
+          carton_length?: number | null
+          carton_qty?: number | null
+          carton_weight?: number | null
+          carton_width?: number | null
+          character_likeness?: string | null
+          character_list?: string | null
+          company_code?: string | null
+          compare_price?: number | null
+          contract_sample_date?: string | null
+          contract_sample_qty?: number | null
+          contract_sample_sent_date?: string | null
+          design_no?: string | null
+          division_code?: string | null
+          erp_created_at?: string | null
+          erp_updated_at?: string | null
+          has_image?: string | null
+          hts_number?: string | null
+          hts_number2?: string | null
+          inner_pack_qty?: number | null
+          item_available?: string | null
+          item_cost?: number | null
+          item_desc?: string | null
+          item_discontinued?: string | null
+          item_display_desc?: string | null
+          item_height?: number | null
+          item_length?: number | null
+          item_no?: string | null
+          item_price_a?: number | null
+          item_price_b?: number | null
+          item_price_c?: number | null
+          item_price_d?: number | null
+          item_status?: string | null
+          item_volume?: number | null
+          item_weight?: number | null
+          item_width?: number | null
+          last_seen_at?: string | null
+          mfg_lead_time?: number | null
+          mg_category?: string | null
+          movie_art?: string | null
+          non_inventory_item?: string | null
+          origin_country?: string | null
+          po_lead_time?: number | null
+          prepro_approved?: string | null
+          prepro_approved_date?: string | null
+          product_manager?: string | null
+          retail_price?: number | null
+          royalty_code?: string | null
+          royalty_code2?: string | null
+          sales_person_code1?: string | null
+          sales_person_code2?: string | null
+          season_code?: string | null
+          selling_price?: number | null
+        }
+        Relationships: []
+      }
+      coldlion_item_merch_group: {
+        Row: {
+          company_code: string | null
+          division_code: string | null
+          id: string | null
+          item_no: string | null
+          item_pkey: string | null
+          last_seen_at: string | null
+          mg_code: string | null
+          slot_no: number | null
+        }
+        Insert: {
+          company_code?: string | null
+          division_code?: string | null
+          id?: string | null
+          item_no?: string | null
+          item_pkey?: string | null
+          last_seen_at?: string | null
+          mg_code?: string | null
+          slot_no?: number | null
+        }
+        Update: {
+          company_code?: string | null
+          division_code?: string | null
+          id?: string | null
+          item_no?: string | null
+          item_pkey?: string | null
+          last_seen_at?: string | null
+          mg_code?: string | null
+          slot_no?: number | null
+        }
+        Relationships: []
+      }
+      coldlion_prepack_detail: {
+        Row: {
+          color_code: string | null
+          company_code: string | null
+          detail_prepack: string | null
+          dim_code: string | null
+          division_code: string | null
+          erp_created_at: string | null
+          erp_updated_at: string | null
+          item_cost: number | null
+          item_no: string | null
+          item_price: number | null
+          item_price_capitalized: number | null
+          label_code: string | null
+          last_seen_at: string | null
+          prepack_code: string | null
+          quantity: number | null
+          sequence_no: number | null
+          size_code: string | null
+        }
+        Insert: {
+          color_code?: string | null
+          company_code?: string | null
+          detail_prepack?: string | null
+          dim_code?: string | null
+          division_code?: string | null
+          erp_created_at?: string | null
+          erp_updated_at?: string | null
+          item_cost?: number | null
+          item_no?: string | null
+          item_price?: number | null
+          item_price_capitalized?: number | null
+          label_code?: string | null
+          last_seen_at?: string | null
+          prepack_code?: string | null
+          quantity?: number | null
+          sequence_no?: number | null
+          size_code?: string | null
+        }
+        Update: {
+          color_code?: string | null
+          company_code?: string | null
+          detail_prepack?: string | null
+          dim_code?: string | null
+          division_code?: string | null
+          erp_created_at?: string | null
+          erp_updated_at?: string | null
+          item_cost?: number | null
+          item_no?: string | null
+          item_price?: number | null
+          item_price_capitalized?: number | null
+          label_code?: string | null
+          last_seen_at?: string | null
+          prepack_code?: string | null
+          quantity?: number | null
+          sequence_no?: number | null
+          size_code?: string | null
+        }
+        Relationships: []
+      }
+      coldlion_prod_detail: {
+        Row: {
+          color_code: string | null
+          company_code: string | null
+          cust_po_number: string | null
+          dim_code: string | null
+          division_code: string | null
+          erp_created_at: string | null
+          erp_updated_at: string | null
+          item_no: string | null
+          item_pkey: number | null
+          label_code: string | null
+          last_seen_at: string | null
+          pkey: number | null
+          prepack_code: string | null
+          prod_cost: number | null
+          prod_line_seq: number | null
+          prod_order_no: number | null
+          prod_qty: number | null
+          size_code: string | null
+          wip_qty: number | null
+        }
+        Insert: {
+          color_code?: string | null
+          company_code?: string | null
+          cust_po_number?: string | null
+          dim_code?: string | null
+          division_code?: string | null
+          erp_created_at?: string | null
+          erp_updated_at?: string | null
+          item_no?: string | null
+          item_pkey?: number | null
+          label_code?: string | null
+          last_seen_at?: string | null
+          pkey?: number | null
+          prepack_code?: string | null
+          prod_cost?: number | null
+          prod_line_seq?: number | null
+          prod_order_no?: number | null
+          prod_qty?: number | null
+          size_code?: string | null
+          wip_qty?: number | null
+        }
+        Update: {
+          color_code?: string | null
+          company_code?: string | null
+          cust_po_number?: string | null
+          dim_code?: string | null
+          division_code?: string | null
+          erp_created_at?: string | null
+          erp_updated_at?: string | null
+          item_no?: string | null
+          item_pkey?: number | null
+          label_code?: string | null
+          last_seen_at?: string | null
+          pkey?: number | null
+          prepack_code?: string | null
+          prod_cost?: number | null
+          prod_line_seq?: number | null
+          prod_order_no?: number | null
+          prod_qty?: number | null
+          size_code?: string | null
+          wip_qty?: number | null
+        }
+        Relationships: []
+      }
+      coldlion_prod_history: {
+        Row: {
+          arrival_port_code: string | null
+          company_code: string | null
+          component_id: string | null
+          cust_po_number: string | null
+          customer_code: string | null
+          customer_desc: string | null
+          division_code: string | null
+          due_date: string | null
+          ext_cost: number | null
+          freight_forwarder_code: string | null
+          item_no: string | null
+          label_code: string | null
+          line_id: string | null
+          line_price: number | null
+          ppk_detail_cost: number | null
+          ppk_detail_qty: number | null
+          pre_pack_code: string | null
+          prepack_division_code: string | null
+          prepack_item_no: string | null
+          prepack_item_pkey: string | null
+          prepack_qty: number | null
+          prod_cost: number | null
+          prod_country: string | null
+          prod_line_seq: number | null
+          prod_order_date: string | null
+          prod_order_no: number | null
+          prod_order_qty: number | null
+          prod_reference_no: string | null
+          prod_type_code: string | null
+          receive_date: string | null
+          requested_stage_code: string | null
+          sales_order_link_present: boolean | null
+          sales_order_no: number | null
+          ship_date: string | null
+          short_item_no: string | null
+          stage_code: string | null
+          sub_item_no: string | null
+          total_ppk_qty: number | null
+          total_prod_cost: number | null
+          vendor_code: string | null
+          vendor_desc: string | null
+          warehouse_code: string | null
+          warehouse_sku: string | null
+        }
+        Relationships: []
+      }
+      coldlion_sales_history: {
+        Row: {
+          cancel_date: string | null
+          company_code: string | null
+          component_id: string | null
+          component_qty: number | null
+          customer_code: string | null
+          customer_desc: string | null
+          division_code: string | null
+          invoice_qty: number | null
+          label_code: string | null
+          line_id: string | null
+          line_price: number | null
+          master_item_no: string | null
+          order_amount: number | null
+          order_qty: number | null
+          po_number: string | null
+          pre_pack_code: string | null
+          prod_cost: number | null
+          prod_reference_no: string | null
+          sales_order_line_no: number | null
+          sales_order_no: number | null
+          sales_person_code1: string | null
+          ship_amount: number | null
+          ship_qty: number | null
+          start_date: string | null
+          sub_item_no: string | null
+          sub_label_code: string | null
+          warehouse_code: string | null
+        }
+        Relationships: []
+      }
+      item_missing_attribution: {
+        Row: {
+          company_code: string | null
+          division_code: string | null
+          id: string | null
+          item_number: string | null
+          licensor_id: string | null
+          property_id: string | null
+        }
+        Insert: {
+          company_code?: never
+          division_code?: never
+          id?: string | null
+          item_number?: string | null
+          licensor_id?: string | null
+          property_id?: string | null
+        }
+        Update: {
+          company_code?: never
+          division_code?: never
+          id?: string | null
+          item_number?: string | null
+          licensor_id?: string | null
+          property_id?: string | null
+        }
+        Relationships: []
+      }
+      opa_property_current_compliance: {
+        Row: {
+          absent_from_newer_complete_capture: boolean | null
+          account_scope_sha256: string | null
+          branch_code: string | null
+          capture_id: string | null
+          compliance_capture_id: string | null
+          compliance_status: string | null
+          eligible_for_new_coldlion_entry: boolean | null
+          eligible_for_new_styles: boolean | null
+          licensed_property_id: number | null
+          line_of_business_id: number | null
+          membership_id: string | null
+          product_type_code: string | null
+          region_code: string | null
+          source_captured_at: string | null
+          template_id: number | null
+          workflow_id: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "opa_compliance_membership_capture_fk"
+            columns: ["compliance_capture_id"]
+            isOneToOne: false
+            referencedRelation: "opa_property_compliance_capture"
+            referencedColumns: ["compliance_capture_id"]
+          },
+          {
+            foreignKeyName: "opa_property_scope_membership_licensed_property_id_fkey"
+            columns: ["licensed_property_id"]
+            isOneToOne: false
+            referencedRelation: "opa_property"
+            referencedColumns: ["licensed_property_id"]
+          },
+        ]
+      }
     }
     Functions: {
+      abort_marvel_asgard_capture: {
+        Args: {
+          p_capture_key: string
+          p_error_summary: Json
+          p_expected_source_system: string
+        }
+        Returns: undefined
+      }
       acknowledge_taxonomy_sync_alert: {
         Args: { p_acknowledgement: Json; p_alert_id: string }
         Returns: Json
@@ -19001,12 +38782,182 @@ export type Database = {
         Returns: Json
       }
       active_taxonomy_baseline_key: { Args: never; Returns: string }
+      alert_coldlion_property_skips: {
+        Args: { p_run_id: number }
+        Returns: string
+      }
+      apply_licensing_canonical_merge: {
+        Args: {
+          p_expected_hash: string
+          p_plan_id: string
+          p_rollback?: boolean
+        }
+        Returns: {
+          body: Json
+          duplicate_id: string
+          entity_kind: string
+          event_kind: string
+          id: string
+          plan_hash: string
+          plan_id: string | null
+          plan_status: string | null
+          recorded_at: string
+          recorded_by: string
+          refusal_reason: string | null
+          result: Json
+          rollback_hash: string | null
+          survivor_id: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "licensing_canonical_change_history"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      apply_licensing_consolidation: {
+        Args: { p_expected_hash: string; p_plan_id: string }
+        Returns: {
+          applied_at: string | null
+          applied_by: string | null
+          applied_state: Json | null
+          capture_complete: boolean
+          capture_id: string
+          capture_snapshot: Json
+          collision_count: number
+          created_at: string
+          entity_operation_count: number
+          id: string
+          operations: Json
+          plan_hash: string
+          plan_schema_version: number
+          plan_status: string
+          planned_at: string
+          planned_by: string
+          refusal_reason: string | null
+          relationship_operation_count: number
+          retire_operation_count: number
+          rollback_of: string | null
+          rollback_operations: Json
+          source_scope_checked: boolean
+          source_system: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "licensing_consolidation_plan"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      apply_licensing_support_operation: {
+        Args: { p_operation: Json; p_plan_hash: string; p_plan_id: string }
+        Returns: Json
+      }
       apply_style_tracker_designer_resolutions: { Args: never; Returns: number }
       assert_dam_order_keys: {
         Args: { p_allowed: string[]; p_payload: Json; p_what: string }
         Returns: undefined
       }
       assert_taxonomy_alert_ack_authority: { Args: never; Returns: string }
+      begin_dcp_crawl: {
+        Args: {
+          p_account_scope: string
+          p_captured_by: string
+          p_captured_on: string
+          p_crawler_version: string
+          p_distinct_assets_received: number
+          p_line_of_business: string
+          p_notes?: string
+          p_portal_base_url: string
+          p_private_source_commit: string
+          p_rows_received: number
+        }
+        Returns: string
+      }
+      begin_dcp_metadata_run: {
+        Args: {
+          p_captured_by: string
+          p_captured_on: string
+          p_crawler_version: string
+          p_endpoint_suffix: string
+          p_metadata?: Json
+          p_private_source_commit: string
+          p_source_crawl_id: string
+        }
+        Returns: string
+      }
+      begin_lucasfilm_dcp_crawl: {
+        Args: {
+          p_account_scope: string
+          p_captured_by: string
+          p_captured_on: string
+          p_crawler_version: string
+          p_distinct_assets_received: number
+          p_line_of_business: string
+          p_notes?: string
+          p_portal_base_url: string
+          p_private_source_commit: string
+          p_rows_received: number
+          p_source_system: string
+        }
+        Returns: string
+      }
+      begin_lucasfilm_dcp_metadata_run: {
+        Args: {
+          p_captured_by: string
+          p_captured_on: string
+          p_crawler_version: string
+          p_endpoint_suffix: string
+          p_metadata?: Json
+          p_private_source_commit: string
+          p_source_crawl_id: string
+          p_source_system: string
+        }
+        Returns: string
+      }
+      begin_marvel_asgard_capture: {
+        Args: {
+          p_account_scope_descriptor: string
+          p_capture_key: string
+          p_expected_counts: Json
+          p_expected_source_system: string
+          p_raw_summary?: Json
+          p_scraper_version: string
+          p_source_captured_at: string
+          p_source_snapshot_sha256: string
+          p_source_url: string
+        }
+        Returns: string
+      }
+      begin_marvel_dcp_crawl: {
+        Args: {
+          p_account_scope: string
+          p_captured_by: string
+          p_captured_on: string
+          p_crawler_version: string
+          p_distinct_assets_received: number
+          p_line_of_business: string
+          p_notes?: string
+          p_portal_base_url: string
+          p_private_source_commit: string
+          p_rows_received: number
+          p_source_system: string
+        }
+        Returns: string
+      }
+      begin_marvel_dcp_metadata_run: {
+        Args: {
+          p_captured_by: string
+          p_captured_on: string
+          p_crawler_version: string
+          p_endpoint_suffix: string
+          p_metadata?: Json
+          p_private_source_commit: string
+          p_source_crawl_id: string
+          p_source_system: string
+        }
+        Returns: string
+      }
       begin_nbcu_capture: {
         Args: {
           p_capture_key: string
@@ -19019,6 +38970,42 @@ export type Database = {
           p_source_commit_sha: string
           p_source_manifest_sha256: string
           p_source_repository: string
+        }
+        Returns: string
+      }
+      begin_opa_capture: {
+        Args: {
+          p_capture_key: string
+          p_created_by: string
+          p_scopes: Json
+          p_source_captured_at: string
+          p_source_commit_sha: string
+          p_source_manifest_sha256: string
+          p_source_repository: string
+          p_totals: Json
+        }
+        Returns: string
+      }
+      begin_peanuts_capture: {
+        Args: {
+          p_api_endpoint: string
+          p_assets_captured: number
+          p_assets_unreachable: number
+          p_capture_key: string
+          p_created_by: string
+          p_deep_paging_partitioned: boolean
+          p_expected_counts: Json
+          p_portal_base_url: string
+          p_portal_reported_asset_total: number
+          p_raw_summary: Json
+          p_read_commit_sha?: string
+          p_relationship_graph_walked: boolean
+          p_source_captured_at: string
+          p_source_commit_sha: string
+          p_source_customer_id: string
+          p_source_manifest_sha256: string
+          p_source_repository: string
+          p_vocabularies_loaded_from_source: boolean
         }
         Returns: string
       }
@@ -19042,6 +39029,102 @@ export type Database = {
         }
         Returns: string
       }
+      begin_pmt_trackerplus_submission_capture: {
+        Args: {
+          p_capture_key: string
+          p_created_by: string
+          p_expected_property_count: number
+          p_expected_property_manifest_sha256: string
+          p_source_captured_at: string
+          p_source_commit_sha: string
+          p_source_manifest_sha256: string
+          p_source_repository: string
+        }
+        Returns: string
+      }
+      begin_sega_capture: {
+        Args: {
+          p_asset_paging_terminal: boolean
+          p_capture_key: string
+          p_created_by: string
+          p_expected_counts: Json
+          p_ip_associations_complete: boolean
+          p_ip_paging_terminal: boolean
+          p_is_limited: boolean
+          p_portal_base_url: string
+          p_raw_summary: Json
+          p_read_commit_sha?: string
+          p_source_captured_at: string
+          p_source_commit_sha: string
+          p_source_manifest_sha256: string
+          p_source_repository: string
+        }
+        Returns: string
+      }
+      begin_sega_submission_capture: {
+        Args: {
+          p_capture_key: string
+          p_created_by: string
+          p_expected_counts: Json
+          p_no_submission_created: boolean
+          p_raw_summary: Json
+          p_save_clicked: boolean
+          p_selected_contract_source_id: string
+          p_source_captured_at: string
+          p_source_commit_sha: string
+          p_source_hash: string
+          p_source_repository: string
+          p_source_url: string
+          p_submission_list_after_hash: string
+          p_submission_list_before_hash: string
+        }
+        Returns: string
+      }
+      begin_sesame_capture: {
+        Args: {
+          p_capture_key: string
+          p_created_by: string
+          p_expected_counts: Json
+          p_portal_base_url: string
+          p_portal_slug: string
+          p_raw_summary: Json
+          p_read_commit_sha?: string
+          p_source_captured_at: string
+          p_source_commit_sha: string
+          p_source_manifest_sha256: string
+          p_source_repository: string
+        }
+        Returns: string
+      }
+      begin_twentieth_century_dcp_crawl: {
+        Args: {
+          p_account_scope: string
+          p_captured_by: string
+          p_captured_on: string
+          p_crawler_version: string
+          p_distinct_assets_received: number
+          p_line_of_business: string
+          p_notes?: string
+          p_portal_base_url: string
+          p_private_source_commit: string
+          p_rows_received: number
+          p_source_system: string
+        }
+        Returns: string
+      }
+      begin_twentieth_century_dcp_metadata_run: {
+        Args: {
+          p_captured_by: string
+          p_captured_on: string
+          p_crawler_version: string
+          p_endpoint_suffix: string
+          p_metadata?: Json
+          p_private_source_commit: string
+          p_source_crawl_id: string
+          p_source_system: string
+        }
+        Returns: string
+      }
       begin_wb_capture: {
         Args: {
           p_captured_at: string
@@ -19055,24 +39138,268 @@ export type Database = {
         }
         Returns: string
       }
+      begin_wildbrain_capture: {
+        Args: {
+          p_capture_key: string
+          p_created_by: string
+          p_expected_counts: Json
+          p_media_downloaded?: number
+          p_pagination_verified?: boolean
+          p_portal_base_url: string
+          p_raw_summary: Json
+          p_read_commit_sha?: string
+          p_reported_total?: number
+          p_source_captured_at: string
+          p_source_commit_sha: string
+          p_source_manifest_sha256: string
+          p_source_repository: string
+        }
+        Returns: string
+      }
       check_taxonomy_sync_health: {
         Args: { p_max_success_age?: string; p_options?: Json }
         Returns: Json
       }
+      close_dcp_crawl_gap: {
+        Args: {
+          p_gap_id: string
+          p_mode: string
+          p_note: string
+          p_waived_at?: string
+          p_waived_by?: string
+        }
+        Returns: undefined
+      }
+      close_dcp_crawl_section: {
+        Args: {
+          p_captured_count: number
+          p_expected_count?: number
+          p_last_offset?: number
+          p_notes?: string
+          p_section_id: string
+          p_status: string
+        }
+        Returns: undefined
+      }
+      close_lucasfilm_dcp_crawl_gap: {
+        Args: {
+          p_gap_id: string
+          p_mode: string
+          p_note: string
+          p_waived_at?: string
+          p_waived_by?: string
+        }
+        Returns: undefined
+      }
+      close_lucasfilm_dcp_crawl_section: {
+        Args: {
+          p_captured_count: number
+          p_expected_count?: number
+          p_last_offset?: number
+          p_notes?: string
+          p_section_id: string
+          p_status: string
+        }
+        Returns: undefined
+      }
+      close_marvel_dcp_crawl_gap: {
+        Args: {
+          p_gap_id: string
+          p_mode: string
+          p_note: string
+          p_waived_at?: string
+          p_waived_by?: string
+        }
+        Returns: undefined
+      }
+      close_marvel_dcp_crawl_section: {
+        Args: {
+          p_captured_count: number
+          p_expected_count?: number
+          p_last_offset?: number
+          p_notes?: string
+          p_section_id: string
+          p_status: string
+        }
+        Returns: undefined
+      }
+      close_twentieth_century_dcp_crawl_gap: {
+        Args: {
+          p_gap_id: string
+          p_mode: string
+          p_note: string
+          p_waived_at?: string
+          p_waived_by?: string
+        }
+        Returns: undefined
+      }
+      close_twentieth_century_dcp_crawl_section: {
+        Args: {
+          p_captured_count: number
+          p_expected_count?: number
+          p_last_offset?: number
+          p_notes?: string
+          p_section_id: string
+          p_status: string
+        }
+        Returns: undefined
+      }
+      coldlion_merch_group_candidates: {
+        Args: { p_company_code?: string; p_division_code?: string }
+        Returns: {
+          active: string
+          candidate_kind: string
+          company_code: string
+          division_code: string
+          last_seen_at: string
+          mg_category: string
+          mg_code: string
+          mg_desc: string
+          mg_type_code: string
+          mg_type_desc: string
+          resolution_status: string
+        }[]
+      }
       coldlion_normalize_name: { Args: { p_value: string }; Returns: string }
+      complete_sesame_capture: {
+        Args: {
+          p_capture_id: string
+          p_categories_visited: number
+          p_category_tree_walked: boolean
+          p_error_summary?: Json
+          p_guide_character_rows_excluded?: number
+          p_multivalue_parse_verified: boolean
+          p_observed_counts: Json
+          p_pagination_verified: boolean
+        }
+        Returns: undefined
+      }
       compute_taxonomy_immutability_snapshot: { Args: never; Returns: Json }
       dam_order_allowed_header_keys: { Args: never; Returns: string[] }
       dam_order_allowed_line_keys: { Args: never; Returns: string[] }
+      dam_order_tracking_allowed_header_keys: { Args: never; Returns: string[] }
+      dcp_asset_row_hash: {
+        Args: {
+          p_file_extension: string
+          p_file_name: string
+          p_relative_folder_path: string
+          p_source_path: string
+          p_source_system: string
+          p_style_guide_source_id: string
+          p_style_guide_source_path: string
+          p_tile_keys: string[]
+        }
+        Returns: string
+      }
+      dcp_loader_privilege_ok: {
+        Args: { p_role: string; p_session_user: string }
+        Returns: boolean
+      }
+      dcp_metadata_row_hash: {
+        Args: {
+          p_art_style_terms: string[]
+          p_character_ids: string[]
+          p_collection_dmc_id: string
+          p_collection_main_title: string
+          p_collection_type: string
+          p_content_owner: string
+          p_content_type: string
+          p_dam_sha1: string
+          p_dc_title: string
+          p_design_element: string
+          p_file_size_raw: string
+          p_format_raw: string
+          p_is_embargoed_raw: string
+          p_is_exclusive_raw: string
+          p_is_locked_raw: string
+          p_keyword_terms: string[]
+          p_modified_at_raw: string
+          p_num_pages_raw: string
+          p_property_ids: string[]
+          p_release_date_raw: string
+          p_source_status: string
+          p_source_uuid: string
+        }
+        Returns: string
+      }
       deployment_environment_is_configured: { Args: never; Returns: boolean }
+      fail_dcp_crawl: {
+        Args: { p_crawl_id: string; p_reason: string }
+        Returns: undefined
+      }
+      fail_dcp_metadata_run: {
+        Args: { p_failure_message: string; p_metadata_run_id: string }
+        Returns: Json
+      }
+      fail_lucasfilm_dcp_crawl: {
+        Args: { p_crawl_id: string; p_reason: string }
+        Returns: undefined
+      }
+      fail_lucasfilm_dcp_metadata_run: {
+        Args: { p_failure_message: string; p_metadata_run_id: string }
+        Returns: Json
+      }
+      fail_marvel_dcp_crawl: {
+        Args: { p_crawl_id: string; p_reason: string }
+        Returns: undefined
+      }
+      fail_marvel_dcp_metadata_run: {
+        Args: { p_failure_message: string; p_metadata_run_id: string }
+        Returns: Json
+      }
       fail_pmt_capture: {
         Args: { p_capture_id: string; p_reason: string }
         Returns: undefined
+      }
+      fail_twentieth_century_dcp_crawl: {
+        Args: { p_crawl_id: string; p_reason: string }
+        Returns: undefined
+      }
+      fail_twentieth_century_dcp_metadata_run: {
+        Args: { p_failure_message: string; p_metadata_run_id: string }
+        Returns: Json
       }
       fail_wb_capture: {
         Args: { p_capture_id: string; p_reason: string }
         Returns: undefined
       }
+      finalize_coke_capture: { Args: { p_capture_id: string }; Returns: Json }
+      finalize_dcp_crawl: { Args: { p_crawl_id: string }; Returns: Json }
+      finalize_dcp_metadata_run: {
+        Args: { p_metadata_run_id: string }
+        Returns: Json
+      }
+      finalize_lucasfilm_dcp_crawl: {
+        Args: { p_crawl_id: string }
+        Returns: Json
+      }
+      finalize_lucasfilm_dcp_metadata_run: {
+        Args: { p_metadata_run_id: string }
+        Returns: Json
+      }
+      finalize_marvel_asgard_capture: {
+        Args: { p_capture_key: string; p_expected_source_system: string }
+        Returns: Json
+      }
+      finalize_marvel_dcp_crawl: { Args: { p_crawl_id: string }; Returns: Json }
+      finalize_marvel_dcp_metadata_run: {
+        Args: { p_metadata_run_id: string }
+        Returns: Json
+      }
       finalize_nbcu_capture: { Args: { p_capture_id: string }; Returns: Json }
+      finalize_opa_capture: { Args: { p_capture_id: string }; Returns: Json }
+      finalize_opa_property_compliance_capture: {
+        Args: { p_approved_by: string; p_capture_id: string }
+        Returns: string
+      }
+      finalize_peanuts_capture: {
+        Args: {
+          p_capture_id: string
+          p_error_summary: Json
+          p_observed_counts: Json
+        }
+        Returns: undefined
+      }
       finalize_pmt_capture: {
         Args: { p_capture_id: string; p_manifest_sha256: string }
         Returns: {
@@ -19082,6 +39409,34 @@ export type Database = {
           expected: number
           ok: boolean
         }[]
+      }
+      finalize_pmt_trackerplus_submission_capture: {
+        Args: { p_capture_id: string }
+        Returns: Json
+      }
+      finalize_sega_capture: {
+        Args: {
+          p_capture_id: string
+          p_error_summary: Json
+          p_observed_counts: Json
+        }
+        Returns: undefined
+      }
+      finalize_sega_submission_capture: {
+        Args: {
+          p_capture_id: string
+          p_error_summary: Json
+          p_observed_counts: Json
+        }
+        Returns: undefined
+      }
+      finalize_twentieth_century_dcp_crawl: {
+        Args: { p_crawl_id: string }
+        Returns: Json
+      }
+      finalize_twentieth_century_dcp_metadata_run: {
+        Args: { p_metadata_run_id: string }
+        Returns: Json
       }
       finalize_wb_capture: {
         Args: {
@@ -19103,6 +39458,14 @@ export type Database = {
           snapshot_hash: string
         }[]
       }
+      finalize_wildbrain_capture: {
+        Args: {
+          p_capture_id: string
+          p_error_summary: Json
+          p_observed_counts: Json
+        }
+        Returns: undefined
+      }
       import_coldlion_customers: {
         Args: { customers_payload: Json }
         Returns: {
@@ -19111,6 +39474,20 @@ export type Database = {
           customers_active: number
           customers_seen: number
           sync_run_id: string
+        }[]
+      }
+      import_coldlion_salespersons: {
+        Args: never
+        Returns: {
+          salespersons_seen: number
+          salespersons_upserted: number
+        }[]
+      }
+      import_coldlion_seasons: {
+        Args: never
+        Returns: {
+          seasons_seen: number
+          seasons_upserted: number
         }[]
       }
       import_item_master_data: {
@@ -19126,16 +39503,6 @@ export type Database = {
           sync_run_id: string
         }[]
       }
-      import_master_data: {
-        Args: { customers_payload: Json; licensors_payload: Json }
-        Returns: {
-          customers_seen: number
-          licensors_seen: number
-          properties_seen: number
-          raw_records_upserted: number
-          sync_run_id: string
-        }[]
-      }
       import_merch_group_headers: {
         Args: { headers_payload: Json }
         Returns: {
@@ -19144,6 +39511,27 @@ export type Database = {
           rows_updated: number
           sync_run_id: string
         }[]
+      }
+      latest_sesame_capture: { Args: never; Returns: string }
+      licensing_consolidation_capture_snapshot: {
+        Args: { p_capture_id: string; p_source_system: string }
+        Returns: Json
+      }
+      licensing_consolidation_operation_state: {
+        Args: { p_operation: Json }
+        Returns: Json
+      }
+      licensing_opa_observation_count: {
+        Args: never
+        Returns: {
+          evidence_readable: boolean
+          licensed_property_id: number
+          observation_count: number
+        }[]
+      }
+      licensing_operation_identity_predicate: {
+        Args: { p_operation: Json }
+        Returns: string
       }
       link_coldlion_licensors_properties_approved: {
         Args: { p_expected: Json; p_input: Json }
@@ -19177,9 +39565,116 @@ export type Database = {
           sync_run_id: string
         }[]
       }
+      load_coke_capture_chunk: {
+        Args: { p_capture_id: string; p_entity: string; p_rows: Json }
+        Returns: number
+      }
+      load_dcp_asset_chunk: {
+        Args: {
+          p_chunk_number: number
+          p_chunk_sha256: string
+          p_crawl_id: string
+          p_rows_json: string
+        }
+        Returns: Json
+      }
+      load_dcp_metadata_chunk: {
+        Args: {
+          p_chunk_number: number
+          p_chunk_sha256: string
+          p_metadata_run_id: string
+          p_rows_json: string
+        }
+        Returns: Json
+      }
+      load_lucasfilm_dcp_asset_chunk: {
+        Args: {
+          p_chunk_number: number
+          p_chunk_sha256: string
+          p_crawl_id: string
+          p_rows_json: string
+          p_source_system: string
+        }
+        Returns: Json
+      }
+      load_lucasfilm_dcp_metadata_chunk: {
+        Args: {
+          p_chunk_number: number
+          p_chunk_sha256: string
+          p_metadata_run_id: string
+          p_rows_json: string
+          p_source_system: string
+        }
+        Returns: Json
+      }
+      load_marvel_asgard_chunk: {
+        Args: {
+          p_capture_key: string
+          p_chunk_key: string
+          p_expected_source_system: string
+          p_payload: Json
+        }
+        Returns: Json
+      }
+      load_marvel_dcp_asset_chunk: {
+        Args: {
+          p_chunk_number: number
+          p_chunk_sha256: string
+          p_crawl_id: string
+          p_rows_json: string
+          p_source_system: string
+        }
+        Returns: Json
+      }
+      load_marvel_dcp_metadata_chunk: {
+        Args: {
+          p_chunk_number: number
+          p_chunk_sha256: string
+          p_metadata_run_id: string
+          p_rows_json: string
+          p_source_system: string
+        }
+        Returns: Json
+      }
+      load_opa_capture_chunk: {
+        Args: {
+          p_authentication_evidence_sha256: string
+          p_capture_id: string
+          p_chunk_key: string
+          p_chunk_sha256: string
+          p_finish_scope?: boolean
+          p_rows: Json
+          p_scope_key: string
+        }
+        Returns: Json
+      }
       load_pmt_capture_chunk: {
         Args: { p_capture_id: string; p_rows: Json; p_target: string }
         Returns: number
+      }
+      load_pmt_trackerplus_submission_capture_chunk: {
+        Args: { p_capture_id: string; p_chunk_index: number; p_rows: Json }
+        Returns: number
+      }
+      load_twentieth_century_dcp_asset_chunk: {
+        Args: {
+          p_chunk_number: number
+          p_chunk_sha256: string
+          p_crawl_id: string
+          p_rows_json: string
+          p_source_system: string
+        }
+        Returns: Json
+      }
+      load_twentieth_century_dcp_metadata_chunk: {
+        Args: {
+          p_chunk_number: number
+          p_chunk_sha256: string
+          p_metadata_run_id: string
+          p_rows_json: string
+          p_source_system: string
+        }
+        Returns: Json
       }
       load_wb_chunk: {
         Args: {
@@ -19190,6 +39685,99 @@ export type Database = {
         }
         Returns: number
       }
+      lucasfilm_dcp_asset_row_hash: {
+        Args: {
+          p_file_extension: string
+          p_file_name: string
+          p_relative_folder_path: string
+          p_source_path: string
+          p_source_system: string
+          p_style_guide_source_id: string
+          p_style_guide_source_path: string
+          p_tile_keys: string[]
+        }
+        Returns: string
+      }
+      lucasfilm_dcp_loader_privilege_ok: {
+        Args: { p_role: string; p_session_user: string }
+        Returns: boolean
+      }
+      lucasfilm_dcp_metadata_row_hash: {
+        Args: {
+          p_art_style_terms: string[]
+          p_character_ids: string[]
+          p_collection_dmc_id: string
+          p_collection_main_title: string
+          p_collection_type: string
+          p_content_owner: string
+          p_content_type: string
+          p_dam_sha1: string
+          p_dc_title: string
+          p_design_element: string
+          p_file_size_raw: string
+          p_format_raw: string
+          p_is_embargoed_raw: string
+          p_is_exclusive_raw: string
+          p_is_locked_raw: string
+          p_keyword_terms: string[]
+          p_modified_at_raw: string
+          p_num_pages_raw: string
+          p_property_ids: string[]
+          p_release_date_raw: string
+          p_source_status: string
+          p_source_uuid: string
+        }
+        Returns: string
+      }
+      marvel_dcp_asset_row_hash: {
+        Args: {
+          p_file_extension: string
+          p_file_name: string
+          p_relative_folder_path: string
+          p_source_path: string
+          p_source_system: string
+          p_style_guide_source_id: string
+          p_style_guide_source_path: string
+          p_tile_keys: string[]
+        }
+        Returns: string
+      }
+      marvel_dcp_loader_privilege_ok: {
+        Args: { p_role: string; p_session_user: string }
+        Returns: boolean
+      }
+      marvel_dcp_metadata_row_hash: {
+        Args: {
+          p_art_style_terms: string[]
+          p_character_ids: string[]
+          p_collection_dmc_id: string
+          p_collection_main_title: string
+          p_collection_type: string
+          p_content_owner: string
+          p_content_type: string
+          p_dam_sha1: string
+          p_dc_title: string
+          p_design_element: string
+          p_file_size_raw: string
+          p_format_raw: string
+          p_is_embargoed_raw: string
+          p_is_exclusive_raw: string
+          p_is_locked_raw: string
+          p_keyword_terms: string[]
+          p_modified_at_raw: string
+          p_num_pages_raw: string
+          p_property_ids: string[]
+          p_release_date_raw: string
+          p_source_status: string
+          p_source_uuid: string
+        }
+        Returns: string
+      }
+      nbcu_publish_lifecycle: { Args: { p_capture_id: string }; Returns: Json }
+      normalize_production_po_number: {
+        Args: { value: string }
+        Returns: string
+      }
       normalize_style_tracker_value: {
         Args: { p_field_key: string; p_value: string }
         Returns: string
@@ -19197,6 +39785,158 @@ export type Database = {
       opa_loader_privilege_ok: {
         Args: { p_role: string; p_session_user: string }
         Returns: boolean
+      }
+      open_dcp_crawl_section: {
+        Args: {
+          p_crawl_id: string
+          p_expected_count?: number
+          p_listing_kind: string
+          p_tile_label?: string
+          p_tile_source_key: string
+          p_tile_source_url?: string
+        }
+        Returns: string
+      }
+      open_lucasfilm_dcp_crawl_section: {
+        Args: {
+          p_crawl_id: string
+          p_expected_count?: number
+          p_listing_kind: string
+          p_tile_label?: string
+          p_tile_source_key: string
+          p_tile_source_url?: string
+        }
+        Returns: string
+      }
+      open_marvel_dcp_crawl_section: {
+        Args: {
+          p_crawl_id: string
+          p_expected_count?: number
+          p_listing_kind: string
+          p_tile_label?: string
+          p_tile_source_key: string
+          p_tile_source_url?: string
+        }
+        Returns: string
+      }
+      open_twentieth_century_dcp_crawl_section: {
+        Args: {
+          p_crawl_id: string
+          p_expected_count?: number
+          p_listing_kind: string
+          p_tile_label?: string
+          p_tile_source_key: string
+          p_tile_source_url?: string
+        }
+        Returns: string
+      }
+      peanuts_publish_lifecycle: {
+        Args: { p_capture_id: string }
+        Returns: Json
+      }
+      plan_licensing_canonical_merge: {
+        Args: {
+          p_duplicate_id: string
+          p_entity_kind: string
+          p_survivor_id: string
+        }
+        Returns: {
+          body: Json
+          duplicate_id: string
+          entity_kind: string
+          event_kind: string
+          id: string
+          plan_hash: string
+          plan_id: string | null
+          plan_status: string | null
+          recorded_at: string
+          recorded_by: string
+          refusal_reason: string | null
+          result: Json
+          rollback_hash: string | null
+          survivor_id: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "licensing_canonical_change_history"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      plan_licensing_consolidation: {
+        Args: {
+          p_capture_id: string
+          p_entity_source_id?: string
+          p_source_system: string
+        }
+        Returns: {
+          applied_at: string | null
+          applied_by: string | null
+          applied_state: Json | null
+          capture_complete: boolean
+          capture_id: string
+          capture_snapshot: Json
+          collision_count: number
+          created_at: string
+          entity_operation_count: number
+          id: string
+          operations: Json
+          plan_hash: string
+          plan_schema_version: number
+          plan_status: string
+          planned_at: string
+          planned_by: string
+          refusal_reason: string | null
+          relationship_operation_count: number
+          retire_operation_count: number
+          rollback_of: string | null
+          rollback_operations: Json
+          source_scope_checked: boolean
+          source_system: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "licensing_consolidation_plan"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      plan_licensing_consolidation_rollback: {
+        Args: {
+          p_applied_plan_id: string
+          p_expected_applied_state_hash: string
+        }
+        Returns: {
+          applied_at: string | null
+          applied_by: string | null
+          applied_state: Json | null
+          capture_complete: boolean
+          capture_id: string
+          capture_snapshot: Json
+          collision_count: number
+          created_at: string
+          entity_operation_count: number
+          id: string
+          operations: Json
+          plan_hash: string
+          plan_schema_version: number
+          plan_status: string
+          planned_at: string
+          planned_by: string
+          refusal_reason: string | null
+          relationship_operation_count: number
+          retire_operation_count: number
+          rollback_of: string | null
+          rollback_operations: Json
+          source_scope_checked: boolean
+          source_system: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "licensing_consolidation_plan"
+          isOneToOne: true
+          isSetofReturn: false
+        }
       }
       pmt_loader_privilege_ok: {
         Args: { p_role: string; p_session_user: string }
@@ -19212,6 +39952,14 @@ export type Database = {
           population: string
         }[]
       }
+      prepack_role: {
+        Args: {
+          p_company_code: string
+          p_division_code: string
+          p_item_no: string
+        }
+        Returns: string
+      }
       promote_coldlion_source_owned: {
         Args: { p_client_plan?: Json; p_expected: Json; p_is_drill?: boolean }
         Returns: {
@@ -19226,6 +39974,33 @@ export type Database = {
           sync_run_id: string
           unchanged_rows: number
         }[]
+      }
+      record_dcp_crawl_gap: {
+        Args: {
+          p_crawl_section_id: string
+          p_offset_from: number
+          p_offset_to: number
+          p_reason: string
+        }
+        Returns: string
+      }
+      record_lucasfilm_dcp_crawl_gap: {
+        Args: {
+          p_crawl_section_id: string
+          p_offset_from: number
+          p_offset_to: number
+          p_reason: string
+        }
+        Returns: string
+      }
+      record_marvel_dcp_crawl_gap: {
+        Args: {
+          p_crawl_section_id: string
+          p_offset_from: number
+          p_offset_to: number
+          p_reason: string
+        }
+        Returns: string
       }
       record_taxonomy_circuit_breaker_blocked_attempt: {
         Args: {
@@ -19253,6 +40028,15 @@ export type Database = {
         }
         Returns: string
       }
+      record_twentieth_century_dcp_crawl_gap: {
+        Args: {
+          p_crawl_section_id: string
+          p_offset_from: number
+          p_offset_to: number
+          p_reason: string
+        }
+        Returns: string
+      }
       refresh_style_tracker_item_bridge: {
         Args: never
         Returns: {
@@ -19266,6 +40050,116 @@ export type Database = {
         Returns: Json
       }
       resolve_deployment_environment: { Args: never; Returns: string }
+      set_source_resolution:
+        | {
+            Args: {
+              p_core_character_id?: string
+              p_core_property_id?: string
+              p_core_style_guide_id?: string
+              p_dam_asset_id?: string
+              p_entity_kind: string
+              p_expected_updated_at?: string
+              p_resolution_reason?: string
+              p_resolution_status: string
+              p_source_id: string
+              p_source_system: string
+            }
+            Returns: {
+              core_character_id: string | null
+              core_franchise_id: string | null
+              core_licensor_id: string | null
+              core_property_id: string | null
+              core_style_guide_id: string | null
+              created_at: string
+              dam_asset_id: string | null
+              entity_kind: string
+              resolution_reason: string | null
+              resolution_status: string
+              resolved_at: string | null
+              resolved_by: string | null
+              source_id: string
+              source_system: string
+              updated_at: string
+            }
+            SetofOptions: {
+              from: "*"
+              to: "source_resolution"
+              isOneToOne: true
+              isSetofReturn: false
+            }
+          }
+        | {
+            Args: {
+              p_core_character_id: string
+              p_core_franchise_id: string
+              p_core_licensor_id: string
+              p_core_property_id: string
+              p_core_style_guide_id: string
+              p_dam_asset_id: string
+              p_entity_kind: string
+              p_expected_updated_at: string
+              p_resolution_reason: string
+              p_resolution_status: string
+              p_source_id: string
+              p_source_system: string
+            }
+            Returns: {
+              core_character_id: string | null
+              core_franchise_id: string | null
+              core_licensor_id: string | null
+              core_property_id: string | null
+              core_style_guide_id: string | null
+              created_at: string
+              dam_asset_id: string | null
+              entity_kind: string
+              resolution_reason: string | null
+              resolution_status: string
+              resolved_at: string | null
+              resolved_by: string | null
+              source_id: string
+              source_system: string
+              updated_at: string
+            }
+            SetofOptions: {
+              from: "*"
+              to: "source_resolution"
+              isOneToOne: true
+              isSetofReturn: false
+            }
+          }
+      source_resolution_target_missing:
+        | {
+            Args: {
+              p_core_character_id: string
+              p_core_property_id: string
+              p_core_style_guide_id: string
+              p_dam_asset_id: string
+              p_entity_kind: string
+            }
+            Returns: boolean
+          }
+        | {
+            Args: {
+              p_core_character_id: string
+              p_core_franchise_id: string
+              p_core_licensor_id: string
+              p_core_property_id: string
+              p_core_style_guide_id: string
+              p_dam_asset_id: string
+              p_entity_kind: string
+            }
+            Returns: boolean
+          }
+      suggested_property_for_sku: {
+        Args: { p_sku: string }
+        Returns: {
+          basis: string
+          file_count: number
+          file_names: string[]
+          mg_code: string
+          mg_desc: string
+        }[]
+      }
       sync_coldlion_licensors_properties: {
         Args: { p_link_expected?: Json; p_mode?: string; p_snapshot: Json }
         Returns: {
@@ -19294,6 +40188,14 @@ export type Database = {
           sync_run_id: string
         }[]
       }
+      sync_core_licensor_from_coldlion: {
+        Args: { p_apply?: boolean }
+        Returns: Json
+      }
+      sync_core_property_from_coldlion: {
+        Args: { p_apply?: boolean }
+        Returns: Json
+      }
       sync_opa_property_character: {
         Args: {
           p_max_shrink_fraction?: number
@@ -19313,151 +40215,29 @@ export type Database = {
           snapshot_hash: string
         }[]
       }
-      sync_wb_asset: {
-        Args: {
-          p_max_shrink_fraction?: number
-          p_mode?: string
-          p_snapshot: Json
-        }
+      sync_opa_property_studio_resolution: {
+        Args: { p_rows: Json }
         Returns: {
-          mode: string
-          rows_collapsed: number
           rows_inserted: number
-          rows_landed: number
-          rows_missing: number
-          rows_orphan_identity: number
           rows_seen: number
           rows_unchanged: number
           rows_updated: number
-          snapshot_captured_at: string
-          snapshot_hash: string
         }[]
       }
-      sync_wb_asset_character: {
-        Args: {
-          p_max_shrink_fraction?: number
-          p_mode?: string
-          p_snapshot: Json
-        }
+      sync_wb_canonical_relationship_edges: {
+        Args: { p_edge_kind: string; p_rows: Json }
         Returns: {
-          mode: string
-          rows_collapsed: number
-          rows_inserted: number
-          rows_landed: number
-          rows_missing: number
-          rows_orphan_identity: number
           rows_seen: number
-          rows_unchanged: number
-          rows_updated: number
-          snapshot_captured_at: string
-          snapshot_hash: string
+          rows_upserted: number
         }[]
       }
-      sync_wb_asset_franchise_property: {
+      sync_wb_normalized_target: {
         Args: {
+          p_capture_id: string
           p_max_shrink_fraction?: number
           p_mode?: string
           p_snapshot: Json
-        }
-        Returns: {
-          mode: string
-          rows_collapsed: number
-          rows_inserted: number
-          rows_landed: number
-          rows_missing: number
-          rows_orphan_identity: number
-          rows_seen: number
-          rows_unchanged: number
-          rows_updated: number
-          snapshot_captured_at: string
-          snapshot_hash: string
-        }[]
-      }
-      sync_wb_asset_style_guide: {
-        Args: {
-          p_max_shrink_fraction?: number
-          p_mode?: string
-          p_snapshot: Json
-        }
-        Returns: {
-          mode: string
-          rows_collapsed: number
-          rows_inserted: number
-          rows_landed: number
-          rows_missing: number
-          rows_orphan_identity: number
-          rows_seen: number
-          rows_unchanged: number
-          rows_updated: number
-          snapshot_captured_at: string
-          snapshot_hash: string
-        }[]
-      }
-      sync_wb_character: {
-        Args: {
-          p_max_shrink_fraction?: number
-          p_mode?: string
-          p_snapshot: Json
-        }
-        Returns: {
-          mode: string
-          rows_collapsed: number
-          rows_inserted: number
-          rows_landed: number
-          rows_missing: number
-          rows_orphan_identity: number
-          rows_seen: number
-          rows_unchanged: number
-          rows_updated: number
-          snapshot_captured_at: string
-          snapshot_hash: string
-        }[]
-      }
-      sync_wb_franchise_property: {
-        Args: {
-          p_max_shrink_fraction?: number
-          p_mode?: string
-          p_snapshot: Json
-        }
-        Returns: {
-          mode: string
-          rows_collapsed: number
-          rows_inserted: number
-          rows_landed: number
-          rows_missing: number
-          rows_orphan_identity: number
-          rows_seen: number
-          rows_unchanged: number
-          rows_updated: number
-          snapshot_captured_at: string
-          snapshot_hash: string
-        }[]
-      }
-      sync_wb_property_character: {
-        Args: {
-          p_max_shrink_fraction?: number
-          p_mode?: string
-          p_snapshot: Json
-        }
-        Returns: {
-          mode: string
-          rows_collapsed: number
-          rows_inserted: number
-          rows_landed: number
-          rows_missing: number
-          rows_orphan_identity: number
-          rows_seen: number
-          rows_unchanged: number
-          rows_updated: number
-          snapshot_captured_at: string
-          snapshot_hash: string
-        }[]
-      }
-      sync_wb_style_guide: {
-        Args: {
-          p_max_shrink_fraction?: number
-          p_mode?: string
-          p_snapshot: Json
+          p_target: string
         }
         Returns: {
           mode: string
@@ -19504,6 +40284,50 @@ export type Database = {
         }
         Returns: Json
       }
+      twentieth_century_dcp_asset_row_hash: {
+        Args: {
+          p_file_extension: string
+          p_file_name: string
+          p_relative_folder_path: string
+          p_source_path: string
+          p_source_system: string
+          p_style_guide_source_id: string
+          p_style_guide_source_path: string
+          p_tile_keys: string[]
+        }
+        Returns: string
+      }
+      twentieth_century_dcp_loader_privilege_ok: {
+        Args: { p_role: string; p_session_user: string }
+        Returns: boolean
+      }
+      twentieth_century_dcp_metadata_row_hash: {
+        Args: {
+          p_art_style_terms: string[]
+          p_character_ids: string[]
+          p_collection_dmc_id: string
+          p_collection_main_title: string
+          p_collection_type: string
+          p_content_owner: string
+          p_content_type: string
+          p_dam_sha1: string
+          p_dc_title: string
+          p_design_element: string
+          p_file_size_raw: string
+          p_format_raw: string
+          p_is_embargoed_raw: string
+          p_is_exclusive_raw: string
+          p_is_locked_raw: string
+          p_keyword_terms: string[]
+          p_modified_at_raw: string
+          p_num_pages_raw: string
+          p_property_ids: string[]
+          p_release_date_raw: string
+          p_source_status: string
+          p_source_uuid: string
+        }
+        Returns: string
+      }
       validate_pmt_capture: {
         Args: { p_capture_id: string }
         Returns: {
@@ -19521,6 +40345,14 @@ export type Database = {
       wb_loader_privilege_ok: {
         Args: { p_role: string; p_session_user: string }
         Returns: boolean
+      }
+      wb_validate_normalized_row: {
+        Args: { p_row: Json; p_target: string }
+        Returns: undefined
+      }
+      wildbrain_publish_lifecycle: {
+        Args: { p_capture_id: string }
+        Returns: Json
       }
     }
     Enums: {
@@ -19540,12 +40372,12 @@ export type Tables<
   DefaultSchemaTableNameOrOptions extends
     | keyof (DefaultSchema["Tables"] & DefaultSchema["Views"])
     | { schema: keyof DatabaseWithoutInternals },
-  TableName extends DefaultSchemaTableNameOrOptions extends {
+  TableName extends (DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
         DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])
-    : never = never,
+    : never) = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -19569,11 +40401,11 @@ export type TablesInsert<
   DefaultSchemaTableNameOrOptions extends
     | keyof DefaultSchema["Tables"]
     | { schema: keyof DatabaseWithoutInternals },
-  TableName extends DefaultSchemaTableNameOrOptions extends {
+  TableName extends (DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
-    : never = never,
+    : never) = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -19594,11 +40426,11 @@ export type TablesUpdate<
   DefaultSchemaTableNameOrOptions extends
     | keyof DefaultSchema["Tables"]
     | { schema: keyof DatabaseWithoutInternals },
-  TableName extends DefaultSchemaTableNameOrOptions extends {
+  TableName extends (DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
-    : never = never,
+    : never) = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -19619,11 +40451,11 @@ export type Enums<
   DefaultSchemaEnumNameOrOptions extends
     | keyof DefaultSchema["Enums"]
     | { schema: keyof DatabaseWithoutInternals },
-  EnumName extends DefaultSchemaEnumNameOrOptions extends {
+  EnumName extends (DefaultSchemaEnumNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"]
-    : never = never,
+    : never) = never,
 > = DefaultSchemaEnumNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -19636,11 +40468,11 @@ export type CompositeTypes<
   PublicCompositeTypeNameOrOptions extends
     | keyof DefaultSchema["CompositeTypes"]
     | { schema: keyof DatabaseWithoutInternals },
-  CompositeTypeName extends PublicCompositeTypeNameOrOptions extends {
+  CompositeTypeName extends (PublicCompositeTypeNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"]
-    : never = never,
+    : never) = never,
 > = PublicCompositeTypeNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -19663,6 +40495,7 @@ export const Constants = {
         "designer",
         "viewer",
         "vendor",
+        "sales_assistant",
       ],
       entity_status: ["active", "inactive", "archived", "deleted", "potential"],
       file_storage_provider: [
@@ -19682,7 +40515,13 @@ export const Constants = {
     },
   },
   core: {
-    Enums: {},
+    Enums: {
+      relationship_evidence_kind: [
+        "direct_source_assertion",
+        "inferred",
+        "co_occurrence",
+      ],
+    },
   },
   crm: {
     Enums: {},
