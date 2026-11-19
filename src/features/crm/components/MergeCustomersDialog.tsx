@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { ArrowRight, TriangleAlert } from 'lucide-react'
 import { toast } from 'sonner'
 import {
@@ -45,6 +45,13 @@ export function MergeCustomersDialog({
   const [reason, setReason] = useState('')
   const merge = useMergeCustomersMutation()
 
+  // One merge loop at a time: the ref is checked and set synchronously at the
+  // top of confirm(), so a second click before React re-renders cannot start a
+  // second loop against losers the first loop has already merged away. The
+  // state twin disables the button and shows the working label.
+  const runningRef = useRef(false)
+  const [running, setRunning] = useState(false)
+
   const weight = (r: Retailer) => (r.domain ? 2 : 0) + (r.customer_status === 'ACTIVE_CUSTOMER' ? 1 : 0)
   const defaultSurvivor = records?.reduce((best, row) => (weight(row) > weight(best) ? row : best)) ?? null
   const survivorId = records?.some((r) => r.id === pickedSurvivorId) ? pickedSurvivorId : defaultSurvivor?.id ?? null
@@ -67,7 +74,10 @@ export function MergeCustomersDialog({
   const movingAliases = Array.from(new Set(previews.flatMap((item) => item.movingAliases)))
 
   async function confirm() {
+    if (runningRef.current) return
     if (!survivor || !losers.length || previews.length !== losers.length) return
+    runningRef.current = true
+    setRunning(true)
     let completed = 0
     try {
       for (const loser of losers) {
@@ -106,6 +116,9 @@ export function MergeCustomersDialog({
       } else {
         toast.error('Could not merge these customers', { description })
       }
+    } finally {
+      runningRef.current = false
+      setRunning(false)
     }
   }
 
@@ -147,6 +160,18 @@ export function MergeCustomersDialog({
 
             {preview.isPending ? (
               <p className="text-[12px] text-muted-foreground">Checking what would move…</p>
+            ) : preview.isError ? (
+              <div className="flex items-start justify-between gap-[8px] rounded-[9px] border border-destructive/40 bg-destructive/10 px-[11px] py-[9px]">
+                <div className="flex gap-[8px]">
+                  <TriangleAlert className="mt-[1px] size-[14px] shrink-0 text-destructive" />
+                  <p className="text-[12px] text-foreground">
+                    Could not check what would move. Check your connection and try again.
+                  </p>
+                </div>
+                <Button variant="outline" size="sm" className="h-[26px] shrink-0" onClick={() => void preview.refetch()}>
+                  Retry
+                </Button>
+              </div>
             ) : gate ? (
               <div className="flex gap-[8px] rounded-[9px] border border-warning/40 bg-warning/10 px-[11px] py-[9px]">
                 <TriangleAlert className="mt-[1px] size-[14px] shrink-0 text-warning" />
@@ -203,10 +228,10 @@ export function MergeCustomersDialog({
           <Button variant="outline" size="sm" onClick={onClose}>Cancel</Button>
           <Button
             size="sm"
-            disabled={!previews.length || previews.length !== losers.length || !!gate || !reason.trim() || merge.isPending || !!conflicts.length}
+            disabled={!previews.length || previews.length !== losers.length || !!gate || !reason.trim() || merge.isPending || running || !!conflicts.length}
             onClick={() => void confirm()}
           >
-            {merge.isPending ? 'Merging…' : `Merge ${losers.length} record${losers.length === 1 ? '' : 's'}`}
+            {running || merge.isPending ? 'Merging…' : `Merge ${losers.length} record${losers.length === 1 ? '' : 's'}`}
           </Button>
         </DialogFooter>
       </DialogContent>
