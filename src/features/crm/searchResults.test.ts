@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
-import { rowsOrReport } from './searchResults'
+import { failedSearchGroups, rowsOrReport } from './searchResults'
 
 describe('rowsOrReport', () => {
   afterEach(() => vi.restoreAllMocks())
@@ -17,5 +17,27 @@ describe('rowsOrReport', () => {
       'CommandSearch: emails query failed',
       { code: '57014' },
     )
+  })
+})
+
+describe('failedSearchGroups', () => {
+  it('names only the groups that failed', () => {
+    expect(
+      failedSearchGroups({
+        customers: { data: [{ id: '1' }], error: null },
+        contacts: { data: null, error: { code: '57014' } },
+        opportunities: { data: [], error: null },
+        emails: { data: null, error: { code: '42P01' } },
+      }),
+    ).toEqual(['contacts', 'emails'])
+  })
+
+  it('returns an empty list when every group succeeded', () => {
+    expect(
+      failedSearchGroups({
+        customers: { data: [], error: null },
+        emails: { data: null, error: null },
+      }),
+    ).toEqual([])
   })
 })

@@ -71,16 +71,39 @@ export function DepartmentsPage() {
         retailers.map((r) => ({ id: r.id, name: r.name, display_name: r.display_name })),
         departments.map((d) => ({ customerId: idOf(d.retailer) || null, name: d.name })),
       )
-      for (const item of plan.toCreate) {
-        await createDepartment.mutateAsync({ name: item.name, retailer: item.customerId, active: true } as Partial<CrmDepartment>)
+      // One bad row must not discard the rest: create every department
+      // independently and report what actually happened (#58).
+      const results = await Promise.allSettled(
+        plan.toCreate.map((item) =>
+          createDepartment.mutateAsync({ name: item.name, retailer: item.customerId, active: true } as Partial<CrmDepartment>),
+        ),
+      )
+      const failed = results.filter((r) => r.status === 'rejected').length
+      const created = results.length - failed
+      const notes: string[] = []
+      if (plan.unmatchedCustomers.length) {
+        notes.push(`Customers not found or matched more than one: ${plan.unmatchedCustomers.join(', ')}`)
       }
-      const skipped = plan.unmatchedCustomers.length ? `Customers not found: ${plan.unmatchedCustomers.join(', ')}` : undefined
-      toast.success(`Added ${plan.toCreate.length} departments (${plan.existing} already existed)`, { description: skipped, duration: skipped ? 20_000 : undefined })
+      if (failed) notes.push(`${failed} of ${plan.toCreate.length} departments failed; only the saved ones appear below.`)
+      const description = notes.join(' · ') || undefined
+      if (failed) {
+        toast.warning(`Added ${created} of ${plan.toCreate.length} departments (${plan.existing} already existed)`, {
+          description,
+          duration: 20_000,
+        })
+      } else {
+        toast.success(`Added ${created} departments (${plan.existing} already existed)`, {
+          description,
+          duration: description ? 20_000 : undefined,
+        })
+      }
     } catch (error) {
       toast.error('Department import failed', { description: logError('DepartmentsPage.importCsv', error) })
     } finally {
       setImporting(false)
       if (fileInput.current) fileInput.current.value = ''
+      // The list must reflect what actually saved even when rows failed.
+      void departmentsQuery.refetch()
     }
   }
 

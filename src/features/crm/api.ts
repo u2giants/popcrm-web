@@ -14,7 +14,7 @@ import type {
   CrmTask,
   Retailer,
 } from '@/lib/types'
-import { rowsOrReport } from './searchResults'
+import { failedSearchGroups, rowsOrReport } from './searchResults'
 
 // ---------------------------------------------------------------------------
 // CRM data access over the shared Supabase backend (see u2giants/shared-db).
@@ -50,6 +50,8 @@ export interface CrmSearchResults {
   contacts: Buyer[]
   opportunities: CrmOpportunity[]
   emails: CrmEmailMessage[]
+  /** Groups whose query failed; the palette reports them instead of showing "no matches" (#58). */
+  failedGroups: string[]
 }
 
 // Dynamic table/view names, generic Row payloads, and newly-added customer
@@ -164,10 +166,14 @@ async function fetchRowsEq(view: string, column: string, value: string, order: O
   return limit !== undefined && limit >= 0 ? out.slice(0, limit) : out
 }
 
+// "Feature not installed" detection, by explicit code only: 42P01 (undefined
+// table), PGRST205 (table/view not in the schema cache), PGRST202 (function
+// not found). Error *text* must never match (#58): an unrelated failure whose
+// message happens to say "does not exist" used to read as "feature not
+// installed", silently downgrading a real error into empty data.
 function isMissingApiObject(error: unknown): boolean {
-  const e = error as { code?: string; message?: string; details?: string }
-  const text = `${e.message ?? ''} ${e.details ?? ''}`.toLowerCase()
-  return e.code === '42P01' || e.code === 'PGRST205' || text.includes('could not find') || text.includes('does not exist')
+  const code = (error as { code?: string } | null)?.code
+  return code === '42P01' || code === 'PGRST205' || code === 'PGRST202'
 }
 
 function searchPattern(raw: string): string | null {
@@ -498,11 +504,24 @@ export async function archiveOpportunity(id: string) {
 export async function askOpportunityAi(id: string, question: string): Promise<string> {
   const { data: sessionData } = await supabase.auth.getSession()
   const token = sessionData.session?.access_token
-  const res = await fetch('https://crm-fireflies.designflow.app/s/opportunity-chat', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
-    body: JSON.stringify({ opportunityId: id, question }),
-  })
+  // A hung backend must not spin the Ask-AI box forever: abort after 60 s and
+  // say it timed out (#58).
+  const controller = new AbortController()
+  const timeout = setTimeout(() => controller.abort(), 60_000)
+  let res: Response
+  try {
+    res = await fetch('https://crm-fireflies.designflow.app/s/opportunity-chat', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+      body: JSON.stringify({ opportunityId: id, question }),
+      signal: controller.signal,
+    })
+  } catch (error) {
+    if (controller.signal.aborted) throw new Error('The AI answer took too long; try again.', { cause: error })
+    throw error
+  } finally {
+    clearTimeout(timeout)
+  }
   if (!res.ok) throw new Error(`AI request failed: ${res.status}`)
   const json = (await res.json()) as { answer?: string }
   return json.answer || ''
@@ -1356,7 +1375,7 @@ export async function updateApprovalThread(id: string, values: Partial<CrmLicens
 // ---------------------------------------------------------------------------
 export async function searchCrm(query: string, limitPerGroup = 8): Promise<CrmSearchResults> {
   const pattern = searchPattern(query)
-  if (!pattern) return { customers: [], contacts: [], opportunities: [], emails: [] }
+  if (!pattern) return { customers: [], contacts: [], opportunities: [], emails: [], failedGroups: [] }
 
   const [customers, contacts, opportunities, emails] = await Promise.all([
     // Status-aware picker contract — never surface global-inactive or
@@ -1397,8 +1416,10 @@ export async function searchCrm(query: string, limitPerGroup = 8): Promise<CrmSe
   const contactRows = rowsOrReport('contacts', contacts)
   const opportunityRows = rowsOrReport('opportunities', opportunities)
   const emailRows = rowsOrReport('emails', emails)
+  const failedGroups = failedSearchGroups({ customers, contacts, opportunities, emails })
 
   return {
+    failedGroups,
     customers: (customerRows as Row[]).map((r) => ({
       id: r.id as string,
       name: (r.name ?? '') as string,

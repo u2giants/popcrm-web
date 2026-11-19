@@ -3,6 +3,7 @@ import { Bot, Activity, Plug } from 'lucide-react'
 import { AppPage, ListBar, SectionHeader } from '@/components/app/AppPage'
 import { StatusBadge } from '@/components/app/StatusBadge'
 import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
 import {
   Select,
@@ -28,12 +29,18 @@ import { AssignmentsPanel } from '@/features/admin/AssignmentsPanel'
 import { AccessHistoryPanel } from '@/features/admin/AccessHistoryPanel'
 
 const ADMIN_TABS = ['people', 'assignments', 'history'] as const
+const KNOWN_TABS = ['general', ...ADMIN_TABS] as const
 
 export function SettingsPage() {
   const { isAdmin } = useAuth()
   const [params, setParams] = useSearchParams()
   const requested = params.get('tab') ?? 'general'
-  const tab = isAdmin || !(ADMIN_TABS as readonly string[]).includes(requested) ? requested : 'general'
+  // Only known tabs render, and admin tabs additionally require the admin
+  // role; any other ?tab= value falls back to General instead of a blank
+  // page (#58).
+  const tab = (KNOWN_TABS as readonly string[]).includes(requested) && (requested === 'general' || isAdmin)
+    ? requested
+    : 'general'
 
   return (
     <AppPage
@@ -112,7 +119,20 @@ function GeneralSettings() {
           title="AI model configuration"
           description="Models used for routing, transcript splitting and summaries."
         />
-        {aiConfigs.length ? (
+        {aiConfigsQuery.isPending ? null : aiConfigsQuery.isError ? (
+          // A failed load must not read as "no configuration exists" (#58).
+          <EmptyState
+            className="mt-4"
+            icon={<Bot className="size-5" />}
+            title="Could not load AI model config"
+            description="The configuration could not be loaded. Check your connection and try again."
+            action={
+              <Button variant="outline" size="sm" onClick={() => void aiConfigsQuery.refetch()}>
+                Retry
+              </Button>
+            }
+          />
+        ) : aiConfigs.length ? (
           <div className="mt-4 space-y-6">
             {aiConfigs.map((config) => (
               <div key={config.id}>

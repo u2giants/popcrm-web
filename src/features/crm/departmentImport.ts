@@ -10,6 +10,7 @@ export interface DepartmentImportCustomer {
 export interface DepartmentImportPlan {
   toCreate: { customerId: string; customerName: string; name: string }[]
   existing: number
+  /** Header names with no unique customer match (not found, or two customers share the name). */
   unmatchedCustomers: string[]
 }
 
@@ -52,10 +53,20 @@ export function planDepartmentImport(
   existingDepartments: { customerId: string | null; name: string | null }[],
 ): DepartmentImportPlan {
   const [header = [], ...body] = parseCsv(text.replace(/^\uFEFF/, ''))
-  const byName = new Map<string, DepartmentImportCustomer>()
+  // A name shared by two different customers is ambiguous: picking either one
+  // silently would attach departments to the wrong company, so such headers
+  // are reported as unmatched instead (#58).
+  const AMBIGUOUS = Symbol('ambiguous')
+  const byName = new Map<string, DepartmentImportCustomer | typeof AMBIGUOUS>()
+  const register = (k: string, c: DepartmentImportCustomer) => {
+    if (!k) return
+    const existing = byName.get(k)
+    if (existing === undefined || existing === c) byName.set(k, c)
+    else if (existing !== AMBIGUOUS) byName.set(k, AMBIGUOUS)
+  }
   for (const c of customers) {
-    byName.set(key(c.name), c)
-    if (c.display_name) byName.set(key(c.display_name), c)
+    register(key(c.name), c)
+    if (c.display_name) register(key(c.display_name), c)
   }
   const have = new Set(existingDepartments.map((d) => `${d.customerId}|${key(d.name ?? '')}`))
   const plan: DepartmentImportPlan = { toCreate: [], existing: 0, unmatchedCustomers: [] }
@@ -63,7 +74,7 @@ export function planDepartmentImport(
     if (!rawCustomer.trim()) return
     const names = body.map((r) => r[col] ?? '').filter((v) => v.trim())
     const customer = byName.get(key(rawCustomer))
-    if (!customer) {
+    if (!customer || customer === AMBIGUOUS) {
       if (names.length) plan.unmatchedCustomers.push(rawCustomer.trim())
       return
     }

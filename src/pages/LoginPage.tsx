@@ -4,6 +4,7 @@ import { useAuth } from '@/auth/auth'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { errorCode } from '@/lib/errors'
 
 export function LoginPage() {
   const { login, loginWithMicrosoft } = useAuth()
@@ -18,8 +19,15 @@ export function LoginPage() {
     setError(null)
     try {
       await login(email, password)
-    } catch {
-      setError('Wrong email or password.')
+    } catch (error) {
+      // Only Supabase's invalid_credentials means the user typed something
+      // wrong; any other failure (outage, network) must not claim it was the
+      // password (#58).
+      setError(
+        errorCode(error) === 'invalid_credentials'
+          ? 'Wrong email or password.'
+          : 'Sign-in is not working right now. Try again in a moment.',
+      )
     } finally {
       setBusy(false)
     }

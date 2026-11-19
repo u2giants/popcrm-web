@@ -160,9 +160,23 @@ export function CustomerDrawer({ row, onClose }: { row: Retailer | null; onClose
           </DrawerSection>
 
           {/* Ingested email domains linked to this customer (read-only) */}
-          <DrawerSection title={`Linked email domains (${linkedDomains.length})`}>
+          <DrawerSection
+            title={`Linked email domains${linkedDomainsQuery.isError ? '' : ` (${linkedDomains.length})`}`}
+          >
             {linkedDomainsQuery.isLoading ? (
               <p className="text-[12px] text-muted-foreground">Loading…</p>
+            ) : linkedDomainsQuery.isError ? (
+              // A failed load must not read as "none linked" (#58).
+              <p className="text-[12px] text-destructive">
+                Could not load linked email domains.{' '}
+                <button
+                  type="button"
+                  className="underline underline-offset-2"
+                  onClick={() => void linkedDomainsQuery.refetch()}
+                >
+                  Retry
+                </button>
+              </p>
             ) : linkedDomains.length ? (
               <ul className="divide-y rounded-[8px] border">
                 {linkedDomains.map((d) => (

@@ -23,4 +23,34 @@ describe('department import', () => {
     ])
     expect(plan.unmatchedCustomers).toEqual(['Nobody'])
   })
+  it('reports a name shared by two customers as unmatched instead of picking one', () => {
+    const csv = 'Shared\nCLOCKS\nGMM\n'
+    const plan = planDepartmentImport(
+      csv,
+      [{ id: 'a', name: 'Shared' }, { id: 'b', name: 'shared' }],
+      [],
+    )
+    expect(plan.toCreate).toEqual([])
+    expect(plan.unmatchedCustomers).toEqual(['Shared'])
+  })
+  it('reports a name matching one customer’s name and another’s display name as unmatched', () => {
+    const csv = 'FYE\nDVD\n'
+    const plan = planDepartmentImport(
+      csv,
+      [{ id: 'a', name: 'Transworld', display_name: 'FYE' }, { id: 'b', name: 'FYE' }],
+      [],
+    )
+    expect(plan.toCreate).toEqual([])
+    expect(plan.unmatchedCustomers).toEqual(['FYE'])
+  })
+  it('keeps a name unique to one customer matched even when that customer has both name and display name', () => {
+    const csv = 'Lidl\nBakery\n'
+    const plan = planDepartmentImport(
+      csv,
+      [{ id: 'l', name: 'Lidl', display_name: 'LIDL US' }, { id: 'x', name: 'Other' }],
+      [],
+    )
+    expect(plan.toCreate).toEqual([{ customerId: 'l', customerName: 'LIDL US', name: 'Bakery' }])
+    expect(plan.unmatchedCustomers).toEqual([])
+  })
 })

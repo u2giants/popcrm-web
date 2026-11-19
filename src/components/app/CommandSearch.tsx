@@ -68,6 +68,12 @@ export function CommandSearch({ open, onClose }: { open: boolean; onClose: () =>
     return Array.from(map.entries())
   }, [results])
 
+  // A failed group must not read as "no matches" (#58); the group-level
+  // errors were swallowed in searchCrm so one bad section cannot blank the
+  // rest, which means the palette has to say it here.
+  const failedGroups = searchQ.data?.failedGroups ?? []
+  const someFailed = failedGroups.length > 0
+
   function go(to: string) {
     setQuery('')
     onClose()
@@ -98,32 +104,44 @@ export function CommandSearch({ open, onClose }: { open: boolean; onClose: () =>
             <p className="px-3 py-8 text-center text-sm text-muted-foreground">Searching…</p>
           ) : searchQ.isError ? (
             <p className="px-3 py-8 text-center text-sm text-muted-foreground">Search failed. Try again.</p>
-          ) : !results.length ? (
-            <p className="px-3 py-8 text-center text-sm text-muted-foreground">No matches for “{searchTerm}”.</p>
+          ) : !results.length && someFailed ? (
+            <p className="px-3 py-8 text-center text-sm text-destructive">
+              Search failed. Some sections could not be loaded — try again.
+            </p>
           ) : (
-            grouped.map(([group, items]) => (
-              <div key={group} className="mb-1">
-                <p className="px-2 py-1.5 text-xs font-medium text-muted-foreground">{group}</p>
-                {items.map((r) => {
-                  const Icon = r.icon
-                  return (
-                    <button
-                      key={r.id}
-                      type="button"
-                      onClick={() => go(r.to)}
-                      className={cn(
-                        'group flex w-full items-center gap-2.5 rounded-md px-2 py-2 text-left text-sm hover:bg-accent hover:text-accent-foreground',
-                      )}
-                    >
-                      <Icon className="size-4 shrink-0 text-muted-foreground" />
-                      <span className="min-w-0 flex-1 truncate">{r.label}</span>
-                      {r.hint ? <span className="shrink-0 truncate text-xs text-muted-foreground">{r.hint}</span> : null}
-                      <CornerDownLeft className="size-3.5 shrink-0 opacity-0 group-hover:opacity-60" />
-                    </button>
-                  )
-                })}
-              </div>
-            ))
+            <>
+              {results.length ? null : (
+                <p className="px-3 py-8 text-center text-sm text-muted-foreground">No matches for “{searchTerm}”.</p>
+              )}
+              {grouped.map(([group, items]) => (
+                <div key={group} className="mb-1">
+                  <p className="px-2 py-1.5 text-xs font-medium text-muted-foreground">{group}</p>
+                  {items.map((r) => {
+                    const Icon = r.icon
+                    return (
+                      <button
+                        key={r.id}
+                        type="button"
+                        onClick={() => go(r.to)}
+                        className={cn(
+                          'group flex w-full items-center gap-2.5 rounded-md px-2 py-2 text-left text-sm hover:bg-accent hover:text-accent-foreground',
+                        )}
+                      >
+                        <Icon className="size-4 shrink-0 text-muted-foreground" />
+                        <span className="min-w-0 flex-1 truncate">{r.label}</span>
+                        {r.hint ? <span className="shrink-0 truncate text-xs text-muted-foreground">{r.hint}</span> : null}
+                        <CornerDownLeft className="size-3.5 shrink-0 opacity-0 group-hover:opacity-60" />
+                      </button>
+                    )
+                  })}
+                </div>
+              ))}
+              {results.length && someFailed ? (
+                <p className="px-3 pb-2 pt-1 text-center text-xs text-destructive">
+                  Some sections failed to load; results may be incomplete.
+                </p>
+              ) : null}
+            </>
           )}
         </div>
       </DialogContent>
