@@ -356,6 +356,28 @@ Never demote mail that already has a company. Keep `NO_CUSTOMER_DOMAIN` as the
 recheck marker; changing it strands earlier skipped mail. Host workers run from
 the canonical checkout, so pull `main` there after worker changes.
 
+### Manual email routing survives the 6-hourly reroute sweep (2026-11-18)
+
+What changed:
+A person's assignment on an email is final for the company. `reroute` never
+changes the company of a row whose `routing_method` is `MANUAL` — it may still
+add the department or program beneath the company the person chose
+(`mayReroute` in `workers/lib/worker-foundation.mjs`). Every reroute write is
+also a compare-and-set gated on the routing status and company that were read
+(`.select('id')`), so an edit made while the job is running is left alone and
+counted as `changed underneath` in the run's final log line instead of being
+overwritten from a stale snapshot.
+
+Why:
+The sweep treated a same-priority company swap as an improvement, so the
+deterministic answer could replace a manual assignment on the next run, and the
+unconditional `.eq('id')` update could overwrite a concurrent edit
+(full-codebase audit 2026-11-18, issue #36).
+
+Future sessions should:
+Never let `reroute` move a `MANUAL` row's company, and never drop the
+status/company compare-and-set from its writes.
+
 ### The sender's contact card opens from the email drawer at the Department setting (2026-11-05)
 
 What changed:

@@ -75,6 +75,13 @@ Focused worker tests run as part of `npm test`. Injectable boundaries for
 service authentication, HTTP body reads, Fireflies signatures, upstream fetch,
 Graph cursor storage, and current time live in `workers/lib/worker-foundation.mjs`.
 
+Reroute preserves a person's choice: it never changes the company of a row
+whose `routing_method` is `MANUAL` (department or program completion beneath
+that company is still allowed), and every write is a compare-and-set on the
+routing status and company that were read. A zero-row write means the row
+changed mid-run; the sweep counts it as `changed underneath` in its final log
+line rather than overwriting it or erroring.
+
 Outlook ingestion uses Microsoft Graph mail delta synchronization, not a
 newest-message window. The first run follows every page to a final delta link.
 Later runs resume from the durable cursor stored through

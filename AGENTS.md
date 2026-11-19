@@ -142,6 +142,7 @@ Full text lives in [docs/critical-incidents.md](docs/critical-incidents.md). Loa
 | Status | Item | Owner/next action |
 |---|---|---|
 | open | Audit plan Sessions 13 (worker batching) and 14 (promotion residue) | [`plan_codebase_audit_remediation.md`](plan_codebase_audit_remediation.md) ledger rows 13/14 |
+| open | Issue #36 live proof: reroute keeps a manually assigned customer | Steps 1-2 implemented with tests (branch `fix-issue-36`); issue #36 step 3 preview reroute check still pending |
 | open | `fix_bugs.md` Part 2 | See its Part 2; one owner decision outstanding (fuzzy PO matching) |
 | open | Final shared-db drop of deprecated `crm_account_*` compatibility contracts | [`fix_remove_account.md`](fix_remove_account.md) step 3 |
 | blocked | Customer logos go live | Code deployed but inert until `LOGODEV_TOKEN` GitHub secret is set (publishable logo.dev key) — falls back to initials until then |
