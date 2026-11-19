@@ -3005,6 +3005,14 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      crm_customer_counts: {
+        Args: never
+        Returns: {
+          contact_count: number
+          customer_id: string
+          program_count: number
+        }[]
+      }
       crm_customer_logo_url: {
         Args: { p_import_logo_url: string; p_metadata: Json }
         Returns: string
@@ -3084,6 +3092,43 @@ export type Database = {
       }
       crm_email_routing_stage_page: {
         Args: { p_limit?: number; p_offset?: number; p_stage?: string }
+        Returns: {
+          body_preview: string
+          company_id: string
+          company_name: string
+          department_id: string
+          department_name: string
+          detected_po_numbers: string
+          detected_so_numbers: string
+          id: string
+          opportunity_id: string
+          opportunity_name: string
+          opportunity_stage: string
+          received_at: string
+          recipients: string
+          routing_method: string
+          routing_status: string
+          sender: string
+          subject: string
+          updated_at: string
+        }[]
+      }
+      crm_emails_for_count: {
+        Args: {
+          p_company_id?: string
+          p_opportunity_id?: string
+          p_sender?: string
+        }
+        Returns: number
+      }
+      crm_emails_for_page: {
+        Args: {
+          p_company_id?: string
+          p_limit?: number
+          p_offset?: number
+          p_opportunity_id?: string
+          p_sender?: string
+        }
         Returns: {
           body_preview: string
           company_id: string
@@ -3222,6 +3267,9 @@ export type Database = {
           p_clear_company?: boolean
           p_clear_contact_type?: boolean
           p_clear_crm_department?: boolean
+          p_clear_email?: boolean
+          p_clear_job_title?: boolean
+          p_clear_phone?: boolean
           p_clear_scope?: boolean
           p_company_id?: string
           p_contact_id: string
@@ -8966,6 +9014,33 @@ export type Database = {
         }
         Relationships: []
       }
+      fireflies_retry: {
+        Row: {
+          attempts: number
+          created_at: string
+          last_error: string | null
+          meeting_id: string
+          payload: Json
+          updated_at: string
+        }
+        Insert: {
+          attempts?: number
+          created_at?: string
+          last_error?: string | null
+          meeting_id: string
+          payload: Json
+          updated_at?: string
+        }
+        Update: {
+          attempts?: number
+          created_at?: string
+          last_error?: string | null
+          meeting_id?: string
+          payload?: Json
+          updated_at?: string
+        }
+        Relationships: []
+      }
       ignore_rule: {
         Row: {
           created_at: string
@@ -9532,6 +9607,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      increment_ignore_rule_emails_skipped: {
+        Args: { p_n?: number; p_rule_id: string }
+        Returns: undefined
+      }
       load_worker_delta_cursor: {
         Args: { p_cursor_key: string }
         Returns: Json
