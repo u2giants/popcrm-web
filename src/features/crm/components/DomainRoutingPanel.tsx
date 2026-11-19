@@ -3,7 +3,7 @@ import { toast } from 'sonner'
 import { Globe } from 'lucide-react'
 import { DataTable, type Column, type EditOption, type CellEditContext } from '@/components/app/DataTable'
 import { customerLabel, formatDateTime, textOf } from '@/features/crm/format'
-import { customerEditOptions, buildRetailerById } from '@/features/crm/pages/_shared'
+import { customerEditOptions, buildRetailerById, splitAliases } from '@/features/crm/pages/_shared'
 import {
   listData,
   useCustomerPickerQuery,
@@ -21,10 +21,8 @@ import type { CrmIngestedDomain, Retailer } from '@/lib/types'
 
 // Routing a domain adds it to the chosen customer's routing aliases; the email
 // worker matches sender domains against those aliases, so new mail (and the
-// reroute pass over old mail) lands on that customer.
-const splitAliases = (v: string | null | undefined) =>
-  String(v || '').split(/[,\n;]/).map((x) => x.trim()).filter(Boolean)
-
+// reroute pass over old mail) lands on that customer. Alias splitting comes
+// from the one shared rule in pages/_shared (#55), which matches the worker.
 const hasDomain = (r: Retailer, domain: string) =>
   splitAliases(r.routing_aliases).some((a) => a.toLowerCase() === domain)
 

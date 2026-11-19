@@ -116,7 +116,7 @@ function OpportunityDrawerForm({ row, onClose }: { row: CrmOpportunity; onClose:
       </DrawerSection>
 
       <DrawerSection title="Stage">
-        <Select value={stage} onValueChange={changeStage}>
+        <Select value={stage} onValueChange={changeStage} disabled={setStageMutation.isPending}>
           <SelectTrigger className="w-full sm:w-72">
             <SelectValue />
           </SelectTrigger>

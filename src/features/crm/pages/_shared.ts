@@ -139,11 +139,20 @@ export function effectiveCustomerStatus(
   return 'UNASSIGNED'
 }
 
-/** Split a customer's routing aliases (comma / newline / semicolon separated). */
-export function splitRoutingAliases(v: string | null | undefined): string[] {
+/**
+ * Split a customer's routing aliases exactly the way the email worker does
+ * (`splitAliases` in `workers/crm-worker-supabase.mjs`): comma / newline /
+ * semicolon separated, trimmed, blanks dropped. Whitespace is NOT a separator
+ * and a leading `@` is NOT stripped — a space-separated pair is one alias and
+ * never matches a bare domain, because that is how real routing behaves. The
+ * worker decides routing, so every screen must read aliases through this one
+ * rule (#55). Case is preserved here; comparisons lowercase, as the worker's
+ * do.
+ */
+export function splitAliases(v: string | null | undefined): string[] {
   return String(v || '')
     .split(/[,\n;]/)
-    .map((x) => x.trim().toLowerCase())
+    .map((x) => x.trim())
     .filter(Boolean)
 }
 
@@ -156,7 +165,7 @@ export function splitRoutingAliases(v: string | null | undefined): string[] {
 export function customerDomainSet(customers: Retailer[]): Set<string> {
   const set = new Set<string>()
   for (const c of customers) {
-    for (const a of splitRoutingAliases(c.routing_aliases)) set.add(a)
+    for (const a of splitAliases(c.routing_aliases)) set.add(a.toLowerCase())
     const d = (c.domain ?? '').trim().toLowerCase()
     if (d) set.add(d)
   }

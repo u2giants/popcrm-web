@@ -114,6 +114,23 @@ export function formatDate(value: string | null | undefined) {
   })
 }
 
+// Money for estimate tiles, one shared rule (#55): the value is rounded to
+// the precision each band displays BEFORE the unit is chosen, so 999,600
+// rounds to 1,000k and reads "$1.00M" — the per-screen copies this replaced
+// chose "k" first and printed "$1000k". Missing or unparsable values read as
+// an em dash, like the date helpers.
+export function formatAmount(val: string | number | null | undefined): string {
+  if (val == null || val === '') return '—'
+  const n = typeof val === 'string' ? parseFloat(val.replace(/[^0-9.-]/g, '')) : Number(val)
+  if (!isFinite(n)) return '—'
+  // The k band shows whole thousands: round to that precision, then let the
+  // rounded value pick the band (so 1,500 -> "$2k", 999,499 -> "$999k").
+  const roundedK = Math.round(n / 1_000) * 1_000
+  if (roundedK >= 1_000_000) return `$${(n / 1_000_000).toFixed(2)}M`
+  if (roundedK >= 1_000) return `$${(roundedK / 1_000).toFixed(0)}k`
+  return `$${Math.round(n).toFixed(0)}`
+}
+
 export function formatDateTime(value: string | null | undefined) {
   if (!value) return '—'
   const date = new Date(value)

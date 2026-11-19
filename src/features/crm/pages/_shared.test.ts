@@ -8,6 +8,7 @@ import {
   domainOfAddress,
   effectiveCustomerStatus,
   isSelectableCustomer,
+  splitAliases,
   withCurrentCustomer,
 } from './_shared'
 import { CONTACT_TITLES } from '@/features/crm/constants'
@@ -102,6 +103,29 @@ describe('CRM contact title helpers', () => {
 
   it('does not repeat a global title already present on contacts', () => {
     expect(contactTitleValues(['GMM', 'gmm'])).toEqual([...CONTACT_TITLES, 'gmm'])
+  })
+})
+
+describe('splitAliases matches the email worker (#55)', () => {
+  // The worker's rule (workers/crm-worker-supabase.mjs splitAliases): split on
+  // comma / newline / semicolon, trim, drop blanks — nothing friendlier. Every
+  // screen reads aliases through this so none can disagree with real routing.
+  it.each([
+    ['a.com, b.com;c.com\nd.com', ['a.com', 'b.com', 'c.com', 'd.com']],
+    // A space is part of one alias, not a separator: routing never splits it.
+    ['acme.com benton.com', ['acme.com benton.com']],
+    ['  spaced.com  ', ['spaced.com']],
+    ['a.com,, ; \n, b.com', ['a.com', 'b.com']],
+    // A leading @ is not stripped: '@foo.com' owns nothing in real routing.
+    ['@foo.com', ['@foo.com']],
+    ['@foo.com, foo.com', ['@foo.com', 'foo.com']],
+    // Case is preserved; comparisons lowercase, exactly as the worker does.
+    ['Burlington.com', ['Burlington.com']],
+    ['', []],
+    [null, []],
+    [undefined, []],
+  ])('splitAliases(%j) -> %j', (input, expected) => {
+    expect(splitAliases(input)).toEqual(expected)
   })
 })
 

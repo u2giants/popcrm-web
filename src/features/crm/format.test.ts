@@ -3,7 +3,7 @@
 // (west of UTC, where the old UTC-midnight parse shifted every date-only
 // string one day early); TZ is stubbed before any date is formatted.
 import { beforeAll, describe, expect, it, vi } from 'vitest'
-import { formatDate, parseDateParts } from './format'
+import { formatAmount, formatDate, parseDateParts } from './format'
 
 beforeAll(() => {
   vi.stubEnv('TZ', 'America/New_York')
@@ -40,5 +40,33 @@ describe('formatDate', () => {
     expect(formatDate(undefined)).toBe('—')
     expect(formatDate('')).toBe('—')
     expect(formatDate('not a date')).toBe('not a date')
+  })
+})
+
+describe('formatAmount (#55)', () => {
+  it('rounds to a whole number before choosing the unit', () => {
+    // The old per-screen copies chose "k" first and printed "$1000k".
+    expect(formatAmount(999_600)).toBe('$1.00M')
+    expect(formatAmount(999_499)).toBe('$999k')
+    expect(formatAmount(1_500)).toBe('$2k')
+  })
+
+  it('keeps the familiar bands after rounding', () => {
+    expect(formatAmount(1_000_000)).toBe('$1.00M')
+    expect(formatAmount(1_234_567)).toBe('$1.23M')
+    expect(formatAmount(1_000)).toBe('$1k')
+    // The rounding rule is uniform: 999 rounds to a whole thousand first, so
+    // it displays in the k band rather than as a dollar figure.
+    expect(formatAmount(999)).toBe('$1k')
+    expect(formatAmount(499)).toBe('$499')
+  })
+
+  it('parses messy strings and reads missing or junk values as an em dash', () => {
+    expect(formatAmount('999600')).toBe('$1.00M')
+    expect(formatAmount('$1,234,567')).toBe('$1.23M')
+    expect(formatAmount(null)).toBe('—')
+    expect(formatAmount(undefined)).toBe('—')
+    expect(formatAmount('')).toBe('—')
+    expect(formatAmount('n/a')).toBe('—')
   })
 })

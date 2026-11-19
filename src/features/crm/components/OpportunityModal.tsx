@@ -23,20 +23,11 @@ import { ConfirmDeleteDialog } from '@/features/crm/components/ConfirmDeleteDial
 import { askOpportunityAi } from '@/features/crm/api'
 import { listData, useArchiveOpportunityMutation, useCreateNoteMutation, useNotesQuery, useSetOpportunityStageMutation, useTasksQuery } from '@/features/crm/queries'
 import { OPPORTUNITY_STAGES, stageChipClass } from '@/features/crm/constants'
-import { formatDate, idOf, label, relatedName } from '@/features/crm/format'
+import { formatDate, formatAmount, idOf, label, relatedName } from '@/features/crm/format'
 import { cn } from '@/lib/utils'
 import { NameAvatar } from '@/components/app/NameAvatar'
 import { logError } from '@/lib/errors'
 import type { CrmOpportunity } from '@/lib/types'
-
-function fmtAmount(val: string | number | null | undefined): string {
-  if (val == null || val === '') return '—'
-  const n = typeof val === 'string' ? parseFloat(val.replace(/[^0-9.-]/g, '')) : Number(val)
-  if (!isFinite(n)) return '—'
-  if (n >= 1_000_000) return `$${(n / 1_000_000).toFixed(2)}M`
-  if (n >= 1_000) return `$${(n / 1_000).toFixed(0)}k`
-  return `$${n.toFixed(0)}`
-}
 
 // Colored field tile — icon + label + value
 function FieldRow({
@@ -361,7 +352,7 @@ function ModalInner({
                   ['Season / year', row.season_year],
                   ['Division', row.division],
                   ['Close date', formatDate(row.close_date)],
-                  ['Est. value', fmtAmount(row.amount)],
+                  ['Est. value', formatAmount(row.amount)],
                   ['Hard delivery', formatDate(row.hard_delivery_date)],
                   ['Factory', relatedName(row.factory)],
                 ].map(([term, value]) => (
@@ -393,7 +384,7 @@ function ModalInner({
               </h3>
               <FieldRow icon={<Building2 className="size-[13px]" />} iconColor="oklch(0.60 0.15 200)" fieldLabel="Customer" value={relatedName(row.retailer)} />
               <FieldRow icon={<Link2 className="size-[13px]" />} iconColor="oklch(0.61 0.16 245)" fieldLabel="Poppim project" value={relatedName(row.project)} />
-              <FieldRow icon={<DollarSign className="size-[13px]" />} iconColor="oklch(0.60 0.17 155)" fieldLabel="Est. value" value={fmtAmount(row.amount)} />
+              <FieldRow icon={<DollarSign className="size-[13px]" />} iconColor="oklch(0.60 0.17 155)" fieldLabel="Est. value" value={formatAmount(row.amount)} />
               <FieldRow icon={<Package className="size-[13px]" />} iconColor="oklch(0.62 0.15 165)" fieldLabel="Factory" value={relatedName(row.factory)} />
               <FieldRow icon={<Tag className="size-[13px]" />} iconColor="oklch(0.64 0.15 130)" fieldLabel="Program type" value={label(row.program_type)} />
               <FieldRow icon={<CalendarDays className="size-[13px]" />} iconColor="oklch(0.66 0.15 60)" fieldLabel="Close date" value={formatDate(row.close_date)} />
@@ -411,6 +402,7 @@ function ModalInner({
                   <button
                     key={s}
                     onClick={() => changeStage(s)}
+                    disabled={setStageMutation.isPending}
                     className={cn(
                       'rounded-full px-[10px] py-[4px] text-[11.5px] font-[600] transition-all',
                       stageChipClass(s),

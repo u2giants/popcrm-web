@@ -7,7 +7,7 @@ import { StatusBadge } from '@/components/app/StatusBadge'
 import { Button } from '@/components/ui/button'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { ErrorState } from '@/components/app/states'
-import { effectiveCustomerStatus } from '@/features/crm/pages/_shared'
+import { customerDomainSet, effectiveCustomerStatus } from '@/features/crm/pages/_shared'
 import { useRecordSelection } from '@/features/crm/useRecordSelection'
 import { CustomerDrawer } from '@/features/crm/components/CustomerDrawer'
 import { MergeCustomersDialog } from '@/features/crm/components/MergeCustomersDialog'
@@ -126,17 +126,10 @@ export function CustomersPage() {
     })
   }, [customerRows, query])
 
-  // Domains a customer record already owns (its domain or a routing alias).
-  const customerDomains = useMemo(() => {
-    const out = new Set<string>()
-    for (const c of allCustomers) {
-      for (const d of [c.domain, ...(c.routing_aliases ?? '').split(/[\s,;]+/)]) {
-        const v = (d ?? '').trim().toLowerCase().replace(/^@/, '')
-        if (v) out.add(v)
-      }
-    }
-    return out
-  }, [allCustomers])
+  // Domains a customer record already owns (its domain or a routing alias),
+  // through the one shared alias rule (#55): what the email worker treats as
+  // the customer's own, not a friendlier local variant of it.
+  const customerDomains = useMemo(() => customerDomainSet(allCustomers), [allCustomers])
 
   // "New email domains" means not classified yet: still 'new', and not a
   // domain that already belongs to a customer record (linked by customer_id,

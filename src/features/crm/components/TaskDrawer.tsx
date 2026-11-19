@@ -104,6 +104,7 @@ function TaskDrawerForm({ row }: { row: CrmTask }) {
                 key={s}
                 type="button"
                 onClick={() => changeStatus(s)}
+                disabled={updateTaskMutation.isPending}
                 className={cn(
                   'rounded-full border px-[11px] py-[4px] text-[12px] font-[550] transition-colors',
                   active

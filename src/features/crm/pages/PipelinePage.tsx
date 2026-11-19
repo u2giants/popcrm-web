@@ -12,22 +12,13 @@ import { CustomerRelationLogo } from '@/features/crm/components/CustomerRelation
 import { OpportunityModal } from '@/features/crm/components/OpportunityModal'
 import { StageBadge } from '@/features/crm/components/CrmStatusBadge'
 import { OPPORTUNITY_STAGES, stageChipClass } from '@/features/crm/constants'
-import { idOf, label, relatedName, textOf, formatDate } from '@/features/crm/format'
+import { idOf, label, relatedName, textOf, formatDate, formatAmount } from '@/features/crm/format'
 import { uniqueValues, customerPickerOptions, buildRetailerById } from '@/features/crm/pages/_shared'
 import { cn } from '@/lib/utils'
 import { listData, useOpportunitiesQuery, useCustomerPickerQuery,
   useCustomerDisplayName,
 } from '@/features/crm/queries'
 import type { CrmOpportunity } from '@/lib/types'
-
-function fmtAmount(val: string | number | null | undefined): string | null {
-  if (val == null || val === '') return null
-  const n = typeof val === 'string' ? parseFloat(val.replace(/[^0-9.-]/g, '')) : Number(val)
-  if (!isFinite(n)) return null
-  if (n >= 1_000_000) return `$${(n / 1_000_000).toFixed(2)}M`
-  if (n >= 1_000) return `$${(n / 1_000).toFixed(0)}k`
-  return `$${n.toFixed(0)}`
-}
 
 export function PipelinePage() {
   const customerName = useCustomerDisplayName()
@@ -106,9 +97,9 @@ export function PipelinePage() {
         const n = typeof o.amount === 'string' ? parseFloat(o.amount.replace(/[^0-9.-]/g, '')) : Number(o.amount ?? 0)
         return isFinite(n) ? n : 0
       },
-      filterValue: (o) => fmtAmount(o.amount) ?? '',
+      filterValue: (o) => { const v = formatAmount(o.amount); return v === '—' ? '' : v },
       className: 'text-right tabular-nums font-[650]',
-      cell: (o) => fmtAmount(o.amount) ?? '—',
+      cell: (o) => formatAmount(o.amount),
     },
     {
       key: 'close_date',
@@ -254,9 +245,11 @@ export function PipelinePage() {
 
 function OppCard({ opp, onClick }: { opp: CrmOpportunity; onClick: () => void }) {
   const customerName = useCustomerDisplayName()
-  const amount = fmtAmount(opp.amount)
+  const amount = formatAmount(opp.amount)
   const closeDate = formatDate(opp.close_date)
-  const hasFooter = !!(amount || closeDate)
+  const hasAmount = amount !== '—'
+  const hasDate = closeDate !== '—'
+  const hasFooter = hasAmount || hasDate
 
   return (
     <button
@@ -286,10 +279,10 @@ function OppCard({ opp, onClick }: { opp: CrmOpportunity; onClick: () => void })
       </div>
       {hasFooter ? (
         <div className="flex items-center justify-between gap-2 border-t px-[11px] py-[7px]">
-          {amount ? (
+          {hasAmount ? (
             <span className="text-[12px] font-[650] tabular-nums text-foreground">{amount}</span>
           ) : <span />}
-          {closeDate ? (
+          {hasDate ? (
             <span className="text-[10.5px] text-muted-foreground">{closeDate}</span>
           ) : null}
         </div>

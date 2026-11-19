@@ -9,19 +9,11 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { StageBadge } from '@/features/crm/components/CrmStatusBadge'
+import { StatCard } from '@/features/crm/components/StatCard'
 import { listData, useIngestedContactsQuery, useOpportunitiesQuery, useUpdateDepartmentMutation } from '@/features/crm/queries'
-import { formatDate, idOf, label, relatedName } from '@/features/crm/format'
+import { formatDate, formatAmount, idOf, label, relatedName } from '@/features/crm/format'
 import { logError } from '@/lib/errors'
 import type { CrmDepartment } from '@/lib/types'
-
-function fmtAmount(val: string | number | null | undefined): string {
-  if (val == null || val === '') return '—'
-  const n = typeof val === 'string' ? parseFloat(val.replace(/[^0-9.-]/g, '')) : Number(val)
-  if (!isFinite(n)) return '—'
-  if (n >= 1_000_000) return `$${(n / 1_000_000).toFixed(2)}M`
-  if (n >= 1_000) return `$${(n / 1_000).toFixed(0)}k`
-  return `$${n.toFixed(0)}`
-}
 
 export function DepartmentDrawer({ row, departments, onClose }: { row: CrmDepartment | null; departments: CrmDepartment[]; onClose: () => void }) {
   const buyers = listData(useIngestedContactsQuery(-1).data)
@@ -155,7 +147,7 @@ export function DepartmentDrawer({ row, departments, onClose }: { row: CrmDepart
                     <div className="flex shrink-0 items-center gap-[6px]">
                       {o.amount ? (
                         <span className="text-[11.5px] font-[650] tabular-nums text-foreground">
-                          {fmtAmount(o.amount)}
+                          {formatAmount(o.amount)}
                         </span>
                       ) : null}
                       <StageBadge stage={o.stage} />
@@ -196,34 +188,4 @@ function distinctOptions(values: (string | null)[]): ComboOption[] {
   return Array.from(new Set(values.map((value) => value?.trim()).filter(Boolean) as string[]))
     .sort((a, b) => label(a).localeCompare(label(b)))
     .map((value) => ({ value, label: label(value) }))
-}
-
-function StatCard({
-  icon,
-  iconColor,
-  label,
-  value,
-}: {
-  icon: React.ReactNode
-  iconColor: string
-  label: string
-  value: number
-}) {
-  return (
-    <div className="flex items-center gap-[10px] rounded-[9px] border bg-muted/30 px-[12px] py-[10px]">
-      <span
-        className="flex size-[28px] shrink-0 items-center justify-center rounded-[7px]"
-        style={{
-          background: `color-mix(in oklch, ${iconColor} 15%, transparent)`,
-          color: iconColor,
-        }}
-      >
-        {icon}
-      </span>
-      <div>
-        <div className="text-[18px] font-[700] leading-none tabular-nums">{value}</div>
-        <div className="mt-[2px] text-[11px] text-muted-foreground">{label}</div>
-      </div>
-    </div>
-  )
 }
