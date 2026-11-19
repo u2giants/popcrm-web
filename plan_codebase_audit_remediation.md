@@ -1068,7 +1068,14 @@ syntactically clean, so whole-workflow validation is now a valid gate.
 
 ### Session 13 — Make high-volume worker jobs incremental and bounded
 
-**Finding owned:** Reroute, contact sync, summary refresh, and ignore-rule
+**STATUS: DONE 2026-11-19.** Delivered as GitHub issues #65 (paid-summary
+dedupe + incremental summarize, commit 4496ce2c) and #66 (keyset reads over
+every open program and classified domain, commit 9c1aa153), plus #67 upstream
+retry/deadline hardening (9855ae26) and #64 failure counters (8b625692).
+Tests: workers/summarize.test.mjs, workers/routing-reads.test.mjs,
+workers/upstream-timeouts.test.mjs.
+
+**Finding owned: Reroute, contact sync, summary refresh, and ignore-rule
 commands repeatedly scan fixed sets of up to 100,000 rows and issue avoidable
 serial per-row queries/updates.
 
@@ -1132,6 +1139,10 @@ plan so the full test/CI foundation is already available.
 - No production worker rollout occurs without the Section 12 authority gate.
 
 ### Session 14 — Remove retired ingested-domain promotion residue
+
+**STATUS: DONE 2026-11-19.** Delivered as GitHub issue #61 step 1 (commit
+e7baecc4 deleted usePromoteIngestedDomainMutation, promoteIngestedDomain and
+the error-only affordance; grep-verified zero references first).
 
 **Finding owned:** The app still exposes an error-only promotion affordance and
 dead optimistic mutation for an operation that the architecture forbids.

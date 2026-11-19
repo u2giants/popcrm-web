@@ -117,7 +117,6 @@ Do not load these into AI context unless explicitly needed:
 
 - `node_modules/`, `dist/`, `.env`, `*.local`, `.cache/`, `coverage/`
 - `shared-db/` (read-only vendor mirror; search it only for database tasks)
-- Leftover Vite-template assets (unused): `src/assets/react.svg`, `src/assets/vite.svg`, `src/assets/hero.png`, `public/icons.svg`
 
 These align with `.claudeignore` and `.cursorignore`.
 
@@ -141,14 +140,12 @@ Full text lives in [docs/critical-incidents.md](docs/critical-incidents.md). Loa
 
 | Status | Item | Owner/next action |
 |---|---|---|
-| open | Audit plan Sessions 13 (worker batching) and 14 (promotion residue) | [`plan_codebase_audit_remediation.md`](plan_codebase_audit_remediation.md) ledger rows 13/14 |
 | open | Live proof for high-severity audit issues #32–#37, #44, #63 (incl. #36: reroute keeps a manually assigned customer) | Fixes landed on `main` 2026-11-18 (commits `d9e851a3`…`10a6cf65`) with tests; each issue's live-proof STATUS row is the card — verify the reproduction on the live site, then tick and close |
 | open | Live proof for medium-severity audit issues #38, #39, #43, #45, #47, #48, #50–#54 | Fixes landed on `main` 2026-11-18 (commits `22b2036a`…`a80ef3d9`) with tests, deployed; each issue's live-proof STATUS row is the card — verify the reproduction on the live site, then tick and close. #39 step 1 (shared-db clear flags) still open: claim-first workflow in `popcre/shared-db` |
-| open | #39 shared-db step: add `p_clear_email/phone/job_title` to `api.crm_update_contact` | Client side landed (`ff135e85`) and fails honestly until this lands; load `shared-db-change` and claim `api.crm_update_contact` on issue #39 |
-| open | `fix_bugs.md` Part 2 | See its Part 2; one owner decision outstanding (fuzzy PO matching) |
+| open | shared-db PR popcre/shared-db#6818: #39 clear flags, #57 counts RPC, #40 sender index + emails-for RPCs, #68 transcript unique index + retry table, #69 skip counter | Preview applied and verified 2026-11-19; claims posted on each issue; merge + automatic promotion pending, then client follow-ups (#40 drawers, #57 pages, #68 worker upsert) |
+| open | `fix_bugs.md` Part 2 leftovers | D/E/G landed 2026-11-19 (see its Part 2 notes); A/B/C tracked by issue #57 (counts RPC in popcre/shared-db#6818, client steps pending); F lands with #6818 |
 | open | Final shared-db drop of deprecated `crm_account_*` compatibility contracts | [`fix_remove_account.md`](fix_remove_account.md) step 3 |
-| blocked | Customer logos go live | Code deployed but inert until `LOGODEV_TOKEN` GitHub secret is set (publishable logo.dev key) — falls back to initials until then |
+| open | Customer logos: verify live | `LOGODEV_TOKEN` GitHub secret set 2026-11-19 from 1Password (first attempt set an empty value; corrected); first token-baked build deploying — confirm logo.dev images render, then drop this row |
 | open | Server-side pagination / Supabase aggregates | Currently client-side for CRM screens; revisit if record volumes grow |
-| open | Bump CI actions off Node 20 | GitHub deprecates Node-20 actions (~2026-06-16); update `actions/*` and `docker/*` versions in `deploy.yml` |
 | unknown | `crm_licensor_approval_thread.stage` values | Free-form, 0 rows today; verify real values via backend when approval data exists |
 | open | Task assignee picker needs a non-admin profile source | `CreateTaskDialog` (issue #24) omits assignee: the only profile-list RPC (`api.crm_admin_user_list`) is admin-gated. Needs a CRM-scoped profile projection in shared-db |

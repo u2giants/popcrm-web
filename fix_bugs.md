@@ -266,6 +266,10 @@ and silently gets fewer. Every current caller passes `-1`, so nothing is
 broken today. Either document the contract as "at most `limit`" or push the
 filter into a purpose-built view.
 
+> **D — DONE 2026-11-19 via issue #65** (commit 4496ce2c): reroute summarises
+> each program once after the loop; summarize only refreshes programs whose
+> newest email post-dates the stored summary, least-recently-updated first.
+
 ### D. Worker `summarize()` scans every email row to find distinct opportunities
 
 `workers/crm-worker-supabase.mjs:976`
@@ -279,6 +283,10 @@ Pages the full email table (12k+ rows) to derive at most a few hundred ids.
 Querying `crm.opportunity` directly, or a distinct-opportunity view, gets the
 same list in one bounded read.
 
+> **E — DONE 2026-11-19 via issue #69** (commit d2b31258): contact sync now
+> checks for the company link, not just the contact, and backfills missing
+> links; per-address orphaning fixed.
+
 ### E. Worker `contactSync()` issues one query per address
 
 `workers/crm-worker-supabase.mjs:946`
@@ -290,6 +298,10 @@ const existing = must(await core('contact').select('id').eq('email', address).li
 Inside the per-address loop, so thousands of serial round trips per run.
 Batchable with a single `.in('email', addresses)` prefetch into a `Set` before
 the loop. Same class as finding 5, but in a job that runs less often.
+
+> **F — in flight:** the shared-db PR (popcre/shared-db#6818) adds
+> crm.increment_ignore_rule_emails_skipped for an atomic database-side bump;
+> the worker switches to it when that lands.
 
 ### F. `applyIgnoreRules()` loses `emails_skipped` counts under concurrency
 
@@ -305,6 +317,11 @@ discards the earlier one's increment. The counter is advisory (it drives a
 display column, not a decision), which is why this is reported rather than
 fixed. A shared-db RPC doing `emails_skipped = emails_skipped + p_count`
 resolves it properly.
+
+> **G — RESOLVED 2026-11-19 (commit 998265bb):** the inverted PO term was
+> dead code (score ~0 always) and is removed with no behavior change; exact PO
+> matching earlier in matchOpportunity is unchanged. Fuzzy PO matching stays
+> off unless an owner asks for it.
 
 ### G. `matchOpportunity` fuzzy-scores a PO number with the arguments inverted
 
