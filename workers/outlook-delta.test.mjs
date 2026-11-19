@@ -1,5 +1,8 @@
-import { describe, expect, it, vi } from 'vitest'
-import { createGraphCursorStore, resolveOutlookDeltaSettings, resolveOutlookMailboxes, runOutlookDeltaSync, validateGraphDeltaLink } from './crm-worker-supabase.mjs'
+import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
+import { tmpdir } from 'node:os'
+import { join } from 'node:path'
+import { afterEach, describe, expect, it, vi } from 'vitest'
+import { createGraphCursorStore, createOutlookFailureStore, resolveOutlookDeltaSettings, resolveOutlookMailboxes, runOutlookDeltaSync, validateGraphDeltaLink } from './crm-worker-supabase.mjs'
 
 const graph = (path) => `https://graph.microsoft.com/v1.0/${path}`
 const message = (id) => ({ id })
@@ -17,8 +20,24 @@ function harness({ cursor = { exists: false, delta_link: null, version: null }, 
   return { cursor, fetchPage, saveCursor, process, processed }
 }
 
+function memoryFailureStore(initialCounts = []) {
+  const attempts = new Map(initialCounts)
+  const quarantined = new Map()
+  return {
+    attempts,
+    quarantined,
+    recordFailure: vi.fn(async ({ messageId }) => {
+      const count = (attempts.get(messageId) || 0) + 1
+      attempts.set(messageId, count)
+      return count
+    }),
+    quarantine: vi.fn(async ({ messageId }) => { quarantined.set(messageId, true) }),
+    clear: vi.fn(async (messageId) => { attempts.delete(messageId); quarantined.delete(messageId) }),
+  }
+}
+
 describe('Outlook Microsoft Graph delta synchronization', () => {
-  it('handles 125 messages across three pages before saving once', async () => {
+  it('checkpoints every page and saves the final delta link', async () => {
     const second = graph('second')
     const final = graph('final')
     const h = harness()
@@ -29,12 +48,14 @@ describe('Outlook Microsoft Graph delta synchronization', () => {
     const result = await runOutlookDeltaSync({ accessToken: 'secret', mailbox: 'mail@example.com', cursor: h.cursor, fetchPage: h.fetchPage, processMessage: h.process, saveCursor: h.saveCursor })
     expect(result).toMatchObject({ fetched: 125, created: 125, pages: 3 })
     expect(h.processed).toHaveLength(125)
-    expect(h.saveCursor).toHaveBeenCalledOnce()
     expect(h.fetchPage.mock.calls[0][1]).toContain('/mailFolders/inbox/messages/delta?')
-    expect(h.saveCursor).toHaveBeenCalledWith({ deltaLink: graph('delta-1'), expectedVersion: null })
+    expect(h.saveCursor).toHaveBeenCalledTimes(3)
+    expect(h.saveCursor).toHaveBeenNthCalledWith(1, { deltaLink: second, expectedVersion: null })
+    expect(h.saveCursor).toHaveBeenNthCalledWith(2, { deltaLink: final, expectedVersion: 'next-version' })
+    expect(h.saveCursor).toHaveBeenNthCalledWith(3, { deltaLink: graph('delta-1'), expectedVersion: 'next-version' })
   })
 
-  it('does not save when page two fails', async () => {
+  it('checkpoints page one before page two fetches, so a page failure leaves a resume point', async () => {
     const first = graph('crash-1')
     const second = graph('crash-2')
     const h = harness({ cursor: { delta_link: first, version: 'v1' }, pages: {
@@ -42,11 +63,87 @@ describe('Outlook Microsoft Graph delta synchronization', () => {
       [second]: new Error('page failed'),
     } })
     await expect(runOutlookDeltaSync({ accessToken: 'secret', mailbox: 'mail@example.com', cursor: h.cursor, fetchPage: h.fetchPage, processMessage: h.process, saveCursor: h.saveCursor })).rejects.toThrow('page failed')
-    expect(h.saveCursor).not.toHaveBeenCalled()
+    expect(h.saveCursor).toHaveBeenCalledTimes(1)
+    expect(h.saveCursor).toHaveBeenCalledWith({ deltaLink: second, expectedVersion: 'v1' })
   })
 
-  it('does not save when any message fails', async () => {
+  it('resumes a killed walk from the last page checkpoint', async () => {
+    const walk = (n) => graph(`walk-${n}`)
+    const page = (n) => ({
+      value: [message(`p${n}-1`), message(`p${n}-2`)],
+      ...(n < 5 ? { '@odata.nextLink': walk(n + 1) } : { '@odata.deltaLink': graph('walk-done') }),
+    })
+    const run1 = harness({ cursor: { delta_link: walk(1), version: null }, pages: {
+      [walk(1)]: page(1),
+      [walk(2)]: page(2),
+      [walk(3)]: new Error('killed at the run ceiling'),
+    } })
+    await expect(runOutlookDeltaSync({ accessToken: 'secret', mailbox: 'mail@example.com', cursor: run1.cursor, fetchPage: run1.fetchPage, processMessage: run1.process, saveCursor: run1.saveCursor }))
+      .rejects.toThrow('killed at the run ceiling')
+    expect(run1.saveCursor).toHaveBeenCalledTimes(2)
+    expect(run1.saveCursor).toHaveBeenNthCalledWith(1, { deltaLink: walk(2), expectedVersion: null })
+    expect(run1.saveCursor).toHaveBeenNthCalledWith(2, { deltaLink: walk(3), expectedVersion: 'next-version' })
+
+    const run2 = harness({ cursor: { delta_link: walk(3), version: 'next-version' }, pages: {
+      [walk(3)]: page(3),
+      [walk(4)]: page(4),
+      [walk(5)]: page(5),
+    } })
+    const result = await runOutlookDeltaSync({ accessToken: 'secret', mailbox: 'mail@example.com', cursor: run2.cursor, fetchPage: run2.fetchPage, processMessage: run2.process, saveCursor: run2.saveCursor })
+    expect(run2.fetchPage.mock.calls[0][1]).toBe(walk(3))
+    expect(run2.processed).toEqual(['p3-1', 'p3-2', 'p4-1', 'p4-2', 'p5-1', 'p5-2'])
+    expect(result).toMatchObject({ pages: 3, fetched: 6, created: 6 })
+  })
+
+  it('a failing message blocks the cursor on its first two attempts', async () => {
     const first = graph('message-crash')
+    const next = graph('message-crash-next')
+    const pages = { [first]: { value: [message('1'), message('2')], '@odata.nextLink': next } }
+    const cursor = { delta_link: first, version: 'v1' }
+    const process = vi.fn(async (item) => { if (item.id === '2') throw new Error('insert failed'); return 'created' })
+    const store = memoryFailureStore()
+    for (const attempt of [1, 2]) {
+      const h = harness({ cursor, pages, processMessage: process })
+      await expect(runOutlookDeltaSync({ accessToken: 'secret', mailbox: 'mail@example.com', cursor, fetchPage: h.fetchPage, processMessage: process, saveCursor: h.saveCursor, failureStore: store }))
+        .rejects.toThrow('insert failed')
+      expect(h.saveCursor).not.toHaveBeenCalled()
+      expect(store.attempts.get('2')).toBe(attempt)
+    }
+  })
+
+  it('quarantines a message on its third failure so the cursor advances', async () => {
+    const first = graph('quarantine')
+    const next = graph('quarantine-next')
+    const h = harness({ cursor: { delta_link: first, version: 'v1' }, pages: {
+      [first]: { value: [message('1'), message('2')], '@odata.nextLink': next },
+      [next]: { value: [], '@odata.deltaLink': graph('quarantine-delta') },
+    }, processMessage: vi.fn(async (item) => { if (item.id === '2') throw new Error('insert failed'); return 'created' }) })
+    const store = memoryFailureStore([['2', 2]])
+    const warn = vi.fn()
+    const result = await runOutlookDeltaSync({ accessToken: 'secret', mailbox: 'mail@example.com', cursor: h.cursor, fetchPage: h.fetchPage, processMessage: h.process, saveCursor: h.saveCursor, failureStore: store, warn })
+    expect(result).toMatchObject({ created: 1, quarantined: 1, fetched: 2, cursorAdvanced: true })
+    expect(h.saveCursor).toHaveBeenLastCalledWith({ deltaLink: graph('quarantine-delta'), expectedVersion: 'next-version' })
+    expect(warn).toHaveBeenCalledOnce()
+    expect(warn.mock.calls[0][0]).toContain('mail@example.com')
+    expect(warn.mock.calls[0][0]).toContain('message 2 failed 3 times')
+    expect(warn.mock.calls[0][0]).toContain('quarantined')
+    expect(store.quarantined.has('2')).toBe(true)
+  })
+
+  it('a message that succeeds on a later attempt is not quarantined', async () => {
+    const first = graph('recover')
+    const h = harness({ cursor: { delta_link: first, version: 'v1' }, pages: {
+      [first]: { value: [message('1')], '@odata.deltaLink': graph('recover-delta') },
+    } })
+    const store = memoryFailureStore([['1', 2]])
+    const result = await runOutlookDeltaSync({ accessToken: 'secret', mailbox: 'mail@example.com', cursor: h.cursor, fetchPage: h.fetchPage, processMessage: h.process, saveCursor: h.saveCursor, failureStore: store })
+    expect(result).toMatchObject({ created: 1, quarantined: 0 })
+    expect(store.attempts.size).toBe(0)
+    expect(store.quarantined.size).toBe(0)
+  })
+
+  it('without a failure store a failing message still aborts the run before any save', async () => {
+    const first = graph('no-store-crash')
     const h = harness({ cursor: { delta_link: first, version: 'v1' }, pages: {
       [first]: { value: [message('1'), message('2')], '@odata.deltaLink': graph('never-saved') },
     }, processMessage: vi.fn(async (item) => { if (item.id === '2') throw new Error('insert failed'); return 'created' }) })
@@ -188,6 +285,74 @@ describe('Outlook cursor database wiring', () => {
     expect(resolveOutlookDeltaSettings({ OUTLOOK_DELTA_EXPIRED_RESYNC_MAX: '0' })).toEqual({ maxExpiredTokenResyncs: 0 })
     expect(() => resolveOutlookDeltaSettings({ OUTLOOK_DELTA_EXPIRED_RESYNC_MAX: ' 1' })).toThrow('must be an integer')
     expect(() => resolveOutlookDeltaSettings({ OUTLOOK_DELTA_EXPIRED_RESYNC_MAX: '4' })).toThrow('must be an integer')
+  })
+})
+
+describe('Outlook failure quarantine state file', () => {
+  const stateDirs = []
+  const stateFile = (name = 'quarantine.json') => {
+    const dir = mkdtempSync(join(tmpdir(), 'outlook-quarantine-'))
+    stateDirs.push(dir)
+    return join(dir, name)
+  }
+  afterEach(() => {
+    for (const dir of stateDirs.splice(0)) rmSync(dir, { recursive: true, force: true })
+  })
+
+  it('counts failures durably across store instances and runs', async () => {
+    const file = stateFile()
+    const first = createOutlookFailureStore({ file, now: () => '2026-11-18T10:00:00Z' })
+    await expect(first.recordFailure({ messageId: 'm1', mailbox: 'mail@example.com', error: 'boom' })).resolves.toBe(1)
+    await expect(first.recordFailure({ messageId: 'm1', mailbox: 'mail@example.com', error: 'boom again' })).resolves.toBe(2)
+    const second = createOutlookFailureStore({ file })
+    await expect(second.recordFailure({ messageId: 'm1', mailbox: 'mail@example.com', error: 'boom third' })).resolves.toBe(3)
+    expect(JSON.parse(readFileSync(file, 'utf8')).attempts.m1).toMatchObject({ count: 3, mailbox: 'mail@example.com', error: 'boom third' })
+  })
+
+  it('records quarantine with mailbox and clamped error text, keeping the attempt count', async () => {
+    const file = stateFile()
+    const store = createOutlookFailureStore({ file })
+    await store.recordFailure({ messageId: 'm1', mailbox: 'mail@example.com', error: 'x'.repeat(900) })
+    await store.quarantine({ messageId: 'm1', mailbox: 'mail@example.com', error: 'y'.repeat(900) })
+    const state = JSON.parse(readFileSync(file, 'utf8'))
+    expect(state.attempts.m1.error).toHaveLength(500)
+    expect(state.attempts.m1.count).toBe(1)
+    expect(state.quarantined.m1).toMatchObject({ mailbox: 'mail@example.com' })
+    expect(state.quarantined.m1.error).toHaveLength(500)
+    expect(typeof state.quarantined.m1.quarantinedAt).toBe('string')
+  })
+
+  it('keeps the count after quarantine so a replayed still-failing message re-quarantines', async () => {
+    const file = stateFile()
+    const store = createOutlookFailureStore({ file })
+    for (let i = 0; i < 3; i += 1) await store.recordFailure({ messageId: 'm1', mailbox: 'mail@example.com', error: 'boom' })
+    await store.quarantine({ messageId: 'm1', mailbox: 'mail@example.com', error: 'boom' })
+    const replayed = createOutlookFailureStore({ file })
+    await expect(replayed.recordFailure({ messageId: 'm1', mailbox: 'mail@example.com', error: 'boom' })).resolves.toBe(4)
+  })
+
+  it('clears both records once the message finally succeeds', async () => {
+    const file = stateFile()
+    const store = createOutlookFailureStore({ file })
+    await store.recordFailure({ messageId: 'm1', mailbox: 'mail@example.com', error: 'boom' })
+    await store.quarantine({ messageId: 'm1', mailbox: 'mail@example.com', error: 'boom' })
+    await store.clear('m1')
+    const state = JSON.parse(readFileSync(file, 'utf8'))
+    expect(state.attempts).toEqual({})
+    expect(state.quarantined).toEqual({})
+  })
+
+  it('starts empty when the state file does not exist', async () => {
+    const store = createOutlookFailureStore({ file: stateFile('missing.json') })
+    await expect(store.recordFailure({ messageId: 'm1', mailbox: 'mail@example.com', error: 'boom' })).resolves.toBe(1)
+  })
+
+  it('fails loudly on an unreadable state file instead of forgetting quarantine history', async () => {
+    const file = stateFile()
+    writeFileSync(file, '{not json', 'utf8')
+    await expect(createOutlookFailureStore({ file }).recordFailure({ messageId: 'm1', mailbox: 'mail@example.com', error: 'boom' })).rejects.toThrow('unreadable')
+    writeFileSync(file, '[]', 'utf8')
+    await expect(createOutlookFailureStore({ file }).recordFailure({ messageId: 'm1', mailbox: 'mail@example.com', error: 'boom' })).rejects.toThrow('unreadable')
   })
 })
 

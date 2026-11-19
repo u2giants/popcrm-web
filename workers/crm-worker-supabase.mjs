@@ -24,7 +24,7 @@
 //   MS_TENANT_ID/MS_CLIENT_ID/MS_CLIENT_SECRET or AZURE_* ; OUTLOOK_MAILBOX ; OUTLOOK_GATED
 //   FIREFLIES_API_KEY, FIREFLIES_WEBHOOK_SECRET, OPENROUTER_API_KEY, PORT=8787
 //   SCALEDOWN_API_KEY, SCALEDOWN_ROUTING_MIN_CONFIDENCE (email routing fallback)
-import { readFileSync } from 'node:fs'
+import { readFileSync, writeFileSync } from 'node:fs'
 import { pathToFileURL } from 'node:url'
 import { createClient } from '@supabase/supabase-js'
 import WebSocket from 'ws'
@@ -167,6 +167,11 @@ const PAGE_SIZE = 50
 const GRAPH_HOST = 'graph.microsoft.com'
 const OUTLOOK_CURSOR_PURPOSE = 'microsoft-graph-mail-delta'
 const OUTLOOK_CURSOR_CONCURRENCY_RETRY_MAX = 2
+// A message is retried on later ingest runs up to this many attempts before it
+// is quarantined (recorded and skipped) so the cursor can advance.
+const OUTLOOK_MESSAGE_FAILURE_LIMIT = 3
+const DEFAULT_OUTLOOK_QUARANTINE_FILE = '/home/ai/.crm-worker-outlook-quarantine.json'
+const OUTLOOK_QUARANTINE_ERROR_MAX = 500
 const FIREFLIES_BASE = 'https://api.fireflies.ai/graphql'
 const CUSTOMERS = ['ACTIVE_CUSTOMER', 'POTENTIAL_CUSTOMER']
 
@@ -788,6 +793,74 @@ async function processOutlookMessage(message, { gated }) {
   return 'created'
 }
 
+function freshOutlookCounts() {
+  return { pages: 0, fetched: 0, created: 0, duplicate: 0, tombstone: 0, gated: 0, quarantined: 0 }
+}
+
+function clampQuarantineError(error) {
+  return String(error || '').slice(0, OUTLOOK_QUARANTINE_ERROR_MAX)
+}
+
+// Durable per-message failure tracking for Outlook ingest. Attempt counts must
+// survive run restarts, and no database contract exists for them, so they live
+// in one JSON state file (OUTLOOK_QUARANTINE_FILE, default below): an
+// `attempts` map (message id -> count/mailbox/error/updatedAt) and a
+// `quarantined` map (message id -> mailbox/error/quarantinedAt). A missing file
+// is a normal first run and starts empty; any other read or parse failure
+// throws so the run fails loudly instead of silently forgetting quarantine
+// history. Quarantine keeps the attempt count, so a message that still fails
+// when a full rebuild replays it is re-quarantined immediately instead of
+// blocking the mailbox for another three runs.
+export function createOutlookFailureStore({ file = DEFAULT_OUTLOOK_QUARANTINE_FILE, now = () => new Date().toISOString() } = {}) {
+  let state = null
+  const load = () => {
+    if (state) return state
+    let raw
+    try {
+      raw = readFileSync(file, 'utf8')
+    } catch (error) {
+      if (error?.code === 'ENOENT') {
+        state = { version: 1, attempts: {}, quarantined: {} }
+        return state
+      }
+      throw error
+    }
+    let parsed = null
+    try {
+      parsed = JSON.parse(raw)
+    } catch { parsed = null }
+    const validMap = (value) => value === undefined || value === null || (typeof value === 'object' && !Array.isArray(value))
+    if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed) || !validMap(parsed.attempts) || !validMap(parsed.quarantined)) {
+      throw new Error(`Outlook quarantine state file ${file} is unreadable; fix or remove it before the next ingest run`)
+    }
+    state = { version: 1, attempts: parsed.attempts || {}, quarantined: parsed.quarantined || {} }
+    return state
+  }
+  const persist = () => writeFileSync(file, `${JSON.stringify(state, null, 2)}\n`, { mode: 0o600 })
+  return {
+    recordFailure: async ({ messageId, mailbox, error }) => {
+      const current = load()
+      const previous = Math.max(0, Math.trunc(Number(current.attempts[messageId]?.count)) || 0)
+      const count = previous + 1
+      current.attempts[messageId] = { count, mailbox, error: clampQuarantineError(error), updatedAt: now() }
+      persist()
+      return count
+    },
+    quarantine: async ({ messageId, mailbox, error }) => {
+      const current = load()
+      current.quarantined[messageId] = { mailbox, error: clampQuarantineError(error), quarantinedAt: now() }
+      persist()
+    },
+    clear: async (messageId) => {
+      const current = load()
+      if (!(messageId in current.attempts) && !(messageId in current.quarantined)) return
+      delete current.attempts[messageId]
+      delete current.quarantined[messageId]
+      persist()
+    },
+  }
+}
+
 export async function runOutlookDeltaSync({
   accessToken,
   mailbox,
@@ -796,6 +869,7 @@ export async function runOutlookDeltaSync({
   processMessage,
   saveCursor,
   reloadCursor,
+  failureStore = null,
   maxExpiredTokenResyncs = 1,
   maxConcurrencyRetries = OUTLOOK_CURSOR_CONCURRENCY_RETRY_MAX,
   warn = console.warn,
@@ -804,7 +878,54 @@ export async function runOutlookDeltaSync({
   let expectedVersion = cursor?.version || null
   let expiredResyncs = 0
   let concurrencyRetries = 0
-  let counts = { pages: 0, fetched: 0, created: 0, duplicate: 0, tombstone: 0, gated: 0 }
+  let counts = freshOutlookCounts()
+
+  // One bad message must not block a mailbox indefinitely. Each failure is
+  // counted in the durable failure store; before the limit the run still
+  // aborts (the cursor stays put and the next run retries the message), and at
+  // the limit the message is quarantined — recorded, loudly logged, and
+  // skipped — so the cursor can advance and ingestion keeps flowing. Without a
+  // failure store the original contract holds: any failure aborts the run.
+  const processMessageGuarded = async (message) => {
+    let result
+    try {
+      result = await processMessage(message)
+    } catch (error) {
+      if (!failureStore || !message?.id) throw error
+      const messageId = String(message.id)
+      const description = error?.message || String(error)
+      const attempts = await failureStore.recordFailure({ messageId, mailbox, error: description })
+      if (attempts < OUTLOOK_MESSAGE_FAILURE_LIMIT) throw error
+      await failureStore.quarantine({ messageId, mailbox, error: description })
+      warn(`outlook-ingest: ${mailbox}: message ${messageId} failed ${attempts} times and is quarantined (skipped so the cursor can advance): ${description}`)
+      return 'quarantined'
+    }
+    if (failureStore && message?.id) await failureStore.clear(String(message.id))
+    return result
+  }
+
+  // Checkpoint and final saves share the same compare-and-set: a P0001
+  // refusal means another worker moved the cursor, and the whole walk replays
+  // from the reloaded state with fresh operator totals.
+  const saveCursorWithCas = async (link) => {
+    try {
+      return { saved: await saveCursor({ deltaLink: link, expectedVersion }) }
+    } catch (error) {
+      if (error?.code !== 'P0001' || !reloadCursor || concurrencyRetries >= maxConcurrencyRetries) {
+        if (error?.code === 'P0001') throw new Error('Outlook cursor concurrency retry limit exhausted')
+        throw error
+      }
+      return { refused: error }
+    }
+  }
+  const replayFromReloadedCursor = async () => {
+    concurrencyRetries += 1
+    warn(`outlook-ingest: another worker advanced the cursor; safely replaying from current state (${concurrencyRetries}/${maxConcurrencyRetries})`)
+    const current = await reloadCursor()
+    url = validateGraphDeltaLink(current?.delta_link || initialDeltaUrl(mailbox))
+    expectedVersion = current?.version || null
+    counts = freshOutlookCounts()
+  }
 
   while (true) {
     let page
@@ -815,39 +936,43 @@ export async function runOutlookDeltaSync({
       expiredResyncs += 1
       warn(`outlook-ingest: saved Microsoft Graph cursor expired; starting bounded full inbox delta rebuild (${expiredResyncs}/${maxExpiredTokenResyncs})`)
       url = initialDeltaUrl(mailbox)
-      counts = { pages: 0, fetched: 0, created: 0, duplicate: 0, tombstone: 0, gated: 0 }
+      counts = freshOutlookCounts()
       continue
     }
     counts.pages += 1
     const messages = Array.isArray(page.value) ? page.value : []
     counts.fetched += messages.length
     for (const message of messages) {
-      const result = await processMessage(message)
+      const result = await processMessageGuarded(message)
       if (!Object.hasOwn(counts, result)) throw new Error('Outlook message processor returned an unknown result')
       counts[result] += 1
     }
     if (page['@odata.nextLink']) {
       url = validateGraphDeltaLink(page['@odata.nextLink'])
+      // Checkpoint after each completed page: a run killed mid-walk (the
+      // systemd unit caps it at 10 minutes) resumes at the next unread page
+      // instead of restarting the whole backlog from the pre-walk cursor.
+      // Saving the continuation link here keeps the database contract's
+      // ordering — every message on every completed page is already persisted,
+      // and inserts are idempotent on the Graph message id, so replaying a
+      // checkpointed page is harmless.
+      const checkpoint = await saveCursorWithCas(url)
+      if (checkpoint.refused) {
+        await replayFromReloadedCursor()
+        continue
+      }
+      expectedVersion = checkpoint.saved?.version || expectedVersion
+      if (checkpoint.saved?.advanced !== true) warn('outlook-ingest: cursor save succeeded without forward progress')
       continue
     }
     if (!page['@odata.deltaLink']) throw new Error('Microsoft Graph delta response ended without a delta link')
     const deltaLink = validateGraphDeltaLink(page['@odata.deltaLink'])
-    let saved
-    try {
-      saved = await saveCursor({ deltaLink, expectedVersion })
-    } catch (error) {
-      if (error?.code !== 'P0001' || !reloadCursor || concurrencyRetries >= maxConcurrencyRetries) {
-        if (error?.code === 'P0001') throw new Error('Outlook cursor concurrency retry limit exhausted')
-        throw error
-      }
-      concurrencyRetries += 1
-      warn(`outlook-ingest: another worker advanced the cursor; safely replaying from current state (${concurrencyRetries}/${maxConcurrencyRetries})`)
-      const current = await reloadCursor()
-      url = validateGraphDeltaLink(current?.delta_link || initialDeltaUrl(mailbox))
-      expectedVersion = current?.version || null
-      counts = { pages: 0, fetched: 0, created: 0, duplicate: 0, tombstone: 0, gated: 0 }
+    const outcome = await saveCursorWithCas(deltaLink)
+    if (outcome.refused) {
+      await replayFromReloadedCursor()
       continue
     }
+    const saved = outcome.saved
     if (saved?.advanced !== true) warn('outlook-ingest: cursor save succeeded without forward progress')
     return { ...counts, cursorAdvanced: saved?.advanced === true, cursorVersion: saved?.version || null }
   }
@@ -884,6 +1009,7 @@ async function outlookIngest() {
 async function outlookIngestMailbox(mailbox) {
   const gated = runtimeEnv.OUTLOOK_GATED === 'true'
   const { maxExpiredTokenResyncs } = resolveOutlookDeltaSettings(runtimeEnv)
+  const failureStore = createOutlookFailureStore({ file: runtimeEnv.OUTLOOK_QUARANTINE_FILE?.trim() || DEFAULT_OUTLOOK_QUARANTINE_FILE })
   const token = await graphToken()
   const cursorKey = outlookCursorKey(mailbox)
   const cursor = await loadOutlookCursor(cursorKey)
@@ -895,9 +1021,10 @@ async function outlookIngestMailbox(mailbox) {
     processMessage: (message) => processOutlookMessage(message, { gated }),
     saveCursor: ({ deltaLink, expectedVersion }) => saveOutlookCursor({ cursorKey, mailbox, deltaLink, expectedVersion }),
     reloadCursor: () => loadOutlookCursor(cursorKey),
+    failureStore,
     maxExpiredTokenResyncs,
   })
-  console.log(`outlook-ingest: ${mailbox}: ${result.created} created, ${result.duplicate} duplicates, ${result.tombstone} tombstones, ${result.gated} gated, ${result.fetched} fetched across ${result.pages} pages; cursor saved`)
+  console.log(`outlook-ingest: ${mailbox}: ${result.created} created, ${result.duplicate} duplicates, ${result.tombstone} tombstones, ${result.gated} gated, ${result.quarantined} quarantined, ${result.fetched} fetched across ${result.pages} pages; cursor saved`)
 }
 
 // One reroute write, as a compare-and-set: it only lands while the row still

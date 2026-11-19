@@ -83,15 +83,37 @@ changed mid-run; the sweep counts it as `changed underneath` in its final log
 line rather than overwriting it or erroring.
 
 Outlook ingestion uses Microsoft Graph mail delta synchronization, not a
-newest-message window. The first run follows every page to a final delta link.
-Later runs resume from the durable cursor stored through
-`crm.load_worker_delta_cursor(...)` and
-`crm.save_worker_delta_cursor(...)`. The save uses the loaded version as a
-compare-and-swap ticket and happens only after every message on every page has
-been handled. Duplicate Outlook IDs remain harmless, deleted-message
-tombstones require no local delete, and failures leave the old cursor in place
-for a safe replay. Continuation links must use HTTPS on exactly
-`graph.microsoft.com` and are never logged.
+newest-message window. The first run follows every page to a final delta link,
+and after every completed page it checkpoints the continuation link through the
+same `crm.save_worker_delta_cursor(...)` compare-and-swap used for the final
+delta link. A run killed mid-walk (the systemd unit caps it at 10 minutes)
+therefore resumes at the next unread page instead of restarting the whole
+backlog from the pre-walk cursor. The saves use the loaded version as a
+compare-and-swap ticket and happen only after every message on the completed
+pages has been handled. Later runs resume from the durable cursor stored
+through `crm.load_worker_delta_cursor(...)`. Duplicate Outlook IDs remain
+harmless (message inserts are keyed on the Graph message id, so replaying a
+checkpointed page is safe), deleted-message tombstones require no local delete,
+and failures leave the old cursor in place for a safe replay. Continuation
+links must use HTTPS on exactly `graph.microsoft.com` and are never logged.
+
+A message that keeps failing is quarantined instead of blocking its mailbox
+forever. Every failure is counted in a durable state file
+(`OUTLOOK_QUARANTINE_FILE`, default
+`/home/ai/.crm-worker-outlook-quarantine.json`, JSON with `attempts` and
+`quarantined` maps keyed by Graph message id). A failing message aborts the
+run on its first two attempts — the cursor stays put and the next run retries
+it — and on its third failure it is recorded there (message id, mailbox, error
+text), loudly logged, counted as `quarantined` in the final run line, and
+skipped so the cursor advances and the mailbox keeps flowing. To replay a
+quarantined message: fix the underlying cause, delete its entry from the
+`quarantined` map in the state file (or remove the whole file), and let a
+full-inbox delta rebuild re-ingest it — Graph cursors expire on their own and
+`OUTLOOK_DELTA_EXPIRED_RESYNC_MAX` bounds the automatic rebuild. When the
+replayed message succeeds, its quarantine entry clears itself; if it still
+fails, it is re-quarantined immediately because the attempt count is kept. A
+missing state file is a normal first run; an unreadable one fails the run
+loudly rather than forgetting quarantine history.
 
 An expired Graph cursor produces a loud warning and permits one full inbox
 delta rebuild by default. `OUTLOOK_DELTA_EXPIRED_RESYNC_MAX` may set the bounded

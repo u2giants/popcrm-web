@@ -159,8 +159,12 @@ OpenRouter requests have a deadline but are never retried automatically because
 resending a paid AI request could create duplicate cost or work. Failure logs
 name the operation, attempt count, and safe HTTP status without response bodies,
 tokens, CRM content, or Graph continuation links. Outlook's cursor is held only
-in the service-role-only shared database contract; there is no cursor secret or
-local state file to configure on the host.
+in the service-role-only shared database contract; the sole local Outlook state
+file is `OUTLOOK_QUARANTINE_FILE` (default
+`/home/ai/.crm-worker-outlook-quarantine.json`), which records per-message
+failure counts and quarantine records (message id, mailbox, error text) so a
+repeatedly failing message is skipped after three attempts instead of blocking
+its mailbox. It holds no credentials.
 
 Fireflies Webhooks V2 is the production integration. Configure the endpoint
 `https://crm-fireflies.designflow.app/s/fireflies-webhook` for only the
