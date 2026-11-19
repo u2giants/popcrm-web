@@ -140,8 +140,9 @@ describe('AppLayout with unavailable localStorage', () => {
   })
 
   it('still applies valid stored preferences when storage works', () => {
-    realLocalStorage.setItem('popcrm_theme', 'dark')
-    realLocalStorage.setItem('popcrm_density', 'compact')
+    // beforeAll guarantees a storage here (native or the in-memory polyfill).
+    realLocalStorage!.setItem('popcrm_theme', 'dark')
+    realLocalStorage!.setItem('popcrm_density', 'compact')
 
     renderLayout()
 
