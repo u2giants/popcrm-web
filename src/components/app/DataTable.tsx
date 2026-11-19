@@ -191,6 +191,13 @@ export function DataTable<T>({
   }, [colOrder, columns, byKey])
   const allVisibleCols = orderedCols.filter((c) => !colHidden[c.key])
   const hasExplicitDetailCols = columns.some((c) => c.opensDetail)
+  // When no column is marked opensDetail, every plain cell opens the row on
+  // click; the first of those also carries the keyboard trigger button, so a
+  // row costs one Tab stop instead of one per cell (issue #60).
+  const implicitDetailKey =
+    onRowClick && !hasExplicitDetailCols
+      ? allVisibleCols.find((c) => !(!!c.editOptions && !!onCellEdit))?.key ?? null
+      : null
 
   function editOptionsFor(col: Column<T>, row: T): EditOption[] {
     if (!col.editOptions) return []
@@ -669,6 +676,30 @@ export function DataTable<T>({
     return idx >= Math.min(src, f.throughIndex) && idx <= Math.max(src, f.throughIndex)
   }
 
+  // Open a cell's edit dropdown anchored to a cell element (click and keyboard).
+  function openEditorFor(anchor: HTMLElement, rowId: string, key: string) {
+    const r = anchor.getBoundingClientRect()
+    setEditQuery('')
+    setEditCell({ rowId, key, ...placeOverlay(r, 220, 280) })
+  }
+
+  // Keyboard equivalent of the drag-to-copy handle: Enter/Space copies the
+  // cell's value down to the next row (issue #60).
+  function onFillKeyDown(e: React.KeyboardEvent, key: string, sourceRowId: string, value: string) {
+    if (e.key !== 'Enter' && e.key !== ' ') return
+    e.preventDefault()
+    e.stopPropagation()
+    if (!onCellEdit) return
+    const idx = pageRowIndex.get(sourceRowId)
+    if (idx == null) return
+    const target = pageRows[idx + 1]
+    if (!target) return
+    const col = byKey[key]
+    const current = col?.editValue ? String(col.editValue(target) ?? '') : ''
+    if (current === value) return
+    void onCellEdit(target, key, value)
+  }
+
   if (loading) {
     return (
       <div className="overflow-hidden rounded-[13px] border bg-card p-2">
@@ -901,6 +932,7 @@ export function DataTable<T>({
                               'h-[22px] w-full min-w-[40px] rounded-[6px] border bg-card px-[7px] text-[11px] font-normal normal-case tracking-normal text-foreground placeholder:text-muted-foreground/70 focus:border-primary focus:outline-none focus:ring-1 focus:ring-ring',
                               hasSearch && 'border-primary/60',
                             )}
+                            aria-label={`Search ${String(col.header)}`}
                             placeholder="Search…"
                             value={searchText[col.key] ?? ''}
                             onChange={(e) => setColSearch(col.key, e.target.value, e.currentTarget)}
@@ -991,6 +1023,13 @@ export function DataTable<T>({
                           col.key !== SELECT_KEY &&
                           !!onRowClick &&
                           (col.opensDetail || (!hasExplicitDetailCols && !editable))
+                        // One real focusable control per row-opening cell: a real
+                        // <button> for explicit detail columns (and for the first
+                        // implicit one), so the row is reachable by keyboard
+                        // (issue #60). A cell that is also editable keeps its
+                        // editor-first click, exactly as before.
+                        const isDetailTrigger =
+                          opensDetail && !editable && (col.opensDetail || col.key === implicitDetailKey)
                         const inFill = fillRangeHas(rowId, col.key)
                         const isEditing = editCell?.rowId === rowId && editCell.key === col.key
                         return (
@@ -1001,34 +1040,60 @@ export function DataTable<T>({
                               editable
                                 ? (e) => {
                                     e.stopPropagation()
-                                    const r = (e.currentTarget as HTMLElement).getBoundingClientRect()
-                                    setEditQuery('')
-                                    setEditCell({ rowId, key: col.key, ...placeOverlay(r, 220, 280) })
+                                    openEditorFor(e.currentTarget, rowId, col.key)
                                   }
-                                : opensDetail
+                                : opensDetail && !isDetailTrigger
                                   ? () => onRowClick(row)
                                   : undefined
                             }
+                            onKeyDown={
+                              editable
+                                ? (e) => {
+                                    // Enter/F2 opens the editor on the focused cell.
+                                    if (e.key === 'Enter' || e.key === 'F2') {
+                                      e.preventDefault()
+                                      e.stopPropagation()
+                                      openEditorFor(e.currentTarget, rowId, col.key)
+                                    }
+                                  }
+                                : undefined
+                            }
+                            tabIndex={editable ? 0 : undefined}
                             className={cn(
                               'group/cell relative h-10 overflow-hidden px-[14px] py-0 text-[12.5px] align-middle',
                               col.numeric && 'text-right font-[650] tabular-nums',
                               (opensDetail || editable) && 'cursor-pointer',
+                              editable && 'outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset',
                               isEditing && 'bg-primary/10 ring-1 ring-inset ring-primary/40',
                               inFill && 'bg-primary/10 ring-1 ring-inset ring-primary/40',
                               col.className,
                               col.hideBelow && HIDE_CLASS[col.hideBelow],
                             )}
                           >
-                            {col.cell(row)}
+                            {isDetailTrigger ? (
+                              <button
+                                type="button"
+                                onClick={() => onRowClick(row)}
+                                className="block w-full cursor-pointer rounded-[6px] text-left outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:ring-inset"
+                              >
+                                {col.cell(row)}
+                              </button>
+                            ) : (
+                              col.cell(row)
+                            )}
                             {/* Fill handle (spreadsheet drag-to-copy) */}
                             {editable && (
                               <span
                                 role="button"
                                 aria-label="Drag to copy down"
                                 title="Drag to copy"
-                                className="absolute bottom-[3px] right-[3px] z-[2] size-[8px] cursor-crosshair rounded-[2px] border border-card bg-primary opacity-0 transition-opacity group-hover/cell:opacity-100"
+                                tabIndex={0}
+                                className="absolute bottom-[3px] right-[3px] z-[2] size-[8px] cursor-crosshair rounded-[2px] border border-card bg-primary opacity-0 transition-opacity group-hover/cell:opacity-100 focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                                 onMouseDown={(e) =>
                                   onFillDown(e, col.key, rowId, String(col.editValue?.(row) ?? ''))
+                                }
+                                onKeyDown={(e) =>
+                                  onFillKeyDown(e, col.key, rowId, String(col.editValue?.(row) ?? ''))
                                 }
                                 onClick={(e) => e.stopPropagation()}
                               />

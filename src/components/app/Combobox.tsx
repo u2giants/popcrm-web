@@ -82,6 +82,7 @@ export function Combobox({
             autoFocus
             value={query}
             onChange={(e) => setQuery(e.target.value)}
+            aria-label={searchPlaceholder}
             placeholder={searchPlaceholder}
             className="h-9 border-0 bg-transparent px-0 shadow-none focus-visible:ring-0 dark:bg-transparent"
           />

@@ -89,6 +89,7 @@ export function ImpersonationDialog({
               autoFocus
               value={term}
               onChange={(e) => setTerm(e.target.value)}
+              aria-label="Search users by name, email, or role"
               placeholder="Search by name, email, or role…"
               className="h-full w-full bg-transparent outline-none placeholder:text-muted-foreground"
             />

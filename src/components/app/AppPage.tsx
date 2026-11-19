@@ -138,6 +138,7 @@ export function ListBar({
             <input
               value={search ?? ''}
               onChange={(e) => onSearch(e.target.value)}
+              aria-label={searchPlaceholder}
               placeholder={searchPlaceholder}
               className="h-[32px] w-[200px] rounded-[8px] border border-input bg-background pl-[28px] pr-[9px] text-[12.5px] text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-ring"
             />
