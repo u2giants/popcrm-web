@@ -2,8 +2,9 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Button } from '@/components/ui/button'
 
 /**
- * The one confirm step every remove goes through: it names the record, says
- * what removal means here (hidden vs deleted), and never removes on one click.
+ * The one confirm step every remove or bulk change goes through: it names the
+ * record, says what the action does here (hidden vs deleted, how many records),
+ * and never acts on one click.
  */
 export function ConfirmDeleteDialog({
   open,
@@ -11,6 +12,7 @@ export function ConfirmDeleteDialog({
   message,
   detail,
   confirmLabel = 'Delete',
+  pendingLabel = 'Removing…',
   destructive = false,
   pending = false,
   onConfirm,
@@ -21,6 +23,7 @@ export function ConfirmDeleteDialog({
   message: string
   detail?: string
   confirmLabel?: string
+  pendingLabel?: string
   destructive?: boolean
   pending?: boolean
   onConfirm: () => void
@@ -39,7 +42,7 @@ export function ConfirmDeleteDialog({
         <DialogFooter>
           <Button variant="outline" size="sm" onClick={onClose} disabled={pending}>Cancel</Button>
           <Button variant={destructive ? 'destructive' : 'default'} size="sm" onClick={onConfirm} disabled={pending}>
-            {pending ? 'Removing…' : confirmLabel}
+            {pending ? pendingLabel : confirmLabel}
           </Button>
         </DialogFooter>
       </DialogContent>

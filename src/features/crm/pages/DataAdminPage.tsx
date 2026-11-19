@@ -38,7 +38,7 @@ import {
   useCustomerDisplayName,
 } from '@/features/crm/queries'
 import { logError } from '@/lib/errors'
-import type { CrmDepartment, CrmOpportunity, Retailer } from '@/lib/types'
+import type { CrmDepartment, Retailer } from '@/lib/types'
 
 type AdminTab = 'departments' | 'logos' | 'contact-values' | 'division-values'
 type LogoCandidate = {
@@ -77,6 +77,10 @@ function sanitizeFileToken(value: string): string {
   return value.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 60) || 'customer'
 }
 
+// Division renames fire one update per record; this caps how many are in
+// flight at once so a large rename cannot storm the shared API.
+const DIVISION_RENAME_BATCH = 25
+
 export function DataAdminPage() {
   const customerName = useCustomerDisplayName()
   const queryClient = useQueryClient()
@@ -105,6 +109,7 @@ export function DataAdminPage() {
   const [confirmingDepartmentDelete, setConfirmingDepartmentDelete] = useState(false)
   const [divisionFrom, setDivisionFrom] = useState('')
   const [divisionTo, setDivisionTo] = useState('')
+  const [confirmingDivisionRename, setConfirmingDivisionRename] = useState(false)
   const [busy, setBusy] = useState(false)
   const [logoBusy, setLogoBusy] = useState(false)
   const [selectedLogoCustomerId, setSelectedLogoCustomerId] = useState('')
@@ -450,33 +455,52 @@ export function DataAdminPage() {
     }
   }
 
+  // A division rename is one update per matching department and program. Each
+  // record saves on its own, so a partial failure must be reported as such and
+  // the cache must come back from the server (a snapshot restore would undo
+  // the rows that did save). Updates run in bounded batches — the same
+  // 25-at-a-time cap the email backlog sweep uses — never all at once.
   async function replaceDivision() {
     const nextValue = divisionTo.trim()
     if (!divisionFrom || !nextValue || divisionFrom === nextValue) return
-    const departmentRows = departments.filter((d) => d.division === divisionFrom)
-    const programRows = opportunities.filter((o) => o.division === divisionFrom)
+    const updates: Array<() => Promise<unknown>> = [
+      ...departments
+        .filter((d) => d.division === divisionFrom)
+        .map((d) => () => updateDepartment(d.id, { division: nextValue })),
+      ...opportunities
+        .filter((o) => o.division === divisionFrom)
+        .map((o) => () => updateOpportunity(o.id, { division: nextValue })),
+    ]
     setBusy(true)
-    const previousDepartments = departments
-    const previousOpportunities = opportunities
-    queryClient.setQueryData<CrmDepartment[]>(crmKeys.departments(-1), (rows = []) =>
-      rows.map((d) => (d.division === divisionFrom ? { ...d, division: nextValue } : d)),
-    )
-    queryClient.setQueryData<CrmOpportunity[]>(crmKeys.opportunities(-1), (rows = []) =>
-      rows.map((o) => (o.division === divisionFrom ? { ...o, division: nextValue } : o)),
-    )
     try {
-      await Promise.all([
-        ...departmentRows.map((d) => updateDepartment(d.id, { division: nextValue })),
-        ...programRows.map((o) => updateOpportunity(o.id, { division: nextValue })),
-      ])
-      toast.success(`Renamed division on ${(departmentRows.length + programRows.length).toLocaleString()} records`)
-      setDivisionFrom('')
-      setDivisionTo('')
-    } catch (error) {
-      queryClient.setQueryData<CrmDepartment[]>(crmKeys.departments(-1), previousDepartments)
-      queryClient.setQueryData<CrmOpportunity[]>(crmKeys.opportunities(-1), previousOpportunities)
-      toast.error('Could not rename division', { description: logError('DataAdminPage.replaceDivision', error) })
+      let saved = 0
+      let failed = 0
+      let firstError: unknown = null
+      for (let i = 0; i < updates.length; i += DIVISION_RENAME_BATCH) {
+        const results = await Promise.allSettled(updates.slice(i, i + DIVISION_RENAME_BATCH).map((run) => run()))
+        for (const result of results) {
+          if (result.status === 'fulfilled') saved++
+          else {
+            failed++
+            firstError ??= result.reason
+          }
+        }
+      }
+      if (failed === 0) {
+        toast.success(`Renamed division on ${saved.toLocaleString()} records`)
+        setDivisionFrom('')
+        setDivisionTo('')
+      } else {
+        toast.error(`Division rename incomplete — ${saved.toLocaleString()} saved, ${failed.toLocaleString()} failed`, {
+          description: logError('DataAdminPage.replaceDivision', firstError),
+        })
+      }
     } finally {
+      // Saved and failed rows can coexist: always refetch both feeds so the
+      // screen shows the true server state, including the failed remainder.
+      void queryClient.invalidateQueries({ queryKey: [...crmKeys.all, 'departments'] })
+      void queryClient.invalidateQueries({ queryKey: [...crmKeys.all, 'opportunities'] })
+      setConfirmingDivisionRename(false)
       setBusy(false)
     }
   }
@@ -819,12 +843,27 @@ export function DataAdminPage() {
                       <Badge variant="outline">{divisionProgramCount.toLocaleString()}</Badge>
                     </div>
                   </div>
-                  <Button onClick={replaceDivision} disabled={busy || !divisionFrom || !divisionTo.trim() || divisionFrom === divisionTo.trim()}>
+                  <Button
+                    onClick={() => setConfirmingDivisionRename(true)}
+                    disabled={busy || !divisionFrom || !divisionTo.trim() || divisionFrom === divisionTo.trim()}
+                  >
                     <Save className="size-4" />
                     Rename Division
                   </Button>
                 </div>
               </section>
+
+              <ConfirmDeleteDialog
+                open={confirmingDivisionRename}
+                title="Rename this division?"
+                message={`"${divisionFrom}" will become "${divisionTo.trim()}" on ${(divisionDepartmentCount + divisionProgramCount).toLocaleString()} records — ${divisionDepartmentCount.toLocaleString()} departments and ${divisionProgramCount.toLocaleString()} programs.`}
+                detail="Each record saves on its own; records that fail keep the old division and are reported in the result."
+                confirmLabel="Rename division"
+                pendingLabel="Renaming…"
+                pending={busy}
+                onConfirm={() => void replaceDivision()}
+                onClose={() => setConfirmingDivisionRename(false)}
+              />
 
               <section className="rounded-[8px] border bg-card p-4 shadow-[var(--shadow-xs)]">
                 <SectionHeader title="Current Divisions" description="Distinct values from departments and programs." />
