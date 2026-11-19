@@ -75,6 +75,35 @@ function senderAddress(sender: string | null | undefined): string {
   return (match?.[0] ?? '').toLowerCase()
 }
 
+/**
+ * Lookup for one relation level, seeded from the picker feed and folded
+ * together with the email row's own current link. The programs feed excludes
+ * archived rows (shared-db 20261106144600), so without the fold an archived
+ * program resolves to null and the next save silently clears it (issue #50).
+ */
+function relationById<T extends { id: string }>(feed: T[], current: string | T | null): Map<string, T> {
+  const map = new Map(feed.map((row) => [row.id, row]))
+  const rel = current && typeof current === 'object' ? current : null
+  if (rel && !map.has(rel.id)) map.set(rel.id, rel)
+  return map
+}
+
+// Append the row's own current value to a picker list when the feed filter
+// hid it, so the selected option always renders — marked 'archived' when the
+// value left the feed or is flagged inactive.
+function withCurrentOption<T extends { id: string }>(
+  options: ComboOption[],
+  currentId: string,
+  byId: Map<string, T>,
+  labelOf: (row: T) => string,
+  isArchived: (row: T | undefined) => boolean,
+): ComboOption[] {
+  if (!currentId || options.some((o) => o.value === currentId)) return options
+  const current = byId.get(currentId)
+  const name = current ? labelOf(current) : currentId
+  return [...options, { value: currentId, label: isArchived(current) ? `${name} (archived)` : name }]
+}
+
 function EmailDrawerForm({ row, onClose, onOpenContact }: { row: CrmEmailMessage; onClose: () => void; onOpenContact: (contact: Buyer) => void }) {
   const retailersQuery = useCustomerPickerQuery(-1)
   const opportunitiesQuery = useOpportunitiesQuery(-1)
@@ -103,28 +132,44 @@ function EmailDrawerForm({ row, onClose, onOpenContact }: { row: CrmEmailMessage
       ),
     [retailers, retailer, row.retailer],
   )
-  const departmentOptions = useMemo<ComboOption[]>(
-    () =>
-      departments
-        .filter((d) => !retailer || idOf(d.retailer) === retailer)
-        .map((d) => ({ value: d.id, label: d.name, hint: relatedName(d.retailer) })),
-    [departments, retailer],
-  )
-  const opportunityOptions = useMemo<ComboOption[]>(
-    () =>
-      opportunities.map((o) => ({
-        value: o.id,
-        label: o.name || 'Untitled program',
-        hint: relatedName(o.retailer),
-      })),
-    [opportunities],
-  )
   const retailerById = useMemo(
     () => buildRetailerById(retailers, [typeof row.retailer === 'object' ? row.retailer : null]),
     [retailers, row.retailer],
   )
-  const departmentById = useMemo(() => new Map(departments.map((d) => [d.id, d])), [departments])
-  const opportunityById = useMemo(() => new Map(opportunities.map((o) => [o.id, o])), [opportunities])
+  // The row's own department and program stay resolvable even when the feeds
+  // no longer list them, so an unchanged link survives the next save.
+  const departmentById = useMemo(() => relationById(departments, row.department), [departments, row.department])
+  const opportunityById = useMemo(() => relationById(opportunities, row.opportunity), [opportunities, row.opportunity])
+  const departmentOptions = useMemo<ComboOption[]>(
+    () =>
+      withCurrentOption(
+        departments
+          .filter((d) => !retailer || idOf(d.retailer) === retailer)
+          .map((d) => ({ value: d.id, label: d.name, hint: relatedName(d.retailer) })),
+        department,
+        departmentById,
+        (d) => d.name,
+        (d) => !d || d.active === false,
+      ),
+    [departments, retailer, department, departmentById],
+  )
+  const opportunityOptions = useMemo<ComboOption[]>(
+    () =>
+      withCurrentOption(
+        opportunities.map((o) => ({
+          value: o.id,
+          label: o.name || 'Untitled program',
+          hint: relatedName(o.retailer),
+        })),
+        opportunity,
+        opportunityById,
+        (o) => o.name || 'Untitled program',
+        // The programs feed already excludes archived rows, so a current
+        // program missing from it is archived by definition.
+        () => true,
+      ),
+    [opportunities, opportunity, opportunityById],
+  )
   const senderContacts = useMemo(() => {
     const address = senderAddress(row.sender)
     if (!address) return []
@@ -142,16 +187,20 @@ function EmailDrawerForm({ row, onClose, onOpenContact }: { row: CrmEmailMessage
 
   async function save() {
     setSaving(true)
-    const values: Partial<CrmEmailMessage> = {
-      routing_status: status,
-      routing_method: method || 'MANUAL',
-      retailer: retailerById.get(retailer) ?? null,
-      department: departmentById.get(department) ?? null,
-      opportunity: opportunityById.get(opportunity) ?? null,
-    }
+    // Only fields that actually changed are sent: an unchanged link — say a
+    // program archived since it was set — must survive the save, not resolve
+    // to null and silently clear (issue #50).
+    const values: Partial<CrmEmailMessage> = {}
+    if (status !== (row.routing_status || 'UNROUTED')) values.routing_status = status
+    if ((method || 'MANUAL') !== (row.routing_method || 'MANUAL')) values.routing_method = method || 'MANUAL'
+    if (retailer !== idOf(row.retailer)) values.retailer = retailerById.get(retailer) ?? null
+    if (department !== idOf(row.department)) values.department = departmentById.get(department) ?? null
+    if (opportunity !== idOf(row.opportunity)) values.opportunity = opportunityById.get(opportunity) ?? null
     try {
-      await updateEmailMutation.mutateAsync({ id: row.id, values })
-      toast.success('Routing saved')
+      if (Object.keys(values).length) {
+        await updateEmailMutation.mutateAsync({ id: row.id, values })
+        toast.success('Routing saved')
+      }
       onClose()
     } catch (error) {
       toast.error('Could not save routing', { description: logError('EmailDrawer.saveRouting', error) })
