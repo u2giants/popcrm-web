@@ -75,12 +75,15 @@ function loadEnvironmentFile(env = process.env) {
   }
 }
 
-function initializeRuntime(env = process.env, overrides = {}) {
+export function initializeRuntime(env = process.env, overrides = {}) {
+  // `supabaseClient` swaps the real client for an injected one (tests); every
+  // other override feeds the boundaries object as before.
+  const { supabaseClient, ...boundaryOverrides } = overrides
   runtimeEnv = env
   SUPABASE_URL = env.SUPABASE_URL
   SERVICE_ROLE_KEY = env.SUPABASE_SERVICE_ROLE_KEY
-  boundaries = createWorkerBoundaries(overrides)
-  sb = createClient(SUPABASE_URL, SERVICE_ROLE_KEY, {
+  boundaries = createWorkerBoundaries(boundaryOverrides)
+  sb = supabaseClient || createClient(SUPABASE_URL, SERVICE_ROLE_KEY, {
     auth: { persistSession: false, autoRefreshToken: false },
     realtime: { transport: WebSocket },
   })
@@ -88,9 +91,11 @@ function initializeRuntime(env = process.env, overrides = {}) {
   core = (table) => sb.schema('core').from(table)
   upstreamSettings = resolveUpstreamSettings(env)
   scaledownMinConfidence = resolveScaledownMinConfidence(env.SCALEDOWN_ROUTING_MIN_CONFIDENCE)
-  if (!overrides.graphCursorStore) {
+  if (!boundaryOverrides.graphCursorStore) {
     boundaries.graphCursorStore = createGraphCursorStore(sb)
   }
+  // A fresh runtime must not serve a previous run's cached reference data.
+  referenceCache.clear()
 }
 
 function upstreamFetch(operation, url, init, { timeoutMs, retryTransient = false } = {}) {
@@ -388,7 +393,7 @@ async function findDepartment(retailer, addresses) {
   return deptIds.length === 1 ? deptIds[0] : null
 }
 
-async function matchOpportunity({ retailer, department, searchText }) {
+export async function matchOpportunity({ retailer, department, searchText }) {
   let retailerPatterns = ''
   if (retailer) {
     const rows = must(await core('customer').select('so_patterns').eq('id', retailer).limit(1))
@@ -402,9 +407,13 @@ async function matchOpportunity({ retailer, department, searchText }) {
     if (rows.length === 1) return { method: 'PO_NUMBER', row: { id: rows[0].id, retailer: rows[0].company_id, department: rows[0].department_id } }
   }
 
-  let q = crm('opportunity').select('id,name,company_id,department_id,sales_order_number,production_po_number').not('stage', 'in', '(CLOSED,SHIPPED)').limit(1000)
-  if (retailer) q = q.eq('company_id', retailer)
-  const activeRows = must(await q)
+  // Every open program is in play when no customer is known, so the read pages
+  // through the whole set instead of trusting a single page-limited response.
+  const activeRows = await fetchAllRows(() => {
+    let q = crm('opportunity').select('id,name,company_id,department_id,sales_order_number,production_po_number').not('stage', 'in', '(CLOSED,SHIPPED)')
+    if (retailer) q = q.eq('company_id', retailer)
+    return q
+  })
   const lowerNumbers = soNumbers.map((x) => x.toLowerCase())
   const so = activeRows.find((r) => r.sales_order_number && lowerNumbers.includes(String(r.sales_order_number).toLowerCase()))
   if (so) return { method: 'SALES_ORDER_NUMBER', row: { id: so.id, retailer: so.company_id, department: so.department_id } }
@@ -565,7 +574,7 @@ async function updateOpportunitySummary(opportunityId) {
   try { await summarizeOpportunity(opportunityId) } catch (error) { console.warn(`summary skipped for ${opportunityId}: ${error.message}`) }
 }
 
-async function routeEmail({ subject, bodyText, addresses, displayNames = {}, task = 'email_routing_model', allowAi = true }) {
+export async function routeEmail({ subject, bodyText, addresses, displayNames = {}, task = 'email_routing_model', allowAi = true }) {
   const searchText = `${subject || ''} ${bodyText || ''}`
   const normalizedSubject = normalizeSubject(subject).toLowerCase()
   const domains = [...new Set(addresses.map(domainOf).filter((d) => d && d !== INTERNAL_DOMAIN))]
@@ -1090,7 +1099,7 @@ async function reroute() {
 async function hasClassifiedCustomerDomain(domains) {
   if (!domains.length) return false
   const classified = await cachedReference('ingested_domains:customer', async () => new Set(
-    must(await crm('ingested_domain').select('domain').in('status', ['ACTIVE_CUSTOMER', 'POTENTIAL_CUSTOMER']).limit(10000))
+    (await fetchAllRows(() => crm('ingested_domain').select('id,domain').in('status', ['ACTIVE_CUSTOMER', 'POTENTIAL_CUSTOMER'])))
       .map((r) => String(r.domain || '').toLowerCase())))
   return domains.some((d) => domainCandidates(d).some((c) => classified.has(c)))
 }
