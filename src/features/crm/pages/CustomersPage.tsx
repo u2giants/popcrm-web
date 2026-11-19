@@ -360,6 +360,7 @@ export function CustomersPage() {
           </p>
           <DataTable
             key="customer-triage-table"
+            resetKey={segment}
             rows={filteredDomains}
             columns={domainColumns}
             getRowId={(r) => r.id}
@@ -376,6 +377,8 @@ export function CustomersPage() {
         <div className="space-y-2">
           <DataTable
           key="customer-list-table"
+          // One table serves the four company tabs; reset the pager per tab (issue #45).
+          resetKey={segment}
           rows={filteredCustomers}
           columns={customerColumns}
           getRowId={(r) => r.id}

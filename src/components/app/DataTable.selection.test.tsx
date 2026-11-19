@@ -127,4 +127,49 @@ describe('DataTable selection + bulk edit', () => {
     fireEvent.click(screen.getByLabelText('Select all rows on this page'))
     expect(screen.getByText('2 selected')).toBeTruthy()
   })
+
+  it('clears a chosen bulk value the new selection no longer offers (issue #45)', () => {
+    // Row-dependent option lists: a NEW row offers NEW/ACTIVE, an ACTIVE row
+    // offers ACTIVE/RETIRED. A value picked against one selection can drop out
+    // of the intersection when the selection grows — it must not survive.
+    const columns: Column<Row>[] = [
+      { key: 'name', header: 'Name', sortValue: (r) => r.name, cell: (r) => r.name },
+      {
+        key: 'status',
+        header: 'Status',
+        sortValue: (r) => r.status,
+        editValue: (r) => r.status,
+        editOptions: (r) =>
+          r.status === 'NEW'
+            ? [
+                { value: 'NEW', label: 'New' },
+                { value: 'ACTIVE', label: 'Active' },
+              ]
+            : [
+                { value: 'ACTIVE', label: 'Active' },
+                { value: 'RETIRED', label: 'Retired' },
+              ],
+        cell: (r) => r.status,
+      },
+    ]
+    render(
+      <DataTable
+        rows={ROWS}
+        columns={columns}
+        getRowId={(r) => r.id}
+        onCellEdit={vi.fn()}
+        selectable
+        initialSort={{ key: 'name', dir: 'asc' }}
+      />,
+    )
+
+    const boxes = rowBoxes()
+    fireEvent.click(boxes[2]) // Charlie (ACTIVE): alone, RETIRED is offered.
+    fireEvent.change(screen.getByLabelText('Value to apply'), { target: { value: 'RETIRED' } })
+    expect((screen.getByLabelText('Value to apply') as HTMLSelectElement).value).toBe('RETIRED')
+
+    fireEvent.click(boxes[0]) // Alpha (NEW): intersection no longer has RETIRED.
+    expect((screen.getByLabelText('Value to apply') as HTMLSelectElement).value).toBe('')
+    expect((screen.getByRole('button', { name: /apply to selected/i }) as HTMLButtonElement).disabled).toBe(true)
+  })
 })

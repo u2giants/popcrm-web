@@ -97,6 +97,7 @@ export function DataTable<T>({
   initialSort,
   groupBy,
   externalPagination,
+  resetKey,
 }: {
   rows: T[]
   columns: Column<T>[]
@@ -117,6 +118,12 @@ export function DataTable<T>({
    * fetched slice and show a dead Next button next to the real one.
    */
   externalPagination?: boolean
+  /**
+   * The page index resets to 0 whenever this changes (and whenever the row
+   * count changes). Pass the active tab id when one table serves several tabs,
+   * so switching tabs never strands the pager on the old tab's page (issue #45).
+   */
+  resetKey?: string | number
   /**
    * Rows in the order they are currently rendered (after column filters and
    * sorting, across all pages). Lets the caller resolve shift-click ranges
@@ -206,7 +213,10 @@ export function DataTable<T>({
       for (const [key, selected] of activeFilterEntries) {
         const col = byKey[key]
         const valueOf = col?.filterValue ?? col?.sortValue
-        if (valueOf && !selected.includes(String(valueOf(row) ?? ''))) return false
+        // Compare trimmed: the popover's distinct values are built trimmed
+        // (columnDistinctValues), so a row stored as 'Acme ' must still match
+        // an 'Acme' tick (issue #45).
+        if (valueOf && !selected.includes(String(valueOf(row) ?? '').trim())) return false
       }
       for (const [key, text] of activeSearchEntries) {
         const col = byKey[key]
@@ -249,6 +259,16 @@ export function DataTable<T>({
   const visibleRowsCb = useRef(onVisibleRowsChange)
   useEffect(() => { visibleRowsCb.current = onVisibleRowsChange }, [onVisibleRowsChange])
   useEffect(() => { visibleRowsCb.current?.(sorted) }, [sorted])
+
+  // A page index chosen on one tab survives a rows swap when one table serves
+  // several tabs: the pager then shows dead Previous state or a page past the
+  // new list. Reset during render (the React prop-change pattern — no effect)
+  // whenever the row count or the caller's resetKey changes (issue #45).
+  const [pageEpoch, setPageEpoch] = useState({ length: rows.length, resetKey })
+  if (rows.length !== pageEpoch.length || resetKey !== pageEpoch.resetKey) {
+    setPageEpoch({ length: rows.length, resetKey })
+    setPage(0)
+  }
 
   const pageRowIndex = useMemo(() => {
     const m = new Map<string, number>()
@@ -307,10 +327,16 @@ export function DataTable<T>({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [bulkCol, selectedRows])
 
+  // Row-dependent option lists shrink or shift as the selection changes, so a
+  // chosen value can drop out of what the dropdown offers. Derive the live
+  // value instead of storing a reset: Apply must never write a value the user
+  // cannot see selected (issue #45).
+  const liveBulkValue = bulkOptions.some((o) => o.value === bulkValue) ? bulkValue : ''
+
   async function applyBulkValue() {
-    if (!bulkCol || !bulkValue || !onCellEdit) return
+    if (!bulkCol || !liveBulkValue || !onCellEdit) return
     const col = bulkCol
-    const value = bulkValue
+    const value = liveBulkValue
     const label = bulkOptions.find((o) => o.value === value)?.label ?? value
     // Snapshot now: the rows refetch while we write, which must not shrink the job.
     const targets = selectedRows.filter((row) => {
@@ -447,6 +473,12 @@ export function DataTable<T>({
       if (e.key === 'Escape') setOpenFilter(null)
     }
     function onPointer(e: PointerEvent) {
+      // A pointerdown on the funnel trigger of the open filter is not an
+      // outside click: the trigger's own click handler then toggles the
+      // popover closed. Closing here instead would let that same click reopen
+      // it, so the funnel could never close its own popover (issue #45).
+      const target = e.target as HTMLElement | null
+      if (target?.closest(`[data-filter-trigger="${openFilter}"]`)) return
       if (filterPopoverRef.current && !filterPopoverRef.current.contains(e.target as Node)) {
         setOpenFilter(null)
       }
@@ -458,6 +490,25 @@ export function DataTable<T>({
       document.removeEventListener('pointerdown', onPointer)
     }
   }, [openFilter])
+
+  // Fixed-position overlays are placed once from the anchor's rect and do not
+  // follow scroll. Scrolling the page or a container would leave them floating
+  // over the wrong rows, so any scroll outside an overlay's own list closes
+  // them (issue #45).
+  useEffect(() => {
+    if (!openFilter && !editCell && !autocomplete) return
+    function onScroll(e: Event) {
+      const target = e.target as Node
+      if (filterPopoverRef.current?.contains(target)) return
+      if (editDropdownRef.current?.contains(target)) return
+      if (target instanceof Element && target.closest('[data-testid="header-autocomplete"]')) return
+      setOpenFilter(null)
+      setEditCell(null)
+      setAutocomplete(null)
+    }
+    document.addEventListener('scroll', onScroll, { capture: true, passive: true })
+    return () => document.removeEventListener('scroll', onScroll, { capture: true })
+  }, [openFilter, editCell, autocomplete])
 
   // Close edit dropdown on Escape or outside click.
   useEffect(() => {
@@ -732,7 +783,7 @@ export function DataTable<T>({
               <select
                 aria-label="Value to apply"
                 className="min-w-[150px] rounded-[7px] border bg-background px-[7px] py-[4px] text-[12px] outline-none focus:border-ring"
-                value={bulkValue}
+                value={liveBulkValue}
                 onChange={(e) => setBulkValue(e.target.value)}
               >
                 <option value="">Choose value…</option>
@@ -743,7 +794,7 @@ export function DataTable<T>({
               <Button
                 size="sm"
                 className="h-[28px] px-[10px] text-[12px]"
-                disabled={!bulkValue || bulkBusy}
+                disabled={!liveBulkValue || bulkBusy}
                 onClick={() => void applyBulkValue()}
               >
                 {bulkBusy
@@ -866,6 +917,7 @@ export function DataTable<T>({
                       {filterable && (
                         <button
                           type="button"
+                          data-filter-trigger={col.key}
                           className={cn(
                             'ml-auto flex size-[20px] shrink-0 items-center justify-center rounded-[5px] transition-colors',
                             hasFilter || filterOpen
