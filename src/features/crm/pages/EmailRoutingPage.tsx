@@ -6,6 +6,7 @@ import { DataTable, type Column, type EditOption, type CellEditContext } from '@
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Badge } from '@/components/ui/badge'
 import { ErrorState } from '@/components/app/states'
+import { StatusBadge } from '@/components/app/StatusBadge'
 import { CrmStatusBadge } from '@/features/crm/components/CrmStatusBadge'
 import { CustomerRelationLogo } from '@/features/crm/components/CustomerRelationLogo'
 import { RelationLabel } from '@/features/crm/components/RelationLabel'
@@ -14,6 +15,7 @@ import { EmailDrawer } from '@/features/crm/components/EmailDrawer'
 import { DomainRoutingPanel, useUnroutedCustomerDomains } from '@/features/crm/components/DomainRoutingPanel'
 import { ROUTING_STATUSES, WORKER_CADENCE } from '@/features/crm/constants'
 import { formatDateTime, idOf, label, relatedName, textOf } from '@/features/crm/format'
+import { healthLabel, healthTone } from '@/features/crm/health'
 import { customerEditOptions, withCurrentCustomer, buildRetailerById, customerDomainSet, domainOfAddress } from '@/features/crm/pages/_shared'
 import { useAuth } from '@/auth/auth'
 import { Button } from '@/components/ui/button'
@@ -88,7 +90,7 @@ export function EmailRoutingPage() {
   const retailers = listData(retailersQuery.data)
   const departments = listData(departmentsQuery.data)
   const opportunities = listData(opportunitiesQuery.data)
-  const firefliesOk = fireflies.data ?? null
+  const firefliesStatus = healthLabel(fireflies)
   const loading = emailsQuery.isPending || retailersQuery.isPending || departmentsQuery.isPending || opportunitiesQuery.isPending
   const error = emailsQuery.isError
   const { user } = useAuth()
@@ -333,7 +335,9 @@ export function EmailRoutingPage() {
           onSearch={setQuery}
           searchPlaceholder={segment === 'domains' ? 'Search domain, sender…' : 'Search this page…'}
           actions={
-            <CrmStatusBadge kind="routing" status={firefliesOk ? 'ROUTED' : undefined} dot={false} />
+            <StatusBadge tone={healthTone(fireflies)} dot={false}>
+              {firefliesStatus === 'Checking' ? 'Checking…' : firefliesStatus}
+            </StatusBadge>
           }
           segments={
             <Tabs value={segment} onValueChange={(v) => { setSegment(v as Segment); setPage(0) }}>
@@ -440,11 +444,9 @@ export function EmailRoutingPage() {
             <div className="flex items-center justify-between gap-2 border-t pt-2">
               <dt className="text-muted-foreground">Fireflies webhook</dt>
               <dd>
-                <CrmStatusBadge
-                  kind="routing"
-                  status={firefliesOk === false ? 'UNROUTED' : firefliesOk ? 'ROUTED' : 'SKIPPED'}
-                  dot
-                />
+                <StatusBadge tone={healthTone(fireflies)}>
+                  {firefliesStatus === 'Checking' ? 'Checking…' : firefliesStatus}
+                </StatusBadge>
               </dd>
             </div>
           </dl>

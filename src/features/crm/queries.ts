@@ -165,8 +165,16 @@ export function useFirefliesHealth() {
   return useQuery({
     queryKey: crmKeys.fireflies(),
     queryFn: async () => {
-      const res = await fetch(FIREFLIES_HEALTH_URL)
-      return res.ok
+      try {
+        const res = await fetch(FIREFLIES_HEALTH_URL)
+        return res.ok
+      } catch {
+        // A network-level failure (blocked URL, DNS, offline) means the check
+        // ran and the service is unreachable. Returning `false` keeps the
+        // error out of the query state so no surface can mistake an errored
+        // check (data undefined) for healthy (#54).
+        return false
+      }
     },
     staleTime: 60_000,
     gcTime: 10 * 60_000,

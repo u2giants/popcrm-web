@@ -15,6 +15,7 @@ import { EmptyState } from '@/components/app/states'
 import { AI_MODELS, AI_MODEL_FIELDS, WORKER_CADENCE } from '@/features/crm/constants'
 import { label } from '@/features/crm/format'
 import { listData, useAiConfigsQuery, useFirefliesHealth, useIgnoreRulesQuery, useUpdateAiConfigMutation } from '@/features/crm/queries'
+import { healthLabel, healthTone } from '@/features/crm/health'
 import { SUPABASE_URL } from '@/lib/supabase'
 import { logError } from '@/lib/errors'
 import type { CrmAiModelConfig } from '@/lib/types'
@@ -84,7 +85,7 @@ function GeneralSettings() {
   const updateAiConfigMutation = useUpdateAiConfigMutation()
   const aiConfigs = listData(aiConfigsQuery.data)
   const ignoreRules = listData(ignoreRulesQuery.data)
-  const firefliesOk = fireflies.data ?? null
+  const firefliesStatus = healthLabel(fireflies)
 
   async function saveField(config: CrmAiModelConfig, field: keyof CrmAiModelConfig, value: string) {
     try {
@@ -172,8 +173,8 @@ function GeneralSettings() {
               <Activity className="size-[14px] text-muted-foreground" />
               Fireflies webhook
             </div>
-            <StatusBadge tone={firefliesOk === false ? 'danger' : firefliesOk ? 'success' : 'neutral'}>
-              {firefliesOk === null ? 'Checking…' : firefliesOk ? 'Online' : 'Offline'}
+            <StatusBadge tone={healthTone(fireflies)}>
+              {firefliesStatus === 'Checking' ? 'Checking…' : firefliesStatus}
             </StatusBadge>
           </div>
           <div className="flex items-center justify-between gap-2 rounded-[8px] border px-3 py-[10px]">

@@ -20,6 +20,7 @@ import { ChartAreaVolume, type AreaSeries } from '@/components/app/ChartAreaVolu
 import { CrmStatusBadge } from '@/features/crm/components/CrmStatusBadge'
 import { RelationLabel } from '@/features/crm/components/RelationLabel'
 import { formatDate, label, parseDateParts } from '@/features/crm/format'
+import { healthLabel, healthTone } from '@/features/crm/health'
 import {
   listData,
   useFirefliesHealth,
@@ -72,7 +73,7 @@ export function OverviewPage() {
   const meetingsQuery = useOverviewRecentMeetingsQuery(6)
   const approvalsQuery = useOverviewPendingApprovalsQuery(6)
   const fireflies = useFirefliesHealth()
-  const firefliesOk = fireflies.data ?? null
+  const firefliesStatus = healthLabel(fireflies)
 
   const counts = countsQuery.data
   const emailCounts = emailCountsQuery.data
@@ -144,8 +145,8 @@ export function OverviewPage() {
           title="Overview"
           subtitle="Operational snapshot"
           actions={
-            <StatusBadge tone={firefliesOk === false ? 'danger' : firefliesOk ? 'success' : 'neutral'}>
-              Fireflies {firefliesOk === null ? '…' : firefliesOk ? 'online' : 'offline'}
+            <StatusBadge tone={healthTone(fireflies)}>
+              Fireflies {firefliesStatus === 'Checking' ? '…' : firefliesStatus.toLowerCase()}
             </StatusBadge>
           }
         />

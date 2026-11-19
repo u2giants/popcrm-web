@@ -1,12 +1,26 @@
 import { NavLink } from 'react-router-dom'
 import { Route } from 'lucide-react'
 import { NAV_SECTIONS } from '@/app/navigation'
+import { healthLabel } from '@/features/crm/health'
 import {
   useFirefliesHealth,
   useOverviewCountsQuery,
   useOverviewEmailCountsQuery,
 } from '@/features/crm/queries'
 import { cn } from '@/lib/utils'
+
+// The footer host line is derived from the build's Supabase URL — never a
+// hard-coded project host (#54) — and shows nothing when the URL is missing or
+// does not parse. Read at render time so it tracks the active environment.
+function supabaseHostLine(): string {
+  const url = import.meta.env.VITE_SUPABASE_URL as string | undefined
+  if (!url) return ''
+  try {
+    return `Supabase · ${new URL(url).host}`
+  } catch {
+    return ''
+  }
+}
 
 function SidebarContent({
   onNavigate,
@@ -29,7 +43,9 @@ function SidebarContent({
     '/approvals': counts.data?.pendingApprovals ?? 0,
   }
 
-  const healthOk = fireflies.data !== false
+  // Three states only (#54): Online / Offline / Checking — never read `data`
+  // directly, an unanswered check is not "All systems normal".
+  const health = healthLabel(fireflies)
 
   // `mobileOnly` items (e.g. Quick Triage) surface only in the mobile nav sheet.
   const sections = NAV_SECTIONS.map((section) => ({
@@ -143,17 +159,25 @@ function SidebarContent({
         <span
           className="size-[7px] shrink-0 rounded-full"
           style={{
-            background: healthOk ? 'var(--success)' : 'var(--warning)',
-            boxShadow: healthOk
-              ? '0 0 0 3px color-mix(in oklch, var(--success) 22%, transparent)'
-              : '0 0 0 3px color-mix(in oklch, var(--warning) 22%, transparent)',
+            background:
+              health === 'Online'
+                ? 'var(--success)'
+                : health === 'Offline'
+                  ? 'var(--destructive)'
+                  : 'var(--sidebar-muted)',
+            boxShadow:
+              health === 'Online'
+                ? '0 0 0 3px color-mix(in oklch, var(--success) 22%, transparent)'
+                : health === 'Offline'
+                  ? '0 0 0 3px color-mix(in oklch, var(--destructive) 22%, transparent)'
+                  : 'none',
           }}
         />
         <div className="min-w-0" style={{ color: 'var(--sidebar-muted)', fontSize: 11, lineHeight: 1.25 }}>
           <b style={{ color: 'var(--sidebar-foreground)', fontWeight: 600, display: 'block', fontSize: 11.5 }}>
-            {healthOk ? 'All systems normal' : 'Check Fireflies'}
+            {health === 'Online' ? 'All systems normal' : health === 'Offline' ? 'Check Fireflies' : 'Checking…'}
           </b>
-          Supabase · qsllyeztdwjgirsysgai.supabase.co
+          {supabaseHostLine()}
         </div>
       </div>
     </div>

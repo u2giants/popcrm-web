@@ -3,6 +3,7 @@ import { AlignJustify, Menu, Moon, RefreshCcw, Search, Sun, UserCog } from 'luci
 import { useIsFetching, useQueryClient } from '@tanstack/react-query'
 import { useAuth } from '@/auth/auth'
 import { crmKeys, useFirefliesHealth } from '@/features/crm/queries'
+import { healthLabel, healthTone } from '@/features/crm/health'
 import { Button } from '@/components/ui/button'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { StatusBadge } from '@/components/app/StatusBadge'
@@ -58,7 +59,7 @@ export function AppHeader({
   const queryClient = useQueryClient()
   const crmFetches = useIsFetching({ queryKey: crmKeys.all })
   const fireflies = useFirefliesHealth()
-  const firefliesOk = fireflies.data ?? null
+  const firefliesStatus = healthLabel(fireflies)
   const refreshing = crmFetches > 0
   const name = [user?.first_name, user?.last_name].filter(Boolean).join(' ') || user?.email || 'User'
   const refresh = () => void queryClient.invalidateQueries({ queryKey: crmKeys.all })
@@ -90,8 +91,8 @@ export function AppHeader({
         <Tooltip>
           <TooltipTrigger asChild>
             <span className="hidden sm:inline-flex">
-              <StatusBadge tone={firefliesOk === false ? 'danger' : firefliesOk ? 'success' : 'neutral'}>
-                Fireflies {firefliesOk === null ? '…' : firefliesOk ? 'online' : 'offline'}
+              <StatusBadge tone={healthTone(fireflies)}>
+                Fireflies {firefliesStatus === 'Checking' ? '…' : firefliesStatus.toLowerCase()}
               </StatusBadge>
             </span>
           </TooltipTrigger>
