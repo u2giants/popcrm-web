@@ -10,3 +10,9 @@ WorkingDirectory=/worksp/popcrm-web
 EnvironmentFile=/home/ai/.crm-worker.env
 TimeoutStartSec=20min
 ExecStart=/usr/bin/node /worksp/popcrm-web/workers/crm-worker-supabase.mjs apply-ignore-rules
+# Hardening proposal (popcrm-web issue #72). In-repo proposal only — units are
+# installed/reloaded by the host owner (docs/deployment.md), never from here.
+# apply-ignore-rules writes nothing outside /tmp (Supabase only), so no ReadWritePaths.
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict

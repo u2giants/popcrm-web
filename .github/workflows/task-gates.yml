@@ -11,7 +11,9 @@ permissions:
   contents: read
 jobs:
   route:
-    uses: popcre/ai-devops/.github/workflows/edge-dev3-route.yml@main
+    # Pinned to a commit SHA (#72): a movable @main tag would let an unrelated
+    # push in popcre/ai-devops change this repo's CI behaviour.
+    uses: popcre/ai-devops/.github/workflows/edge-dev3-route.yml@fbcd06d9f91068d194db0b9442056c5055046bdb # main 2026-11-19
     with:
       heartbeat: ${{ vars.EDGE_DEV3_RUNNER_HEARTBEAT }}
       fallback: ubuntu-latest
@@ -23,11 +25,11 @@ jobs:
     timeout-minutes: 5
     steps:
       - name: Check out POP CRM
-        uses: actions/checkout@v4
+        uses: actions/checkout@08eba0b27e820071cde6df949e0beb9ba4906955 # v4.3.0
         with:
           persist-credentials: false
       - name: Check out accepted task-gate engine
-        uses: actions/checkout@v4
+        uses: actions/checkout@08eba0b27e820071cde6df949e0beb9ba4906955 # v4.3.0
         with:
           repository: popcre/ai-devops
           ref: 4d83f9a5dc400f87408663eddac872b9074c18ed

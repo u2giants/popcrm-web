@@ -27,14 +27,19 @@ env:
   REGISTRY: ghcr.io
   IMAGE_NAME: u2giants/popcrm-web
 
+# Least privilege by default for every job (#72); only build-and-push widens
+# this to packages: write for the GHCR push.
+permissions:
+  contents: read
+
 jobs:
   verify:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
-          node-version: '20'
+          node-version: '26'
           cache: 'npm'
       - run: npm ci
       # Catches an unmatched fi/done inside any run: block. Bash parses lazily,
@@ -55,21 +60,24 @@ jobs:
 
   build-and-push:
     needs: verify
+    # Only the main line may be released (#72). A manual workflow_dispatch from
+    # any other branch stops here: verify still runs, nothing is published.
+    if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     permissions:
       contents: read
       packages: write
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Short SHA
         id: vars
         run: echo "sha7=${GITHUB_SHA::7}" >> "$GITHUB_OUTPUT"
 
-      - uses: docker/setup-buildx-action@v3
+      - uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
 
       - name: Log in to GHCR
-        uses: docker/login-action@v3
+        uses: docker/login-action@8aa5831fb8d48d8f76594c7ddde61ae58019f550 # v4.8.0
         with:
           registry: ${{ env.REGISTRY }}
           username: ${{ github.actor }}
@@ -77,7 +85,7 @@ jobs:
 
       - name: Image metadata
         id: meta
-        uses: docker/metadata-action@v5
+        uses: docker/metadata-action@dc802804100637a589fabce1cb79ff13a1411302 # v6.2.0
         with:
           images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
           # Mutable pointers (latest, main) plus the immutable sha-<sha> audit tag (§18).
@@ -88,7 +96,7 @@ jobs:
             type=raw,value=sha-${{ github.sha }}
 
       - name: Build and push
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
         with:
           context: .
           push: true
@@ -106,10 +114,12 @@ jobs:
 
   deploy:
     needs: build-and-push
+    # Same main-only guard as the publishing job (#72).
+    if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - name: Pin Coolify to the immutable image tag
         env:
           COOLIFY_BASE_URL: ${{ secrets.COOLIFY_BASE_URL }}

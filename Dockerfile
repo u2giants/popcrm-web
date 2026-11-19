@@ -1,5 +1,6 @@
 # build
-FROM node:20-alpine AS build
+# Current Node LTS line (issue #72): 26 "Lithium", active LTS as of 2026-10.
+FROM node:26-alpine AS build
 WORKDIR /app
 COPY package*.json ./
 RUN npm ci
@@ -20,7 +21,13 @@ ARG VITE_SUPABASE_ANON_KEY=""
 ENV VITE_SUPABASE_ANON_KEY=$VITE_SUPABASE_ANON_KEY
 RUN npm run build
 # serve
-FROM nginx:alpine
+# Pinned to the current stable nginx patch (issue #72): the previous
+# `nginx:alpine` tag floated. Stays the root-user stock image on port 80 on
+# purpose: the nginx-unprivileged switch needs the Coolify app's port mapping
+# (80 -> 8080) changed in the same rollout, and the available scoped Coolify
+# write token cannot safely change the app's port mapping, so the LOCKED
+# fallback in issue #72 keeps root nginx pinned.
+FROM nginx:1.30.7-alpine
 COPY nginx.conf /etc/nginx/conf.d/default.conf
 COPY --from=build /app/dist /usr/share/nginx/html
 # Known version path the deploy check reads after Coolify deploys

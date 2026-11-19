@@ -10,3 +10,12 @@ WorkingDirectory=/worksp/popcrm-web
 EnvironmentFile=/home/ai/.crm-worker.env
 TimeoutStartSec=10min
 ExecStart=/usr/bin/node /worksp/popcrm-web/workers/crm-worker-supabase.mjs outlook-ingest
+# Hardening proposal (popcrm-web issue #72). In-repo proposal only — units are
+# installed/reloaded by the host owner (docs/deployment.md), never from here.
+# The worker's only write outside /tmp is the Outlook quarantine state file
+# (workers/crm-worker-supabase.mjs, OUTLOOK_QUARANTINE_FILE, default below);
+# if that env override ever moves the file, move ReadWritePaths with it.
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ReadWritePaths=/home/ai/.crm-worker-outlook-quarantine.json
