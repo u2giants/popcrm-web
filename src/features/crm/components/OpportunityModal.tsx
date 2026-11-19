@@ -116,7 +116,10 @@ export function OpportunityModal({
         role="dialog"
         aria-modal="true"
       >
-        <ModalInner row={row} onClose={close} expanded={expanded} onToggleExpand={() => setExpanded((e) => !e)} />
+        {/* Keyed by the program: an unsent comment or the last AI answer must
+            not carry over to another program (#59) — sendComment posts to
+            row.id, so a leaked draft would land on the wrong program. */}
+        <ModalInner key={row.id} row={row} onClose={close} expanded={expanded} onToggleExpand={() => setExpanded((e) => !e)} />
       </div>
       <style>{`
         @keyframes modal-pop {

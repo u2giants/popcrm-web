@@ -60,9 +60,14 @@ function OpportunityDrawerForm({ row, onClose }: { row: CrmOpportunity; onClose:
 
   const related = useMemo(() => {
     const match = (v: { id?: string } | string | null | undefined) => idOf(v) === row.id
+    // Meeting notes have no program link, so the honest count is customer-wide
+    // and is labeled that way (#59) — and never counted when the program has
+    // no customer, which used to match every no-customer meeting (empty id to
+    // empty id) and inflate the number.
+    const retailerId = idOf(row.retailer)
     return {
       emails: emails.filter((e) => match(e.opportunity)).length,
-      meetings: meetings.filter((m) => idOf(m.retailer) === idOf(row.retailer)).length,
+      meetings: retailerId ? meetings.filter((m) => idOf(m.retailer) === retailerId).length : null,
       notes: notes.filter((n) => match(n.opportunity)).length,
       tasks: tasks.filter((t) => match(t.opportunity)).length,
     }
@@ -129,12 +134,12 @@ function OpportunityDrawerForm({ row, onClose }: { row: CrmOpportunity; onClose:
         <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
           {[
             ['Emails', related.emails],
-            ['Meetings', related.meetings],
+            ['Customer meetings', related.meetings],
             ['Notes', related.notes],
             ['Tasks', related.tasks],
           ].map(([name, count]) => (
             <div key={name} className="rounded-md border bg-card px-3 py-2 text-center">
-              <div className="text-lg font-semibold tabular-nums">{count}</div>
+              <div className="text-lg font-semibold tabular-nums">{count ?? '—'}</div>
               <div className="text-xs text-muted-foreground">{name}</div>
             </div>
           ))}

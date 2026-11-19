@@ -97,3 +97,28 @@ describe('ContactDrawer text edits (#39)', () => {
     expect('job_title' in values).toBe(false)
   })
 })
+
+describe('ContactDrawer department scroll (#59)', () => {
+  const scrollIntoView = vi.fn()
+  Element.prototype.scrollIntoView = scrollIntoView
+
+  afterEach(() => {
+    scrollIntoView.mockClear()
+  })
+
+  it('scrolls the department row once per contact, not on every keystroke', () => {
+    const { rerender } = render(<ContactDrawer row={buyer} onClose={vi.fn()} focusDepartment />)
+    expect(scrollIntoView).toHaveBeenCalledTimes(1)
+
+    // Typing re-renders the form; the old inline ref scrolled on every one of
+    // those renders and yanked the form around.
+    startEdit()
+    fireEvent.change(screen.getByLabelText('Name'), { target: { value: 'Holly P. Price' } })
+    fireEvent.change(screen.getByLabelText('Email'), { target: { value: 'holly.p@acme.example' } })
+    expect(scrollIntoView).toHaveBeenCalledTimes(1)
+
+    // A different contact is a new scroll target.
+    rerender(<ContactDrawer row={{ ...buyer, id: 'b2' } as unknown as Buyer} onClose={vi.fn()} focusDepartment />)
+    expect(scrollIntoView).toHaveBeenCalledTimes(2)
+  })
+})

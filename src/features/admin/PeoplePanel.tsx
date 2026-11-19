@@ -10,6 +10,7 @@ import { Checkbox } from '@/components/ui/checkbox'
 import { Input } from '@/components/ui/input'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import { useAuth } from '@/auth/auth'
+import { ConfirmDeleteDialog } from '@/features/crm/components/ConfirmDeleteDialog'
 import { formatDate } from '@/features/crm/format'
 import { logError } from '@/lib/errors'
 import { cn } from '@/lib/utils'
@@ -63,6 +64,27 @@ export function PeoplePanel() {
     } catch (error) {
       toast.error('Change not saved', { description: logError('PeoplePanel', error) })
     }
+  }
+
+  // Taking access away or deactivating someone is a one-click mistake you only
+  // notice later, so those moves go through one confirm step (#59). Grants and
+  // reactivations stay one click.
+  type Pending = {
+    change: Parameters<typeof update.mutateAsync>[0]
+    done: string
+    title: string
+    message: string
+    confirmLabel: string
+  }
+  const [confirming, setConfirming] = useState<Pending | null>(null)
+  function runConfirmed(
+    change: Pending['change'],
+    done: string,
+    title: string,
+    message: string,
+    confirmLabel: string,
+  ) {
+    setConfirming({ change, done, title, message, confirmLabel })
   }
 
   function toggleRole(u: AdminUser, slug: string) {
@@ -176,10 +198,18 @@ export function PeoplePanel() {
                           checked={u.apps.includes('crm')}
                           disabled={update.isPending}
                           onCheckedChange={(v) =>
-                            void run(
-                              { kind: 'app', id: u.id, app: 'crm', enabled: v === true },
-                              `CRM access ${v === true ? 'granted to' : 'removed from'} ${personName(u)}`,
-                            )
+                            v === true
+                              ? void run(
+                                  { kind: 'app', id: u.id, app: 'crm', enabled: true },
+                                  `CRM access granted to ${personName(u)}`,
+                                )
+                              : runConfirmed(
+                                  { kind: 'app', id: u.id, app: 'crm', enabled: false },
+                                  `CRM access removed from ${personName(u)}`,
+                                  'Remove CRM access?',
+                                  `${personName(u)} will lose access to the CRM until access is granted again.`,
+                                  'Remove access',
+                                )
                           }
                         />
                         <span className="text-[11.5px] text-muted-foreground">
@@ -198,10 +228,18 @@ export function PeoplePanel() {
                               type="button"
                               disabled={update.isPending}
                               onClick={() =>
-                                void run(
-                                  { kind: 'app', id: u.id, app, enabled: !on },
-                                  `${appLabel(app)} access ${on ? 'removed from' : 'granted to'} ${personName(u)}`,
-                                )
+                                on
+                                  ? runConfirmed(
+                                      { kind: 'app', id: u.id, app, enabled: false },
+                                      `${appLabel(app)} access removed from ${personName(u)}`,
+                                      `Remove ${appLabel(app)} access?`,
+                                      `${personName(u)} will lose access to ${appLabel(app)} until access is granted again.`,
+                                      'Remove access',
+                                    )
+                                  : void run(
+                                      { kind: 'app', id: u.id, app, enabled: true },
+                                      `${appLabel(app)} access granted to ${personName(u)}`,
+                                    )
                               }
                               aria-pressed={on}
                               className={cn(
@@ -231,10 +269,18 @@ export function PeoplePanel() {
                             className="h-7 px-2 text-[11px]"
                             disabled={update.isPending}
                             onClick={() =>
-                              void run(
-                                { kind: 'status', id: u.id, status: active ? 'inactive' : 'active' },
-                                `${personName(u)} ${active ? 'deactivated' : 'reactivated'}`,
-                              )
+                              active
+                                ? runConfirmed(
+                                    { kind: 'status', id: u.id, status: 'inactive' },
+                                    `${personName(u)} deactivated`,
+                                    'Deactivate this person?',
+                                    `${personName(u)} will be marked inactive until reactivated.`,
+                                    'Deactivate',
+                                  )
+                                : void run(
+                                    { kind: 'status', id: u.id, status: 'active' },
+                                    `${personName(u)} reactivated`,
+                                  )
                             }
                           >
                             {active ? 'Deactivate' : 'Reactivate'}
@@ -249,6 +295,21 @@ export function PeoplePanel() {
           </table>
         </div>
       )}
+
+      <ConfirmDeleteDialog
+        open={!!confirming}
+        title={confirming?.title ?? ''}
+        message={confirming?.message ?? ''}
+        confirmLabel={confirming?.confirmLabel ?? 'Confirm'}
+        destructive
+        pending={update.isPending}
+        onConfirm={() => {
+          const pending = confirming
+          setConfirming(null)
+          if (pending) void run(pending.change, pending.done)
+        }}
+        onClose={() => setConfirming(null)}
+      />
     </section>
   )
 }

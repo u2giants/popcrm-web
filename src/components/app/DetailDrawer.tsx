@@ -71,7 +71,7 @@ export function DetailDrawer({
 // Description list for record fields — 2-col grid inside the drawer.
 export function DescriptionList({ children, className }: { children: ReactNode; className?: string }) {
   return (
-    <dl className={cn('grid grid-template-cols-[116px_1fr] gap-x-[14px] gap-y-[9px]', className)}>
+    <dl className={cn('grid grid-cols-[116px_1fr] gap-x-[14px] gap-y-[9px]', className)}>
       {children}
     </dl>
   )

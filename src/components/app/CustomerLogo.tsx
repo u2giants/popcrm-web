@@ -73,12 +73,15 @@ export function CustomerLogo({
   height?: number
   className?: string
 }) {
-  const [failed, setFailed] = useState(false)
+  // A failed load only rules out the URL that failed: a new domain or a newly
+  // stored logo is a different URL and gets a fresh attempt (#59). Keying the
+  // failure on the source URL is what resets it when the record changes.
+  const [failedSrc, setFailedSrc] = useState<string | null>(null)
   const host = rootDomain(domain)
   const storedLogo = logoUrl?.trim()
 
   if (variant === 'full') {
-    if (!storedLogo || failed) {
+    if (!storedLogo || failedSrc === storedLogo) {
       return <NameAvatar name={name} size={Math.min(height, size)} className={className} />
     }
 
@@ -89,7 +92,7 @@ export function CustomerLogo({
         aria-hidden
         width={width}
         height={height}
-        onError={() => setFailed(true)}
+        onError={() => setFailedSrc(storedLogo)}
         className={className}
         style={{
           width,
@@ -105,12 +108,10 @@ export function CustomerLogo({
 
   // An uploaded logo is an explicit human override, so it wins over whatever
   // logo.dev returns for the domain (and covers brands logo.dev doesn't know).
-  const src = !failed
-    ? storedLogo || (LOGODEV_TOKEN && host
-        ? logoDevImageUrl(host, { size: size * 2, format: 'png', fallback: '404' })
-        : null)
-    : null
-  if (!src) {
+  const src = storedLogo || (LOGODEV_TOKEN && host
+      ? logoDevImageUrl(host, { size: size * 2, format: 'png', fallback: '404' })
+      : null)
+  if (!src || failedSrc === src) {
     return <NameAvatar name={name} size={size} className={className} />
   }
 
@@ -121,7 +122,7 @@ export function CustomerLogo({
       aria-hidden
       width={size}
       height={size}
-      onError={() => setFailed(true)}
+      onError={() => setFailedSrc(src)}
       className={className}
       style={{
         width: size,

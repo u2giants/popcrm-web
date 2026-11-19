@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useCallback, useMemo, useState } from 'react'
 import { toast } from 'sonner'
 import { Mail, Pencil, Trash2 } from 'lucide-react'
 import { Input } from '@/components/ui/input'
@@ -82,6 +82,19 @@ export function ContactDrawer({
     phone: shown?.phone ?? row?.phone ?? '',
     job_title: shown?.job_title ?? row?.job_title ?? '',
   }
+  // Scroll the Department row into view once per contact (#59). The scroll
+  // callback's identity is keyed on the record id, so React invokes it only
+  // when the row mounts for this contact — never on the re-renders that
+  // typing causes (the old inline ref scrolled on every one of those and
+  // yanked the form around). An effect cannot do this: it fires before the
+  // Sheet's portal content mounts, while the row is still absent.
+  const rowId = row?.id ?? null
+  const scrollDepartmentIntoView = useCallback((el: HTMLDivElement | null) => {
+    el?.scrollIntoView({ block: 'center' })
+    // rowId is intentionally unused here: it keys the callback's identity so
+    // React re-invokes the ref (and re-scrolls) exactly once per contact.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [rowId])
   const currentRetailer = applied && applied.retailer !== undefined ? applied.retailer : row?.retailer ?? null
   const customerOptions = useMemo<ComboOption[]>(() => {
     const opts = retailers
@@ -326,7 +339,7 @@ export function ContactDrawer({
               </DescriptionItem>
               {!editing ? <DescriptionItem term="Customer">{relatedName(currentRetailer)}</DescriptionItem> : null}
               <div
-                ref={focusDepartment ? (el) => { el?.scrollIntoView({ block: 'center' }) } : undefined}
+                ref={focusDepartment ? scrollDepartmentIntoView : undefined}
                 className={cn(
                   'min-w-0 rounded-[6px] -mx-1.5 -my-1 px-1.5 py-1',
                   focusDepartment && 'animate-in fade-in-0 slide-in-from-left-4 duration-700 ring-1 ring-primary/35 bg-primary/5',
