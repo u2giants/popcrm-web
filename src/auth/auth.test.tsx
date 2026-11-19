@@ -15,7 +15,7 @@ type AuthCallback = (event: string, session: { user: { id: string } } | null) =>
 let currentSession: { user: { id: string; email: string } } | null = null
 let authCallback: AuthCallback = () => {}
 let profileResolvers: Array<(value: { data: unknown; error: unknown }) => void> = []
-let profileMode: 'immediate' | 'deferred' = 'immediate'
+let profileMode: 'immediate' | 'deferred' | 'fail' = 'immediate'
 
 let profileRoles: string[] = ['sales']
 
