@@ -9,6 +9,17 @@ export default defineConfig([
   // dist = build artifact; src/components/ui = generated shadcn; shared-db = synced copy of the shared-db repo (don't lint vendored code); .claude/worktrees = other sessions' linked worktrees
   globalIgnores(['dist', 'src/components/ui/**', 'shared-db/**', '.claude/worktrees/**']),
   {
+    // Node background jobs and their tests (workers/**/*.mjs) run under Node,
+    // not the browser: recommended JS rules with Node globals.
+    files: ['**/*.mjs'],
+    extends: [
+      js.configs.recommended,
+    ],
+    languageOptions: {
+      globals: globals.node,
+    },
+  },
+  {
     files: ['**/*.{ts,tsx}'],
     extends: [
       js.configs.recommended,

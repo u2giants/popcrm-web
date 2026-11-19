@@ -30,7 +30,7 @@ export function normalizeSubject(subject) {
 }
 
 export function extractAddresses(text) {
-  const matches = String(text || '').match(/[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}/g) || []
+  const matches = String(text || '').match(/[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/g) || []
   return [...new Set(matches)].map((address) => address.toLowerCase())
 }
 

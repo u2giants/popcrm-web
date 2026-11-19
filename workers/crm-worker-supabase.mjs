@@ -188,13 +188,13 @@ const CONTACT_SYNC_NOISE_DOMAINS = new Set([
 const NOISE_SENDER_PATTERNS = ['no-reply@', 'noreply@', 'donotreply@', 'notifications@', 'support@', 'billing@']
 const PO_PATTERN = /\b([DS]\d{4})\b/gi
 const DEFAULT_SO_PATTERNS = [
-  /\bSO[\s#\-]?(\d{5,12})\b/gi,
-  /\bSales\s+Order[\s:#\-]*(\d{5,12})\b/gi,
+  /\bSO[\s#?-]?(\d{5,12})\b/gi,
+  /\bSales\s+Order[\s:#?-]*(\d{5,12})\b/gi,
   /\bOrder\s*[:#]?\s*(\d{6,12})\b/gi,
 ]
 const DEFAULT_PO_PATTERNS = [
-  /\bPO[\s#\-]?(\d{5,12})\b/gi,
-  /\bPurchase\s+Order[\s:#\-]*(\d{5,12})\b/gi,
+  /\bPO[\s#?-]?(\d{5,12})\b/gi,
+  /\bPurchase\s+Order[\s:#?-]*(\d{5,12})\b/gi,
   PO_PATTERN,
 ]
 const NO_CUSTOMER_DOMAIN = 'NO_CUSTOMER_DOMAIN'
@@ -825,7 +825,7 @@ export function createOutlookFailureStore({ file = DEFAULT_OUTLOOK_QUARANTINE_FI
       }
       throw error
     }
-    let parsed = null
+    let parsed
     try {
       parsed = JSON.parse(raw)
     } catch { parsed = null }
@@ -912,7 +912,7 @@ export async function runOutlookDeltaSync({
       return { saved: await saveCursor({ deltaLink: link, expectedVersion }) }
     } catch (error) {
       if (error?.code !== 'P0001' || !reloadCursor || concurrencyRetries >= maxConcurrencyRetries) {
-        if (error?.code === 'P0001') throw new Error('Outlook cursor concurrency retry limit exhausted')
+        if (error?.code === 'P0001') throw new Error('Outlook cursor concurrency retry limit exhausted', { cause: error })
         throw error
       }
       return { refused: error }
