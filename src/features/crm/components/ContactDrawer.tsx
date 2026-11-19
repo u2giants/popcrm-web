@@ -107,12 +107,15 @@ export function ContactDrawer({
       toast.error('That email address does not look right')
       return
     }
-    const patch: Partial<Buyer> = {
-      name,
-      email: email || null,
-      phone: editing.phone.trim() || null,
-      job_title: editing.job_title.trim() || null,
-    }
+    const phone = editing.phone.trim()
+    const jobTitle = editing.job_title.trim()
+    // Only changed fields carry a value: a null email/phone/job_title is the
+    // explicit "clear this field" instruction (#39), so an untouched field —
+    // including one that was already empty — must not send one.
+    const patch: Partial<Buyer> = { name }
+    if (email !== (view.email ?? '')) patch.email = email || null
+    if (phone !== (view.phone ?? '')) patch.phone = phone || null
+    if (jobTitle !== (view.job_title ?? '')) patch.job_title = jobTitle || null
     const retailerChanged = editing.retailer !== (idOf(currentRetailer) || '')
     const newRetailer = retailers.find((r) => r.id === editing.retailer) ?? null
     let deptCleared = false
@@ -128,7 +131,7 @@ export function ContactDrawer({
     }
     try {
       await updateContactMutation.mutateAsync({ id: row.id, values: patch })
-      setDetails({ id: row.id, name, email, phone: patch.phone || '', job_title: patch.job_title || '' })
+      setDetails({ id: row.id, name, email, phone, job_title: jobTitle })
       if (retailerChanged) {
         setEdited({
           id: row.id,
