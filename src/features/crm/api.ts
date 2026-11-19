@@ -90,6 +90,15 @@ function relId(value: unknown): string | null {
   return null
 }
 
+// Stable pagination (issue #43): Postgres returns rows in any order unless the
+// query pins one, so .range() pages can silently skip or repeat records. Every
+// paged read appends `id` ascending as the final order key — here, inside the
+// shared helpers, so callers cannot forget. Views read through these helpers
+// must therefore expose an `id` column (see src/lib/database.types.ts).
+function withIdTiebreaker(order: Order[]): Order[] {
+  return order.some((o) => o.col === 'id') ? order : [...order, { col: 'id' }]
+}
+
 // Page through an API view to preserve the old fetch-all behavior.
 async function fetchAllRows(view: string, order: Order[] = []): Promise<Row[]> {
   const PAGE = 1000
@@ -97,7 +106,7 @@ async function fetchAllRows(view: string, order: Order[] = []): Promise<Row[]> {
   let from = 0
   for (;;) {
     let q = anyDb.schema("api").from(view).select('*').range(from, from + PAGE - 1)
-    for (const o of order) q = q.order(o.col, { ascending: o.asc ?? true, nullsFirst: false })
+    for (const o of withIdTiebreaker(order)) q = q.order(o.col, { ascending: o.asc ?? true, nullsFirst: false })
     const { data, error } = await q
     if (error) throw error
     const rows = (data ?? []) as Row[]
@@ -117,7 +126,7 @@ async function fetchAllColumns(view: string, columns: string, order: Order[] = [
   let from = 0
   for (;;) {
     let q = anyDb.schema('api').from(view).select(columns).range(from, from + PAGE - 1)
-    for (const o of order) q = q.order(o.col, { ascending: o.asc ?? true, nullsFirst: false })
+    for (const o of withIdTiebreaker(order)) q = q.order(o.col, { ascending: o.asc ?? true, nullsFirst: false })
     const { data, error } = await q
     if (error) throw error
     const rows = (data ?? []) as Row[]
@@ -144,7 +153,7 @@ async function fetchRowsEq(view: string, column: string, value: string, order: O
   for (;;) {
     const cappedEnd = limit !== undefined && limit >= 0 ? Math.min(from + PAGE - 1, limit - 1) : from + PAGE - 1
     let q = anyDb.schema("api").from(view).select('*').eq(column, value).range(from, cappedEnd)
-    for (const o of order) q = q.order(o.col, { ascending: o.asc ?? true, nullsFirst: false })
+    for (const o of withIdTiebreaker(order)) q = q.order(o.col, { ascending: o.asc ?? true, nullsFirst: false })
     const { data, error } = await q
     if (error) throw error
     const rows = (data ?? []) as Row[]
@@ -190,7 +199,7 @@ async function fetchCustomerSegmentRows(segment: CustomerSegment, limit = -1): P
   for (;;) {
     const cappedEnd = limit >= 0 ? Math.min(from + PAGE - 1, limit - 1) : from + PAGE - 1
     const q = applyCustomerSegment(
-      anyDb.schema("api").from('crm_customer_list').select('*').order('name').range(from, cappedEnd),
+      anyDb.schema("api").from('crm_customer_list').select('*').order('name').order('id').range(from, cappedEnd),
       segment,
     )
     const { data, error } = await q
@@ -543,6 +552,7 @@ export async function fetchIngestedDomains(limit = -1): Promise<CrmIngestedDomai
       .from('crm_ingested_domain_list')
       .select('*')
       .order('last_seen_at', { ascending: false, nullsFirst: false })
+      .order('id')
       .range(from, cappedEnd)
     if (error) throw error
     const rows = (data ?? []) as Row[]
@@ -811,7 +821,9 @@ export async function uploadRetailerLogo(id: string, file: File): Promise<string
 export async function fetchBuyers(limit = -1): Promise<Buyer[]> {
   // Filtering/ordering this security_invoker view through PostgREST can time out
   // because company_customer_status/name are derived across joined RLS tables.
-  // Pull the browser-safe rows unfiltered and let the client segment/sort them.
+  // Pull the browser-safe rows unfiltered and let the client segment/sort them;
+  // only the helper's id page tiebreaker orders the request (issue #43 — watch
+  // for a preview timeout on this view; the fix then belongs in shared-db).
   const rows = await fetchRows('crm_contact_list', [], limit)
   return rows
     .filter((r) => CUSTOMER_STATUSES.includes((r.company_customer_status ?? '') as string))
@@ -819,8 +831,9 @@ export async function fetchBuyers(limit = -1): Promise<Buyer[]> {
 }
 
 export async function fetchIngestedContacts(limit = -1): Promise<Buyer[]> {
-  // Keep this unordered for the same reason as fetchBuyers; DataTable applies the
-  // visible sort client-side.
+  // No caller-chosen order for the same reason as fetchBuyers; DataTable applies
+  // the visible sort client-side. The paging helper still pins the id
+  // tiebreaker so pages never skip or repeat rows.
   const rows = await fetchRows('crm_contact_list', [], limit)
   return rows.map(toBuyer)
 }
@@ -855,7 +868,10 @@ export async function fetchAllContacts(limit = -1): Promise<Buyer[]> {
 
 export async function fetchContactSegmentCounts(): Promise<ContactSegmentCounts> {
   try {
-    const rows = await fetchRows('crm_contact_segment_counts', [], -1)
+    // Bounded single request, not the paged helper: this view returns one row
+    // per segment (a handful) and has no `id` column, which the shared paging
+    // helpers' id tiebreaker requires (issue #43).
+    const rows = await fetchRows('crm_contact_segment_counts', [], 100)
     const counts: ContactSegmentCounts = { customer: 0, department: 0, triage: 0, all: 0 }
     for (const row of rows) {
       const segment = row.crm_segment as ContactSegment
@@ -1147,20 +1163,32 @@ export async function updateEmailMessage(id: string, values: Partial<CrmEmailMes
 // message of one sender at one customer that still needs its department, on any
 // server page — a manual assignment sweeps the sender's whole history, not just
 // the 250 rows currently loaded. Mirrors the needs-department stage rule.
+// Paged by id: the server caps one response at 1,000 rows, so the old single
+// .limit(2000) request silently truncated above that (issue #43).
 export async function fetchSenderDepartmentBacklog(companyId: string, sender: string): Promise<string[]> {
   const pattern = sender.replace(/[\\%_]/g, (c) => `\\${c}`)
-  const { data, error } = await anyDb
-    .schema('api')
-    .from('crm_email_routing_queue')
-    .select('id')
-    .eq('company_id', companyId)
-    .ilike('sender', pattern)
-    .is('department_id', null)
-    .is('opportunity_id', null)
-    .or('routing_status.is.null,routing_status.neq.SKIPPED')
-    .limit(2000)
-  if (error) throw error
-  return ((data ?? []) as Row[]).map((r) => r.id as string)
+  const PAGE = 1000
+  const out: string[] = []
+  let from = 0
+  for (;;) {
+    const { data, error } = await anyDb
+      .schema('api')
+      .from('crm_email_routing_queue')
+      .select('id')
+      .eq('company_id', companyId)
+      .ilike('sender', pattern)
+      .is('department_id', null)
+      .is('opportunity_id', null)
+      .or('routing_status.is.null,routing_status.neq.SKIPPED')
+      .order('id')
+      .range(from, from + PAGE - 1)
+    if (error) throw error
+    const rows = (data ?? []) as Row[]
+    for (const r of rows) out.push(r.id as string)
+    if (rows.length < PAGE) break
+    from += PAGE
+  }
+  return out
 }
 
 // ---------------------------------------------------------------------------
