@@ -119,4 +119,30 @@ describe('drawer deletes', () => {
     await confirmRemoval('Delete', 'Remove customer')
     expect(calls.archiveCustomer).toHaveBeenCalledWith('cust-1')
   })
+
+  // Issue #38 step 2: a delete the server refused (zero rows / RLS) must not
+  // close the drawer or drop the row from the list cache it was opened from —
+  // the mutation hooks only invalidate after the promise settles, and the
+  // drawer only closes after the awaited delete resolves.
+  it.each([
+    ['note', 'Delete note', 'Kickoff note', calls.deleteNote],
+    ['task', 'Delete task', 'Send samples', calls.deleteTask],
+    ['meeting', 'Delete meeting note', 'Weekly sync', calls.deleteMeeting],
+  ] as const)('%s: a rejected delete leaves the row on screen and the drawer open', async (_kind, confirmLabel, recordTitle, mutate) => {
+    mutate.mockReset()
+    mutate.mockRejectedValueOnce(new Error('No rows were deleted in note — your account may lack write permission for it.'))
+    const onClose = vi.fn()
+    const drawer =
+      _kind === 'note' ? <NoteDrawer row={note} onClose={onClose} />
+      : _kind === 'task' ? <TaskDrawer row={task} onClose={onClose} />
+      : <MeetingDrawer row={meeting} onClose={onClose} />
+    render(drawer)
+    fireEvent.click(screen.getByRole('button', { name: 'Delete' }))
+    fireEvent.click(screen.getByRole('button', { name: confirmLabel }))
+    await waitFor(() => expect(mutate).toHaveBeenCalledTimes(1))
+    // The record is still rendered (its list cache still owns it) and the
+    // drawer was not closed as if the delete had succeeded.
+    await waitFor(() => expect(screen.getAllByText(recordTitle).length).toBeGreaterThan(0))
+    expect(onClose).not.toHaveBeenCalled()
+  })
 })

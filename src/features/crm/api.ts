@@ -260,6 +260,17 @@ async function updateRow(table: string, id: string, payload: Row): Promise<void>
   if (!data || data.length === 0) throw new Error(`No rows were updated in ${table} — your account may lack write permission for it.`)
 }
 
+async function deleteRow(table: string, id: string): Promise<void> {
+  // Same guard as updateRow, for DELETE: an RLS policy that blocks the writer
+  // makes the DELETE touch zero rows and still return success, which would let
+  // the UI report a removal that never happened (issue #38). An empty result
+  // is surfaced as an error. setContactDefunct(…, null) deliberately does not
+  // use this: clearing a defunct row that no longer exists is a success.
+  const { data, error } = await anyDb.schema("crm").from(table).delete().eq("id", id).select("id")
+  if (error) throw error
+  if (!data || data.length === 0) throw new Error(`No rows were deleted in ${table} — your account may lack write permission for it.`)
+}
+
 // ---------------------------------------------------------------------------
 // Adapters: api view row -> existing UI type
 // ---------------------------------------------------------------------------
@@ -1132,8 +1143,7 @@ export async function deleteDepartment(id: string) {
   )
   const counts = Object.fromEntries(entries) as DepartmentReferenceCounts
   if (Object.values(counts).some((c) => c > 0)) throw new DepartmentInUseError(counts)
-  const { error } = await supabase.schema('crm').from('department').delete().eq('id', id)
-  if (error) throw error
+  await deleteRow('department', id)
 }
 
 // ---------------------------------------------------------------------------
@@ -1230,8 +1240,7 @@ export async function updateMeetingNote(id: string, values: Partial<CrmMeetingNo
 
 // Meeting notes have no inbound references, so removing one is a hard delete.
 export async function deleteMeetingNote(id: string) {
-  const { error } = await anyDb.schema('crm').from('meeting_note').delete().eq('id', id)
-  if (error) throw error
+  await deleteRow('meeting_note', id)
 }
 
 // ---------------------------------------------------------------------------
@@ -1279,8 +1288,7 @@ export async function updateNote(id: string, values: Partial<CrmNote>) {
 
 // Notes have no inbound references, so removing one is a hard delete.
 export async function deleteNote(id: string) {
-  const { error } = await anyDb.schema('crm').from('note').delete().eq('id', id)
-  if (error) throw error
+  await deleteRow('note', id)
 }
 
 // ---------------------------------------------------------------------------
@@ -1304,8 +1312,7 @@ export async function updateTask(id: string, values: Partial<CrmTask>) {
 
 // Tasks have no inbound references, so removing one is a hard delete.
 export async function deleteTask(id: string) {
-  const { error } = await anyDb.schema('crm').from('task').delete().eq('id', id)
-  if (error) throw error
+  await deleteRow('task', id)
 }
 
 // ---------------------------------------------------------------------------

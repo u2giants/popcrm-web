@@ -41,6 +41,9 @@ vi.mock('@/features/crm/queries', async (importOriginal) => {
 type FakeState = {
   counts?: Record<string, { count?: number; error?: unknown }>
   deleteError?: unknown
+  // Rows the crm.* delete reports back (issue #38 zero-row guard): [] means
+  // the RLS policy blocked the writer.
+  deleteRows?: unknown[]
 }
 type SupabaseCall = { schema: string; relation: string; kind: 'count' | 'delete'; column?: string; value?: unknown }
 
@@ -59,10 +62,12 @@ function installFakeSupabase(state: FakeState) {
         },
       }),
       delete: () => ({
-        eq: (column: string, value: unknown) => {
-          supabaseCalls.push({ schema, relation, kind: 'delete', column, value })
-          return Promise.resolve({ error: state.deleteError ?? null })
-        },
+        eq: (column: string, value: unknown) => ({
+          select: () => {
+            supabaseCalls.push({ schema, relation, kind: 'delete', column, value })
+            return Promise.resolve({ data: state.deleteRows ?? [{ id: value }], error: state.deleteError ?? null })
+          },
+        }),
       }),
     }),
   })
@@ -144,6 +149,17 @@ describe('DataAdmin departments delete (issue #35)', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Delete department' }))
     await waitFor(() => expect(toasts.error).toHaveBeenCalledWith('Could not delete department', expect.anything()))
     expect(supabaseCalls.filter((c) => c.kind === 'delete')).toHaveLength(0)
+    expect(queryClient.getQueryData<CrmDepartment[]>(crmKeys.departments(-1))?.map((d) => d.id)).toEqual(['d1', 'd2'])
+  })
+
+  it('reports an error and keeps the row when the delete touches zero rows (issue #38)', async () => {
+    installFakeSupabase({ deleteRows: [] })
+    const queryClient = renderPage()
+    openDeleteConfirm()
+    fireEvent.click(screen.getByRole('button', { name: 'Delete department' }))
+    // A blocked delete must surface as an error, never as "Department deleted".
+    await waitFor(() => expect(toasts.error).toHaveBeenCalledWith('Could not delete department', expect.anything()))
+    expect(toasts.success).not.toHaveBeenCalledWith('Department deleted')
     expect(queryClient.getQueryData<CrmDepartment[]>(crmKeys.departments(-1))?.map((d) => d.id)).toEqual(['d1', 'd2'])
   })
 })
