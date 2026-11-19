@@ -140,6 +140,7 @@ Full text lives in [docs/critical-incidents.md](docs/critical-incidents.md). Loa
 
 | Status | Item | Owner/next action |
 |---|---|---|
+| open | #39 clear-fields delivery wedged at the shared-db promotion lane (CLI-rehearsed preview rows leave the whole CRM chain unpromotable; three-guard deadlock mapped on popcre/shared-db#6820 comment 7015729095) | Client patch + live proof staged (see `HANDOFF.d/2026-11-19T1648Z-hetz-zcode-crm-39-promotion-wedge.md`); next: lane-policy unlock per #6820, then promotion → types regen → client push → proof → close |
 | open | popcre/shared-db#6818 delivery to production + client follow-ups (#40 drawers, #57 counts pages, #68 worker upsert) | PR merged 2026-11-19; automatic promotion lane in flight (each issue carries a `- [ ] promotion delivered to production` checkbox); client code ready in worktree `wt/client2`, lands after promotion |
 | open | `fix_bugs.md` Part 2 leftovers | D/E/G landed 2026-11-19 (see its Part 2 notes); A/B/C tracked by issue #57 (counts RPC in popcre/shared-db#6818, client steps pending); F lands with #6818 |
 | open | Final shared-db drop of deprecated `crm_account_*` compatibility contracts | [`fix_remove_account.md`](fix_remove_account.md) step 3 |
