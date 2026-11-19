@@ -143,6 +143,8 @@ Full text lives in [docs/critical-incidents.md](docs/critical-incidents.md). Loa
 |---|---|---|
 | open | Audit plan Sessions 13 (worker batching) and 14 (promotion residue) | [`plan_codebase_audit_remediation.md`](plan_codebase_audit_remediation.md) ledger rows 13/14 |
 | open | Live proof for high-severity audit issues #32–#37, #44, #63 (incl. #36: reroute keeps a manually assigned customer) | Fixes landed on `main` 2026-11-18 (commits `d9e851a3`…`10a6cf65`) with tests; each issue's live-proof STATUS row is the card — verify the reproduction on the live site, then tick and close |
+| open | Live proof for medium-severity audit issues #38, #39, #43, #45, #47, #48, #50–#54 | Fixes landed on `main` 2026-11-18 (commits `22b2036a`…`a80ef3d9`) with tests, deployed; each issue's live-proof STATUS row is the card — verify the reproduction on the live site, then tick and close. #39 step 1 (shared-db clear flags) still open: claim-first workflow in `popcre/shared-db` |
+| open | #39 shared-db step: add `p_clear_email/phone/job_title` to `api.crm_update_contact` | Client side landed (`ff135e85`) and fails honestly until this lands; load `shared-db-change` and claim `api.crm_update_contact` on issue #39 |
 | open | `fix_bugs.md` Part 2 | See its Part 2; one owner decision outstanding (fuzzy PO matching) |
 | open | Final shared-db drop of deprecated `crm_account_*` compatibility contracts | [`fix_remove_account.md`](fix_remove_account.md) step 3 |
 | blocked | Customer logos go live | Code deployed but inert until `LOGODEV_TOKEN` GitHub secret is set (publishable logo.dev key) — falls back to initials until then |
