@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react'
 import { toast } from 'sonner'
 import { Building2 } from 'lucide-react'
 import { SectionHeader } from '@/components/app/AppPage'
+import { ConfirmDeleteDialog } from '@/features/crm/components/ConfirmDeleteDialog'
 import { EmptyState, ErrorState, LoadingState } from '@/components/app/states'
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
@@ -25,6 +26,22 @@ function customerName(d: AssignableDepartment) {
 function slots(main: string | null, second: string | null): string[] {
   if (!main) return second ? [second] : []
   return second && second !== main ? [main, second] : [main]
+}
+
+function filterRows(
+  rows: AssignableDepartment[],
+  search: string,
+  showFilter: string,
+  includeInactive: boolean,
+): AssignableDepartment[] {
+  const q = search.trim().toLowerCase()
+  return rows.filter((d) => {
+    if (!includeInactive && (!d.is_active || d.customer_status === 'inactive')) return false
+    const assigned = [d.salesperson_profile_id, d.secondary_salesperson_profile_id]
+    if (showFilter === NONE && assigned.some(Boolean)) return false
+    if (showFilter !== ANY && showFilter !== NONE && !assigned.includes(showFilter)) return false
+    return !q || `${customerName(d)} ${d.customer_name} ${d.name} ${d.division ?? ''}`.toLowerCase().includes(q)
+  })
 }
 
 function PersonSelect({
@@ -72,23 +89,39 @@ export function AssignmentsPanel() {
   const [selected, setSelected] = useState<Set<string>>(new Set())
   const [bulkMain, setBulkMain] = useState<string | null>(null)
   const [bulkSecond, setBulkSecond] = useState<string | null>(null)
+  const [confirmingClear, setConfirmingClear] = useState(false)
 
   const salespeople = useMemo(
     () => (usersQuery.data ?? []).filter((u) => u.status === 'active' && u.roles.includes('sales')),
     [usersQuery.data],
   )
 
-  const filtered = useMemo(() => {
-    const q = search.trim().toLowerCase()
-    return (departmentsQuery.data ?? []).filter((d) => {
-      if (!includeInactive && (!d.is_active || d.customer_status === 'inactive')) return false
-      const assigned = [d.salesperson_profile_id, d.secondary_salesperson_profile_id]
-      if (showFilter === NONE && assigned.some(Boolean)) return false
-      if (showFilter !== ANY && showFilter !== NONE && !assigned.includes(showFilter)) return false
-      return !q || `${customerName(d)} ${d.customer_name} ${d.name} ${d.division ?? ''}`.toLowerCase().includes(q)
-    })
-  }, [departmentsQuery.data, search, showFilter, includeInactive])
+  const filtered = useMemo(
+    () => filterRows(departmentsQuery.data ?? [], search, showFilter, includeInactive),
+    [departmentsQuery.data, search, showFilter, includeInactive],
+  )
   const visible = filtered.slice(0, ROW_CAP)
+
+  // Changing the search or filters hides rows, and a bulk action must never
+  // touch a row the administrator cannot see: every filter change intersects
+  // the selection with the ids that will be visible afterwards.
+  function applyFilters(next: { search?: string; showFilter?: string; includeInactive?: boolean }) {
+    const searchAfter = next.search ?? search
+    const showFilterAfter = next.showFilter ?? showFilter
+    const includeInactiveAfter = next.includeInactive ?? includeInactive
+    if (next.search !== undefined) setSearch(next.search)
+    if (next.showFilter !== undefined) setShowFilter(next.showFilter)
+    if (next.includeInactive !== undefined) setIncludeInactive(next.includeInactive)
+    const visibleAfter = new Set(
+      filterRows(departmentsQuery.data ?? [], searchAfter, showFilterAfter, includeInactiveAfter)
+        .slice(0, ROW_CAP)
+        .map((d) => d.id),
+    )
+    setSelected((prev) => {
+      const pruned = new Set([...prev].filter((id) => visibleAfter.has(id)))
+      return pruned.size === prev.size ? prev : pruned
+    })
+  }
 
   async function setRow(d: AssignableDepartment, main: string | null, second: string | null) {
     try {
@@ -99,9 +132,9 @@ export function AssignmentsPanel() {
     }
   }
 
-  async function applyBulk() {
+  async function applyBulk(profileIds: string[]) {
     try {
-      const count = await save.mutateAsync({ ids: [...selected], profileIds: slots(bulkMain, bulkSecond) })
+      const count = await save.mutateAsync({ ids: [...selected], profileIds })
       toast.success(`${count} department${count === 1 ? '' : 's'} updated`)
       setSelected(new Set())
     } catch (error) {
@@ -130,11 +163,11 @@ export function AssignmentsPanel() {
       <div className="mt-4 flex flex-wrap items-center gap-2">
         <Input
           value={search}
-          onChange={(e) => setSearch(e.target.value)}
+          onChange={(e) => applyFilters({ search: e.target.value })}
           placeholder="Search customer or department…"
           className="h-8 w-64"
         />
-        <Select value={showFilter} onValueChange={setShowFilter}>
+        <Select value={showFilter} onValueChange={(v) => applyFilters({ showFilter: v })}>
           <SelectTrigger className="h-8 w-52">
             <SelectValue />
           </SelectTrigger>
@@ -149,7 +182,7 @@ export function AssignmentsPanel() {
           </SelectContent>
         </Select>
         <label className="flex items-center gap-1.5 text-[11.5px] text-muted-foreground">
-          <Checkbox checked={includeInactive} onCheckedChange={(v) => setIncludeInactive(v === true)} />
+          <Checkbox checked={includeInactive} onCheckedChange={(v) => applyFilters({ includeInactive: v === true })} />
           Include inactive
         </label>
       </div>
@@ -167,8 +200,22 @@ export function AssignmentsPanel() {
             placeholder="2nd salesperson"
             disabled={!bulkMain}
           />
-          <Button size="sm" className="h-8" disabled={save.isPending} onClick={() => void applyBulk()}>
-            Apply
+          <Button
+            size="sm"
+            variant="outline"
+            className="h-8 text-destructive hover:text-destructive"
+            disabled={save.isPending}
+            onClick={() => setConfirmingClear(true)}
+          >
+            Clear assignments
+          </Button>
+          <Button
+            size="sm"
+            className="h-8"
+            disabled={!bulkMain || save.isPending}
+            onClick={() => void applyBulk(slots(bulkMain, bulkSecond))}
+          >
+            Apply ({selected.size})
           </Button>
         </div>
       ) : null}
@@ -260,6 +307,21 @@ export function AssignmentsPanel() {
           ) : null}
         </div>
       )}
+
+      <ConfirmDeleteDialog
+        open={confirmingClear}
+        title="Clear salespeople"
+        message={`Clear both salespeople from ${selected.size} ${selected.size === 1 ? 'department' : 'departments'}?`}
+        detail="Every selected department keeps its contacts and history — only the salesperson assignments are removed."
+        confirmLabel={`Clear ${selected.size} ${selected.size === 1 ? 'department' : 'departments'}`}
+        destructive
+        pending={save.isPending}
+        onConfirm={() => {
+          setConfirmingClear(false)
+          void applyBulk([])
+        }}
+        onClose={() => setConfirmingClear(false)}
+      />
     </section>
   )
 }
