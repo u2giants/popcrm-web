@@ -13,9 +13,29 @@ import { logError } from '@/lib/errors'
 
 // Adds a task from the Tasks page. The backend write is the same crm.task
 // insert Data Admin uses; the customer and contact pickers narrow each other.
+// The form lives in the inner component and mounts only while the dialog is
+// open (#51), so every opening starts from an empty form instead of reopening
+// with the last entry and inviting duplicates. It stays inside DialogContent
+// so Radix keeps its close animation.
 export function CreateTaskDialog({ open, onClose }: { open: boolean; onClose: () => void }) {
+  return (
+    <Dialog open={open} onOpenChange={(o) => { if (!o) onClose() }}>
+      <DialogContent className="sm:max-w-[520px]">
+        <DialogHeader>
+          <DialogTitle>New task</DialogTitle>
+          <DialogDescription>Add work to track on the Tasks page.</DialogDescription>
+        </DialogHeader>
+        {open ? <TaskForm onClose={onClose} /> : null}
+      </DialogContent>
+    </Dialog>
+  )
+}
+
+function TaskForm({ onClose }: { onClose: () => void }) {
   const retailers = listData(useCustomerPickerQuery(-1).data)
-  const contacts = listData(useAllContactsQuery(-1, open).data)
+  // The form only exists while the dialog is open, so the contact picker is
+  // naturally gated to open dialogs.
+  const contacts = listData(useAllContactsQuery(-1).data)
   const createTask = useCreateTaskMutation()
   const [title, setTitle] = useState('')
   const [dueAt, setDueAt] = useState('')
@@ -57,60 +77,53 @@ export function CreateTaskDialog({ open, onClose }: { open: boolean; onClose: ()
   }
 
   return (
-    <Dialog open={open} onOpenChange={(o) => { if (!o) onClose() }}>
-      <DialogContent className="sm:max-w-[520px]">
-        <DialogHeader>
-          <DialogTitle>New task</DialogTitle>
-          <DialogDescription>Add work to track on the Tasks page.</DialogDescription>
-        </DialogHeader>
-
-        <div className="grid gap-3">
+    <>
+      <div className="grid gap-3">
+        <div className="grid gap-1">
+          <Label htmlFor="nt-title">Title</Label>
+          <Input
+            id="nt-title"
+            value={title}
+            autoFocus
+            onChange={(e) => setTitle(e.target.value)}
+            onKeyDown={(e) => { if (e.key === 'Enter' && canSave) void save() }}
+          />
+        </div>
+        <div className="grid gap-3 sm:grid-cols-2">
           <div className="grid gap-1">
-            <Label htmlFor="nt-title">Title</Label>
-            <Input
-              id="nt-title"
-              value={title}
-              autoFocus
-              onChange={(e) => setTitle(e.target.value)}
-              onKeyDown={(e) => { if (e.key === 'Enter' && canSave) void save() }}
+            <Label htmlFor="nt-due">Due date</Label>
+            <Input id="nt-due" type="date" value={dueAt} onChange={(e) => setDueAt(e.target.value)} />
+          </div>
+          <div className="grid gap-1">
+            <Label>Customer</Label>
+            <Combobox
+              options={customerOptions}
+              value={retailerId}
+              onChange={(v) => {
+                setRetailerId(v)
+                const contact = contacts.find((c) => c.id === contactId)
+                if (contact && idOf(contact.retailer) !== v) setContactId('')
+              }}
+              placeholder="Select customer"
             />
           </div>
-          <div className="grid gap-3 sm:grid-cols-2">
-            <div className="grid gap-1">
-              <Label htmlFor="nt-due">Due date</Label>
-              <Input id="nt-due" type="date" value={dueAt} onChange={(e) => setDueAt(e.target.value)} />
-            </div>
-            <div className="grid gap-1">
-              <Label>Customer</Label>
-              <Combobox
-                options={customerOptions}
-                value={retailerId}
-                onChange={(v) => {
-                  setRetailerId(v)
-                  const contact = contacts.find((c) => c.id === contactId)
-                  if (contact && idOf(contact.retailer) !== v) setContactId('')
-                }}
-                placeholder="Select customer"
-              />
-            </div>
-          </div>
-          <div className="grid gap-1">
-            <Label>Contact</Label>
-            <Combobox options={contactOptions} value={contactId} onChange={setContactId} placeholder="Select contact" />
-          </div>
-          <div className="grid gap-1">
-            <Label htmlFor="nt-body">Details</Label>
-            <Textarea id="nt-body" value={body} onChange={(e) => setBody(e.target.value)} className="min-h-20" />
-          </div>
         </div>
+        <div className="grid gap-1">
+          <Label>Contact</Label>
+          <Combobox options={contactOptions} value={contactId} onChange={setContactId} placeholder="Select contact" />
+        </div>
+        <div className="grid gap-1">
+          <Label htmlFor="nt-body">Details</Label>
+          <Textarea id="nt-body" value={body} onChange={(e) => setBody(e.target.value)} className="min-h-20" />
+        </div>
+      </div>
 
-        <DialogFooter>
-          <Button variant="outline" size="sm" onClick={onClose} disabled={createTask.isPending}>Cancel</Button>
-          <Button size="sm" disabled={!canSave} onClick={() => void save()}>
-            {createTask.isPending ? 'Adding…' : 'Add task'}
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+      <DialogFooter>
+        <Button variant="outline" size="sm" onClick={onClose} disabled={createTask.isPending}>Cancel</Button>
+        <Button size="sm" disabled={!canSave} onClick={() => void save()}>
+          {createTask.isPending ? 'Adding…' : 'Add task'}
+        </Button>
+      </DialogFooter>
+    </>
   )
 }

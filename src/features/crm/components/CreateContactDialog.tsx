@@ -12,7 +12,25 @@ import { logError } from '@/lib/errors'
 
 // Adds a contact through api.crm_create_contact, which also enforces the
 // name/email rules server-side; the checks here keep the button honest.
+// The form lives in the inner component and mounts only while the dialog is
+// open (#51), so every opening starts from an empty form instead of reopening
+// with the last entry and inviting duplicates. It stays inside DialogContent
+// so Radix keeps its close animation.
 export function CreateContactDialog({ open, onClose }: { open: boolean; onClose: () => void }) {
+  return (
+    <Dialog open={open} onOpenChange={(o) => { if (!o) onClose() }}>
+      <DialogContent className="sm:max-w-[520px]">
+        <DialogHeader>
+          <DialogTitle>New contact</DialogTitle>
+          <DialogDescription>Add a buyer or contact to the CRM.</DialogDescription>
+        </DialogHeader>
+        {open ? <ContactForm onClose={onClose} /> : null}
+      </DialogContent>
+    </Dialog>
+  )
+}
+
+function ContactForm({ onClose }: { onClose: () => void }) {
   const retailers = listData(useCustomerPickerQuery(-1).data)
   const departments = listData(useDepartmentsQuery(-1).data)
   const createContact = useCreateContactMutation()
@@ -58,79 +76,72 @@ export function CreateContactDialog({ open, onClose }: { open: boolean; onClose:
   }
 
   return (
-    <Dialog open={open} onOpenChange={(o) => { if (!o) onClose() }}>
-      <DialogContent className="sm:max-w-[520px]">
-        <DialogHeader>
-          <DialogTitle>New contact</DialogTitle>
-          <DialogDescription>Add a buyer or contact to the CRM.</DialogDescription>
-        </DialogHeader>
-
-        <div className="grid gap-3">
+    <>
+      <div className="grid gap-3">
+        <div className="grid gap-1">
+          <Label htmlFor="nc-name">Name</Label>
+          <Input
+            id="nc-name"
+            value={name}
+            autoFocus
+            onChange={(e) => setName(e.target.value)}
+            onKeyDown={(e) => { if (e.key === 'Enter' && canSave) void save() }}
+          />
+        </div>
+        <div className="grid gap-3 sm:grid-cols-2">
           <div className="grid gap-1">
-            <Label htmlFor="nc-name">Name</Label>
+            <Label htmlFor="nc-email">Email</Label>
             <Input
-              id="nc-name"
-              value={name}
-              autoFocus
-              onChange={(e) => setName(e.target.value)}
-              onKeyDown={(e) => { if (e.key === 'Enter' && canSave) void save() }}
+              id="nc-email"
+              type="email"
+              value={email}
+              aria-invalid={emailLooksWrong}
+              onChange={(e) => setEmail(e.target.value)}
             />
-          </div>
-          <div className="grid gap-3 sm:grid-cols-2">
-            <div className="grid gap-1">
-              <Label htmlFor="nc-email">Email</Label>
-              <Input
-                id="nc-email"
-                type="email"
-                value={email}
-                aria-invalid={emailLooksWrong}
-                onChange={(e) => setEmail(e.target.value)}
-              />
-              {emailLooksWrong ? <span className="text-[11px] text-destructive">That email address does not look right.</span> : null}
-            </div>
-            <div className="grid gap-1">
-              <Label htmlFor="nc-phone">Phone</Label>
-              <Input id="nc-phone" type="tel" value={phone} onChange={(e) => setPhone(e.target.value)} />
-            </div>
+            {emailLooksWrong ? <span className="text-[11px] text-destructive">That email address does not look right.</span> : null}
           </div>
           <div className="grid gap-1">
-            <Label htmlFor="nc-title">Title</Label>
-            <Input id="nc-title" value={jobTitle} onChange={(e) => setJobTitle(e.target.value)} />
-          </div>
-          <div className="grid gap-1">
-            <Label>Customer</Label>
-            <Combobox
-              options={customerOptions}
-              value={retailerId}
-              onChange={(v) => {
-                setRetailerId(v)
-                // A department belongs to one customer; drop it when the customer changes.
-                const dept = departments.find((d) => d.id === departmentId)
-                if (dept && idOf(dept.retailer) !== v) setDepartmentId('')
-              }}
-              placeholder="Select customer"
-            />
-          </div>
-          <div className="grid gap-1">
-            <Label>Department</Label>
-            <Combobox
-              options={departmentOptions}
-              value={departmentId}
-              onChange={setDepartmentId}
-              placeholder="Select department"
-              disabled={!retailerId}
-            />
-            {!retailerId ? <span className="text-[11px] text-muted-foreground">Pick a customer first.</span> : null}
+            <Label htmlFor="nc-phone">Phone</Label>
+            <Input id="nc-phone" type="tel" value={phone} onChange={(e) => setPhone(e.target.value)} />
           </div>
         </div>
+        <div className="grid gap-1">
+          <Label htmlFor="nc-title">Title</Label>
+          <Input id="nc-title" value={jobTitle} onChange={(e) => setJobTitle(e.target.value)} />
+        </div>
+        <div className="grid gap-1">
+          <Label>Customer</Label>
+          <Combobox
+            options={customerOptions}
+            value={retailerId}
+            onChange={(v) => {
+              setRetailerId(v)
+              // A department belongs to one customer; drop it when the customer changes.
+              const dept = departments.find((d) => d.id === departmentId)
+              if (dept && idOf(dept.retailer) !== v) setDepartmentId('')
+            }}
+            placeholder="Select customer"
+          />
+        </div>
+        <div className="grid gap-1">
+          <Label>Department</Label>
+          <Combobox
+            options={departmentOptions}
+            value={departmentId}
+            onChange={setDepartmentId}
+            placeholder="Select department"
+            disabled={!retailerId}
+          />
+          {!retailerId ? <span className="text-[11px] text-muted-foreground">Pick a customer first.</span> : null}
+        </div>
+      </div>
 
-        <DialogFooter>
-          <Button variant="outline" size="sm" onClick={onClose} disabled={createContact.isPending}>Cancel</Button>
-          <Button size="sm" disabled={!canSave} onClick={() => void save()}>
-            {createContact.isPending ? 'Adding…' : 'Add contact'}
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+      <DialogFooter>
+        <Button variant="outline" size="sm" onClick={onClose} disabled={createContact.isPending}>Cancel</Button>
+        <Button size="sm" disabled={!canSave} onClick={() => void save()}>
+          {createContact.isPending ? 'Adding…' : 'Add contact'}
+        </Button>
+      </DialogFooter>
+    </>
   )
 }
