@@ -40,7 +40,7 @@ import {
   resolveHttpBodyLimits,
   resolveUpstreamSettings,
   respondToOpportunityChatRequest,
-  routingImproves,
+  mayReroute,
   validateCommandEnvironment,
 } from './lib/worker-foundation.mjs'
 import {
@@ -900,37 +900,63 @@ async function outlookIngestMailbox(mailbox) {
   console.log(`outlook-ingest: ${mailbox}: ${result.created} created, ${result.duplicate} duplicates, ${result.tombstone} tombstones, ${result.gated} gated, ${result.fetched} fetched across ${result.pages} pages; cursor saved`)
 }
 
-async function reroute() {
-  const columns = 'id,subject,body_preview,sender,recipients,routing_status,routing_method,company_id'
-  const rows = [
-    ...await fetchAllRows(() => crm('email_message').select(columns).in('routing_status', ROUTABLE_STATUSES)),
-    // Recheck mail skipped for having no customer domain: a domain routed since
-    // may now make it sales email.
-    ...await fetchAllRows(() => crm('email_message').select(columns).eq('routing_status', 'SKIPPED').eq('routing_method', NO_CUSTOMER_DOMAIN)),
-  ]
+// One reroute write, as a compare-and-set: it only lands while the row still
+// carries the routing status and company the decision was made from. A
+// zero-row result means someone changed the row mid-run; that is neither an
+// overwrite nor an error, only a decision made on a stale snapshot.
+export function buildRerouteWrite(updateBuilder, row) {
+  let query = updateBuilder.eq('id', row.id).eq('routing_status', row.routing_status).select('id')
+  return row.company_id ? query.eq('company_id', row.company_id) : query.is('company_id', null)
+}
+
+export async function runReroute({ fetchRows, routeMessage, updateRow, log = console.log, warn = console.warn }) {
+  const rows = await fetchRows()
   let updated = 0
+  let changedUnderneath = 0
   let evaluated = 0
   for (const row of rows) {
-    const addresses = extractAddresses(`${row.sender || ''} ${row.recipients || ''}`)
-    const route = await normalizeRoute(await routeEmail({ subject: row.subject || '', bodyText: row.body_preview || '', addresses, allowAi: process.env.CRM_REROUTE_AI === 'true' }))
+    const route = await routeMessage(row)
     evaluated += 1
     const recheck = row.routing_status === 'SKIPPED'
     // Unassigned mail without a customer domain leaves Needs company; mail a
-    // person already gave a company is never demoted.
+    // person already gave a company is never demoted, and a manual company
+    // choice is never moved.
     const demote = !row.company_id && route.routing_method === NO_CUSTOMER_DOMAIN && row.routing_status === 'UNROUTED'
-    const apply = recheck ? route.routing_status !== 'SKIPPED' : demote || routingImproves(row.routing_status, route, row.company_id)
+    const apply = recheck ? route.routing_status !== 'SKIPPED' : demote || mayReroute(row, route)
     if (apply) {
       try {
-        must(await crm('email_message').update(routeColumns(route)).eq('id', row.id))
-        if (route.opportunity) await updateOpportunitySummary(route.opportunity)
-        updated += 1
+        const written = await updateRow(row, route)
+        if (written > 0) updated += 1
+        else if (written === 0) changedUnderneath += 1
       } catch (error) {
-        console.warn(`reroute skipped ${row.id}: ${error.message}`)
+        warn(`reroute skipped ${row.id}: ${error.message}`)
       }
     }
-    if (evaluated % 500 === 0) console.log(`reroute: ${evaluated}/${rows.length} evaluated, ${updated} improved`)
+    if (evaluated % 500 === 0) log(`reroute: ${evaluated}/${rows.length} evaluated, ${updated} improved`)
   }
-  console.log(`reroute: ${evaluated} messages evaluated, ${updated} improved`)
+  log(`reroute: ${evaluated} messages evaluated, ${updated} improved, ${changedUnderneath} changed underneath`)
+  return { evaluated, updated, changedUnderneath }
+}
+
+async function reroute() {
+  const columns = 'id,subject,body_preview,sender,recipients,routing_status,routing_method,company_id'
+  await runReroute({
+    fetchRows: async () => [
+      ...await fetchAllRows(() => crm('email_message').select(columns).in('routing_status', ROUTABLE_STATUSES)),
+      // Recheck mail skipped for having no customer domain: a domain routed since
+      // may now make it sales email.
+      ...await fetchAllRows(() => crm('email_message').select(columns).eq('routing_status', 'SKIPPED').eq('routing_method', NO_CUSTOMER_DOMAIN)),
+    ],
+    routeMessage: async (row) => {
+      const addresses = extractAddresses(`${row.sender || ''} ${row.recipients || ''}`)
+      return normalizeRoute(await routeEmail({ subject: row.subject || '', bodyText: row.body_preview || '', addresses, allowAi: process.env.CRM_REROUTE_AI === 'true' }))
+    },
+    updateRow: async (row, route) => {
+      const written = must(await buildRerouteWrite(crm('email_message').update(routeColumns(route)), row))
+      if (written.length && route.opportunity) await updateOpportunitySummary(route.opportunity)
+      return written.length
+    },
+  })
 }
 
 // Domains classified Active/Potential Customer on the Customers page.

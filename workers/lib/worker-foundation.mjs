@@ -44,6 +44,14 @@ export function routingImproves(currentStatus, next, currentRetailer) {
     next.retailer !== currentRetailer
 }
 
+// A manual assignment is a person's decision: the reroute job may fill in or
+// upgrade what sits beneath the company they chose (department, program), but
+// never moves the company itself — not to another customer, not away to none.
+export function mayReroute(row, route) {
+  if (row.routing_method === 'MANUAL' && (route.retailer ?? null) !== (row.company_id ?? null)) return false
+  return routingImproves(row.routing_status, route, row.company_id)
+}
+
 export async function isValidFirefliesSignature(rawBody, signature, secret) {
   if (typeof secret !== 'string' || !secret.trim()) return false
   if (typeof signature !== 'string' || !signature.trim()) return false

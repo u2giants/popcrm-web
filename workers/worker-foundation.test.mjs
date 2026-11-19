@@ -6,12 +6,13 @@ import {
   domainOf,
   extractAddresses,
   isValidFirefliesSignature,
+  mayReroute,
   normalizeFirefliesWebhookPayload,
   normalizeSubject,
   routingImproves,
   validateCommandEnvironment,
 } from './lib/worker-foundation.mjs'
-import { main } from './crm-worker-supabase.mjs'
+import { buildRerouteWrite, main, runReroute } from './crm-worker-supabase.mjs'
 
 afterEach(() => {
   vi.restoreAllMocks()
@@ -45,6 +46,27 @@ describe('worker pure helpers', () => {
     expect(routingImproves('ROUTED', { routing_status: 'ROUTED', retailer: 'a' }, 'a')).toBe(false)
   })
 
+  it('never moves a manually assigned company, but may complete beneath it', () => {
+    const manualRow = { routing_status: 'COMPANY_ONLY', routing_method: 'MANUAL', company_id: 'customer-a' }
+    // Manual row + different company -> false, even as a status upgrade.
+    expect(mayReroute(manualRow, { routing_status: 'COMPANY_ONLY', retailer: 'customer-b' })).toBe(false)
+    expect(mayReroute(manualRow, { routing_status: 'COMPANY_DEPT', retailer: 'customer-b', department: 'department-1' })).toBe(false)
+    expect(mayReroute(manualRow, { routing_status: 'ROUTED', retailer: 'customer-b', opportunity: 'opportunity-1' })).toBe(false)
+    // The job may not strip a manually assigned company either.
+    expect(mayReroute(manualRow, { routing_status: 'COMPANY_ONLY', retailer: null })).toBe(false)
+    // Manual row + same company + department -> true.
+    expect(mayReroute(manualRow, { routing_status: 'COMPANY_DEPT', retailer: 'customer-a', department: 'department-1' })).toBe(true)
+    expect(mayReroute(manualRow, { routing_status: 'ROUTED', retailer: 'customer-a', opportunity: 'opportunity-1' })).toBe(true)
+    // Same company with nothing new to add stays untouched.
+    expect(mayReroute(manualRow, { routing_status: 'COMPANY_ONLY', retailer: 'customer-a' })).toBe(false)
+    // A company a person manually cleared is not silently reassigned.
+    const clearedRow = { routing_status: 'UNROUTED', routing_method: 'MANUAL', company_id: null }
+    expect(mayReroute(clearedRow, { routing_status: 'COMPANY_ONLY', retailer: 'customer-b' })).toBe(false)
+    // Automatic rows keep the replace-on-same-priority behavior.
+    const automaticRow = { routing_status: 'COMPANY_ONLY', routing_method: 'EMAIL_DOMAIN', company_id: 'customer-a' }
+    expect(mayReroute(automaticRow, { routing_status: 'COMPANY_ONLY', retailer: 'customer-b' })).toBe(true)
+  })
+
   it('normalizes address and domain inputs', () => {
     expect(domainOf('Person@Sub.Example.COM')).toBe('sub.example.com')
     expect(domainCandidates('Sub.Example.COM')).toEqual(['sub.example.com', 'example.com'])
@@ -53,6 +75,126 @@ describe('worker pure helpers', () => {
       'one@example.com',
       'two+tag@sub.example.com',
     ])
+  })
+})
+
+// A PostgREST-shaped stand-in for the supabase-js query chain the reroute
+// write builds: records the chain and resolves like a real await would.
+function fakeEmailTable(writeResult) {
+  const recorded = { patch: null, filters: [], selected: null }
+  const chain = {
+    eq(column, value) { recorded.filters.push(['eq', column, value]); return chain },
+    is(column, value) { recorded.filters.push(['is', column, value]); return chain },
+    select(columns) { recorded.selected = columns; return chain },
+    then(onFulfilled, onRejected) {
+      return Promise.resolve({ data: writeResult, error: null }).then(onFulfilled, onRejected)
+    },
+  }
+  return {
+    recorded,
+    update(patch) { recorded.patch = patch; return chain },
+  }
+}
+
+// The same unwrap the worker's reroute wiring applies to the write result.
+async function updateRowThrough(table, row, patch) {
+  const { data, error } = await buildRerouteWrite(table.update(patch), row)
+  if (error) throw new Error(error.message)
+  return data.length
+}
+
+describe('reroute compare-and-set writes', () => {
+  const staleRow = {
+    id: 'email-1',
+    subject: 'Spring line review',
+    body_preview: '',
+    sender: 'buyer@customer-a.example',
+    recipients: '',
+    routing_status: 'COMPANY_ONLY',
+    routing_method: 'EMAIL_DOMAIN',
+    company_id: 'customer-a',
+  }
+  const improvingRoute = {
+    routing_status: 'COMPANY_DEPT',
+    routing_method: 'EMAIL_DOMAIN',
+    retailer: 'customer-a',
+    department: 'department-1',
+  }
+
+  it('does not overwrite a row changed between read and write, and counts it separately', async () => {
+    // The compare-and-set matched nothing: someone edited the row mid-run.
+    const table = fakeEmailTable([])
+    const logs = []
+    const result = await runReroute({
+      fetchRows: () => [staleRow],
+      routeMessage: () => improvingRoute,
+      updateRow: (row) => updateRowThrough(table, row, { routing_status: improvingRoute.routing_status }),
+      log: (line) => logs.push(line),
+    })
+    expect(result).toEqual({ evaluated: 1, updated: 0, changedUnderneath: 1 })
+    expect(table.recorded.patch).toEqual({ routing_status: 'COMPANY_DEPT' })
+    // The write is gated on what was read, not just the row id.
+    expect(table.recorded.filters).toEqual([
+      ['eq', 'id', 'email-1'],
+      ['eq', 'routing_status', 'COMPANY_ONLY'],
+      ['eq', 'company_id', 'customer-a'],
+    ])
+    expect(table.recorded.selected).toBe('id')
+    expect(logs.at(-1)).toBe('reroute: 1 messages evaluated, 0 improved, 1 changed underneath')
+  })
+
+  it('counts a matched write as improved', async () => {
+    const table = fakeEmailTable([{ id: 'email-1' }])
+    const logs = []
+    const result = await runReroute({
+      fetchRows: () => [staleRow],
+      routeMessage: () => improvingRoute,
+      updateRow: (row) => updateRowThrough(table, row, { routing_status: improvingRoute.routing_status }),
+      log: (line) => logs.push(line),
+    })
+    expect(result).toEqual({ evaluated: 1, updated: 1, changedUnderneath: 0 })
+    expect(logs.at(-1)).toBe('reroute: 1 messages evaluated, 1 improved, 0 changed underneath')
+  })
+
+  it('gates a row without a company on company_id being null', async () => {
+    const row = { ...staleRow, routing_status: 'UNROUTED', company_id: null }
+    const table = fakeEmailTable([])
+    await runReroute({
+      fetchRows: () => [row],
+      routeMessage: () => ({ routing_status: 'COMPANY_ONLY', routing_method: 'EMAIL_DOMAIN', retailer: 'customer-a' }),
+      updateRow: (current) => updateRowThrough(table, current, {}),
+      log: () => {},
+    })
+    expect(table.recorded.filters).toEqual([
+      ['eq', 'id', 'email-1'],
+      ['eq', 'routing_status', 'UNROUTED'],
+      ['is', 'company_id', null],
+    ])
+  })
+
+  it('never issues a write that would move a manual company choice', async () => {
+    const updateRow = vi.fn()
+    const result = await runReroute({
+      fetchRows: () => [{ ...staleRow, routing_method: 'MANUAL' }],
+      routeMessage: () => ({ routing_status: 'COMPANY_ONLY', routing_method: 'EMAIL_DOMAIN', retailer: 'customer-b' }),
+      updateRow,
+      log: () => {},
+    })
+    expect(updateRow).not.toHaveBeenCalled()
+    expect(result).toEqual({ evaluated: 1, updated: 0, changedUnderneath: 0 })
+  })
+
+  it('warns and counts nothing when the write itself fails', async () => {
+    const warnings = []
+    const result = await runReroute({
+      fetchRows: () => [staleRow],
+      routeMessage: () => improvingRoute,
+      updateRow: async () => { throw new Error('row violates a policy') },
+      log: () => {},
+      warn: (line) => warnings.push(line),
+    })
+    expect(result).toEqual({ evaluated: 1, updated: 0, changedUnderneath: 0 })
+    expect(warnings).toEqual(['reroute skipped email-1: row violates a policy'])
   })
 })
 
