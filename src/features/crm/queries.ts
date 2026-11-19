@@ -567,6 +567,11 @@ export function useUpdateCustomerMutation() {
       void queryClient.invalidateQueries({ queryKey: [...crmKeys.all, 'customerSegment'] })
       void queryClient.invalidateQueries({ queryKey: crmKeys.customerSegmentCounts() })
       void queryClient.invalidateQueries({ queryKey: crmKeys.stats() })
+      // The brand feed drives every Customer column (name + logo) and the
+      // picker feed every customer dropdown; without these a rename or logo
+      // change keeps showing the old value until their stale times expire (#41).
+      void queryClient.invalidateQueries({ queryKey: [...crmKeys.all, 'customerBrands'] })
+      void queryClient.invalidateQueries({ queryKey: [...crmKeys.all, 'customerPicker'] })
     },
   })
 }
