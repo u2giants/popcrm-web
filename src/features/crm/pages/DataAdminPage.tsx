@@ -130,9 +130,15 @@ export function DataAdminPage() {
         }),
     [retailers, brandById],
   )
+  // A department's primary contact must belong to its customer: once the form
+  // names a customer, the contact picker only offers that customer's contacts
+  // (same rule as DepartmentsPage inline edits). No customer set = every contact.
   const contactOptions = useMemo<ComboOption[]>(
-    () => buyers.map((b) => ({ value: b.id, label: b.name, hint: customerName(b.retailer) })),
-    [buyers, customerName],
+    () =>
+      buyers
+        .filter((b) => !departmentDraft.retailer || idOf(b.retailer) === departmentDraft.retailer)
+        .map((b) => ({ value: b.id, label: b.name, hint: customerName(b.retailer) })),
+    [buyers, customerName, departmentDraft.retailer],
   )
   const titleValues = useMemo(
     () => contactTitleValues(buyers.map((b) => b.job_title)),
@@ -537,7 +543,15 @@ export function DataAdminPage() {
                     <Combobox
                       options={retailerOptions}
                       value={departmentDraft.retailer}
-                      onChange={(v) => setDepartmentDraft((d) => ({ ...d, retailer: v }))}
+                      onChange={(v) =>
+                        setDepartmentDraft((d) => {
+                          // Changing the customer drops a primary contact that
+                          // no longer belongs to it (DepartmentsPage pattern).
+                          const currentBuyer = buyers.find((b) => b.id === d.primary_buyer)
+                          const buyerBelongs = !v || idOf(currentBuyer?.retailer) === v
+                          return buyerBelongs ? { ...d, retailer: v } : { ...d, retailer: v, primary_buyer: '' }
+                        })
+                      }
                       placeholder="Select customer"
                     />
                   </div>

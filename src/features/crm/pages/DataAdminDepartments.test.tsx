@@ -9,7 +9,7 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import type { CrmDepartment } from '@/lib/types'
+import type { Buyer, CrmDepartment, Retailer } from '@/lib/types'
 import { supabase } from '@/lib/supabase'
 import { crmKeys } from '@/features/crm/queries'
 
@@ -22,14 +22,17 @@ const departments: CrmDepartment[] = [
   { id: 'd2', name: 'Ecommerce', category: null, division: null, active: true, retailer: null, primary_buyer: null },
 ]
 
+// Per-test feeds for the customer-scoped contact picker (issue #56 step 2).
+const feeds = vi.hoisted(() => ({ buyers: [] as Buyer[], retailers: [] as Retailer[] }))
+
 vi.mock('@/features/crm/queries', async (importOriginal) => {
   const actual = await importOriginal<typeof import('@/features/crm/queries')>()
   return {
     ...actual,
-    useIngestedContactsQuery: vi.fn(() => ({ data: [], isPending: false })),
+    useIngestedContactsQuery: vi.fn(() => ({ data: feeds.buyers, isPending: false })),
     useDepartmentsQuery: vi.fn(() => ({ data: departments, isPending: false })),
     useOpportunitiesQuery: vi.fn(() => ({ data: [], isPending: false })),
-    useCustomerPickerQuery: vi.fn(() => ({ data: [], isPending: false })),
+    useCustomerPickerQuery: vi.fn(() => ({ data: feeds.retailers, isPending: false })),
     useCustomerBrandsQuery: vi.fn(() => ({ data: [], isPending: false, isError: false })),
     useCustomerDisplayName: vi.fn(() => (value: unknown) =>
       value && typeof value === 'object' ? ((value as { name?: string }).name ?? '') : ''),
@@ -95,6 +98,8 @@ function openDeleteConfirm() {
 
 beforeEach(() => {
   vi.clearAllMocks()
+  feeds.buyers = []
+  feeds.retailers = []
 })
 
 afterEach(cleanup)
@@ -182,5 +187,66 @@ describe('deleteDepartment guard (issue #35)', () => {
       tasks: 2,
     })
     expect(supabaseCalls.filter((c) => c.kind === 'delete')).toHaveLength(0)
+  })
+})
+
+describe('DataAdmin department contact picker is customer-scoped (issue #56)', () => {
+  const acme: Retailer = {
+    id: 'c1',
+    name: 'Acme',
+    display_name: null,
+    status: 'active',
+    domain: null,
+    logo_url: null,
+    customer_status: 'ACTIVE_CUSTOMER',
+    chain_type: null,
+    routing_aliases: null,
+  }
+  const globex: Retailer = { ...acme, id: 'c2', name: 'Globex' }
+  const buyer = (id: string, name: string, retailer: Retailer): Buyer => ({
+    id,
+    name,
+    first_name: null,
+    last_name: null,
+    email: null,
+    phone: null,
+    job_title: null,
+    scope: null,
+    retailer,
+    department: null,
+  })
+
+  function openDepartmentForm() {
+    feeds.retailers = [acme, globex]
+    feeds.buyers = [buyer('b1', 'Ann Acme', acme), buyer('b2', 'Bob Globex', globex)]
+    renderPage()
+    fireEvent.click(screen.getByText('Buying'))
+    expect(screen.getByText('Edit Department')).toBeTruthy()
+  }
+
+  it('offers only the selected customer\'s contacts once a customer is set', () => {
+    openDepartmentForm()
+    fireEvent.click(screen.getByText('Select customer'))
+    fireEvent.click(screen.getByText('Acme'))
+    fireEvent.click(screen.getByText('Select contact'))
+    // Acme's contact is offered; Globex's contact is not.
+    expect(screen.getByText('Ann Acme')).toBeTruthy()
+    expect(screen.queryByText('Bob Globex')).toBeNull()
+  })
+
+  it('drops a primary contact that no longer belongs when the customer changes', () => {
+    openDepartmentForm()
+    fireEvent.click(screen.getByText('Select customer'))
+    fireEvent.click(screen.getByText('Acme'))
+    fireEvent.click(screen.getByText('Select contact'))
+    fireEvent.click(screen.getByText('Ann Acme'))
+    expect(screen.getByText('Ann Acme')).toBeTruthy()
+    // Switching the customer to Globex drops Ann from the form.
+    fireEvent.click(screen.getByText('Acme'))
+    fireEvent.click(screen.getByText('Globex'))
+    expect(screen.queryByText('Ann Acme')).toBeNull()
+    fireEvent.click(screen.getByText('Select contact'))
+    expect(screen.getByText('Bob Globex')).toBeTruthy()
+    expect(screen.queryByText('Ann Acme')).toBeNull()
   })
 })

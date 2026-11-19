@@ -61,8 +61,19 @@ export function MeetingsPage() {
     () => customerEditOptions(retailers),
     [retailers],
   )
-  const departmentOptions = useMemo<EditOption[]>(
-    () => [{ value: '', label: 'Unassigned' }, ...departments.map((d) => ({ value: d.id, label: d.name }))],
+  // A meeting's department must belong to its customer: scope the edit list
+  // per row (ContactsPage pattern). Rows without a customer see every
+  // department so triage can still set one.
+  const departmentOptionsFor = useMemo(
+    () => (m: CrmMeetingNote): EditOption[] => {
+      const customerId = idOf(m.retailer)
+      return [
+        { value: '', label: 'Unassigned' },
+        ...departments
+          .filter((d) => !customerId || idOf(d.retailer) === customerId)
+          .map((d) => ({ value: d.id, label: d.name })),
+      ]
+    },
     [departments],
   )
   const contactOptions = useMemo<EditOption[]>(
@@ -90,14 +101,30 @@ export function MeetingsPage() {
           : key === 'contact'
             ? buyerById.get(value) ?? null
             : nextValue
+    // When the customer changes, drop any department that no longer belongs to it.
+    const clearStaleDepartment =
+      key === 'retailer' &&
+      idOf(row.department) !== '' &&
+      idOf(departmentById.get(idOf(row.department))?.retailer) !== value
+    const patch: Partial<CrmMeetingNote> = clearStaleDepartment
+      ? ({ [key]: nextValue, department: null } as Partial<CrmMeetingNote>)
+      : ({ [key]: nextValue } as Partial<CrmMeetingNote>)
     queryClient.setQueryData<CrmMeetingNote[]>(crmKeys.meetings(-1), (rows = []) =>
-      rows.map((m) => (m.id === row.id ? { ...m, [key]: expanded } : m)),
+      rows.map((m) =>
+        m.id === row.id
+          ? { ...m, [key]: expanded, ...(clearStaleDepartment ? { department: null } : {}) }
+          : m,
+      ),
     )
     try {
-      await updateMeetingMutation.mutateAsync({ id: row.id, values: { [key]: nextValue } as Partial<CrmMeetingNote> })
+      await updateMeetingMutation.mutateAsync({ id: row.id, values: patch })
     } catch (error) {
       queryClient.setQueryData<CrmMeetingNote[]>(crmKeys.meetings(-1), (rows = []) =>
-        rows.map((m) => (m.id === row.id ? { ...m, [key]: prev } : m)),
+        rows.map((m) =>
+          m.id === row.id
+            ? { ...m, [key]: prev, ...(clearStaleDepartment ? { department: row.department } : {}) }
+            : m,
+        ),
       )
       // A bulk edit reports failures once, as a summary, so let the table count them.
       if (edit?.bulk) throw error
@@ -180,7 +207,7 @@ export function MeetingsPage() {
       hideBelow: 'lg',
       sortValue: (m) => relatedName(m.department),
       filterValue: (m) => relatedName(m.department),
-      editOptions: departmentOptions,
+      editOptions: departmentOptionsFor,
       editValue: (m) => idOf(m.department),
       cell: (m) => <RelationLabel value={m.department} />,
     },
