@@ -30,6 +30,7 @@ import {
   useDepartmentsQuery,
   useIngestedContactsQuery,
   useCustomerPickerQuery,
+  useCustomerBrandsQuery,
   useOpportunitiesQuery,
   useCustomerDisplayName,
 } from '@/features/crm/queries'
@@ -81,17 +82,20 @@ export function DataAdminPage() {
   const departmentsQuery = useDepartmentsQuery(-1)
   const opportunitiesQuery = useOpportunitiesQuery(-1)
   const retailersQuery = useCustomerPickerQuery(-1)
+  const brandsQuery = useCustomerBrandsQuery()
   const buyers = listData(buyersQuery.data)
   const departments = listData(departmentsQuery.data)
   const opportunities = listData(opportunitiesQuery.data)
   const retailers = listData(retailersQuery.data)
-  const loading = buyersQuery.isPending || departmentsQuery.isPending || opportunitiesQuery.isPending || retailersQuery.isPending
-  const error = buyersQuery.isError || departmentsQuery.isError || opportunitiesQuery.isError || retailersQuery.isError
+  const brands = listData(brandsQuery.data)
+  const loading = buyersQuery.isPending || departmentsQuery.isPending || opportunitiesQuery.isPending || retailersQuery.isPending || brandsQuery.isPending
+  const error = buyersQuery.isError || departmentsQuery.isError || opportunitiesQuery.isError || retailersQuery.isError || brandsQuery.isError
   const refresh = () => {
     void buyersQuery.refetch()
     void departmentsQuery.refetch()
     void opportunitiesQuery.refetch()
     void retailersQuery.refetch()
+    void brandsQuery.refetch()
   }
   const [departmentDraft, setDepartmentDraft] = useState<DepartmentForm>(() => departmentForm())
   const [selectedDepartmentId, setSelectedDepartmentId] = useState('')
@@ -108,8 +112,20 @@ export function DataAdminPage() {
     [retailers, departmentDraft.retailer],
   )
   const retailerById = useMemo(() => buildRetailerById(retailers), [retailers])
+  const brandById = useMemo(() => new Map(brands.map((b) => [b.id, b])), [brands])
   // The Logos tab manages customers that appear in pickers — same active/potential set.
-  const logoCustomers = useMemo(() => retailers.filter((r) => isSelectableCustomer(r.status)), [retailers])
+  // The picker feed omits domain/logo_url by design, so brand marks come from
+  // the unfiltered customer list merged in by id.
+  const logoCustomers = useMemo(
+    () =>
+      retailers
+        .filter((r) => isSelectableCustomer(r.status))
+        .map((r) => {
+          const brand = brandById.get(r.id)
+          return brand ? { ...r, domain: brand.domain, logo_url: brand.logo_url } : r
+        }),
+    [retailers, brandById],
+  )
   const contactOptions = useMemo<ComboOption[]>(
     () => buyers.map((b) => ({ value: b.id, label: b.name, hint: customerName(b.retailer) })),
     [buyers, customerName],
@@ -275,6 +291,13 @@ export function DataAdminPage() {
     queryClient.setQueriesData<Retailer[]>({ queryKey: [...crmKeys.all, 'customerSegment'] }, updateRows)
   }
 
+  // The Logos tab rows read the picker and brand feeds, so both must refetch
+  // after a save or the row keeps showing the pre-save domain/logo.
+  function invalidateLogoFeeds() {
+    void queryClient.invalidateQueries({ queryKey: [...crmKeys.all, 'customerBrands'] })
+    void queryClient.invalidateQueries({ queryKey: [...crmKeys.all, 'customerPicker'] })
+  }
+
   async function saveTokenDomain(domain: string) {
     if (!selectedLogoCustomer) return
     const normalized = rootDomain(domain)
@@ -286,6 +309,7 @@ export function DataAdminPage() {
     try {
       await updateRetailer(selectedLogoCustomer.id, { domain: normalized })
       patchRetailer(selectedLogoCustomer.id, { domain: normalized })
+      invalidateLogoFeeds()
       setLogoDomainDraft(normalized)
       toast.success('Token logo domain saved')
     } catch (error) {
@@ -302,6 +326,7 @@ export function DataAdminPage() {
     try {
       await setRetailerLogo(selectedLogoCustomer.id, cleanUrl)
       patchRetailer(selectedLogoCustomer.id, { logo_url: cleanUrl })
+      invalidateLogoFeeds()
       setLogoUrlDraft(cleanUrl ?? '')
       toast.success(cleanUrl ? 'Full logo saved' : 'Full logo override cleared')
     } catch (error) {
@@ -327,6 +352,7 @@ export function DataAdminPage() {
       const url = await uploadRetailerLogo(selectedLogoCustomer.id, renamed)
       await setRetailerLogo(selectedLogoCustomer.id, url)
       patchRetailer(selectedLogoCustomer.id, { logo_url: url })
+      invalidateLogoFeeds()
       setLogoUrlDraft(url)
       toast.success('Logo uploaded')
     } catch (error) {
@@ -572,7 +598,7 @@ export function DataAdminPage() {
                   columns={logoColumns}
                   getRowId={(r) => r.id}
                   onRowClick={editLogoCustomer}
-                  loading={retailersQuery.isPending}
+                  loading={retailersQuery.isPending || brandsQuery.isPending}
                   pageSize={50}
                   emptyIcon={<Database className="size-5" />}
                   emptyTitle="No customers found"
