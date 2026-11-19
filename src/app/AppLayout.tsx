@@ -1,19 +1,40 @@
 import { useEffect, useState } from 'react'
-import { Outlet } from 'react-router-dom'
+import { Outlet, useLocation } from 'react-router-dom'
 import { Sheet, SheetContent, SheetTitle, SheetDescription } from '@/components/ui/sheet'
 import { AppSidebar, AppSidebarContent } from '@/components/app/AppSidebar'
 import { AppHeader } from '@/components/app/AppHeader'
 import { ImpersonationBar } from '@/components/app/ImpersonationBar'
 import { CommandSearch } from '@/components/app/CommandSearch'
+import { ErrorBoundary } from '@/components/app/ErrorBoundary'
+
+// localStorage access can throw (storage disabled, Safari private mode, quota
+// exhausted). Reads fall back to their defaults so the layout still renders —
+// issue #44: an unusable storage must not blank the app on load. Failed writes
+// only skip persistence; the in-session choice keeps working.
+function readStored(key: string): string | null {
+  try {
+    return localStorage.getItem(key)
+  } catch {
+    return null
+  }
+}
+
+function writeStored(key: string, value: string): void {
+  try {
+    localStorage.setItem(key, value)
+  } catch {
+    // Preference stays in memory for this session; there is nothing to recover to.
+  }
+}
 
 function initTheme(): 'light' | 'dark' {
-  const stored = localStorage.getItem('popcrm_theme')
+  const stored = readStored('popcrm_theme')
   if (stored === 'dark' || stored === 'light') return stored
   return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'
 }
 
 function initDensity(): 'comfortable' | 'compact' {
-  return localStorage.getItem('popcrm_density') === 'compact' ? 'compact' : 'comfortable'
+  return readStored('popcrm_density') === 'compact' ? 'compact' : 'comfortable'
 }
 
 export function AppLayout() {
@@ -21,6 +42,7 @@ export function AppLayout() {
   const [search, setSearch] = useState(false)
   const [theme, setTheme] = useState<'light' | 'dark'>(initTheme)
   const [density, setDensity] = useState<'comfortable' | 'compact'>(initDensity)
+  const location = useLocation()
 
   // ⌘K / Ctrl-K opens the global command palette.
   useEffect(() => {
@@ -37,7 +59,7 @@ export function AppLayout() {
   // Sync .dark class to <html> and persist choice.
   useEffect(() => {
     document.documentElement.classList.toggle('dark', theme === 'dark')
-    localStorage.setItem('popcrm_theme', theme)
+    writeStored('popcrm_theme', theme)
   }, [theme])
 
   function toggleTheme() {
@@ -46,7 +68,7 @@ export function AppLayout() {
 
   useEffect(() => {
     document.documentElement.classList.toggle('density-compact', density === 'compact')
-    localStorage.setItem('popcrm_density', density)
+    writeStored('popcrm_density', density)
   }, [density])
 
   function toggleDensity() {
@@ -77,7 +99,11 @@ export function AppLayout() {
           onToggleDensity={toggleDensity}
         />
         <main className="min-h-0 flex-1 overflow-hidden">
-          <Outlet />
+          {/* Keyed by pathname: a boundary that caught an error remounts clean
+              when staff navigate away, so one dead screen never blocks the app. */}
+          <ErrorBoundary key={location.pathname}>
+            <Outlet />
+          </ErrorBoundary>
         </main>
       </div>
 

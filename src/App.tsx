@@ -4,6 +4,7 @@ import { readAuthCallbackError } from '@/auth/callbackError'
 import { LoginPage } from '@/pages/LoginPage'
 import { AppRoutes } from '@/app/routes'
 import { useCrmRealtimeInvalidation } from '@/features/crm/realtime'
+import { ErrorBoundary } from '@/components/app/ErrorBoundary'
 
 function AuthCallbackError({ message, onDismiss }: { message: string; onDismiss: () => void }) {
   return (
@@ -75,8 +76,10 @@ function Gate() {
 
 export default function App() {
   return (
-    <AuthProvider>
-      <Gate />
-    </AuthProvider>
+    <ErrorBoundary area="root">
+      <AuthProvider>
+        <Gate />
+      </AuthProvider>
+    </ErrorBoundary>
   )
 }

@@ -40,11 +40,14 @@ export function ErrorState({
   title = 'Something went wrong',
   description = 'The data could not be loaded. Check your connection and try again.',
   onRetry,
+  action,
   className,
 }: {
   title?: string
   description?: string
   onRetry?: () => void
+  /** Custom action node; replaces the default Retry button (e.g. the reload action in ErrorBoundary). */
+  action?: ReactNode
   className?: string
 }) {
   return (
@@ -59,7 +62,9 @@ export function ErrorState({
       </div>
       <p className="mt-3 text-sm font-medium text-foreground">{title}</p>
       <p className="mt-1 max-w-sm text-sm text-muted-foreground">{description}</p>
-      {onRetry ? (
+      {action ? (
+        <div className="mt-4">{action}</div>
+      ) : onRetry ? (
         <Button variant="outline" size="sm" className="mt-4" onClick={onRetry}>
           <RefreshCcw className="size-4" /> Retry
         </Button>
