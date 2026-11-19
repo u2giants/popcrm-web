@@ -56,6 +56,16 @@ before transcript retrieval, routing, and database writes begin. Processing
 continues in the always-on worker and logs failures without holding Fireflies'
 delivery request open, satisfying V2's 10-second acknowledgement requirement.
 
+A failure after the 202 is parked (raw payload, attempts, last_error) in the
+worker-private `crm.fireflies_retry` table and retried by a bounded drain at
+the start of every timer command (`outlook-ingest`, `reroute`, `contact-sync`,
+`summarize`, `apply-ignore-rules`); still-failing meetings are re-parked with
+`attempts + 1`. Transcript ids are unique (`crm_meeting_note_fireflies_transcript_uidx`,
+shared-db `20261223010103`) and the note write is an upsert with
+on-conflict-do-nothing, so a redelivered or concurrently processed transcript
+lands exactly one meeting note. Participant entries the worker's address
+parser cannot reproduce verbatim are skipped, never fatal.
+
 Both public POST routes stop buffering at a configurable raw-byte ceiling:
 
 - Opportunity Chat: `OPPORTUNITY_CHAT_MAX_BODY_BYTES` (default `65536`)

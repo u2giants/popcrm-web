@@ -1,9 +1,9 @@
 // In-memory PostgREST-shaped fake supabase client for worker tests. It
 // implements exactly the query-chain surface the workers use — select /
-// insert / update / upsert with eq / is / not / in / or / ilike / gt / order /
-// limit and thenable `{ data, error }` resolution — so tests can drive whole
-// jobs through `main()`/`initializeRuntime()` with injected fakes, the same
-// no-real-environment rule as the rest of workers/*.test.mjs.
+// insert / update / delete / upsert with eq / is / not / in / or / ilike /
+// gt / order / limit and thenable `{ data, error }` resolution — so tests can
+// drive whole jobs through `main()`/`initializeRuntime()` with injected
+// fakes, the same no-real-environment rule as the rest of workers/*.test.mjs.
 //
 // Semantics mirror PostgREST closely enough for the workers: filters apply in
 // any chain order (filters, then order, then limit), `or(...)` accepts the
@@ -111,6 +111,9 @@ export function createFakeSupabase({ tables = {}, rpc = null } = {}) {
       } else if (record.op === 'update') {
         for (const row of matched) Object.assign(row, record.patch)
         resultRows = matched
+      } else if (record.op === 'delete') {
+        for (const row of matched) tableRows.splice(tableRows.indexOf(row), 1)
+        resultRows = matched
       } else if (record.op === 'upsert') {
         const conflictColumns = String(record.options?.onConflict || '').split(',').filter(Boolean)
         const payload = Array.isArray(record.payload) ? record.payload : [record.payload]
@@ -120,8 +123,12 @@ export function createFakeSupabase({ tables = {}, rpc = null } = {}) {
             ? tableRows.find((row) => conflictColumns.every((column) => row[column] === entry[column]))
             : undefined
           if (existing) {
-            if (!record.options?.ignoreDuplicates) Object.assign(existing, entry)
-            upserted.push(existing)
+            // PostgREST resolution=ignore-duplicates returns only the rows it
+            // inserted; a conflicting row yields nothing, not the stored row.
+            if (!record.options?.ignoreDuplicates) {
+              Object.assign(existing, entry)
+              upserted.push(existing)
+            }
           } else {
             const row = { id: `${tableRows.length + 1}-generated`, ...entry }
             tableRows.push(row)
@@ -155,6 +162,10 @@ export function createFakeSupabase({ tables = {}, rpc = null } = {}) {
       update(patch) {
         record.op = 'update'
         record.patch = patch
+        return chain
+      },
+      delete() {
+        record.op = 'delete'
         return chain
       },
       upsert(payload, options) {

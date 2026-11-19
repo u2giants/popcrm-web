@@ -1402,19 +1402,24 @@ async function firefliesTranscript(meetingId) {
 }
 function firefliesParticipants(transcript) {
   const participants = []
+  // A participant address is only usable when the worker's own address parser
+  // (extractAddresses) reproduces it verbatim: anything else (a bare word with
+  // an @ inside, a truncated address, HTML) is skipped, so one malformed value
+  // can no longer fail the whole meeting's routing (#68).
+  const isParsedAddress = (candidate) => extractAddresses(candidate)[0] === String(candidate).trim().toLowerCase()
   for (const raw of Array.isArray(transcript.participants) ? transcript.participants : []) {
     const text = String(raw)
     const email = text.match(/<([^>]+)>/)?.[1] || (text.includes('@') ? text : '')
     const name = email && text.includes('<') ? text.slice(0, text.indexOf('<')).trim() : text.replace(email, '').trim()
-    if (email && !participants.some((p) => p.email.toLowerCase() === email.toLowerCase())) participants.push({ name: name || email, email: email.toLowerCase() })
+    if (email && isParsedAddress(email) && !participants.some((p) => p.email.toLowerCase() === email.toLowerCase())) participants.push({ name: name || email, email: email.toLowerCase() })
   }
-  if (transcript.organizer_email && !participants.some((p) => p.email.toLowerCase() === transcript.organizer_email.toLowerCase())) {
+  if (transcript.organizer_email && isParsedAddress(transcript.organizer_email) && !participants.some((p) => p.email.toLowerCase() === transcript.organizer_email.toLowerCase())) {
     participants.push({ name: 'Meeting Organizer', email: transcript.organizer_email.toLowerCase() })
   }
   return participants
 }
 
-async function handleFirefliesPayload(payload) {
+export async function handleFirefliesPayload(payload) {
   const normalized = normalizeFirefliesWebhookPayload(payload)
   if (normalized.error) return { success: false, errors: [normalized.error] }
   if (normalized.skipped) {
@@ -1455,7 +1460,14 @@ async function handleFirefliesPayload(payload) {
   }
 
   const dateValue = transcript.date ? new Date(Number(transcript.date) || transcript.date).toISOString() : new Date().toISOString()
-  const note = must(await crm('meeting_note').insert({
+  // Upsert with on-conflict-do-nothing on fireflies_transcript_id (unique
+  // index crm_meeting_note_fireflies_transcript_uidx, shared-db
+  // 20261223010103): two webhook deliveries processed together can both pass
+  // the read-only pre-check above, and this write is the one that guarantees a
+  // single note (#68). With ignoreDuplicates, PostgREST returns only the rows
+  // it inserted — an empty result means another delivery already landed this
+  // transcript.
+  const inserted = must(await crm('meeting_note').upsert({
     title: transcript.title || `Meeting - ${dateValue.slice(0, 10)}`,
     meeting_at: dateValue,
     participants: participantText,
@@ -1470,11 +1482,99 @@ async function handleFirefliesPayload(payload) {
     external_id: meetingId,
     external_source: 'fireflies',
     metadata: { attendees: matchedContacts },
-  }).select('id').single())
+  }, { onConflict: 'fireflies_transcript_id', ignoreDuplicates: true }).select('id'))
+  if (!inserted.length) {
+    const winner = must(await crm('meeting_note').select('id').eq('fireflies_transcript_id', meetingId).limit(1))
+    return { success: true, meetingId, noteIds: winner.map((r) => r.id), skipped: 'duplicate' }
+  }
+  const note = inserted[0]
 
   if (route.opportunity) await updateOpportunitySummary(route.opportunity)
 
   return { success: true, meetingId, noteIds: [note.id], actionItemsCount: Array.isArray(summary.action_items) ? summary.action_items.length : 0 }
+}
+
+// --- Fireflies retry parking (#68) --------------------------------------------
+// The webhook answers 202 before processing; a failure after that used to be
+// logged and lost. crm.fireflies_retry (shared-db 20261223010103, worker-private)
+// parks the raw payload so the next timer run can retry it. One row per
+// meeting_id: a redelivery that fails again refreshes payload/last_error and
+// keeps the attempt count.
+const FIREFLIES_RETRY_LAST_ERROR_MAX = 500
+const FIREFLIES_RETRY_BATCH = 10
+
+function retryErrorMessage(error) {
+  const message = error?.message ? String(error.message) : String(error || 'unknown error')
+  return message.slice(0, FIREFLIES_RETRY_LAST_ERROR_MAX)
+}
+
+async function parkFirefliesRetry(payload, error) {
+  try {
+    const normalized = normalizeFirefliesWebhookPayload(payload)
+    if (normalized.error || !normalized.meetingId) return
+    must(await crm('fireflies_retry').upsert({
+      meeting_id: normalized.meetingId,
+      payload,
+      last_error: retryErrorMessage(error),
+    }, { onConflict: 'meeting_id' }))
+    console.warn(`fireflies retry parked: meeting ${normalized.meetingId} (${retryErrorMessage(error)})`)
+  } catch (parkError) {
+    // Parking must never mask the original failure; visibility is the log only.
+    console.warn(`fireflies retry parking failed: ${parkError.message}`)
+  }
+}
+
+/**
+ * The webhook's processFireflies: the real handler, plus retry parking on any
+ * failure after the 202. The error is re-thrown so the HTTP layer logs it as
+ * before; the parked copy is what makes it recoverable.
+ */
+export async function processFirefliesWithRetryParking(payload) {
+  try {
+    return await handleFirefliesPayload(payload)
+  } catch (error) {
+    await parkFirefliesRetry(payload, error)
+    throw error
+  }
+}
+
+// Drains parked Fireflies retries at the start of a timer run: bounded batch,
+// oldest first. A retried meeting that succeeds (or lands as a duplicate of a
+// redelivery) is deleted; a failure is re-parked with attempts+1 and
+// last_error, keeping the failure visible without failing the host command.
+export async function drainFirefliesRetries({ limit = FIREFLIES_RETRY_BATCH } = {}) {
+  // Without an API key a V2 retry (no inline transcript) can only fail again.
+  if (!runtimeEnv.FIREFLIES_API_KEY?.trim()) return { drained: 0, recovered: 0, requeued: 0 }
+  const rows = must(await crm('fireflies_retry').select('meeting_id,payload,attempts').order('updated_at').limit(limit))
+  let recovered = 0
+  let requeued = 0
+  for (const row of rows) {
+    try {
+      const result = await handleFirefliesPayload(row.payload)
+      if (result?.success) {
+        must(await crm('fireflies_retry').delete().eq('meeting_id', row.meeting_id))
+        recovered += 1
+      } else {
+        requeued += await requeueFirefliesRetry(row, Array.isArray(result?.errors) ? result.errors.join('; ') : 'processing failed')
+      }
+    } catch (error) {
+      requeued += await requeueFirefliesRetry(row, retryErrorMessage(error))
+    }
+  }
+  if (rows.length) console.log(`fireflies retry drain: ${recovered} recovered, ${requeued} requeued`)
+  return { drained: rows.length, recovered, requeued }
+}
+
+async function requeueFirefliesRetry(row, message) {
+  try {
+    must(await crm('fireflies_retry').update({
+      attempts: Number(row.attempts || 0) + 1,
+      last_error: String(message).slice(0, FIREFLIES_RETRY_LAST_ERROR_MAX),
+    }).eq('meeting_id', row.meeting_id))
+  } catch (error) {
+    console.warn(`fireflies retry requeue failed for meeting ${row.meeting_id}: ${error.message}`)
+  }
+  return 1
 }
 
 async function verifySupabaseUser(token) {
@@ -1513,7 +1613,7 @@ export function createWorkerHttpHandler({
   loadProfile = resolveCrmProfile,
   checkHealth = verifyDatabaseHealth,
   chat = chatOpportunity,
-  processFireflies = handleFirefliesPayload,
+  processFireflies = processFirefliesWithRetryParking,
   logWarn = console.warn,
   logError = console.error,
 } = {}) {
@@ -1626,11 +1726,23 @@ async function firefliesServer() {
   server.listen(port, '0.0.0.0', () => console.log(`fireflies-server (supabase) listening on ${port}`))
 }
 
+// Timer-run commands (systemd popcrm-*.timer units). The Fireflies retry
+// parking (#68) drains at the start of each of these, whichever fires first.
+const TIMER_COMMANDS = new Set(['outlook-ingest', 'reroute', 'contact-sync', 'summarize', 'apply-ignore-rules'])
+
 export async function main(argv = process.argv, env = process.env, overrides = {}) {
   const command = argv[2] || 'help'
   loadEnvironmentFile(env)
   validateCommandEnvironment(command, env)
   initializeRuntime(env, overrides)
+  if (TIMER_COMMANDS.has(command)) {
+    try {
+      await drainFirefliesRetries()
+    } catch (error) {
+      // A stuck retry queue must not take the timer command down with it.
+      console.warn(`fireflies retry drain failed: ${error.message}`)
+    }
+  }
   if (command === 'outlook-ingest') await outlookIngest()
   else if (command === 'reroute') await reroute()
   else if (command === 'fireflies-server') await firefliesServer()
