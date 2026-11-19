@@ -78,6 +78,89 @@ describe('upstream timeout and retry policy', () => {
       .rejects.toMatchObject({ attempts: 1 })
     expect(fetchImpl).toHaveBeenCalledTimes(1)
   })
+
+  it('waits the requested Retry-After seconds on a 429 before retrying', async () => {
+    vi.useFakeTimers()
+    const fetchImpl = vi.fn()
+      .mockResolvedValueOnce(new Response('', { status: 429, headers: { 'Retry-After': '5' } }))
+      .mockResolvedValueOnce(new Response('{}'))
+    const pending = fetchWithPolicy(fetchImpl, 'https://example.test', {}, options)
+    let settled = false
+    void pending.then(() => { settled = true }, () => { settled = true })
+    // One millisecond short of the requested 5 seconds: still waiting.
+    await vi.advanceTimersByTimeAsync(4_999)
+    expect(settled).toBe(false)
+    await vi.advanceTimersByTimeAsync(1)
+    const response = await pending
+    expect(response.status).toBe(200)
+    expect(fetchImpl).toHaveBeenCalledTimes(2)
+  })
+
+  it('caps a Retry-After wait at 60 seconds', async () => {
+    const wait = vi.fn(async () => {})
+    const fetchImpl = vi.fn()
+      .mockResolvedValueOnce(new Response('', { status: 503, headers: { 'Retry-After': '120' } }))
+      .mockResolvedValueOnce(new Response('{}'))
+    const response = await fetchWithPolicy(fetchImpl, 'https://example.test', {}, { ...options, wait })
+    expect(response.status).toBe(200)
+    expect(wait).toHaveBeenCalledTimes(1)
+    expect(wait).toHaveBeenCalledWith(60_000)
+  })
+
+  it('honours an HTTP-date Retry-After', async () => {
+    const wait = vi.fn(async () => {})
+    const fetchImpl = vi.fn()
+      .mockResolvedValueOnce(new Response('', { status: 429, headers: { 'Retry-After': new Date(1_005_000).toUTCString() } }))
+      .mockResolvedValueOnce(new Response('{}'))
+    const response = await fetchWithPolicy(fetchImpl, 'https://example.test', {}, { ...options, wait, now: () => 1_000_000 })
+    expect(response.status).toBe(200)
+    expect(wait).toHaveBeenCalledWith(5_000)
+  })
+
+  it('ignores Retry-After on statuses outside 429/503 and uses the backoff', async () => {
+    const wait = vi.fn(async () => {})
+    const fetchImpl = vi.fn()
+      .mockResolvedValueOnce(new Response('', { status: 502, headers: { 'Retry-After': '5' } }))
+      .mockResolvedValueOnce(new Response('{}'))
+    const response = await fetchWithPolicy(fetchImpl, 'https://example.test', {}, { ...options, wait })
+    expect(response.status).toBe(200)
+    expect(wait).toHaveBeenCalledWith(10)
+  })
+
+  it('stops retrying when the next Retry-After wait would exceed the run budget', async () => {
+    const wait = vi.fn(async () => {})
+    const fetchImpl = vi.fn()
+      .mockResolvedValueOnce(new Response('', { status: 429, headers: { 'Retry-After': '5' } }))
+      .mockResolvedValueOnce(new Response('', { status: 429, headers: { 'Retry-After': '5' } }))
+    await expect(fetchWithPolicy(fetchImpl, 'https://example.test', {}, { ...options, wait, retryWaitBudgetMs: 6_000 }))
+      .rejects.toMatchObject({ name: 'UpstreamRequestError', attempts: 2, status: 429 })
+    expect(fetchImpl).toHaveBeenCalledTimes(2)
+    expect(wait).toHaveBeenCalledTimes(1)
+  })
+
+  it('aborts a stalled body read at the deadline', async () => {
+    vi.useFakeTimers()
+    const fetchImpl = vi.fn((_url, init) => Promise.resolve({
+      status: 200,
+      ok: true,
+      json: () => new Promise((_resolve, reject) => {
+        init.signal.addEventListener('abort', () => reject(init.signal.reason), { once: true })
+      }),
+    }))
+    const response = await fetchWithPolicy(fetchImpl, 'https://example.test', {}, { ...options, retryTransient: false, maxAttempts: 1 })
+    const pending = response.json()
+    const rejection = expect(pending).rejects.toMatchObject({ name: 'TimeoutError' })
+    await vi.advanceTimersByTimeAsync(100)
+    await rejection
+  })
+
+  it('reads a healthy body through the deadline wrapper', async () => {
+    const fetchImpl = vi.fn(async () => new Response('{"ok":true}', { status: 200 }))
+    const response = await fetchWithPolicy(fetchImpl, 'https://example.test', {}, { ...options, retryTransient: false, maxAttempts: 1 })
+    expect(response.ok).toBe(true)
+    expect(response.status).toBe(200)
+    await expect(response.json()).resolves.toEqual({ ok: true })
+  })
 })
 
 describe('upstream configuration', () => {
@@ -90,6 +173,7 @@ describe('upstream configuration', () => {
       UPSTREAM_MAX_ATTEMPTS: 3,
       UPSTREAM_RETRY_BASE_DELAY_MS: 250,
       UPSTREAM_RETRY_MAX_DELAY_MS: 2_000,
+      UPSTREAM_RETRY_WAIT_BUDGET_MS: 120_000,
     })
   })
 

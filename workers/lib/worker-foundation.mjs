@@ -122,6 +122,7 @@ const UPSTREAM_DEFAULTS = {
   UPSTREAM_MAX_ATTEMPTS: 3,
   UPSTREAM_RETRY_BASE_DELAY_MS: 250,
   UPSTREAM_RETRY_MAX_DELAY_MS: 2_000,
+  UPSTREAM_RETRY_WAIT_BUDGET_MS: 120_000,
 }
 
 export function parsePositiveIntegerSetting(name, value, defaultValue) {
@@ -170,6 +171,21 @@ export function validateCommandEnvironment(command, env = process.env) {
 
 const TRANSIENT_HTTP_STATUSES = new Set([408, 429, 500, 502, 503, 504])
 const TRANSIENT_NETWORK_CODES = new Set(['ECONNRESET', 'ECONNREFUSED', 'EAI_AGAIN', 'ETIMEDOUT', 'UND_ERR_CONNECT_TIMEOUT', 'UND_ERR_HEADERS_TIMEOUT', 'UND_ERR_SOCKET'])
+// "Slow down" statuses whose Retry-After header (delay-seconds or HTTP-date)
+// is honoured instead of the exponential guess, capped per wait.
+const RETRY_AFTER_STATUSES = new Set([429, 503])
+const RETRY_AFTER_MAX_WAIT_MS = 60_000
+
+// Retry-After: a positive integer is seconds; anything else must parse as an
+// HTTP-date. Returns the requested delay in ms, or null when absent/malformed.
+function parseRetryAfterMs(headerValue, nowMs) {
+  const value = String(headerValue ?? '').trim()
+  if (!value) return null
+  if (/^\d+$/.test(value)) return Number(value) * 1000
+  const at = Date.parse(value)
+  if (Number.isNaN(at)) return null
+  return Math.max(0, at - nowMs)
+}
 
 export class UpstreamRequestError extends Error {
   constructor(operation, attempts, status, cause) {
@@ -186,6 +202,38 @@ function sleep(delayMs) {
   return new Promise((resolve) => setTimeout(resolve, delayMs))
 }
 
+// The response handed to callers keeps the fetch's AbortController alive for
+// body reads: every body-consuming method re-arms the same deadline that
+// covered the headers, so a stalled download aborts instead of hanging the
+// run past its stated time limit (workers/README.md). Non-body properties
+// pass straight through.
+function withBodyDeadline(response, { operation, timeoutMs, controller }) {
+  const readUnderDeadline = async (method) => {
+    const timer = setTimeout(() => {
+      controller.abort(new DOMException(`${operation} body timed out`, 'TimeoutError'))
+    }, timeoutMs)
+    try {
+      return await response[method]()
+    } finally {
+      clearTimeout(timer)
+    }
+  }
+  return {
+    ok: response.ok,
+    status: response.status,
+    headers: response.headers,
+    get body() {
+      return response.body
+    },
+    json: () => readUnderDeadline('json'),
+    text: () => readUnderDeadline('text'),
+    arrayBuffer: () => readUnderDeadline('arrayBuffer'),
+    blob: () => readUnderDeadline('blob'),
+    formData: () => readUnderDeadline('formData'),
+    bytes: () => readUnderDeadline('bytes'),
+  }
+}
+
 export async function fetchWithPolicy(fetchImpl, url, init = {}, options = {}) {
   const {
     operation,
@@ -194,17 +242,20 @@ export async function fetchWithPolicy(fetchImpl, url, init = {}, options = {}) {
     retryTransient = false,
     baseDelayMs = 250,
     maxDelayMs = 2_000,
+    retryWaitBudgetMs = 120_000,
     random = Math.random,
     wait = sleep,
+    now = Date.now,
   } = options
   if (typeof fetchImpl !== 'function') throw new Error('fetchImpl must be a function')
   if (typeof operation !== 'string' || !operation.trim()) throw new Error('operation is required')
-  for (const [name, value] of Object.entries({ timeoutMs, maxAttempts, baseDelayMs, maxDelayMs })) {
+  for (const [name, value] of Object.entries({ timeoutMs, maxAttempts, baseDelayMs, maxDelayMs, retryWaitBudgetMs })) {
     if (!Number.isSafeInteger(value) || value <= 0) throw new Error(`${name} must be a positive integer`)
   }
 
   let lastStatus
   let lastError
+  let remainingRetryWaitMs = retryWaitBudgetMs
   for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
     const controller = new AbortController()
     let timedOut = false
@@ -215,11 +266,15 @@ export async function fetchWithPolicy(fetchImpl, url, init = {}, options = {}) {
       timedOut = true
       controller.abort(new DOMException(`${operation} timed out`, 'TimeoutError'))
     }, timeoutMs)
+    let retryAfterMs = null
     try {
       const response = await fetchImpl(url, { ...init, signal: controller.signal })
       lastStatus = response.status
       if (!retryTransient || !TRANSIENT_HTTP_STATUSES.has(response.status)) {
-        return response
+        return withBodyDeadline(response, { operation, timeoutMs, controller })
+      }
+      if (RETRY_AFTER_STATUSES.has(response.status)) {
+        retryAfterMs = parseRetryAfterMs(response.headers?.get?.('retry-after'), now())
       }
       if (attempt === maxAttempts) {
         await response.body?.cancel?.().catch?.(() => {})
@@ -238,9 +293,20 @@ export async function fetchWithPolicy(fetchImpl, url, init = {}, options = {}) {
       init.signal?.removeEventListener?.('abort', onCallerAbort)
     }
 
-    const exponential = Math.min(maxDelayMs, baseDelayMs * (2 ** (attempt - 1)))
-    const jittered = Math.max(1, Math.round(exponential * (0.5 + random() * 0.5)))
-    await wait(jittered)
+    let delayMs
+    if (retryAfterMs !== null) {
+      // The upstream service said how long to wait: honour it, capped per
+      // wait and by the remaining retry budget so the run still ends on time.
+      delayMs = Math.min(retryAfterMs, RETRY_AFTER_MAX_WAIT_MS)
+      if (delayMs > remainingRetryWaitMs) {
+        throw new UpstreamRequestError(operation, attempt, lastStatus)
+      }
+      remainingRetryWaitMs -= delayMs
+    } else {
+      const exponential = Math.min(maxDelayMs, baseDelayMs * (2 ** (attempt - 1)))
+      delayMs = Math.max(1, Math.round(exponential * (0.5 + random() * 0.5)))
+    }
+    await wait(delayMs)
   }
   throw new UpstreamRequestError(operation, maxAttempts, lastStatus, lastError)
 }

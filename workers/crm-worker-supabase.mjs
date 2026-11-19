@@ -106,6 +106,7 @@ function upstreamFetch(operation, url, init, { timeoutMs, retryTransient = false
     maxAttempts: retryTransient ? upstreamSettings.UPSTREAM_MAX_ATTEMPTS : 1,
     baseDelayMs: upstreamSettings.UPSTREAM_RETRY_BASE_DELAY_MS,
     maxDelayMs: upstreamSettings.UPSTREAM_RETRY_MAX_DELAY_MS,
+    retryWaitBudgetMs: upstreamSettings.UPSTREAM_RETRY_WAIT_BUDGET_MS,
   })
 }
 
