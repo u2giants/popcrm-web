@@ -8,6 +8,7 @@ Read the summary; open a document only when it matches your task.
 
 | File | Status | Summary | Read when |
 |---|---|---|---|
+| [.agents/skills/modern-web-guidance/SKILL.md](../.agents/skills/modern-web-guidance/SKILL.md) | current | How to use the modern-web-guidance search tool (search/retrieve workflow and query rules) before writing web UI, CSS, or client-side JS. | implementing or updating web UI, CSS, or client-side JS and deciding whether to consult the modern-web-guidance search tool |
 | [docs/agents-reference.md](agents-reference.md) | current | Detail moved out of AGENTS.md 2026-11-11 — shared-db rules, structure, task-to-file map, data model, identifiers, containers, env table. | AGENTS.md points here for the file map, task-to-file table, data model, identifiers, containers, or env variables |
 | [docs/architecture.md](architecture.md) | current | System design of the SPA: Vite/React shell, CrmDataContext loading, Supabase api.* contracts, workers, auth and impersonation, key files per layer. | changing data flow, app structure, auth, or Supabase read/write contracts |
 | [docs/critical-incidents.md](critical-incidents.md) | current | Incident write-ups with impact, root cause and rules added: select-all bulk overwrite, timeout remediations, auth and deploy failures. | investigating a regression, blank page, deploy failure, or data-access gate |

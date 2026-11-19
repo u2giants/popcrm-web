@@ -38,7 +38,7 @@ It **stores no data of its own** — every read/write goes through the shared Su
 
 ## AI tool notes
 
-Claude Code uses `.claudeignore`. Other tools should skip `node_modules/`, `dist/`, `.env`, and generated output — see "What to ignore" below.
+Claude Code uses `.claudeignore`. Other tools should skip `node_modules/`, `dist/`, `.env`, and generated output — see "What to ignore" below. Web UI/CSS/client-JS work should follow [`.agents/skills/modern-web-guidance/SKILL.md`](.agents/skills/modern-web-guidance/SKILL.md).
 
 ## Documentation map: what to read for each task
 
