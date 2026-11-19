@@ -1082,6 +1082,10 @@ export async function runReroute({ fetchRows, routeMessage, updateRow, log = con
 
 async function reroute() {
   const columns = 'id,subject,body_preview,sender,recipients,routing_status,routing_method,company_id'
+  // Improved programs are collected while walking and summarised once each
+  // after the loop: 40 improved messages of one program cost one paid
+  // summary, not 40.
+  const summarizedOpportunities = new Set()
   await runReroute({
     fetchRows: async () => [
       ...await fetchAllRows(() => crm('email_message').select(columns).in('routing_status', ROUTABLE_STATUSES)),
@@ -1095,10 +1099,11 @@ async function reroute() {
     },
     updateRow: async (row, route) => {
       const written = must(await buildRerouteWrite(crm('email_message').update(routeColumns(route)), row))
-      if (written.length && route.opportunity) await updateOpportunitySummary(route.opportunity)
+      if (written.length && route.opportunity) summarizedOpportunities.add(route.opportunity)
       return written.length
     },
   })
+  for (const opportunityId of summarizedOpportunities) await updateOpportunitySummary(opportunityId)
 }
 
 // Domains classified Active/Potential Customer on the Customers page.
@@ -1218,12 +1223,53 @@ async function recordUnknownDomainsFromAddresses(addresses, subject = null, disp
   return recorded
 }
 
+// The stored summary timestamp is the updatedAt written inside ai_state by
+// summarizeOpportunity — no dedicated column exists yet (OPEN on #65: a
+// shared-db summary-timestamp column is the eventual home).
+function summaryTimestampOf(opportunity) {
+  if (!opportunity?.ai_state) return null
+  try {
+    const at = Date.parse(JSON.parse(opportunity.ai_state)?.updatedAt)
+    return Number.isNaN(at) ? null : at
+  } catch {
+    return null
+  }
+}
+
 async function summarize() {
-  const rows = await fetchAllRows(() => crm('email_message').select('id,opportunity_id').not('opportunity_id', 'is', null))
-  const ids = [...new Set(rows.map((r) => r.opportunity_id).filter(Boolean))]
+  const emailRows = await fetchAllRows(() => crm('email_message').select('id,opportunity_id,received_at').not('opportunity_id', 'is', null))
+  const newestEmailAt = new Map()
+  for (const row of emailRows) {
+    if (!row.opportunity_id) continue
+    const parsed = Date.parse(row.received_at || '')
+    const at = Number.isNaN(parsed) ? 0 : parsed
+    newestEmailAt.set(row.opportunity_id, Math.max(newestEmailAt.get(row.opportunity_id) ?? at, at))
+  }
+  const opportunities = await fetchAllRows(() => crm('opportunity').select('id,ai_state,updated_at'))
+  const due = []
+  for (const opportunity of opportunities) {
+    const newestEmail = newestEmailAt.get(opportunity.id)
+    // No email at all: nothing to refresh.
+    if (newestEmail === undefined) continue
+    // Only programs whose newest email is later than the stored summary
+    // timestamp are refreshed; unchanged programs are skipped.
+    const summarizedAt = summaryTimestampOf(opportunity)
+    if (summarizedAt !== null && newestEmail <= summarizedAt) continue
+    due.push(opportunity)
+  }
+  // Until a summary-timestamp column exists, due programs run
+  // least-recently-updated first: a run capped at its systemd time limit
+  // advances through the backlog instead of refreshing the same head every
+  // time (summarizing bumps updated_at, so refreshed programs move to the
+  // back of the queue on their own).
+  const updatedTime = (opportunity) => {
+    const parsed = Date.parse(opportunity.updated_at || '')
+    return Number.isNaN(parsed) ? 0 : parsed
+  }
+  due.sort((a, b) => updatedTime(a) - updatedTime(b))
   let updated = 0
   let failed = 0
-  for (const id of ids) {
+  for (const { id } of due) {
     try {
       if (await summarizeOpportunity(id)) updated += 1
     } catch (error) {
@@ -1231,8 +1277,8 @@ async function summarize() {
       console.warn(`summarize: opportunity ${id} failed: ${error.message}`)
     }
   }
-  console.log(`summarize: ${updated}/${ids.length} opportunities refreshed${failed ? `, ${failed} failed` : ''}`)
-  if (failed) throw new Error(`summarize: ${failed}/${ids.length} opportunities failed`)
+  console.log(`summarize: ${updated}/${due.length} opportunities refreshed${failed ? `, ${failed} failed` : ''}`)
+  if (failed) throw new Error(`summarize: ${failed}/${due.length} opportunities failed`)
 }
 
 function subjectMatchesRule(subject, rule) {

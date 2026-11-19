@@ -54,8 +54,9 @@ function rowMatchesFilter(row, filter) {
     case 'or':
       return value.some((fragment) => {
         const parsed = parseOrFragment(fragment)
-        if (parsed.op === 'ilike') return likeToRegExp(parsed.value).test(String(cell ?? ''))
-        if (parsed.op === 'eq') return String(cell ?? '') === parsed.value
+        const fragmentCell = row[parsed.column]
+        if (parsed.op === 'ilike') return likeToRegExp(parsed.value).test(String(fragmentCell ?? ''))
+        if (parsed.op === 'eq') return String(fragmentCell ?? '') === parsed.value
         return false
       })
     case 'not': {
