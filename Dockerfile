@@ -29,6 +29,8 @@ RUN npm run build
 # fallback in issue #72 keeps root nginx pinned.
 FROM nginx:1.30.7-alpine
 COPY nginx.conf /etc/nginx/conf.d/default.conf
+# Security headers snippet included by every location in nginx.conf (issue #70).
+COPY security-headers.conf /etc/nginx/snippets/security-headers.conf
 COPY --from=build /app/dist /usr/share/nginx/html
 # Known version path the deploy check reads after Coolify deploys
 # (scripts/verify-live-version.sh compares git_sha with the merged commit).
