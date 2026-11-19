@@ -140,7 +140,6 @@ Full text lives in [docs/critical-incidents.md](docs/critical-incidents.md). Loa
 
 | Status | Item | Owner/next action |
 |---|---|---|
-| open | Live proof for high-severity audit issues #32–#37, #44, #63 (incl. #36: reroute keeps a manually assigned customer) | Fixes landed on `main` 2026-11-18 (commits `d9e851a3`…`10a6cf65`) with tests; each issue's live-proof STATUS row is the card — verify the reproduction on the live site, then tick and close |
 | open | Live proof for medium-severity audit issues #38, #39, #43, #45, #47, #48, #50–#54 | Fixes landed on `main` 2026-11-18 (commits `22b2036a`…`a80ef3d9`) with tests, deployed; each issue's live-proof STATUS row is the card — verify the reproduction on the live site, then tick and close. #39 step 1 (shared-db clear flags) still open: claim-first workflow in `popcre/shared-db` |
 | open | shared-db PR popcre/shared-db#6818: #39 clear flags, #57 counts RPC, #40 sender index + emails-for RPCs, #68 transcript unique index + retry table, #69 skip counter | Preview applied and verified 2026-11-19; claims posted on each issue; merge + automatic promotion pending, then client follow-ups (#40 drawers, #57 pages, #68 worker upsert) |
 | open | `fix_bugs.md` Part 2 leftovers | D/E/G landed 2026-11-19 (see its Part 2 notes); A/B/C tracked by issue #57 (counts RPC in popcre/shared-db#6818, client steps pending); F lands with #6818 |
