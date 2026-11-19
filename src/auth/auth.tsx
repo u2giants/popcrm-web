@@ -189,6 +189,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       gate.dispose()
       sub.subscription.unsubscribe()
     }
+    // Mount-once by design: refresh closes over refs and stable setters, and
+    // re-running this effect per render would re-gate and re-subscribe the
+    // auth listener every time.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   // Impersonation is an admin-only capability: only an administrator's session
