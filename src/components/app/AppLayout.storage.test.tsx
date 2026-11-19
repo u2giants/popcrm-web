@@ -13,7 +13,7 @@
 import { cleanup, fireEvent, render, screen } from '@testing-library/react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { MemoryRouter, Route, Routes } from 'react-router-dom'
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
 
 vi.mock('@/lib/supabase', () => ({ supabase: {} }))
 vi.mock('@/auth/auth', () => ({
@@ -54,7 +54,30 @@ function renderLayout() {
   )
 }
 
-const realLocalStorage = window.localStorage
+// happy-dom exposes localStorage lazily on some Node versions (undefined at
+// module scope, present by test time), so capture lazily and tolerate absence.
+let realLocalStorage: Storage | undefined = window.localStorage
+
+// Under some Node versions happy-dom ships no localStorage at all; this file
+// needs a working storage to prove the "storage works" path, so install an
+// in-memory one for the whole file when the environment lacks it.
+beforeAll(() => {
+  if (!realLocalStorage && !window.localStorage) {
+    const backing = new Map<string, string>()
+    const polyfill: Storage = {
+      get length() {
+        return backing.size
+      },
+      clear: () => backing.clear(),
+      getItem: (k) => (backing.has(k) ? backing.get(k)! : null),
+      key: (i) => Array.from(backing.keys())[i] ?? null,
+      removeItem: (k) => void backing.delete(k),
+      setItem: (k, v) => void backing.set(String(k), String(v)),
+    }
+    Object.defineProperty(window, 'localStorage', { value: polyfill, configurable: true })
+    realLocalStorage = polyfill
+  }
+})
 
 // Replace window.localStorage with one whose every operation throws, the way a
 // browser does when storage is disabled or the quota is hit. Restored in
@@ -72,12 +95,13 @@ function breakStorage() {
 }
 
 beforeEach(() => {
-  realLocalStorage.clear()
+  realLocalStorage ??= window.localStorage
+  realLocalStorage?.clear()
 })
 
 afterEach(() => {
   Object.defineProperty(window, 'localStorage', { value: realLocalStorage, configurable: true })
-  realLocalStorage.clear()
+  realLocalStorage?.clear()
   document.documentElement.classList.remove('dark', 'density-compact')
   cleanup()
 })
