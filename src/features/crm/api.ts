@@ -1364,13 +1364,13 @@ export async function searchCrm(query: string, limitPerGroup = 8): Promise<CrmSe
     supabase
       .schema("api")
       .from('crm_contact_list')
-      .select('id,name,email,company_id,company_name,company_display_name')
+      .select('id,name,email,company_id,company_name')
       .or(ilikeAny(['name', 'email', 'job_title', 'company_name'], pattern))
       .limit(limitPerGroup),
     supabase
       .schema("api")
       .from('crm_opportunity_list')
-      .select('id,name,company_id,company_name,company_display_name')
+      .select('id,name,company_id,company_name')
       .or(ilikeAny(['name', 'company_name', 'department_name', 'production_po_number', 'sales_order_number'], pattern))
       .order('stage', { nullsFirst: false })
       .order('name')
@@ -1378,7 +1378,7 @@ export async function searchCrm(query: string, limitPerGroup = 8): Promise<CrmSe
     supabase
       .schema("api")
       .from('crm_email_routing_queue')
-      .select('id,subject,sender,company_id,company_name,company_display_name')
+      .select('id,subject,sender,company_id,company_name')
       .or(ilikeAny(['subject', 'sender', 'recipients', 'company_name', 'department_name', 'opportunity_name'], pattern))
       .order('received_at', { ascending: false, nullsFirst: false })
       .limit(limitPerGroup),
