@@ -15,6 +15,7 @@ import {
   deleteNote,
   deleteTask,
   fetchCustomerBrands,
+  fetchCustomerCounts,
   fetchCustomerSegment,
   fetchCustomerSegmentCounts,
   fetchAiModelConfigs,
@@ -63,10 +64,13 @@ import {
   updateRetailer,
   createCustomer,
   fetchContactsByDomain,
+  fetchContactsForCustomer,
+  fetchContactsForDepartment,
   updateTask,
   type CustomerBrand,
   type CustomerSegment,
   type CustomerSegmentCounts,
+  type CustomerCountsMap,
   type ContactSegment,
   type ContactSegmentCounts,
   type EmailStage,
@@ -108,10 +112,16 @@ export const crmKeys = {
   retailers: (limit = -1) => [...crmKeys.all, 'retailers', { limit }] as const,
   customerSegment: (segment: CustomerSegment, limit = -1) => [...crmKeys.all, 'customerSegment', segment, { limit }] as const,
   customerSegmentCounts: () => [...crmKeys.all, 'customerSegmentCounts'] as const,
+  // One aggregate call for the CustomersPage count columns (#57).
+  customerCounts: () => [...crmKeys.all, 'customerCounts'] as const,
   ingestedDomains: (limit = -1) => [...crmKeys.all, 'ingestedDomains', { limit }] as const,
   customerIngestedDomains: (customerId: string) => [...crmKeys.all, 'ingestedDomains', 'customer', customerId] as const,
   ingestedDomainCount: () => [...crmKeys.all, 'ingestedDomainCount'] as const,
   ingestedContacts: (limit = -1) => [...crmKeys.all, 'ingestedContacts', { limit }] as const,
+  // Scoped contact feeds for the drawers (#57): keyed by the exact scope so a
+  // customer drawer and a department drawer never share a cache entry.
+  contactsForCustomer: (customerId: string) => [...crmKeys.all, 'ingestedContacts', 'customer', customerId] as const,
+  contactsForDepartment: (departmentId: string) => [...crmKeys.all, 'ingestedContacts', 'department', departmentId] as const,
   contactSegment: (segment: Exclude<ContactSegment, 'all'>, limit = -1) => [...crmKeys.all, 'contactSegment', segment, { limit }] as const,
   allContacts: (limit = -1) => [...crmKeys.all, 'allContacts', { limit }] as const,
   contactSegmentCounts: () => [...crmKeys.all, 'contactSegmentCounts'] as const,
@@ -297,6 +307,26 @@ export function useIngestedContactsQuery(limit = -1) {
   return useQuery({ queryKey: crmKeys.ingestedContacts(limit), queryFn: () => fetchIngestedContacts(limit), ...crmQueryDefaults })
 }
 
+/** One customer's contacts (api.crm_contact_list by company_id), not the whole table (#57). */
+export function useContactsForCustomerQuery(customerId: string | null | undefined) {
+  return useQuery({
+    queryKey: crmKeys.contactsForCustomer(customerId ?? ''),
+    queryFn: () => fetchContactsForCustomer(customerId as string),
+    enabled: !!customerId,
+    ...crmQueryDefaults,
+  })
+}
+
+/** One department's contacts (api.crm_contact_list by department_id), not the whole table (#57). */
+export function useContactsForDepartmentQuery(departmentId: string | null | undefined) {
+  return useQuery({
+    queryKey: crmKeys.contactsForDepartment(departmentId ?? ''),
+    queryFn: () => fetchContactsForDepartment(departmentId as string),
+    enabled: !!departmentId,
+    ...crmQueryDefaults,
+  })
+}
+
 export function useContactSegmentQuery(segment: Exclude<ContactSegment, 'all'>, limit = -1, enabled = true) {
   return useQuery({
     queryKey: crmKeys.contactSegment(segment, limit),
@@ -321,6 +351,20 @@ export function useContactSegmentCountsQuery() {
     queryFn: fetchContactSegmentCounts,
     ...crmQueryDefaults,
     staleTime: 15_000,
+  })
+}
+
+/**
+ * Contact/program count columns for the customers table, from the
+ * api.crm_customer_counts() aggregate (#57). Consumers must render '—' on
+ * isError — never 0 — so a failed lookup cannot read as real data.
+ */
+export function useCustomerCountsQuery() {
+  return useQuery<CustomerCountsMap>({
+    queryKey: crmKeys.customerCounts(),
+    queryFn: fetchCustomerCounts,
+    ...crmQueryDefaults,
+    staleTime: 2 * 60_000,
   })
 }
 

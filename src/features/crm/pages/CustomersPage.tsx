@@ -14,14 +14,13 @@ import { MergeCustomersDialog } from '@/features/crm/components/MergeCustomersDi
 import { CustomerRelationLogo } from '@/features/crm/components/CustomerRelationLogo'
 import { ChainBadge } from '@/features/crm/components/CrmStatusBadge'
 import { CHAIN_TYPES, CUSTOMER_STATUSES, customerStatusLabel, customerStatusTone } from '@/features/crm/constants'
-import { customerLabel, formatDateTime, idOf, label, textOf } from '@/features/crm/format'
+import { customerLabel, formatDateTime, label, textOf } from '@/features/crm/format'
 import {
   listData,
+  useCustomerCountsQuery,
   useCustomerSegmentCountsQuery,
   useCustomerSegmentQuery,
   useIngestedDomainsQuery,
-  useIngestedContactsQuery,
-  useOpportunitiesQuery,
   useUpdateIngestedDomainMutation,
   useUpdateCustomerMutation,
 } from '@/features/crm/queries'
@@ -64,13 +63,12 @@ export function CustomersPage() {
   const allCustomersQuery = useCustomerSegmentQuery('all')
   const triageDomainsQuery = useIngestedDomainsQuery(-1)
   const countsQuery = useCustomerSegmentCountsQuery()
-  const buyersQuery = useIngestedContactsQuery(-1)
-  const opportunitiesQuery = useOpportunitiesQuery(-1)
+  // Contact/program count columns from one server aggregate (#57): no full
+  // contact/program downloads. '—' plus an inline notice when it fails — never 0.
+  const relationCountsQuery = useCustomerCountsQuery()
   const updateCustomerMutation = useUpdateCustomerMutation()
   const updateDomainMutation = useUpdateIngestedDomainMutation()
   const [mergeSelection, setMergeSelection] = useState<Retailer[] | null>(null)
-  const buyers = listData(buyersQuery.data)
-  const opportunities = listData(opportunitiesQuery.data)
   const triageDomains = listData(triageDomainsQuery.data)
   const allCustomers = listData(allCustomersQuery.data)
   const buckets = useMemo(() => {
@@ -106,16 +104,12 @@ export function CustomersPage() {
   const counts = useMemo(() => {
     const contacts = new Map<string, number>()
     const opps = new Map<string, number>()
-    for (const b of buyers) {
-      const id = idOf(b.retailer)
-      if (id) contacts.set(id, (contacts.get(id) ?? 0) + 1)
-    }
-    for (const o of opportunities) {
-      const id = idOf(o.retailer)
-      if (id) opps.set(id, (opps.get(id) ?? 0) + 1)
+    for (const [id, row] of relationCountsQuery.data ?? []) {
+      contacts.set(id, row.contactCount)
+      opps.set(id, row.programCount)
     }
     return { contacts, opps }
-  }, [buyers, opportunities])
+  }, [relationCountsQuery.data])
 
 
   const filteredCustomers = useMemo(() => {
@@ -223,23 +217,25 @@ export function CustomersPage() {
         header: 'Contacts',
         hideBelow: 'lg',
         numeric: true,
-        sortValue: (r) => counts.contacts.get(r.id) ?? 0,
+        // Unknown (-1) only while/after the aggregate failed: every cell then
+        // shows '—', so the sort value is never surfaced as data (#57).
+        sortValue: (r) => (relationCountsQuery.isError ? -1 : counts.contacts.get(r.id) ?? 0),
         className: 'text-right tabular-nums',
         headClassName: 'text-right',
-        cell: (r) => counts.contacts.get(r.id) ?? 0,
+        cell: (r) => (relationCountsQuery.isError ? '—' : counts.contacts.get(r.id) ?? 0),
       },
       {
         key: 'opps',
         header: 'Programs',
         hideBelow: 'xl',
         numeric: true,
-        sortValue: (r) => counts.opps.get(r.id) ?? 0,
+        sortValue: (r) => (relationCountsQuery.isError ? -1 : counts.opps.get(r.id) ?? 0),
         className: 'text-right tabular-nums',
         headClassName: 'text-right',
-        cell: (r) => counts.opps.get(r.id) ?? 0,
+        cell: (r) => (relationCountsQuery.isError ? '—' : counts.opps.get(r.id) ?? 0),
       },
     ],
-    [counts],
+    [counts, relationCountsQuery.isError],
   )
 
   const domainColumns: Column<CrmIngestedDomain>[] = useMemo(
@@ -377,6 +373,20 @@ export function CustomersPage() {
         </div>
       ) : (
         <div className="space-y-2">
+          {relationCountsQuery.isError ? (
+            // A failed counts aggregate shows '—' in the columns; saying so
+            // here keeps the dash from reading as "no contacts/programs" (#57).
+            <p className="px-1 text-[12px] text-destructive">
+              Could not load contact and program counts.{' '}
+              <button
+                type="button"
+                className="underline underline-offset-2"
+                onClick={() => void relationCountsQuery.refetch()}
+              >
+                Retry
+              </button>
+            </p>
+          ) : null}
           <DataTable
           key="customer-list-table"
           // One table serves the four company tabs; reset the pager per tab (issue #45).

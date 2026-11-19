@@ -10,34 +10,44 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { StageBadge } from '@/features/crm/components/CrmStatusBadge'
 import { StatCard } from '@/features/crm/components/StatCard'
-import { listData, useIngestedContactsQuery, useOpportunitiesQuery, useUpdateDepartmentMutation } from '@/features/crm/queries'
+import {
+  listData,
+  useContactsForCustomerQuery,
+  useContactsForDepartmentQuery,
+  useOpportunitiesQuery,
+  useUpdateDepartmentMutation,
+} from '@/features/crm/queries'
 import { formatDate, formatAmount, idOf, label, relatedName } from '@/features/crm/format'
 import { logError } from '@/lib/errors'
 import type { CrmDepartment } from '@/lib/types'
 
 export function DepartmentDrawer({ row, departments, onClose }: { row: CrmDepartment | null; departments: CrmDepartment[]; onClose: () => void }) {
-  const buyers = listData(useIngestedContactsQuery(-1).data)
+  // Scoped feeds (#57): this department's contacts, plus the owning customer's
+  // contacts for the primary-contact picker — no whole-table contact download.
+  const contactsQuery = useContactsForDepartmentQuery(row?.id)
+  const contacts = listData(contactsQuery.data)
+  const customerId = row ? idOf(row.retailer) : null
+  const customerContactsQuery = useContactsForCustomerQuery(customerId)
+  const customerContacts = listData(customerContactsQuery.data)
   const opportunities = listData(useOpportunitiesQuery(-1).data)
   const updateDepartment = useUpdateDepartmentMutation()
   const [renameOpen, setRenameOpen] = useState(false)
   const [nameDraft, setNameDraft] = useState('')
 
   const related = useMemo(() => {
-    if (!row) return { contacts: [], programs: [] }
+    if (!row) return { programs: [] }
     return {
-      contacts: buyers.filter((b) => idOf(b.department) === row.id),
+      // The scoped feed is already only this department's contacts (#57).
       programs: opportunities.filter((o) => idOf(o.department) === row.id),
     }
-  }, [row, buyers, opportunities])
+  }, [row, opportunities])
 
   const contactOptions = useMemo<ComboOption[]>(() => {
     if (!row) return []
-    const customerId = idOf(row.retailer)
-    return buyers
-      .filter((b) => idOf(b.retailer) === customerId)
+    return customerContacts
       .map((b) => ({ value: b.id, label: b.name, hint: b.job_title ?? undefined }))
       .sort((a, b) => a.label.localeCompare(b.label))
-  }, [row, buyers])
+  }, [row, customerContacts])
   const categoryOptions = useMemo<ComboOption[]>(() => distinctOptions(departments.map((d) => d.category)), [departments])
   const divisionOptions = useMemo<ComboOption[]>(() => distinctOptions(departments.map((d) => d.division)), [departments])
 
@@ -85,7 +95,7 @@ export function DepartmentDrawer({ row, departments, onClose }: { row: CrmDepart
                 icon={<Contact className="size-[14px]" />}
                 iconColor="oklch(0.62 0.15 165)"
                 label="Contacts"
-                value={related.contacts.length}
+                value={contactsQuery.isError ? '—' : contacts.length}
               />
               <StatCard
                 icon={<Route className="size-[14px]" />}
@@ -100,7 +110,23 @@ export function DepartmentDrawer({ row, departments, onClose }: { row: CrmDepart
             <DescriptionList>
               <DescriptionItem term="Customer">{relatedName(row.retailer)}</DescriptionItem>
               <DescriptionItem term="Primary contact">
-                <Combobox options={contactOptions} value={idOf(row.primary_buyer)} onChange={(value) => void save({ primary_buyer: value || null })} placeholder="Select contact" className="h-8" />
+                <div className="space-y-[4px]">
+                  <Combobox options={contactOptions} value={idOf(row.primary_buyer)} onChange={(value) => void save({ primary_buyer: value || null })} placeholder="Select contact" className="h-8" />
+                  {customerContactsQuery.isError ? (
+                    // An empty picker on failure would read as "this customer
+                    // has no contacts" (#58 rule) — say what failed instead.
+                    <p className="text-[11px] text-destructive">
+                      Could not load this customer’s contacts.{' '}
+                      <button
+                        type="button"
+                        className="underline underline-offset-2"
+                        onClick={() => void customerContactsQuery.refetch()}
+                      >
+                        Retry
+                      </button>
+                    </p>
+                  ) : null}
+                </div>
               </DescriptionItem>
               <DescriptionItem term="Category">
                 <Combobox options={categoryOptions} value={row.category ?? ''} onChange={(value) => void save({ category: value || null })} placeholder="Select category" className="h-8" />
@@ -111,10 +137,18 @@ export function DepartmentDrawer({ row, departments, onClose }: { row: CrmDepart
             </DescriptionList>
           </DrawerSection>
 
-          <DrawerSection title={`Contacts (${related.contacts.length})`}>
-            {related.contacts.length ? (
+          <DrawerSection title={`Contacts (${contactsQuery.isError ? '—' : contacts.length})`}>
+            {contactsQuery.isError ? (
+              // A failed scoped load must not read as "no contacts assigned" (#58 rule).
+              <p className="text-[12px] text-destructive">
+                Could not load this department’s contacts.{' '}
+                <button type="button" className="underline underline-offset-2" onClick={() => void contactsQuery.refetch()}>
+                  Retry
+                </button>
+              </p>
+            ) : contacts.length ? (
               <ul className="divide-y rounded-[8px] border">
-                {related.contacts.map((c) => (
+                {contacts.map((c) => (
                   <li key={c.id} className="flex items-center gap-[9px] px-[11px] py-[8px]">
                     <NameAvatar name={c.last_name || c.name} size={22} />
                     <div className="min-w-0 flex-1">

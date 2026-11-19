@@ -236,6 +236,11 @@ count columns (lines 200–213). This is precisely the pattern the July audit
 returning `{customer_id, contact_count, opportunity_count}`, consumed like the
 existing `crm_overview_*` contracts. Shared-db work first, then the app change.
 
+> **A — DONE 2026-11-19 via issue #57**: the Contacts and Programs columns now
+> read the `api.crm_customer_counts()` aggregate (shared-db migration
+> `20261223010102`); a failed counts query shows '—' plus an inline error,
+> never 0.
+
 ### B. `useIngestedContactsQuery(-1)` pulls the whole contact table on four pages
 
 `CustomersPage.tsx:67`, `DataAdminPage.tsx:81`, `DepartmentsPage.tsx:26`,
@@ -248,6 +253,14 @@ contact-table download to populate comboboxes and labels. A narrowed
 `select` (id, name, email, company, department) would cut the payload
 substantially with no contract change; a picker-style bounded view would be
 better still.
+
+> **B — DONE 2026-11-19 via issue #57**: CustomersPage reads the counts
+> aggregate (item A) and CustomerDrawer/DepartmentDrawer use scoped
+> by-customer/by-department contact queries. DataAdmin, Departments and
+> Meetings keep the full list deliberately: each resolves arbitrary contacts
+> across all customers (cleanup lists, per-row pickers, meeting-contact
+> labels), which no single scoped query can serve — recorded as issue #57's
+> decision on its OPEN note.
 
 ### C. `fetchBuyers` filters server data client-side, so `limit` under-delivers
 
@@ -265,6 +278,10 @@ however many of those happen to be customer contacts — the caller asks for 100
 and silently gets fewer. Every current caller passes `-1`, so nothing is
 broken today. Either document the contract as "at most `limit`" or push the
 filter into a purpose-built view.
+
+> **C — DONE 2026-11-19 via issue #61**: `fetchBuyers`/`useBuyersQuery` are
+> deleted with zero references (the last stale test-mock entry was removed
+> with issue #57's drawer work).
 
 > **D — DONE 2026-11-19 via issue #65** (commit 4496ce2c): reroute summarises
 > each program once after the loop; summarize only refreshes programs whose

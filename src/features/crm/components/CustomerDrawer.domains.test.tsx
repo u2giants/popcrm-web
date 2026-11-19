@@ -24,7 +24,7 @@ const domainsQueryState: { data?: unknown[]; isLoading: boolean; isError: boolea
 
 vi.mock('@/features/crm/queries', () => ({
   listData: <T,>(data: T[] | undefined): T[] => data ?? [],
-  useIngestedContactsQuery: vi.fn(() => ({ data: [] })),
+  useContactsForCustomerQuery: vi.fn(() => ({ data: [], isPending: false, isError: false, refetch: vi.fn() })),
   useDepartmentsQuery: vi.fn(() => ({ data: [] })),
   useOpportunitiesQuery: vi.fn(() => ({ data: [] })),
   useEmailsForQuery: vi.fn(() => ({ rows: [], total: 0, isLoading: false, isError: false, refetch: vi.fn() })),

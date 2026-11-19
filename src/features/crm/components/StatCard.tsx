@@ -3,6 +3,7 @@ import type { ReactNode } from 'react'
 /**
  * The one drawer stat tile (#55): icon chip + count + label. Extracted from
  * the CustomerDrawer and DepartmentDrawer copies so they cannot drift apart.
+ * A string value (—) renders in place of a failed count (#57): never a false 0.
  */
 export function StatCard({
   icon,
@@ -13,7 +14,7 @@ export function StatCard({
   icon: ReactNode
   iconColor: string
   label: string
-  value: number
+  value: number | string
 }) {
   return (
     <div className="flex items-center gap-[10px] rounded-[9px] border bg-muted/30 px-[12px] py-[10px]">

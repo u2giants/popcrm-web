@@ -31,7 +31,6 @@ vi.mock('./api', () => ({
   fetchAiModelConfigs: vi.fn(),
   fetchAllContacts: vi.fn(),
   fetchApprovalThreads: vi.fn(),
-  fetchBuyers: vi.fn(),
   fetchContactSegment: vi.fn(),
   fetchContactSegmentCounts: vi.fn(),
   fetchContactsByDomain: vi.fn(),

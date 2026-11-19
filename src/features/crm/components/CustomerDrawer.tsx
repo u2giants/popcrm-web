@@ -11,10 +11,10 @@ import { ConfirmDeleteDialog } from '@/features/crm/components/ConfirmDeleteDial
 import {
   listData,
   useArchiveCustomerMutation,
+  useContactsForCustomerQuery,
   useCustomerIngestedDomainsQuery,
   useDepartmentsQuery,
   useEmailsForQuery,
-  useIngestedContactsQuery,
   useOpportunitiesQuery,
   useUpdateCustomerMutation,
 } from '@/features/crm/queries'
@@ -29,7 +29,9 @@ import { customerLabel, formatAmount, idOf } from '@/features/crm/format'
 import type { Retailer } from '@/lib/types'
 
 export function CustomerDrawer({ row, onClose }: { row: Retailer | null; onClose: () => void }) {
-  const buyers = listData(useIngestedContactsQuery(-1).data)
+  // This customer's contacts server-side (#57), not every contact in memory.
+  const contactsQuery = useContactsForCustomerQuery(row?.id)
+  const contacts = listData(contactsQuery.data)
   const departments = listData(useDepartmentsQuery(-1).data)
   const opportunities = listData(useOpportunitiesQuery(-1).data)
   // This customer's own email history (#40), not a filter over the newest 500
@@ -55,15 +57,14 @@ export function CustomerDrawer({ row, onClose }: { row: Retailer | null; onClose
   }
 
   const related = useMemo(() => {
-    if (!row) return { contacts: [], depts: [], opps: [], suggestedDomain: null }
-    const contacts = buyers.filter((b) => idOf(b.retailer) === row.id)
+    if (!row) return { depts: [], opps: [], suggestedDomain: null }
     return {
-      contacts,
+      // The scoped feed is already only this customer's contacts (#57).
       suggestedDomain: suggestDomainFromEmails(contacts.map((c) => c.email)),
       depts: departments.filter((d) => idOf(d.retailer) === row.id),
       opps: opportunities.filter((o) => idOf(o.retailer) === row.id),
     }
-  }, [row, buyers, departments, opportunities])
+  }, [row, contacts, departments, opportunities])
 
   // One shared alias rule (#55): the same split the email worker uses, so the
   // alias list here cannot disagree with what routing treats as owned.
@@ -106,7 +107,7 @@ export function CustomerDrawer({ row, onClose }: { row: Retailer | null; onClose
                 icon={<Building2 className="size-[14px]" />}
                 iconColor="oklch(0.62 0.15 165)"
                 label="Contacts"
-                value={related.contacts.length}
+                value={contactsQuery.isError ? '—' : contacts.length}
               />
               <StatCard
                 icon={<Route className="size-[14px]" />}
@@ -192,10 +193,18 @@ export function CustomerDrawer({ row, onClose }: { row: Retailer | null; onClose
           </DrawerSection>
 
           {/* Contacts list with avatars */}
-          <DrawerSection title={`Contacts (${related.contacts.length})`}>
-            {related.contacts.length ? (
+          <DrawerSection title={`Contacts (${contactsQuery.isError ? '—' : contacts.length})`}>
+            {contactsQuery.isError ? (
+              // A failed scoped load must not read as "no contacts yet" (#58 rule).
+              <p className="text-[12px] text-destructive">
+                Could not load contacts.{' '}
+                <button type="button" className="underline underline-offset-2" onClick={() => void contactsQuery.refetch()}>
+                  Retry
+                </button>
+              </p>
+            ) : contacts.length ? (
               <ul className="divide-y rounded-[8px] border">
-                {related.contacts.slice(0, 8).map((c) => (
+                {contacts.slice(0, 8).map((c) => (
                   <li key={c.id} className="flex items-center gap-[9px] px-[11px] py-[8px]">
                     <NameAvatar name={c.last_name || c.name} size={22} />
                     <div className="min-w-0 flex-1">

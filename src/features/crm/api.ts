@@ -658,6 +658,32 @@ export async function fetchCustomerSegmentCounts(): Promise<CustomerSegmentCount
 }
 
 /**
+ * Per-customer contact and program counts in one aggregate call
+ * (shared-db api.crm_customer_counts, migration 20261223010102) — the
+ * CustomersPage count columns stop downloading every contact and every
+ * program (#57). One row per non-archived customer, zeros included: a missing
+ * key means the customer left the list, never a failed count. An error is
+ * thrown so callers can show '—' instead of a false 0.
+ */
+export interface CustomerCounts {
+  contactCount: number
+  programCount: number
+}
+
+export type CustomerCountsMap = Map<string, CustomerCounts>
+
+export async function fetchCustomerCounts(): Promise<CustomerCountsMap> {
+  const rows = await overviewRows('crm_customer_counts')
+  const out: CustomerCountsMap = new Map()
+  for (const row of rows) {
+    const id = row.customer_id as string | null
+    if (!id) continue
+    out.set(id, { contactCount: count(row.contact_count), programCount: count(row.program_count) })
+  }
+  return out
+}
+
+/**
  * Customer merge. The engine lives in the shared database
  * (api.db_data_admin_preview_customer_merge / api.db_data_admin_merge_customer):
  * it moves contacts, email, programs and ERP source references onto the
@@ -843,6 +869,21 @@ export async function fetchIngestedContacts(limit = -1): Promise<Buyer[]> {
   // The paging helper still pins the id tiebreaker so pages never skip or
   // repeat rows.
   const rows = await fetchRows('crm_contact_list', [], limit)
+  return rows.map(toBuyer)
+}
+
+// Scoped contact reads for the drawers (#57): one customer's or one
+// department's contacts server-side, instead of downloading every contact and
+// filtering in memory. company_id / department_id are direct view columns (not
+// the derived fields whose server-side filtering can time out), and the paged
+// eq helper keeps the id tiebreaker so no scoped page silently truncates.
+export async function fetchContactsForCustomer(customerId: string): Promise<Buyer[]> {
+  const rows = await fetchRowsEq('crm_contact_list', 'company_id', customerId)
+  return rows.map(toBuyer)
+}
+
+export async function fetchContactsForDepartment(departmentId: string): Promise<Buyer[]> {
+  const rows = await fetchRowsEq('crm_contact_list', 'department_id', departmentId)
   return rows.map(toBuyer)
 }
 

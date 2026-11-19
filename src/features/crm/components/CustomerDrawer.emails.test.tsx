@@ -40,7 +40,7 @@ const emailsForQuery = vi.fn<(filter: unknown, limit: number) => EmailsForStub>(
 
 vi.mock('@/features/crm/queries', () => ({
   listData: <T,>(data: T[] | undefined): T[] => data ?? [],
-  useIngestedContactsQuery: vi.fn(() => ({ data: [] })),
+  useContactsForCustomerQuery: vi.fn(() => ({ data: [], isPending: false, isError: false, refetch: vi.fn() })),
   useDepartmentsQuery: vi.fn(() => ({ data: [] })),
   useOpportunitiesQuery: vi.fn(() => ({ data: [] })),
   useEmailsForQuery: (...args: unknown[]) => emailsForQuery(...(args as Parameters<typeof emailsForQuery>)),
