@@ -1035,7 +1035,65 @@ export async function createDepartment(values: Partial<CrmDepartment>) {
   return insertReturning('department', mapValues(values as Row, DEPT_MAP, DEPT_RELS), 'crm_department_list', toDepartment)
 }
 
+// Guarded department delete (issue #35): every table whose department_id
+// foreign key silently goes `on delete set null` must be counted first, so a
+// referenced department is never deleted. Counts come from the browser-safe
+// api.crm_* views (server-side exact head counts, not client-side lists).
+const DEPARTMENT_REFERENCE_VIEWS = {
+  contacts: 'crm_contact_list',
+  programs: 'crm_opportunity_list',
+  emails: 'crm_email_routing_queue',
+  meetings: 'crm_meeting_list',
+  notes: 'crm_note_list',
+  tasks: 'crm_task_list',
+} as const
+
+const DEPARTMENT_REFERENCE_LABELS = {
+  contacts: 'contact',
+  programs: 'program',
+  emails: 'email',
+  meetings: 'meeting',
+  notes: 'note',
+  tasks: 'task',
+} as const
+
+export type DepartmentReferenceCounts = Record<keyof typeof DEPARTMENT_REFERENCE_VIEWS, number>
+
+/** Thrown by deleteDepartment when the department is still referenced; carries the exact counts. */
+export class DepartmentInUseError extends Error {
+  readonly counts: DepartmentReferenceCounts
+  constructor(counts: DepartmentReferenceCounts) {
+    super('Department is still referenced by other records')
+    this.name = 'DepartmentInUseError'
+    this.counts = counts
+  }
+}
+
+/** Human sentence listing the non-zero counts, e.g. "3 emails and 1 contact". */
+export function departmentUseSummary(counts: DepartmentReferenceCounts): string {
+  const parts = (Object.keys(DEPARTMENT_REFERENCE_VIEWS) as (keyof DepartmentReferenceCounts)[])
+    .filter((key) => counts[key] > 0)
+    .map((key) => `${counts[key].toLocaleString()} ${DEPARTMENT_REFERENCE_LABELS[key]}${counts[key] === 1 ? '' : 's'}`)
+  if (!parts.length) return 'This department is still in use.'
+  const list = parts.length > 1 ? `${parts.slice(0, -1).join(', ')} and ${parts[parts.length - 1]}` : parts[0]
+  return `Still referenced by ${list}. Reassign those records to another department first.`
+}
+
 export async function deleteDepartment(id: string) {
+  const entries = await Promise.all(
+    (Object.keys(DEPARTMENT_REFERENCE_VIEWS) as (keyof DepartmentReferenceCounts)[]).map(async (key) => {
+      const { count, error } = await anyDb
+        .schema('api')
+        .from(DEPARTMENT_REFERENCE_VIEWS[key])
+        .select('id', { count: 'exact', head: true })
+        .eq('department_id', id)
+      // Fail closed: if any count cannot be read, refuse the delete.
+      if (error) throw error
+      return [key, count ?? 0] as const
+    }),
+  )
+  const counts = Object.fromEntries(entries) as DepartmentReferenceCounts
+  if (Object.values(counts).some((c) => c > 0)) throw new DepartmentInUseError(counts)
   const { error } = await supabase.schema('crm').from('department').delete().eq('id', id)
   if (error) throw error
 }

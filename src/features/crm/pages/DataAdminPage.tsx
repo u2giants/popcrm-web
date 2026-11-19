@@ -16,12 +16,15 @@ import { CustomerRelationLogo } from '@/features/crm/components/CustomerRelation
 import {
   createDepartment,
   deleteDepartment,
+  DepartmentInUseError,
+  departmentUseSummary,
   setRetailerLogo,
   updateDepartment,
   updateOpportunity,
   updateRetailer,
   uploadRetailerLogo,
 } from '@/features/crm/api'
+import { ConfirmDeleteDialog } from '@/features/crm/components/ConfirmDeleteDialog'
 import { customerLabel, idOf, label, relatedName } from '@/features/crm/format'
 import { uniqueValues, contactTitleValues, customerPickerOptions, isSelectableCustomer, buildRetailerById } from '@/features/crm/pages/_shared'
 import {
@@ -99,6 +102,7 @@ export function DataAdminPage() {
   }
   const [departmentDraft, setDepartmentDraft] = useState<DepartmentForm>(() => departmentForm())
   const [selectedDepartmentId, setSelectedDepartmentId] = useState('')
+  const [confirmingDepartmentDelete, setConfirmingDepartmentDelete] = useState(false)
   const [divisionFrom, setDivisionFrom] = useState('')
   const [divisionTo, setDivisionTo] = useState('')
   const [busy, setBusy] = useState(false)
@@ -420,12 +424,6 @@ export function DataAdminPage() {
 
   async function removeDepartment() {
     if (!departmentDraft.id || !selectedDepartment) return
-    const inUse = buyers.some((b) => idOf(b.department) === departmentDraft.id) ||
-      opportunities.some((o) => idOf(o.department) === departmentDraft.id)
-    if (inUse) {
-      toast.error('This department is in use. Reassign contacts/programs before deleting it.')
-      return
-    }
     setBusy(true)
     try {
       await deleteDepartment(departmentDraft.id)
@@ -434,8 +432,14 @@ export function DataAdminPage() {
       setSelectedDepartmentId('')
       toast.success('Department deleted')
     } catch (error) {
-      toast.error('Could not delete department', { description: logError('DataAdminPage.removeDepartment', error) })
+      // The server-side guard (issue #35) refuses with exact reference counts.
+      if (error instanceof DepartmentInUseError) {
+        toast.error('Department not deleted — it is still in use', { description: departmentUseSummary(error.counts) })
+      } else {
+        toast.error('Could not delete department', { description: logError('DataAdminPage.removeDepartment', error) })
+      }
     } finally {
+      setConfirmingDepartmentDelete(false)
       setBusy(false)
     }
   }
@@ -572,7 +576,7 @@ export function DataAdminPage() {
                         <Button variant="outline" onClick={() => { setDepartmentDraft(departmentForm()); setSelectedDepartmentId('') }} disabled={busy}>
                           New
                         </Button>
-                        <Button variant="outline" onClick={removeDepartment} disabled={busy}>
+                        <Button variant="outline" onClick={() => setConfirmingDepartmentDelete(true)} disabled={busy}>
                           <Trash2 className="size-4" />
                           Delete
                         </Button>
@@ -581,6 +585,17 @@ export function DataAdminPage() {
                   </div>
                 </div>
               </section>
+              <ConfirmDeleteDialog
+                open={confirmingDepartmentDelete && !!departmentDraft.id}
+                title="Delete this department?"
+                message={`"${selectedDepartment?.name || departmentDraft.name || 'This department'}" will be deleted for good. Records still referencing it block the delete.`}
+                detail="A department referenced by contacts, programs, emails, meetings, notes or tasks cannot be deleted."
+                confirmLabel="Delete department"
+                destructive
+                pending={busy}
+                onConfirm={() => void removeDepartment()}
+                onClose={() => setConfirmingDepartmentDelete(false)}
+              />
             </div>
           ) : null}
 
