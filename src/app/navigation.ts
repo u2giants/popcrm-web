@@ -60,6 +60,3 @@ export const NAV_SECTIONS: NavSection[] = [
     ],
   },
 ]
-
-// Flat list kept for backward compatibility (CommandSearch, etc.)
-export const NAV_ITEMS: NavItem[] = NAV_SECTIONS.flatMap((s) => s.items)

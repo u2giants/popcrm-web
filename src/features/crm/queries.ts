@@ -20,7 +20,6 @@ import {
   fetchAiModelConfigs,
   fetchAllContacts,
   fetchApprovalThreads,
-  fetchBuyers,
   fetchContactSegment,
   fetchContactSegmentCounts,
   fetchDepartments,
@@ -28,7 +27,6 @@ import {
   fetchEmailStageCounts,
   fetchEmailStagePage,
   fetchIgnoreRules,
-  fetchIngestedDomainCount,
   mergeCustomers,
   mergeContacts,
   previewCustomerMerge,
@@ -48,7 +46,6 @@ import {
   fetchCustomerPickerList,
   fetchRetailers,
   fetchTasks,
-  promoteIngestedDomain,
   setOpportunityStage,
   updateAiModelConfig,
   updateApprovalThread,
@@ -109,7 +106,6 @@ export const crmKeys = {
   retailers: (limit = -1) => [...crmKeys.all, 'retailers', { limit }] as const,
   customerSegment: (segment: CustomerSegment, limit = -1) => [...crmKeys.all, 'customerSegment', segment, { limit }] as const,
   customerSegmentCounts: () => [...crmKeys.all, 'customerSegmentCounts'] as const,
-  buyers: (limit = -1) => [...crmKeys.all, 'buyers', { limit }] as const,
   ingestedDomains: (limit = -1) => [...crmKeys.all, 'ingestedDomains', { limit }] as const,
   customerIngestedDomains: (customerId: string) => [...crmKeys.all, 'ingestedDomains', 'customer', customerId] as const,
   ingestedDomainCount: () => [...crmKeys.all, 'ingestedDomainCount'] as const,
@@ -260,10 +256,6 @@ export function useCustomerSegmentCountsQuery() {
   })
 }
 
-export function useBuyersQuery(limit = -1) {
-  return useQuery({ queryKey: crmKeys.buyers(limit), queryFn: () => fetchBuyers(limit), ...crmQueryDefaults, staleTime: 2 * 60_000 })
-}
-
 export function useIngestedDomainsQuery(limit = -1) {
   return useQuery({ queryKey: crmKeys.ingestedDomains(limit), queryFn: () => fetchIngestedDomains(limit), ...crmQueryDefaults })
 }
@@ -292,15 +284,6 @@ export function useUpdateIngestedDomainMutation() {
       context?.previous.forEach(([key, data]) => queryClient.setQueryData(key, data))
     },
     onSettled: () => void queryClient.invalidateQueries({ queryKey: [...crmKeys.all, 'ingestedDomains'] }),
-  })
-}
-
-export function useIngestedDomainCountQuery() {
-  return useQuery({
-    queryKey: crmKeys.ingestedDomainCount(),
-    queryFn: fetchIngestedDomainCount,
-    ...crmQueryDefaults,
-    staleTime: 30_000,
   })
 }
 
@@ -495,17 +478,6 @@ export function useUpdateEmailMutation() {
   })
 }
 
-export function useCustomerMergePreviewQuery(survivorId: string | null, loserId: string | null) {
-  return useQuery({
-    queryKey: [...crmKeys.all, 'customerMergePreview', survivorId, loserId] as const,
-    queryFn: () => previewCustomerMerge(survivorId!, loserId!),
-    enabled: Boolean(survivorId && loserId),
-    staleTime: 0,
-    gcTime: 0,
-    retry: false,
-  })
-}
-
 export function useCustomerMergePreviewsQuery(survivorId: string | null, loserIds: string[]) {
   return useQuery({
     queryKey: [...crmKeys.all, 'customerMergePreviews', survivorId, loserIds] as const,
@@ -572,32 +544,6 @@ export function useUpdateCustomerMutation() {
       // change keeps showing the old value until their stale times expire (#41).
       void queryClient.invalidateQueries({ queryKey: [...crmKeys.all, 'customerBrands'] })
       void queryClient.invalidateQueries({ queryKey: [...crmKeys.all, 'customerPicker'] })
-    },
-  })
-}
-
-export function usePromoteIngestedDomainMutation() {
-  const queryClient = useQueryClient()
-  return useMutation({
-    mutationFn: ({ domain, name }: { domain: string; name: string }) => promoteIngestedDomain(domain, name),
-    onMutate: async ({ domain }) => {
-      await queryClient.cancelQueries({ queryKey: [...crmKeys.all, 'ingestedDomains'] })
-      const previous = queryClient.getQueriesData<CrmIngestedDomain[]>({ queryKey: [...crmKeys.all, 'ingestedDomains'] })
-      queryClient.setQueriesData<CrmIngestedDomain[]>({ queryKey: [...crmKeys.all, 'ingestedDomains'] }, (rows) =>
-        rows?.filter((row) => row.domain !== domain),
-      )
-      return { previous }
-    },
-    onError: (_error, _vars, context) => {
-      context?.previous.forEach(([key, data]) => queryClient.setQueryData(key, data))
-    },
-    onSettled: () => {
-      void queryClient.invalidateQueries({ queryKey: [...crmKeys.all, 'ingestedDomains'] })
-      void queryClient.invalidateQueries({ queryKey: crmKeys.ingestedDomainCount() })
-      void queryClient.invalidateQueries({ queryKey: [...crmKeys.all, 'retailers'] })
-      void queryClient.invalidateQueries({ queryKey: [...crmKeys.all, 'customerSegment'] })
-      void queryClient.invalidateQueries({ queryKey: crmKeys.customerSegmentCounts() })
-      void queryClient.invalidateQueries({ queryKey: crmKeys.stats() })
     },
   })
 }

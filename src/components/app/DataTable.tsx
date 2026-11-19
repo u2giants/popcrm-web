@@ -86,7 +86,6 @@ export function DataTable<T>({
   getRowId,
   onRowClick,
   onCellEdit,
-  onVisibleRowsChange,
   selectable,
   selectionActions,
   loading,
@@ -124,12 +123,6 @@ export function DataTable<T>({
    * so switching tabs never strands the pager on the old tab's page (issue #45).
    */
   resetKey?: string | number
-  /**
-   * Rows in the order they are currently rendered (after column filters and
-   * sorting, across all pages). Lets the caller resolve shift-click ranges
-   * against what the user actually sees rather than the unsorted input.
-   */
-  onVisibleRowsChange?: (rows: T[]) => void
   /**
    * Show a checkbox column plus a bulk bar. With `onCellEdit` set, the bar can
    * apply one value (status, stage, …) to every selected row at once.
@@ -263,9 +256,6 @@ export function DataTable<T>({
   const pageCount = Math.max(1, Math.ceil(sorted.length / effectivePageSize))
   const safePage = Math.min(page, pageCount - 1)
   const pageRows = sorted.slice(safePage * effectivePageSize, safePage * effectivePageSize + effectivePageSize)
-  const visibleRowsCb = useRef(onVisibleRowsChange)
-  useEffect(() => { visibleRowsCb.current = onVisibleRowsChange }, [onVisibleRowsChange])
-  useEffect(() => { visibleRowsCb.current?.(sorted) }, [sorted])
 
   // A page index chosen on one tab survives a rows swap when one table serves
   // several tabs: the pager then shows dead Previous state or a page past the

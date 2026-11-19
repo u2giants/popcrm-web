@@ -204,7 +204,7 @@ export function TasksPage() {
       {tasksQuery.isError ? (
         <ErrorState onRetry={() => void tasksQuery.refetch()} />
       ) : view === 'board' ? (
-        <TaskBoard tasks={filtered} loading={tasksQuery.isPending} onSelect={select} onStatusChange={quickStatus} />
+        <TaskBoard tasks={filtered} loading={tasksQuery.isPending} onSelect={select} />
       ) : (
         <DataTable
           rows={filtered}
@@ -235,12 +235,10 @@ function TaskBoard({
   tasks,
   loading,
   onSelect,
-  onStatusChange,
 }: {
   tasks: CrmTask[]
   loading: boolean
   onSelect: (t: CrmTask) => void
-  onStatusChange: (t: CrmTask, status: string) => void
 }) {
   const grouped = useMemo(
     () =>
@@ -289,9 +287,7 @@ function TaskBoard({
               <TaskCard
                 key={task.id}
                 task={task}
-                colColor={col.color}
                 onClick={() => onSelect(task)}
-                onStatusChange={(s) => onStatusChange(task, s)}
               />
             ))}
           </div>
@@ -306,9 +302,7 @@ function TaskCard({
   onClick,
 }: {
   task: CrmTask
-  colColor?: string
   onClick: () => void
-  onStatusChange?: (status: string) => void
 }) {
   const overdue = isOverdue(task.due_at, task.status)
   const assigneeName = relatedName(task.assignee)

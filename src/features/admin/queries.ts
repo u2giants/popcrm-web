@@ -1,6 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import {
-  assignDepartments,
   fetchAccessHistory,
   fetchAdminRoles,
   fetchAdminUsers,
@@ -60,14 +59,6 @@ export function useUpdateAdminUserMutation() {
       void queryClient.invalidateQueries({ queryKey: adminKeys.users() })
       void queryClient.invalidateQueries({ queryKey: adminKeys.history() })
     },
-  })
-}
-
-export function useAssignDepartmentsMutation() {
-  const queryClient = useQueryClient()
-  return useMutation({
-    mutationFn: ({ ids, profileId }: { ids: string[]; profileId: string | null }) => assignDepartments(ids, profileId),
-    onSettled: () => invalidateAssignments(queryClient),
   })
 }
 

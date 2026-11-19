@@ -621,25 +621,13 @@ export async function updateIngestedDomain(id: string, values: Partial<CrmIngest
   if (error) throw error
 }
 
-export async function fetchIngestedDomainCount(): Promise<number> {
+async function fetchIngestedDomainCount(): Promise<number> {
   const { count, error } = await anyDb
     .schema('api')
     .from('crm_ingested_domain_list')
     .select('*', { count: 'exact', head: true })
   if (error) throw error
   return count ?? 0
-}
-
-/**
- * Deliberately retired. crm.promote_ingested_domain was dropped by
- * 20260629034600 because ingested domains must never become core.customer
- * rows. Keep the function name so call sites fail loudly with a clear message
- * instead of a PostgREST 404.
- */
-export async function promoteIngestedDomain(domain: string, name: string): Promise<string> {
-  throw new Error(
-    `Promoting an ingested email domain to a Customer is no longer available (domain=${domain}, name=${name}). Ingested domains stay in CRM triage only and must not create or link to core.customer. Create a Customer through the normal curated path if needed.`,
-  )
 }
 
 export async function fetchCustomerSegment(segment: CustomerSegment, limit = -1): Promise<Retailer[]> {
@@ -848,22 +836,12 @@ export async function uploadRetailerLogo(id: string, file: File): Promise<string
 // ---------------------------------------------------------------------------
 // Contacts / buyers
 // ---------------------------------------------------------------------------
-export async function fetchBuyers(limit = -1): Promise<Buyer[]> {
-  // Filtering/ordering this security_invoker view through PostgREST can time out
-  // because company_customer_status/name are derived across joined RLS tables.
-  // Pull the browser-safe rows unfiltered and let the client segment/sort them;
-  // only the helper's id page tiebreaker orders the request (issue #43 — watch
-  // for a preview timeout on this view; the fix then belongs in shared-db).
-  const rows = await fetchRows('crm_contact_list', [], limit)
-  return rows
-    .filter((r) => CUSTOMER_STATUSES.includes((r.company_customer_status ?? '') as string))
-    .map(toBuyer)
-}
-
 export async function fetchIngestedContacts(limit = -1): Promise<Buyer[]> {
-  // No caller-chosen order for the same reason as fetchBuyers; DataTable applies
-  // the visible sort client-side. The paging helper still pins the id
-  // tiebreaker so pages never skip or repeat rows.
+  // No caller-chosen order: filtering/ordering this security_invoker view
+  // through PostgREST can time out (company_customer_status/name are derived
+  // across joined RLS tables); DataTable applies the visible sort client-side.
+  // The paging helper still pins the id tiebreaker so pages never skip or
+  // repeat rows.
   const rows = await fetchRows('crm_contact_list', [], limit)
   return rows.map(toBuyer)
 }
@@ -1032,17 +1010,9 @@ export async function mergeContacts(keepId: string, dropId: string) {
 // No row, or a null reason, means the contact is current.
 // ---------------------------------------------------------------------------
 export type DefunctReason = 'quit' | 'transferred' | 'retired'
-export const DEFUNCT_REASONS: { value: DefunctReason; label: string }[] = [
-  { value: 'quit', label: 'Quit' },
-  { value: 'transferred', label: 'Transferred' },
-  { value: 'retired', label: 'Retired' },
-]
 // The owner wants a single "defunct" state, no reason. The table still needs a
 // reason value, so every new mark stores this one and the app never shows it.
 export const DEFAULT_DEFUNCT_REASON: DefunctReason = 'quit'
-export function defunctLabel(reason: string | null | undefined): string {
-  return DEFUNCT_REASONS.find((r) => r.value === reason)?.label ?? ''
-}
 
 /** contact id -> defunct reason, for every defunct contact. */
 export async function fetchDefunctContacts(): Promise<Record<string, DefunctReason>> {

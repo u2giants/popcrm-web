@@ -111,10 +111,6 @@ export async function setUserStatus(profileId: string, status: 'active' | 'inact
   return toAdminUser((await rpc('crm_admin_set_user_status', { p_profile_id: profileId, p_status: status })) as Row)
 }
 
-export async function assignDepartments(departmentIds: string[], profileId: string | null): Promise<number> {
-  return Number(await rpc('crm_admin_assign_departments', { p_department_ids: departmentIds, p_profile_id: profileId }))
-}
-
 // Sets both salesperson slots (a department can have up to two) for every
 // listed department: profileIds[0] is the main salesperson, [1] the second.
 export async function setDepartmentSalespeople(departmentIds: string[], profileIds: string[]): Promise<number> {
