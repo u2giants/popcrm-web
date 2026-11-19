@@ -18,17 +18,7 @@
     "crm:fireflies-server": "node workers/crm-worker-supabase.mjs fireflies-server"
   },
   "dependencies": {
-    "@base-ui/react": "^1.5.0",
-    "@dnd-kit/core": "^6.3.1",
-    "@dnd-kit/utilities": "^3.2.2",
     "@fontsource-variable/geist": "^5.2.9",
-    "@radix-ui/react-avatar": "^1.1.12",
-    "@radix-ui/react-checkbox": "^1.3.4",
-    "@radix-ui/react-dialog": "^1.1.16",
-    "@radix-ui/react-dropdown-menu": "^2.1.17",
-    "@radix-ui/react-scroll-area": "^1.2.11",
-    "@radix-ui/react-separator": "^1.1.9",
-    "@radix-ui/react-slot": "^1.2.5",
     "@supabase/supabase-js": "^2.108.2",
     "@tailwindcss/vite": "^4.3.0",
     "@tanstack/react-query": "^5.101.0",
