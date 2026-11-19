@@ -21,7 +21,7 @@
 // Env:
 //   SUPABASE_URL=https://tcscehehgeiijilylezv.supabase.co   (preview first)
 //   SUPABASE_SERVICE_ROLE_KEY=<server-only>                 (NEVER expose to the browser)
-//   MS_TENANT_ID/MS_CLIENT_ID/MS_CLIENT_SECRET or AZURE_* ; OUTLOOK_MAILBOX ; OUTLOOK_GATED
+//   MS_TENANT_ID/MS_CLIENT_ID/MS_CLIENT_SECRET or AZURE_* ; OUTLOOK_MAILBOXES (required for outlook-ingest) ; OUTLOOK_GATED
 //   FIREFLIES_API_KEY, FIREFLIES_WEBHOOK_SECRET, OPENROUTER_API_KEY, PORT=8787
 //   SCALEDOWN_API_KEY, SCALEDOWN_ROUTING_MIN_CONFIDENCE (email routing fallback)
 import { readFileSync, writeFileSync } from 'node:fs'
@@ -671,7 +671,9 @@ export async function routeEmail({ subject, bodyText, addresses, displayNames = 
     return { routing_status: 'COMPANY_ONLY', routing_method: 'AI_ROUTER', retailer: aiRetailer }
   }
 
-  return { routing_status: 'UNROUTED' }
+  // routing_method is set explicitly (null when none): a row rechecked from
+  // SKIPPED back to UNROUTED must not keep its old 'no customer domain' label.
+  return { routing_status: 'UNROUTED', routing_method: null }
 }
 
 // --- Microsoft Graph (unchanged) ----------------------------------------------
@@ -988,12 +990,14 @@ export async function runOutlookDeltaSync({
   }
 }
 
-// Mailboxes to ingest. OUTLOOK_MAILBOXES takes a comma-separated list so a new
-// salesperson is an env change, not a code change; OUTLOOK_MAILBOX stays
-// supported for the original single-mailbox setup. Each mailbox keeps its own
-// delta cursor, so one failing mailbox cannot rewind another.
+// Mailboxes to ingest. OUTLOOK_MAILBOXES is required for the outlook-ingest
+// command and takes a comma-separated list so a new salesperson is an env
+// change, not a code change; OUTLOOK_MAILBOX stays supported for the original
+// single-mailbox setup. There is deliberately no default: a job that reads
+// someone's mail must be told whose. Each mailbox keeps its own delta cursor,
+// so one failing mailbox cannot rewind another.
 export function resolveOutlookMailboxes(env = {}) {
-  const raw = env.OUTLOOK_MAILBOXES || env.OUTLOOK_MAILBOX || 'adweck@popcre.com'
+  const raw = env.OUTLOOK_MAILBOXES || env.OUTLOOK_MAILBOX || ''
   const seen = new Set()
   for (const entry of String(raw).split(',')) {
     const mailbox = entry.trim().toLowerCase()
@@ -1189,19 +1193,32 @@ async function contactSync() {
       const customerId = retailerByDomain.get(domain)
       if (!customerId) continue
       const existing = must(await core('contact').select('id').eq('email', address).limit(1))
-      if (existing.length) continue
-      const contact = must(await core('contact').insert({
-        full_name: personNameFromEmail(address),
-        email: address,
-      }).select('id').single())
+      let contactId = existing[0]?.id
+      if (!contactId) {
+        const contact = must(await core('contact').insert({
+          full_name: personNameFromEmail(address),
+          email: address,
+        }).select('id').single())
+        contactId = contact.id
+        buyersCreated += 1
+      }
+      // An existing contact is not enough: when the company-link write failed
+      // on an earlier run the contact existed unlinked and every later run
+      // skipped it. Check for the link itself and (re)create it when missing.
+      const linked = must(await core('contact_company')
+        .select('contact_id')
+        .eq('contact_id', contactId)
+        .eq('company_id', customerId)
+        .eq('relationship_type', 'buyer')
+        .limit(1))
+      if (linked.length) continue
       must(await core('contact_company').upsert({
-        contact_id: contact.id,
+        contact_id: contactId,
         company_id: customerId,
         relationship_type: 'buyer',
         scope: 'COMPANY_WIDE',
         contact_type: 'OTHER',
       }, { onConflict: 'contact_id,company_id,relationship_type', ignoreDuplicates: true }))
-      buyersCreated += 1
     } catch (error) {
       failures += 1
       console.error(`contact-sync: ${address} failed: ${error.message}`)

@@ -357,8 +357,8 @@ describe('Outlook failure quarantine state file', () => {
 })
 
 describe('resolveOutlookMailboxes', () => {
-  it('defaults to the original single mailbox', () => {
-    expect(resolveOutlookMailboxes({})).toEqual(['adweck@popcre.com'])
+  it('has no default: with no mailbox variable set, nothing is ingested', () => {
+    expect(resolveOutlookMailboxes({})).toEqual([])
     expect(resolveOutlookMailboxes({ OUTLOOK_MAILBOX: 'One@popcre.com' })).toEqual(['one@popcre.com'])
   })
 

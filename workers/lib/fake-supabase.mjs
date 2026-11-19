@@ -99,7 +99,8 @@ export function createFakeSupabase({ tables = {}, rpc = null } = {}) {
         return { data: null, error: { message: queued.message } }
       }
       // An op-scoped failure stays queued until its operation runs.
-      const tableRows = rows.get(key) || []
+      if (!rows.has(key)) rows.set(key, [])
+      const tableRows = rows.get(key)
       const matched = tableRows.filter((row) => record.filters.every((filter) => rowMatchesFilter(row, filter)))
       let resultRows
       if (record.op === 'insert') {

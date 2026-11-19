@@ -368,6 +368,22 @@ describe('summarize command configuration', () => {
   })
 })
 
+describe('outlook-ingest command configuration', () => {
+  const baseEnv = {
+    SUPABASE_URL: 'https://example.supabase.co',
+    SUPABASE_SERVICE_ROLE_KEY: 'test-only-service-key',
+  }
+
+  it.each([undefined, '', '   '])('rejects a %s OUTLOOK_MAILBOXES before ingest starts', (value) => {
+    expect(() => validateCommandEnvironment('outlook-ingest', { ...baseEnv, OUTLOOK_MAILBOXES: value }))
+      .toThrow('OUTLOOK_MAILBOXES is required')
+  })
+
+  it('accepts outlook-ingest with the mailbox list set', () => {
+    expect(() => validateCommandEnvironment('outlook-ingest', { ...baseEnv, OUTLOOK_MAILBOXES: 'mailbox@popcre.com' })).not.toThrow()
+  })
+})
+
 describe('failed writes fail the run (#64)', () => {
   const baseEnv = {
     SUPABASE_URL: 'https://example.supabase.co',
