@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { toast } from 'sonner'
 import { MailWarning } from 'lucide-react'
 import { AppPage, ListBar, SectionHeader } from '@/components/app/AppPage'
@@ -208,6 +208,12 @@ export function EmailRoutingPage() {
   const stageCounts = countsQuery.data ?? null
   const stageTotal = stageCounts && segment !== 'domains' ? stageCounts[segment] : null
   const pageCount = stageTotal ? Math.max(1, Math.ceil(stageTotal / PAGE_SIZE)) : 1
+  // Routing the last row of a page shrinks the stage: clamp the page back so
+  // the query offset never points past the end, which would strand the reader
+  // on an empty page with the pager already gone (issue #47).
+  useEffect(() => {
+    setPage((p) => Math.min(p, pageCount - 1))
+  }, [pageCount])
 
   const searched = useMemo(() => {
     const q = query.trim().toLowerCase()
