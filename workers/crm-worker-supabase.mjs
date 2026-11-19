@@ -1335,11 +1335,11 @@ export function matchingAddressRule(rules, addresses, customerDomainPresent) {
   return rules.find((rule) => addressRuleMatches(rule, addresses)) || null
 }
 
-async function applyIgnoreRules() {
+export async function applyIgnoreRules() {
   // Read the rules first: with no SUBJECT rules nothing can match, so the
   // unrouted-email scan is skipped instead of competing for database time
   // (it timed out during database-wide load on 2026-11-18 with zero rules).
-  const rules = must(await crm('ignore_rule').select('id,pattern,match_type,rule_type,emails_skipped').limit(5000))
+  const rules = must(await crm('ignore_rule').select('id,pattern,match_type,rule_type').limit(5000))
   if (!rules.some((r) => ruleTypeOf(r) === 'SUBJECT')) {
     console.log('apply-ignore-rules: 0 emails skipped by 0 rules (no subject rules)')
     return
@@ -1364,7 +1364,10 @@ async function applyIgnoreRules() {
     const count = counts.get(rule.id) || 0
     if (!count) continue
     try {
-      must(await crm('ignore_rule').update({ emails_skipped: Number(rule.emails_skipped || 0) + count }).eq('id', rule.id))
+      // Atomic database-side increment (crm.increment_ignore_rule_emails_skipped,
+      // shared-db 20261223010104): the old read-modify-write lost counts when
+      // two worker passes overlapped (#69, fix_bugs.md item F).
+      must(await sb.schema('crm').rpc('increment_ignore_rule_emails_skipped', { p_rule_id: rule.id, p_n: count }))
     } catch (error) {
       failed += 1
       console.warn(`apply-ignore-rules: counter for rule ${rule.id} not updated: ${error.message}`)
