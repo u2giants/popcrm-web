@@ -1,6 +1,6 @@
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { toast } from 'sonner'
-import { Plus } from 'lucide-react'
+import { Plus, Trash2 } from 'lucide-react'
 import { SectionHeader } from '@/components/app/AppPage'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -11,29 +11,63 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
+import { ConfirmDeleteDialog } from '@/features/crm/components/ConfirmDeleteDialog'
 import { MATCH_TYPES } from '@/features/crm/constants'
 import { label } from '@/features/crm/format'
-import { listData, useCreateIgnoreRuleMutation, useIgnoreRulesQuery } from '@/features/crm/queries'
+import {
+  domainRuleProblem,
+  isDuplicateRule,
+  normalizeDomainRule,
+  subjectPatternProblem,
+  type IgnoreRuleType,
+} from '@/features/crm/ignoreRules'
+import { listData, useCreateIgnoreRuleMutation, useDeleteIgnoreRuleMutation, useIgnoreRulesQuery } from '@/features/crm/queries'
 import { logError } from '@/lib/errors'
+import type { CrmIgnoreRule } from '@/lib/types'
 
 export function IgnoreRulesPanel() {
   const ignoreRulesQuery = useIgnoreRulesQuery()
   const createIgnoreRuleMutation = useCreateIgnoreRuleMutation()
+  const deleteIgnoreRuleMutation = useDeleteIgnoreRuleMutation()
   const ignoreRules = listData(ignoreRulesQuery.data)
   const [emailAddress, setEmailAddress] = useState('')
   const [domain, setDomain] = useState('')
   const [subjectPattern, setSubjectPattern] = useState('')
   const [matchType, setMatchType] = useState<string>('CONTAINS')
   const [busy, setBusy] = useState(false)
+  // setBusy only lands after a re-render, so Enter needs a synchronous guard
+  // too, or a double keypress fires two inserts (issue #53).
+  const busyRef = useRef(false)
+  const [rulePendingDelete, setRulePendingDelete] = useState<CrmIgnoreRule | null>(null)
 
-  async function add(ruleType: 'EMAIL_ADDRESS' | 'DOMAIN' | 'SUBJECT', rawValue: string, clear: () => void) {
+  async function add(ruleType: IgnoreRuleType, rawValue: string, clear: () => void) {
+    if (busyRef.current) return
     const trimmed = rawValue.trim()
-    const value = ruleType === 'SUBJECT'
-      ? trimmed
-      : ruleType === 'DOMAIN'
-        ? trimmed.toLowerCase().replace(/^@/, '')
-        : trimmed.toLowerCase()
-    if (!value) return
+    if (!trimmed) return
+    let value: string
+    if (ruleType === 'DOMAIN') {
+      value = normalizeDomainRule(trimmed)
+      if (!value) return
+      const problem = domainRuleProblem(value)
+      if (problem) {
+        toast.error(problem)
+        return
+      }
+    } else if (ruleType === 'SUBJECT') {
+      value = trimmed
+      const problem = subjectPatternProblem(value)
+      if (problem) {
+        toast.error(problem)
+        return
+      }
+    } else {
+      value = trimmed.toLowerCase()
+    }
+    if (isDuplicateRule(ignoreRules, ruleType, value)) {
+      toast.error('That not-customer rule already exists', { description: `A ${label(ruleType)} rule for "${value}" is already stored.` })
+      return
+    }
+    busyRef.current = true
     setBusy(true)
     try {
       await createIgnoreRuleMutation.mutateAsync({
@@ -48,7 +82,20 @@ export function IgnoreRulesPanel() {
     } catch (error) {
       toast.error('Could not add not-customer rule', { description: logError('IgnoreRulesPanel.add', error) })
     } finally {
+      busyRef.current = false
       setBusy(false)
+    }
+  }
+
+  async function removeRule() {
+    const rule = rulePendingDelete
+    if (!rule) return
+    try {
+      await deleteIgnoreRuleMutation.mutateAsync(rule.id)
+      toast.success('Not-customer rule deleted')
+      setRulePendingDelete(null)
+    } catch (error) {
+      toast.error('Could not delete not-customer rule', { description: logError('IgnoreRulesPanel.removeRule', error) })
     }
   }
 
@@ -120,9 +167,22 @@ export function IgnoreRulesPanel() {
       <ul className="mt-4 grid gap-2 sm:grid-cols-2">
         {ignoreRules.map((rule) => (
           <li key={rule.id} className="rounded-[8px] border bg-muted/30 p-3">
-            <div className="truncate text-[12.5px] font-medium">{rule.pattern}</div>
-            <div className="mt-0.5 text-[11.5px] text-muted-foreground">
-              {label(rule.rule_type || 'SUBJECT')} · {label(rule.match_type)} · {rule.emails_skipped || 0} skipped
+            <div className="flex items-start justify-between gap-2">
+              <div className="min-w-0">
+                <div className="truncate text-[12.5px] font-medium">{rule.pattern}</div>
+                <div className="mt-0.5 text-[11.5px] text-muted-foreground">
+                  {label(rule.rule_type || 'SUBJECT')} · {label(rule.match_type)} · {rule.emails_skipped || 0} skipped
+                </div>
+              </div>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="shrink-0 text-muted-foreground hover:text-destructive"
+                onClick={() => setRulePendingDelete(rule)}
+                disabled={deleteIgnoreRuleMutation.isPending}
+              >
+                <Trash2 className="size-[13px]" /> Delete
+              </Button>
             </div>
           </li>
         ))}
@@ -132,6 +192,17 @@ export function IgnoreRulesPanel() {
           </li>
         ) : null}
       </ul>
+      <ConfirmDeleteDialog
+        open={!!rulePendingDelete}
+        title="Delete this not-customer rule?"
+        message={`"${rulePendingDelete?.pattern || ''}" will stop skipping future email.`}
+        detail="Emails this rule already skipped stay skipped — deleting it does not bring them back."
+        confirmLabel="Delete rule"
+        destructive
+        pending={deleteIgnoreRuleMutation.isPending}
+        onConfirm={() => void removeRule()}
+        onClose={() => setRulePendingDelete(null)}
+      />
     </section>
   )
 }

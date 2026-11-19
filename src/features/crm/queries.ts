@@ -10,6 +10,7 @@ import {
   createOpportunity,
   createTask,
   createDepartment,
+  deleteIgnoreRule,
   deleteMeetingNote,
   deleteNote,
   deleteTask,
@@ -789,6 +790,21 @@ export function useCreateIgnoreRuleMutation() {
   return useMutation({
     mutationFn: (values: Partial<CrmIgnoreRule>) => createIgnoreRule(values),
     onSuccess: (rule) => prependMatchingLists<CrmIgnoreRule>(queryClient, [...crmKeys.all, 'ignoreRules'], rule),
+  })
+}
+
+export function useDeleteIgnoreRuleMutation() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: deleteIgnoreRule,
+    // Drop the row only after the delete resolved (never optimistically —
+    // issue #38 rule); deleting a rule does not un-skip what it skipped.
+    onSuccess: (_result, id) => {
+      queryClient.setQueriesData<CrmIgnoreRule[]>({ queryKey: [...crmKeys.all, 'ignoreRules'] }, (rows) =>
+        rows?.filter((rule) => rule.id !== id),
+      )
+    },
+    onSettled: () => void queryClient.invalidateQueries({ queryKey: [...crmKeys.all, 'ignoreRules'] }),
   })
 }
 

@@ -4,6 +4,7 @@ import { Ban, Copy, Save, UserRound, X } from 'lucide-react'
 import { DetailDrawer, DescriptionItem, DescriptionList, DrawerSection } from '@/components/app/DetailDrawer'
 import { Combobox, type ComboOption } from '@/components/app/Combobox'
 import { ContactDrawer } from '@/features/crm/components/ContactDrawer'
+import { ConfirmDeleteDialog } from '@/features/crm/components/ConfirmDeleteDialog'
 import { CrmStatusBadge } from '@/features/crm/components/CrmStatusBadge'
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
@@ -32,6 +33,8 @@ import {
   useUpdateEmailMutation,
 } from '@/features/crm/queries'
 import { ROUTING_STATUSES } from '@/features/crm/constants'
+import { subjectPatternProblem } from '@/features/crm/ignoreRules'
+import { countEmailsMatchingSubject } from '@/features/crm/api'
 import { customerPickerOptions, buildRetailerById } from '@/features/crm/pages/_shared'
 import { formatDateTime, idOf, label, relatedName } from '@/features/crm/format'
 import { logError } from '@/lib/errors'
@@ -121,6 +124,12 @@ function EmailDrawerForm({ row, onClose, onOpenContact }: { row: CrmEmailMessage
   const [method, setMethod] = useState(row.routing_method || 'MANUAL')
   const [saving, setSaving] = useState(false)
   const [ignoring, setIgnoring] = useState(false)
+  // Issue #53: a subject rule is never created on one click — the pattern and
+  // its stored-email match count are confirmed first.
+  const [pendingIgnorePattern, setPendingIgnorePattern] = useState<string | null>(null)
+  const [confirmingIgnore, setConfirmingIgnore] = useState(false)
+  const [ignoreMatchCount, setIgnoreMatchCount] = useState<number | null>(null)
+  const [countingMatches, setCountingMatches] = useState(false)
 
   const retailerOptions = useMemo<ComboOption[]>(
     () =>
@@ -209,16 +218,40 @@ function EmailDrawerForm({ row, onClose, onOpenContact }: { row: CrmEmailMessage
     }
   }
 
-  async function ignoreSubject() {
+  function closeIgnoreConfirm() {
+    setConfirmingIgnore(false)
+    setPendingIgnorePattern(null)
+    setIgnoreMatchCount(null)
+  }
+
+  function requestIgnoreSubject() {
     const pattern = (row.subject || '').trim()
     if (!pattern) {
       toast.error('No subject to build a rule from')
       return
     }
+    const problem = subjectPatternProblem(pattern)
+    if (problem) {
+      toast.error(problem)
+      return
+    }
+    setPendingIgnorePattern(pattern)
+    setIgnoreMatchCount(null)
+    setCountingMatches(true)
+    setConfirmingIgnore(true)
+    void countEmailsMatchingSubject(pattern)
+      .then(setIgnoreMatchCount)
+      .catch((error) => logError('EmailDrawer.ignoreSubjectPreview', error))
+      .finally(() => setCountingMatches(false))
+  }
+
+  async function confirmIgnoreSubject() {
+    if (!pendingIgnorePattern) return
     setIgnoring(true)
     try {
-      await createIgnoreRuleMutation.mutateAsync({ name: pattern, pattern, rule_type: 'SUBJECT', match_type: 'CONTAINS', emails_skipped: 0 })
+      await createIgnoreRuleMutation.mutateAsync({ name: pendingIgnorePattern, pattern: pendingIgnorePattern, rule_type: 'SUBJECT', match_type: 'CONTAINS', emails_skipped: 0 })
       toast.success('Ignore rule created from subject')
+      closeIgnoreConfirm()
     } catch (error) {
       toast.error('Could not create ignore rule', { description: logError('EmailDrawer.ignoreSubject', error) })
     } finally {
@@ -363,7 +396,7 @@ function EmailDrawerForm({ row, onClose, onOpenContact }: { row: CrmEmailMessage
       {/* Action row — ignore rule left, cancel + save right */}
       <DrawerSection>
         <div className="flex items-center justify-between gap-2">
-          <Button variant="ghost" size="sm" onClick={ignoreSubject} disabled={ignoring} className="text-muted-foreground">
+          <Button variant="ghost" size="sm" onClick={requestIgnoreSubject} disabled={ignoring} className="text-muted-foreground">
             <Ban className="size-[13px]" /> Create ignore rule
           </Button>
           <div className="flex items-center gap-2">
@@ -376,6 +409,23 @@ function EmailDrawerForm({ row, onClose, onOpenContact }: { row: CrmEmailMessage
           </div>
         </div>
       </DrawerSection>
+
+      <ConfirmDeleteDialog
+        open={confirmingIgnore}
+        title="Create this subject rule?"
+        message={`Every future message whose subject contains "${pendingIgnorePattern || ''}" will be skipped as not-customer mail.`}
+        detail={
+          countingMatches
+            ? 'Counting the stored email this would match…'
+            : ignoreMatchCount === null
+              ? 'The stored-email match count is unavailable right now.'
+              : `Matches ${ignoreMatchCount.toLocaleString()} stored email message${ignoreMatchCount === 1 ? '' : 's'} right now.`
+        }
+        confirmLabel="Create rule"
+        pending={ignoring}
+        onConfirm={() => void confirmIgnoreSubject()}
+        onClose={closeIgnoreConfirm}
+      />
     </>
   )
 }

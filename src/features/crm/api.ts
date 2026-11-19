@@ -1255,6 +1255,27 @@ export async function createIgnoreRule(values: Partial<CrmIgnoreRule>) {
   return insertReturning('ignore_rule', { ...(values as Row) }, 'crm_ignore_rule_list', toIgnoreRule)
 }
 
+// Deleting a rule stops future skipping only; emails it already skipped stay
+// skipped (issue #53 OPEN decision, default no).
+export async function deleteIgnoreRule(id: string) {
+  await deleteRow('ignore_rule', id)
+}
+
+// Preview count for the ignore-rule confirm (issue #53): how many stored
+// email messages a CONTAINS subject pattern would match right now. The worker
+// matches case-insensitively, so an ilike head count on the raw stored
+// subject mirrors it closely enough for a human preview.
+export async function countEmailsMatchingSubject(pattern: string): Promise<number> {
+  const escaped = pattern.replace(/[\\%_]/g, (c) => `\\${c}`)
+  const { count, error } = await anyDb
+    .schema('api')
+    .from('crm_email_routing_queue')
+    .select('id', { count: 'exact', head: true })
+    .ilike('subject', `%${escaped}%`)
+  if (error) throw error
+  return count ?? 0
+}
+
 // ---------------------------------------------------------------------------
 // AI model config
 // ---------------------------------------------------------------------------
