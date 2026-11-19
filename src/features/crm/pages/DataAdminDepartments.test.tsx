@@ -30,6 +30,7 @@ vi.mock('@/features/crm/queries', async (importOriginal) => {
     useDepartmentsQuery: vi.fn(() => ({ data: departments, isPending: false })),
     useOpportunitiesQuery: vi.fn(() => ({ data: [], isPending: false })),
     useCustomerPickerQuery: vi.fn(() => ({ data: [], isPending: false })),
+    useCustomerBrandsQuery: vi.fn(() => ({ data: [], isPending: false, isError: false })),
     useCustomerDisplayName: vi.fn(() => (value: unknown) =>
       value && typeof value === 'object' ? ((value as { name?: string }).name ?? '') : ''),
   }
