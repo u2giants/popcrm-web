@@ -91,12 +91,13 @@ export function createFakeSupabase({ tables = {}, rpc = null } = {}) {
 
     function execute() {
       calls.push(record)
-      const queuedMessage = queuedFailures.get(key)
-      if (queuedMessage !== undefined) {
+      const queued = queuedFailures.get(key)
+      if (queued !== undefined && (queued.op === undefined || queued.op === record.op)) {
         queuedFailures.delete(key)
-        record.injectedFailure = queuedMessage
-        return { data: null, error: { message: queuedMessage } }
+        record.injectedFailure = queued.message
+        return { data: null, error: { message: queued.message } }
       }
+      // An op-scoped failure stays queued until its operation runs.
       const tableRows = rows.get(key) || []
       const matched = tableRows.filter((row) => record.filters.every((filter) => rowMatchesFilter(row, filter)))
       let resultRows
@@ -214,8 +215,10 @@ export function createFakeSupabase({ tables = {}, rpc = null } = {}) {
     rows,
     calls,
     // Queue an error result for the next query executed against `schema.table`.
-    failNext(schema, table, message = 'injected failure') {
-      queuedFailures.set(`${schema}.${table}`, message)
+    // Pass { op: 'update' } (or 'insert'/'upsert'/'select'/'rpc') to fail only
+    // that kind of query.
+    failNext(schema, table, message = 'injected failure', { op } = {}) {
+      queuedFailures.set(`${schema}.${table}`, op === undefined ? { message } : { message, op })
     },
     schema(name) {
       return {

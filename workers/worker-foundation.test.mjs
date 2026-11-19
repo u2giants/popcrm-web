@@ -13,6 +13,7 @@ import {
   validateCommandEnvironment,
 } from './lib/worker-foundation.mjs'
 import { buildRerouteWrite, main, runReroute } from './crm-worker-supabase.mjs'
+import { createFakeSupabase } from './lib/fake-supabase.mjs'
 
 afterEach(() => {
   vi.restoreAllMocks()
@@ -131,7 +132,7 @@ describe('reroute compare-and-set writes', () => {
       updateRow: (row) => updateRowThrough(table, row, { routing_status: improvingRoute.routing_status }),
       log: (line) => logs.push(line),
     })
-    expect(result).toEqual({ evaluated: 1, updated: 0, changedUnderneath: 1 })
+    expect(result).toEqual({ evaluated: 1, updated: 0, changedUnderneath: 1, failed: 0 })
     expect(table.recorded.patch).toEqual({ routing_status: 'COMPANY_DEPT' })
     // The write is gated on what was read, not just the row id.
     expect(table.recorded.filters).toEqual([
@@ -152,7 +153,7 @@ describe('reroute compare-and-set writes', () => {
       updateRow: (row) => updateRowThrough(table, row, { routing_status: improvingRoute.routing_status }),
       log: (line) => logs.push(line),
     })
-    expect(result).toEqual({ evaluated: 1, updated: 1, changedUnderneath: 0 })
+    expect(result).toEqual({ evaluated: 1, updated: 1, changedUnderneath: 0, failed: 0 })
     expect(logs.at(-1)).toBe('reroute: 1 messages evaluated, 1 improved, 0 changed underneath')
   })
 
@@ -181,20 +182,24 @@ describe('reroute compare-and-set writes', () => {
       log: () => {},
     })
     expect(updateRow).not.toHaveBeenCalled()
-    expect(result).toEqual({ evaluated: 1, updated: 0, changedUnderneath: 0 })
+    expect(result).toEqual({ evaluated: 1, updated: 0, changedUnderneath: 0, failed: 0 })
   })
 
-  it('warns and counts nothing when the write itself fails', async () => {
+  it('finishes the remaining rows, then fails the run when a write fails', async () => {
     const warnings = []
-    const result = await runReroute({
-      fetchRows: () => [staleRow],
+    const logs = []
+    await expect(runReroute({
+      fetchRows: () => [staleRow, { ...staleRow, id: 'email-2' }],
       routeMessage: () => improvingRoute,
-      updateRow: async () => { throw new Error('row violates a policy') },
-      log: () => {},
+      updateRow: async (row) => {
+        if (row.id === 'email-1') throw new Error('row violates a policy')
+        return 1
+      },
+      log: (line) => logs.push(line),
       warn: (line) => warnings.push(line),
-    })
-    expect(result).toEqual({ evaluated: 1, updated: 0, changedUnderneath: 0 })
+    })).rejects.toThrow('reroute: 1 of 2 message updates failed')
     expect(warnings).toEqual(['reroute skipped email-1: row violates a policy'])
+    expect(logs.at(-1)).toBe('reroute: 2 messages evaluated, 1 improved, 0 changed underneath, 1 failed')
   })
 })
 
@@ -344,6 +349,104 @@ describe('Fireflies command configuration', () => {
       SUPABASE_URL: completeEnv.SUPABASE_URL,
       SUPABASE_SERVICE_ROLE_KEY: completeEnv.SUPABASE_SERVICE_ROLE_KEY,
     })).not.toThrow()
+  })
+})
+
+describe('summarize command configuration', () => {
+  const baseEnv = {
+    SUPABASE_URL: 'https://example.supabase.co',
+    SUPABASE_SERVICE_ROLE_KEY: 'test-only-service-key',
+  }
+
+  it.each([undefined, '', '   '])('rejects a %s OpenRouter key before the summarize job starts', (key) => {
+    expect(() => validateCommandEnvironment('summarize', { ...baseEnv, OPENROUTER_API_KEY: key }))
+      .toThrow('OPENROUTER_API_KEY is required')
+  })
+
+  it('accepts summarize once the key is set', () => {
+    expect(() => validateCommandEnvironment('summarize', { ...baseEnv, OPENROUTER_API_KEY: 'test-only-openrouter-key' })).not.toThrow()
+  })
+})
+
+describe('failed writes fail the run (#64)', () => {
+  const baseEnv = {
+    SUPABASE_URL: 'https://example.supabase.co',
+    SUPABASE_SERVICE_ROLE_KEY: 'test-only-service-key',
+  }
+
+  it('one failed reroute write rejects main (process exit code 1) and the log shows counts', async () => {
+    const logs = []
+    const warnings = []
+    const logSpy = vi.spyOn(console, 'log').mockImplementation((line) => logs.push(line))
+    const warnSpy = vi.spyOn(console, 'warn').mockImplementation((line) => warnings.push(line))
+    const fake = createFakeSupabase({
+      tables: {
+        'crm.email_message': [{
+          id: 'email-1',
+          subject: 'Spring line review',
+          body_preview: '',
+          sender: 'buyer@customer-a.example',
+          recipients: '',
+          routing_status: 'UNROUTED',
+          routing_method: null,
+          company_id: null,
+        }],
+        'core.customer': [{
+          id: 'customer-a',
+          name: 'Customer A',
+          domain: 'customer-a.example',
+          routing_aliases: null,
+          customer_status: 'ACTIVE_CUSTOMER',
+        }],
+      },
+    })
+    fake.failNext('crm', 'email_message', 'row violates a policy', { op: 'update' })
+    await expect(main(['node', 'worker', 'reroute'], baseEnv, { supabaseClient: fake }))
+      .rejects.toThrow('reroute: 1 of 1 message updates failed')
+    expect(warnings).toContain('reroute skipped email-1: row violates a policy')
+    expect(logs.at(-1)).toBe('reroute: 1 messages evaluated, 0 improved, 0 changed underneath, 1 failed')
+    logSpy.mockRestore()
+    warnSpy.mockRestore()
+  })
+
+  it('counts a failing opportunity summary, logs the upstream status code, and fails the run', async () => {
+    const logs = []
+    const warnings = []
+    const logSpy = vi.spyOn(console, 'log').mockImplementation((line) => logs.push(line))
+    const warnSpy = vi.spyOn(console, 'warn').mockImplementation((line) => warnings.push(line))
+    const fake = createFakeSupabase({
+      tables: {
+        'crm.email_message': [{
+          id: 'email-1',
+          subject: 'Spring line review',
+          sender: 'buyer@customer-a.example',
+          received_at: '2026-11-19T00:00:00Z',
+          body_preview: '',
+          routing_method: null,
+          opportunity_id: 'opp-1',
+        }],
+        'crm.opportunity': [{
+          id: 'opp-1',
+          name: 'Program 1',
+          stage: 'OPEN',
+          company_id: null,
+          department_id: null,
+          production_po_number: null,
+          sales_order_number: null,
+          project_id: null,
+        }],
+        'crm.ai_model_config': [{ id: 'cfg-1', opportunity_summary_model: 'GEMINI_2_FLASH' }],
+      },
+    })
+    const fetchImpl = vi.fn(async () => new Response('unavailable', { status: 503 }))
+    await expect(main(['node', 'worker', 'summarize'], { ...baseEnv, OPENROUTER_API_KEY: 'test-only-openrouter-key' }, {
+      supabaseClient: fake,
+      fetch: fetchImpl,
+    })).rejects.toThrow('summarize: 1/1 opportunities failed')
+    expect(warnings.some((line) => line.includes('HTTP 503'))).toBe(true)
+    expect(logs.at(-1)).toBe('summarize: 0/1 opportunities refreshed, 1 failed')
+    logSpy.mockRestore()
+    warnSpy.mockRestore()
   })
 })
 

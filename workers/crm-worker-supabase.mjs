@@ -530,10 +530,10 @@ async function summarizeOpportunity(opportunityId) {
       response_format: { type: 'json_object' },
     }),
   }, { timeoutMs: upstreamSettings.OPENROUTER_FETCH_TIMEOUT_MS })
-  if (!res.ok) return false
+  if (!res.ok) throw new Error(`OpenRouter opportunity summary failed: HTTP ${res.status}`)
   const json = await res.json()
   const content = json.choices?.[0]?.message?.content
-  if (!content) return false
+  if (!content) throw new Error('OpenRouter opportunity summary returned no content')
   let parsed
   try { parsed = JSON.parse(content) } catch { parsed = { summary: content } }
   must(await crm('opportunity').update({ ai_summary: parsed.summary || content, ai_state: JSON.stringify({ ...parsed, updatedAt: new Date().toISOString() }) }).eq('id', opportunityId))
@@ -1051,6 +1051,7 @@ export async function runReroute({ fetchRows, routeMessage, updateRow, log = con
   let updated = 0
   let changedUnderneath = 0
   let evaluated = 0
+  let failed = 0
   for (const row of rows) {
     const route = await routeMessage(row)
     evaluated += 1
@@ -1066,13 +1067,17 @@ export async function runReroute({ fetchRows, routeMessage, updateRow, log = con
         if (written > 0) updated += 1
         else if (written === 0) changedUnderneath += 1
       } catch (error) {
+        failed += 1
         warn(`reroute skipped ${row.id}: ${error.message}`)
       }
     }
     if (evaluated % 500 === 0) log(`reroute: ${evaluated}/${rows.length} evaluated, ${updated} improved`)
   }
-  log(`reroute: ${evaluated} messages evaluated, ${updated} improved, ${changedUnderneath} changed underneath`)
-  return { evaluated, updated, changedUnderneath }
+  log(`reroute: ${evaluated} messages evaluated, ${updated} improved, ${changedUnderneath} changed underneath${failed ? `, ${failed} failed` : ''}`)
+  // The run finishes the remaining rows first, then reports the failures by
+  // exiting non-zero: a job whose writes were rejected must show as failed.
+  if (failed) throw new Error(`reroute: ${failed} of ${evaluated} message updates failed`)
+  return { evaluated, updated, changedUnderneath, failed }
 }
 
 async function reroute() {
@@ -1157,41 +1162,48 @@ async function contactSync() {
     })
   let retailersCreated = 0
   let buyersCreated = 0
+  let failures = 0
   const retailerByDomain = new Map()
   for (const address of addresses) {
-    const domain = domainOf(address)
-    if (!retailerByDomain.has(domain)) {
-      const customerId = await customerForDomain(domain)
-      if (customerId === AMBIGUOUS_DOMAIN) {
-        retailerByDomain.set(domain, null)
-        continue
+    try {
+      const domain = domainOf(address)
+      if (!retailerByDomain.has(domain)) {
+        const customerId = await customerForDomain(domain)
+        if (customerId === AMBIGUOUS_DOMAIN) {
+          retailerByDomain.set(domain, null)
+          continue
+        }
+        if (!customerId) {
+          await recordIngestedDomain(domain, senderByDomain.get(domain) || address, subjectByDomain.get(domain) || null, domainToCompanyName(domain))
+          // The RPC adds 1 per call; a daily re-run must not inflate it, so pin the true email total.
+          must(await crm('ingested_domain').update({ email_count: emailCountByDomain.get(domain) || 1 }).eq('domain', domain))
+          retailersCreated += 1
+        }
+        retailerByDomain.set(domain, customerId)
       }
-      if (!customerId) {
-        await recordIngestedDomain(domain, senderByDomain.get(domain) || address, subjectByDomain.get(domain) || null, domainToCompanyName(domain))
-        // The RPC adds 1 per call; a daily re-run must not inflate it, so pin the true email total.
-        must(await crm('ingested_domain').update({ email_count: emailCountByDomain.get(domain) || 1 }).eq('domain', domain))
-        retailersCreated += 1
-      }
-      retailerByDomain.set(domain, customerId)
+      const customerId = retailerByDomain.get(domain)
+      if (!customerId) continue
+      const existing = must(await core('contact').select('id').eq('email', address).limit(1))
+      if (existing.length) continue
+      const contact = must(await core('contact').insert({
+        full_name: personNameFromEmail(address),
+        email: address,
+      }).select('id').single())
+      must(await core('contact_company').upsert({
+        contact_id: contact.id,
+        company_id: customerId,
+        relationship_type: 'buyer',
+        scope: 'COMPANY_WIDE',
+        contact_type: 'OTHER',
+      }, { onConflict: 'contact_id,company_id,relationship_type', ignoreDuplicates: true }))
+      buyersCreated += 1
+    } catch (error) {
+      failures += 1
+      console.error(`contact-sync: ${address} failed: ${error.message}`)
     }
-    const customerId = retailerByDomain.get(domain)
-    if (!customerId) continue
-    const existing = must(await core('contact').select('id').eq('email', address).limit(1))
-    if (existing.length) continue
-    const contact = must(await core('contact').insert({
-      full_name: personNameFromEmail(address),
-      email: address,
-    }).select('id').single())
-    must(await core('contact_company').upsert({
-      contact_id: contact.id,
-      company_id: customerId,
-      relationship_type: 'buyer',
-      scope: 'COMPANY_WIDE',
-      contact_type: 'OTHER',
-    }, { onConflict: 'contact_id,company_id,relationship_type', ignoreDuplicates: true }))
-    buyersCreated += 1
   }
-  console.log(`contact-sync: ${retailersCreated} ingested domains recorded, ${buyersCreated} customer contacts created, ${addresses.length} addresses evaluated`)
+  console.log(`contact-sync: ${retailersCreated} ingested domains recorded, ${buyersCreated} customer contacts created, ${addresses.length} addresses evaluated${failures ? `, ${failures} failed` : ''}`)
+  if (failures) throw new Error(`contact-sync: ${failures} address syncs failed`)
 }
 
 async function recordUnknownDomainsFromAddresses(addresses, subject = null, displayNameByDomain = new Map()) {
@@ -1210,8 +1222,17 @@ async function summarize() {
   const rows = await fetchAllRows(() => crm('email_message').select('id,opportunity_id').not('opportunity_id', 'is', null))
   const ids = [...new Set(rows.map((r) => r.opportunity_id).filter(Boolean))]
   let updated = 0
-  for (const id of ids) if (await summarizeOpportunity(id)) updated += 1
-  console.log(`summarize: ${updated}/${ids.length} opportunities refreshed`)
+  let failed = 0
+  for (const id of ids) {
+    try {
+      if (await summarizeOpportunity(id)) updated += 1
+    } catch (error) {
+      failed += 1
+      console.warn(`summarize: opportunity ${id} failed: ${error.message}`)
+    }
+  }
+  console.log(`summarize: ${updated}/${ids.length} opportunities refreshed${failed ? `, ${failed} failed` : ''}`)
+  if (failed) throw new Error(`summarize: ${failed}/${ids.length} opportunities failed`)
 }
 
 function subjectMatchesRule(subject, rule) {
@@ -1257,19 +1278,32 @@ async function applyIgnoreRules() {
   }
   const emails = await fetchAllRows(() => crm('email_message').select('id,subject').eq('routing_status', 'UNROUTED'))
   let skipped = 0
+  let failed = 0
   const counts = new Map()
   for (const email of emails) {
     const rule = rules.find((r) => ruleTypeOf(r) === 'SUBJECT' && subjectMatchesRule(email.subject, r))
     if (!rule) continue
-    must(await crm('email_message').update({ routing_status: 'SKIPPED', routing_method: 'AUTO_SKIP' }).eq('id', email.id))
-    counts.set(rule.id, (counts.get(rule.id) || 0) + 1)
-    skipped += 1
+    try {
+      must(await crm('email_message').update({ routing_status: 'SKIPPED', routing_method: 'AUTO_SKIP' }).eq('id', email.id))
+      counts.set(rule.id, (counts.get(rule.id) || 0) + 1)
+      skipped += 1
+    } catch (error) {
+      failed += 1
+      console.warn(`apply-ignore-rules: email ${email.id} not skipped: ${error.message}`)
+    }
   }
   for (const rule of rules) {
     const count = counts.get(rule.id) || 0
-    if (count) must(await crm('ignore_rule').update({ emails_skipped: Number(rule.emails_skipped || 0) + count }).eq('id', rule.id))
+    if (!count) continue
+    try {
+      must(await crm('ignore_rule').update({ emails_skipped: Number(rule.emails_skipped || 0) + count }).eq('id', rule.id))
+    } catch (error) {
+      failed += 1
+      console.warn(`apply-ignore-rules: counter for rule ${rule.id} not updated: ${error.message}`)
+    }
   }
-  console.log(`apply-ignore-rules: ${skipped} emails skipped by ${counts.size} rules`)
+  console.log(`apply-ignore-rules: ${skipped} emails skipped by ${counts.size} rules${failed ? `, ${failed} failed` : ''}`)
+  if (failed) throw new Error(`apply-ignore-rules: ${failed} updates failed`)
 }
 
 // --- Fireflies (HTTP unchanged; persistence -> crm.meeting_note) ---------------
