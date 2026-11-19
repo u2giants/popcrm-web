@@ -140,8 +140,6 @@ Full text lives in [docs/critical-incidents.md](docs/critical-incidents.md). Loa
 
 | Status | Item | Owner/next action |
 |---|---|---|
-| open | popcre/shared-db#6818 delivery to production + client follow-ups (#40 drawers, #57 counts pages, #68 worker upsert) | Re-issued chain 20261225010105-108 promoted to production 2026-11-19 (run 44580551062); types regenerated and #39's clear-fields live (issue closed); remaining: #40/#57/#68 client steps in worktree `wt/client2` |
-| open | `fix_bugs.md` Part 2 leftovers | D/E/G landed 2026-11-19 (see its Part 2 notes); A/B/C tracked by issue #57 (counts RPC in popcre/shared-db#6818, client steps pending); F lands with #6818 |
 | open | Final shared-db drop of deprecated `crm_account_*` compatibility contracts | [`fix_remove_account.md`](fix_remove_account.md) step 3 |
 | open | Server-side pagination / Supabase aggregates | Currently client-side for CRM screens; revisit if record volumes grow |
 | unknown | `crm_licensor_approval_thread.stage` values | Free-form, 0 rows today; verify real values via backend when approval data exists |

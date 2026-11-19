@@ -316,9 +316,9 @@ Inside the per-address loop, so thousands of serial round trips per run.
 Batchable with a single `.in('email', addresses)` prefetch into a `Set` before
 the loop. Same class as finding 5, but in a job that runs less often.
 
-> **F — in flight:** the shared-db PR (popcre/shared-db#6818) adds
-> crm.increment_ignore_rule_emails_skipped for an atomic database-side bump;
-> the worker switches to it when that lands.
+> **F — DONE 2026-11-19 (commit e7aae53a):** crm.increment_ignore_rule_emails_skipped
+> shipped via the promoted shared-db batch and the worker now bumps the counter
+> atomically (one rpc per matched rule).
 
 ### F. `applyIgnoreRules()` loses `emails_skipped` counts under concurrency
 
