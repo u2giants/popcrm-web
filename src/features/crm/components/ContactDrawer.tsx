@@ -395,7 +395,10 @@ export function ContactDrawer({
         onConfirm={() => void archive()}
         onClose={() => setConfirmingDelete(false)}
       />
+      {/* Keyed by the kept contact so the dialog's search/selection state can
+          never survive into a merge opened for a different contact. */}
       <MergeContactsDialog
+        key={merging && row ? row.id : 'no-merge'}
         keep={merging && row ? row : null}
         onClose={() => setMerging(false)}
         onMerged={() => setMerging(false)}

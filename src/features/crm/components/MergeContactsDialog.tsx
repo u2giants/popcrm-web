@@ -66,20 +66,28 @@ export function MergeContactsDialog({
     ]
   }, [keep, drop])
 
+  // The dialog always opens with nothing selected and an empty search, so a
+  // duplicate picked for one contact can never carry over to another.
+  function close() {
+    setQuery('')
+    setDropId(null)
+    onClose()
+  }
+
   async function confirm() {
     if (!keep || !drop) return
     try {
       await merge.mutateAsync({ keepId: keep.id, dropId: drop.id })
       toast.success(`${contactName(drop)} merged into ${contactName(keep)}`)
       onMerged()
-      onClose()
+      close()
     } catch (error) {
       toast.error('Could not merge these contacts', { description: logError('MergeContactsDialog.confirm', error) })
     }
   }
 
   return (
-    <Dialog open={!!keep} onOpenChange={(o) => { if (!o) onClose() }}>
+    <Dialog open={!!keep} onOpenChange={(o) => { if (!o) close() }}>
       <DialogContent className="sm:max-w-[560px]">
         <DialogHeader>
           <DialogTitle>Merge duplicate contact</DialogTitle>
@@ -146,7 +154,7 @@ export function MergeContactsDialog({
         </div>
 
         <DialogFooter>
-          <Button variant="outline" size="sm" onClick={onClose} disabled={merge.isPending}>Cancel</Button>
+          <Button variant="outline" size="sm" onClick={close} disabled={merge.isPending}>Cancel</Button>
           <Button size="sm" disabled={!drop || drop.id === keep?.id || merge.isPending} onClick={() => void confirm()}>
             {merge.isPending ? 'Merging…' : 'Merge'}
           </Button>
