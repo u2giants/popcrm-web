@@ -3,26 +3,35 @@ import { ShieldCheck } from 'lucide-react'
 import { AppPage, ListBar } from '@/components/app/AppPage'
 import { DataTable, type Column } from '@/components/app/DataTable'
 import { ErrorState } from '@/components/app/states'
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { CrmStatusBadge } from '@/features/crm/components/CrmStatusBadge'
 import { RelationLabel } from '@/features/crm/components/RelationLabel'
 import { useRecordSelection } from '@/features/crm/useRecordSelection'
 import { ApprovalDrawer } from '@/features/crm/components/ApprovalDrawer'
 import { formatDate, relatedName, textOf } from '@/features/crm/format'
 import { listData, useApprovalsQuery } from '@/features/crm/queries'
+import { isApprovalResolved } from '@/features/crm/constants'
 import type { CrmLicensorApprovalThread } from '@/lib/types'
+
+type Scope = 'open' | 'all'
 
 export function ApprovalsPage() {
   const approvalsQuery = useApprovalsQuery(-1)
   const approvals = listData(approvalsQuery.data)
   const [query, setQuery] = useState('')
+  // Defaults to Open — the same unresolved-thread predicate the Overview
+  // "Approvals" card counts, so clicking through shows that exact number.
+  const [scope, setScope] = useState<Scope>('open')
   const [selected, select] = useRecordSelection<CrmLicensorApprovalThread>('approval', approvals)
 
+  const openCount = useMemo(() => approvals.filter((a) => !isApprovalResolved(a.stage)).length, [approvals])
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase()
-    return approvals.filter(
-      (a) => !q || textOf(a.name, a.property_name, a.licensor_comments, relatedName(a.opportunity)).includes(q),
-    )
-  }, [approvals, query])
+    return approvals.filter((a) => {
+      if (scope === 'open' && isApprovalResolved(a.stage)) return false
+      return !q || textOf(a.name, a.property_name, a.licensor_comments, relatedName(a.opportunity)).includes(q)
+    })
+  }, [approvals, query, scope])
 
   const columns: Column<CrmLicensorApprovalThread>[] = [
     {
@@ -95,6 +104,23 @@ export function ApprovalsPage() {
           search={query}
           onSearch={setQuery}
           searchPlaceholder="Search name, property, comments…"
+          segments={
+            <Tabs value={scope} onValueChange={(v) => setScope(v as Scope)}>
+              <TabsList>
+                {([
+                  { id: 'open', label: 'Open', count: openCount },
+                  { id: 'all', label: 'All', count: approvals.length },
+                ] as { id: Scope; label: string; count: number }[]).map((s) => (
+                  <TabsTrigger key={s.id} value={s.id} className="gap-1.5">
+                    {s.label}
+                    <span className="rounded-full bg-muted-foreground/15 px-1.5 text-[11px] tabular-nums">
+                      {s.count.toLocaleString()}
+                    </span>
+                  </TabsTrigger>
+                ))}
+              </TabsList>
+            </Tabs>
+          }
         />
       }
     >

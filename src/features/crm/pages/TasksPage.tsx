@@ -6,6 +6,7 @@ import { DataTable, type Column } from '@/components/app/DataTable'
 import { NameAvatar } from '@/components/app/NameAvatar'
 import { StatusBadge } from '@/components/app/StatusBadge'
 import { Button } from '@/components/ui/button'
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { CreateTaskDialog } from '@/features/crm/components/CreateTaskDialog'
 import {
   Select,
@@ -27,6 +28,14 @@ import { cn } from '@/lib/utils'
 import { logError } from '@/lib/errors'
 import type { CrmTask } from '@/lib/types'
 
+type Scope = 'open' | 'all'
+
+// The Overview "Open tasks" aggregate excludes DONE/CANCELED (server-side
+// `status is distinct from`); a null status counts as open on both sides.
+function isOpenTask(status: string | null | undefined): boolean {
+  return status !== 'DONE' && status !== 'CANCELED'
+}
+
 function isOverdue(dueAt: string | null | undefined, status: string | null | undefined): boolean {
   if (!dueAt || status === 'DONE' || status === 'CANCELED') return false
   return new Date(dueAt) < new Date()
@@ -38,16 +47,21 @@ export function TasksPage() {
   const updateTaskMutation = useUpdateTaskMutation()
   const tasks = listData(tasksQuery.data)
   const [query, setQuery] = useState('')
+  // Defaults to Open — the same predicate the Overview "Open tasks" card
+  // counts, so clicking through shows that exact number.
+  const [scope, setScope] = useState<Scope>('open')
   const [view, setView] = useState<'table' | 'board'>('table')
   const [creating, setCreating] = useState(false)
   const [selected, select] = useRecordSelection<CrmTask>('task', tasks)
 
+  const openCount = useMemo(() => tasks.filter((t) => isOpenTask(t.status)).length, [tasks])
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase()
-    return tasks.filter(
-      (t) => !q || textOf(t.title, t.body, customerName(t.retailer), relatedName(t.opportunity), relatedName(t.assignee)).includes(q),
-    )
-  }, [tasks, query, customerName])
+    return tasks.filter((t) => {
+      if (scope === 'open' && !isOpenTask(t.status)) return false
+      return !q || textOf(t.title, t.body, customerName(t.retailer), relatedName(t.opportunity), relatedName(t.assignee)).includes(q)
+    })
+  }, [tasks, query, scope, customerName])
 
   async function quickStatus(task: CrmTask, next: string) {
     try {
@@ -159,6 +173,23 @@ export function TasksPage() {
           search={query}
           onSearch={setQuery}
           searchPlaceholder="Search title, body, assignee…"
+          segments={
+            <Tabs value={scope} onValueChange={(v) => setScope(v as Scope)}>
+              <TabsList>
+                {([
+                  { id: 'open', label: 'Open', count: openCount },
+                  { id: 'all', label: 'All', count: tasks.length },
+                ] as { id: Scope; label: string; count: number }[]).map((s) => (
+                  <TabsTrigger key={s.id} value={s.id} className="gap-1.5">
+                    {s.label}
+                    <span className="rounded-full bg-muted-foreground/15 px-1.5 text-[11px] tabular-nums">
+                      {s.count.toLocaleString()}
+                    </span>
+                  </TabsTrigger>
+                ))}
+              </TabsList>
+            </Tabs>
+          }
           actions={
             <>
               <Button size="sm" onClick={() => setCreating(true)}>
