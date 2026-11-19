@@ -99,6 +99,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   // See ./refreshGate.ts. Every refresh takes a token and may only apply its
   // result if it is still the newest one AND the session user has not changed.
   const gateRef = useRef(createRefreshGate())
+  // One in-flight delayed profile retry at a time (#42); cleared when the
+  // retry runs, so a persistent outage cannot spin.
+  const retryScheduledRef = useRef(false)
+  // Mirror of realUser for async refresh paths that must see the latest
+  // committed profile (the auth-state callback closes over first-render state).
+  const realUserRef = useRef(realUser)
+  realUserRef.current = realUser
 
   async function refresh() {
     const { data: sessionData } = await supabase.auth.getSession()
@@ -122,10 +129,27 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // Session is valid but the profile contract failed. Keep the user signed
       // in on the auth identity alone — but never silently: a degraded profile
       // means role-gated UI is missing and RLS will return empty data, which
-      // reads exactly like "there is no data".
-      console.error('auth: current_user_profile failed; rendering the degraded auth identity', error)
+      // reads exactly like "there is no data". A brief outage during a token
+      // refresh must not strip an administrator's roles or end impersonation:
+      // when a good profile for the SAME user id is already held, keep it and
+      // retry once after a short delay (#42). Only a user with no prior
+      // profile degrades; that case waits for the next auth event.
+      console.error('auth: current_user_profile failed', error)
       if (!gate.accepts(token, sessionUserId)) return
-      setRealUser(toAppUser(null, fallback))
+      const held = realUserRef.current
+      const keptProfile = !!(held && sessionUserId && held.id === sessionUserId)
+      if (keptProfile) {
+        setRealUser(held)
+      } else {
+        setRealUser(toAppUser(null, fallback))
+      }
+      if (keptProfile && !retryScheduledRef.current) {
+        retryScheduledRef.current = true
+        window.setTimeout(() => {
+          retryScheduledRef.current = false
+          void refresh()
+        }, 2000)
+      }
     }
   }
 
