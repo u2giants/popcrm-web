@@ -192,64 +192,69 @@ export function DomainRoutingPanel({ query }: { query: string }) {
     }
   }
 
-  const columns: Column<RoutedDomain>[] = [
-    {
-      key: 'domain',
-      header: 'Domain',
-      className: 'w-full max-w-0',
-      sortValue: (r) => r.domain,
-      filterValue: (r) => r.domain,
-      cell: (r) => (
-        <div className="min-w-0">
-          <div className="truncate font-medium text-foreground">{r.domain}</div>
-          <div className="truncate text-xs text-muted-foreground">{r.last_sender || r.sample_subject || ''}</div>
-        </div>
-      ),
-    },
-    {
-      key: 'email_count',
-      header: 'Emails',
-      numeric: true,
-      sortValue: (r) => r.email_count ?? 0,
-      className: 'text-right tabular-nums',
-      headClassName: 'text-right',
-      cell: (r) => (r.email_count ?? 0).toLocaleString(),
-    },
-    {
-      key: 'last_seen_at',
-      header: 'Last seen',
-      hideBelow: 'md',
-      sortValue: (r) => r.last_seen_at ?? '',
-      className: 'text-muted-foreground',
-      cell: (r) => formatDateTime(r.last_seen_at),
-    },
-    {
-      key: 'routedTo',
-      header: 'Routes to',
-      sortValue: (r) => (r.routedTo ? customerById.get(r.routedTo)?.name ?? '' : ''),
-      filterValue: (r) => (r.routedTo ? 'Routed' : 'Not routed'),
-      editOptions: options,
-      editValue: (r) => r.routedTo ?? '',
-      cell: (r) => {
-        const holder = r.routedTo ? customerById.get(r.routedTo) : undefined
-        return (
-          <span className="text-muted-foreground">
-            {holder ? `Routed to ${customerLabel(holder)}` : 'Not routed'}
-          </span>
-        )
+  // Memoised so DataTable's column-keyed memos (filter, sort, distinct
+  // values) survive every keystroke in the search box (issue #46).
+  const columns: Column<RoutedDomain>[] = useMemo(
+    () => [
+      {
+        key: 'domain',
+        header: 'Domain',
+        className: 'w-full max-w-0',
+        sortValue: (r) => r.domain,
+        filterValue: (r) => r.domain,
+        cell: (r) => (
+          <div className="min-w-0">
+            <div className="truncate font-medium text-foreground">{r.domain}</div>
+            <div className="truncate text-xs text-muted-foreground">{r.last_sender || r.sample_subject || ''}</div>
+          </div>
+        ),
       },
-    },
-    {
-      key: 'status',
-      header: 'Classification',
-      hideBelow: 'md',
-      sortValue: (r) => customerStatusLabel(r.status),
-      filterValue: (r) => customerStatusLabel(r.status),
-      editOptions: CLASSIFICATION_OPTIONS,
-      editValue: (r) => r.status ?? 'new',
-      cell: (r) => <StatusBadge tone={customerStatusTone(r.status)} dot>{customerStatusLabel(r.status)}</StatusBadge>,
-    },
-  ]
+      {
+        key: 'email_count',
+        header: 'Emails',
+        numeric: true,
+        sortValue: (r) => r.email_count ?? 0,
+        className: 'text-right tabular-nums',
+        headClassName: 'text-right',
+        cell: (r) => (r.email_count ?? 0).toLocaleString(),
+      },
+      {
+        key: 'last_seen_at',
+        header: 'Last seen',
+        hideBelow: 'md',
+        sortValue: (r) => r.last_seen_at ?? '',
+        className: 'text-muted-foreground',
+        cell: (r) => formatDateTime(r.last_seen_at),
+      },
+      {
+        key: 'routedTo',
+        header: 'Routes to',
+        sortValue: (r) => (r.routedTo ? customerById.get(r.routedTo)?.name ?? '' : ''),
+        filterValue: (r) => (r.routedTo ? 'Routed' : 'Not routed'),
+        editOptions: options,
+        editValue: (r) => r.routedTo ?? '',
+        cell: (r) => {
+          const holder = r.routedTo ? customerById.get(r.routedTo) : undefined
+          return (
+            <span className="text-muted-foreground">
+              {holder ? `Routed to ${customerLabel(holder)}` : 'Not routed'}
+            </span>
+          )
+        },
+      },
+      {
+        key: 'status',
+        header: 'Classification',
+        hideBelow: 'md',
+        sortValue: (r) => customerStatusLabel(r.status),
+        filterValue: (r) => customerStatusLabel(r.status),
+        editOptions: CLASSIFICATION_OPTIONS,
+        editValue: (r) => r.status ?? 'new',
+        cell: (r) => <StatusBadge tone={customerStatusTone(r.status)} dot>{customerStatusLabel(r.status)}</StatusBadge>,
+      },
+    ],
+    [customerById, options],
+  )
 
   return (
     <div className="space-y-2">

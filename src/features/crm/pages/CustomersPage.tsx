@@ -178,134 +178,143 @@ export function CustomersPage() {
 
   const count = segment === 'triage' ? filteredDomains.length : filteredCustomers.length
 
-  const customerColumns: Column<Retailer>[] = [
-    {
-      key: 'name',
-      header: 'Customer',
-      opensDetail: true,
-      sortValue: (r) => customerLabel(r).toLowerCase(),
-      filterValue: (r) => customerLabel(r),
-      cell: (r) => <CustomerRelationLogo value={r} size={24} variant="token-name" />,
-    },
-    {
-      key: 'customer_status',
-      header: 'Status',
-      sortValue: (r) => customerStatusLabel(statusOf(r)),
-      filterValue: (r) => customerStatusLabel(statusOf(r)),
-      editOptions: STATUS_OPTIONS,
-      editValue: (r) => statusOf(r),
-      cell: (r) => (
-        <StatusBadge tone={customerStatusTone(statusOf(r))} dot>
-          {customerStatusLabel(statusOf(r))}
-        </StatusBadge>
-      ),
-    },
-    {
-      key: 'potential',
-      header: 'Source',
-      hideBelow: 'lg',
-      sortValue: (r) => potentialLabel(r.is_potential),
-      filterValue: (r) => potentialLabel(r.is_potential),
-      cell: (r) => (
-        <StatusBadge tone={potentialTone(r.is_potential)} dot>
-          {potentialLabel(r.is_potential)}
-        </StatusBadge>
-      ),
-    },
-    {
-      key: 'chain_type',
-      header: 'Chain',
-      hideBelow: 'lg',
-      sortValue: (r) => r.chain_type ?? '',
-      filterValue: (r) => label(r.chain_type),
-      editOptions: CHAIN_OPTIONS,
-      editValue: (r) => r.chain_type,
-      cell: (r) => <ChainBadge chain={r.chain_type} />,
-    },
-    {
-      key: 'contacts',
-      header: 'Contacts',
-      hideBelow: 'lg',
-      numeric: true,
-      sortValue: (r) => counts.contacts.get(r.id) ?? 0,
-      className: 'text-right tabular-nums',
-      headClassName: 'text-right',
-      cell: (r) => counts.contacts.get(r.id) ?? 0,
-    },
-    {
-      key: 'opps',
-      header: 'Programs',
-      hideBelow: 'xl',
-      numeric: true,
-      sortValue: (r) => counts.opps.get(r.id) ?? 0,
-      className: 'text-right tabular-nums',
-      headClassName: 'text-right',
-      cell: (r) => counts.opps.get(r.id) ?? 0,
-    },
-  ]
+  // Memoised so DataTable's column-keyed memos (filter, sort, distinct values)
+  // survive every keystroke in the search box (issue #46).
+  const customerColumns: Column<Retailer>[] = useMemo(
+    () => [
+      {
+        key: 'name',
+        header: 'Customer',
+        opensDetail: true,
+        sortValue: (r) => customerLabel(r).toLowerCase(),
+        filterValue: (r) => customerLabel(r),
+        cell: (r) => <CustomerRelationLogo value={r} size={24} variant="token-name" />,
+      },
+      {
+        key: 'customer_status',
+        header: 'Status',
+        sortValue: (r) => customerStatusLabel(statusOf(r)),
+        filterValue: (r) => customerStatusLabel(statusOf(r)),
+        editOptions: STATUS_OPTIONS,
+        editValue: (r) => statusOf(r),
+        cell: (r) => (
+          <StatusBadge tone={customerStatusTone(statusOf(r))} dot>
+            {customerStatusLabel(statusOf(r))}
+          </StatusBadge>
+        ),
+      },
+      {
+        key: 'potential',
+        header: 'Source',
+        hideBelow: 'lg',
+        sortValue: (r) => potentialLabel(r.is_potential),
+        filterValue: (r) => potentialLabel(r.is_potential),
+        cell: (r) => (
+          <StatusBadge tone={potentialTone(r.is_potential)} dot>
+            {potentialLabel(r.is_potential)}
+          </StatusBadge>
+        ),
+      },
+      {
+        key: 'chain_type',
+        header: 'Chain',
+        hideBelow: 'lg',
+        sortValue: (r) => r.chain_type ?? '',
+        filterValue: (r) => label(r.chain_type),
+        editOptions: CHAIN_OPTIONS,
+        editValue: (r) => r.chain_type,
+        cell: (r) => <ChainBadge chain={r.chain_type} />,
+      },
+      {
+        key: 'contacts',
+        header: 'Contacts',
+        hideBelow: 'lg',
+        numeric: true,
+        sortValue: (r) => counts.contacts.get(r.id) ?? 0,
+        className: 'text-right tabular-nums',
+        headClassName: 'text-right',
+        cell: (r) => counts.contacts.get(r.id) ?? 0,
+      },
+      {
+        key: 'opps',
+        header: 'Programs',
+        hideBelow: 'xl',
+        numeric: true,
+        sortValue: (r) => counts.opps.get(r.id) ?? 0,
+        className: 'text-right tabular-nums',
+        headClassName: 'text-right',
+        cell: (r) => counts.opps.get(r.id) ?? 0,
+      },
+    ],
+    [counts],
+  )
 
-  const domainColumns: Column<CrmIngestedDomain>[] = [
-    {
-      key: 'domain',
-      header: 'Domain',
-      sortValue: (r) => r.domain,
-      filterValue: (r) => r.domain,
-      cell: (r) => (
-        <div className="min-w-0">
-          <div className="truncate font-[500] text-foreground">{r.domain}</div>
-          {r.display_name ? (
-            <div className="truncate text-[11px] text-muted-foreground">{r.display_name}</div>
-          ) : null}
-        </div>
-      ),
-    },
-    {
-      key: 'email_count',
-      header: 'Emails',
-      numeric: true,
-      sortValue: (r) => r.email_count ?? 0,
-      className: 'text-right tabular-nums',
-      headClassName: 'text-right',
-      cell: (r) => r.email_count ?? 0,
-    },
-    {
-      key: 'last_seen_at',
-      header: 'Last seen',
-      hideBelow: 'md',
-      sortValue: (r) => r.last_seen_at,
-      filterValue: (r) => formatDateTime(r.last_seen_at),
-      cell: (r) => formatDateTime(r.last_seen_at),
-    },
-    {
-      key: 'last_sender',
-      header: 'Sender',
-      hideBelow: 'lg',
-      sortValue: (r) => r.last_sender ?? '',
-      filterValue: (r) => r.last_sender ?? '',
-      cell: (r) => <span className="truncate text-muted-foreground">{r.last_sender || '—'}</span>,
-    },
-    {
-      key: 'sample_subject',
-      header: 'Sample subject',
-      hideBelow: 'xl',
-      sortValue: (r) => r.sample_subject ?? '',
-      filterValue: (r) => r.sample_subject ?? '',
-      cell: (r) => <span className="block truncate text-muted-foreground">{r.sample_subject || '—'}</span>,
-    },
-    {
-      key: 'status',
-      header: 'Classification',
-      sortValue: (r) => customerStatusLabel(r.status),
-      filterValue: (r) => customerStatusLabel(r.status),
-      editOptions: DOMAIN_CLASSIFICATION_OPTIONS,
-      editValue: (r) => r.status ?? 'new',
-      cell: (r) => (
-        <StatusBadge tone={customerStatusTone(r.status)} dot>
-          {customerStatusLabel(r.status)}
-        </StatusBadge>
-      ),
-    },
-  ]
+  const domainColumns: Column<CrmIngestedDomain>[] = useMemo(
+    () => [
+      {
+        key: 'domain',
+        header: 'Domain',
+        sortValue: (r) => r.domain,
+        filterValue: (r) => r.domain,
+        cell: (r) => (
+          <div className="min-w-0">
+            <div className="truncate font-[500] text-foreground">{r.domain}</div>
+            {r.display_name ? (
+              <div className="truncate text-[11px] text-muted-foreground">{r.display_name}</div>
+            ) : null}
+          </div>
+        ),
+      },
+      {
+        key: 'email_count',
+        header: 'Emails',
+        numeric: true,
+        sortValue: (r) => r.email_count ?? 0,
+        className: 'text-right tabular-nums',
+        headClassName: 'text-right',
+        cell: (r) => r.email_count ?? 0,
+      },
+      {
+        key: 'last_seen_at',
+        header: 'Last seen',
+        hideBelow: 'md',
+        sortValue: (r) => r.last_seen_at,
+        filterValue: (r) => formatDateTime(r.last_seen_at),
+        cell: (r) => formatDateTime(r.last_seen_at),
+      },
+      {
+        key: 'last_sender',
+        header: 'Sender',
+        hideBelow: 'lg',
+        sortValue: (r) => r.last_sender ?? '',
+        filterValue: (r) => r.last_sender ?? '',
+        cell: (r) => <span className="truncate text-muted-foreground">{r.last_sender || '—'}</span>,
+      },
+      {
+        key: 'sample_subject',
+        header: 'Sample subject',
+        hideBelow: 'xl',
+        sortValue: (r) => r.sample_subject ?? '',
+        filterValue: (r) => r.sample_subject ?? '',
+        cell: (r) => <span className="block truncate text-muted-foreground">{r.sample_subject || '—'}</span>,
+      },
+      {
+        key: 'status',
+        header: 'Classification',
+        sortValue: (r) => customerStatusLabel(r.status),
+        filterValue: (r) => customerStatusLabel(r.status),
+        editOptions: DOMAIN_CLASSIFICATION_OPTIONS,
+        editValue: (r) => r.status ?? 'new',
+        cell: (r) => (
+          <StatusBadge tone={customerStatusTone(r.status)} dot>
+            {customerStatusLabel(r.status)}
+          </StatusBadge>
+        ),
+      },
+    ],
+    // Every referenced value (labels, badges, option lists) is module-scope.
+    [],
+  )
 
   return (
     <AppPage

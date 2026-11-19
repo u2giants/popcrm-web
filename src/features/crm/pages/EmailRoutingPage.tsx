@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { toast } from 'sonner'
 import { MailWarning } from 'lucide-react'
 import { AppPage, ListBar, SectionHeader } from '@/components/app/AppPage'
@@ -115,19 +115,26 @@ export function EmailRoutingPage() {
     [retailers],
   )
   // Each level only offers choices that belong to the level above it.
-  function departmentOptionsFor(e: CrmEmailMessage): EditOption[] {
-    const company = idOf(e.retailer)
-    const pool = company ? departments.filter((d) => idOf(d.retailer) === company) : []
-    return [{ value: '', label: company ? 'Unassigned' : 'Pick a company first' }, ...pool.map((d) => ({ value: d.id, label: d.name }))]
-  }
-  function programOptionsFor(e: CrmEmailMessage): EditOption[] {
-    const dept = idOf(e.department)
-    const pool = dept ? opportunities.filter((o) => idOf(o.department) === dept) : []
-    return [
-      { value: '', label: dept ? 'Unassigned' : 'Pick a department first' },
-      ...pool.map((o) => ({ value: o.id, label: o.name || 'Untitled program' })),
-    ]
-  }
+  // useCallback so the memoised `columns` below keeps a stable dependency.
+  const departmentOptionsFor = useCallback(
+    (e: CrmEmailMessage): EditOption[] => {
+      const company = idOf(e.retailer)
+      const pool = company ? departments.filter((d) => idOf(d.retailer) === company) : []
+      return [{ value: '', label: company ? 'Unassigned' : 'Pick a company first' }, ...pool.map((d) => ({ value: d.id, label: d.name }))]
+    },
+    [departments],
+  )
+  const programOptionsFor = useCallback(
+    (e: CrmEmailMessage): EditOption[] => {
+      const dept = idOf(e.department)
+      const pool = dept ? opportunities.filter((o) => idOf(o.department) === dept) : []
+      return [
+        { value: '', label: dept ? 'Unassigned' : 'Pick a department first' },
+        ...pool.map((o) => ({ value: o.id, label: o.name || 'Untitled program' })),
+      ]
+    },
+    [opportunities],
+  )
   const statusOptions = useMemo<EditOption[]>(
     () => ROUTING_STATUSES.map((v) => ({ value: v, label: label(v) })),
     [],
@@ -244,81 +251,86 @@ export function EmailRoutingPage() {
   )
   const hiddenBySender = searched.length - filtered.length
 
-  const columns: Column<CrmEmailMessage>[] = [
-    {
-      key: 'received_at',
-      header: 'Date',
-      opensDetail: true,
-      hideBelow: 'md',
-      sortValue: (e) => e.received_at ?? '',
-      className: 'text-muted-foreground',
-      cell: (e) => formatDateTime(e.received_at),
-    },
-    {
-      key: 'subject',
-      header: 'Subject',
-      opensDetail: true,
-      sortValue: (e) => e.subject?.toLowerCase() ?? '',
-      filterValue: (e) => e.subject,
-      className: 'w-full max-w-0',
-      cell: (e) => (
-        <div className="min-w-0">
-          <div className="truncate font-medium text-foreground">{e.subject || '(no subject)'}</div>
-          <div className="truncate text-xs text-muted-foreground">{e.sender}</div>
-        </div>
-      ),
-    },
-    {
-      key: 'retailer',
-      header: 'Customer',
-      hideBelow: 'lg',
-      sortValue: (e) => customerName(e.retailer),
-      filterValue: (e) => customerName(e.retailer),
-      editOptions: (e) => withCurrentCustomer(customerOptions, idOf(e.retailer), retailerById),
-      editValue: (e) => idOf(e.retailer),
-      cell: (e) => <CustomerRelationLogo value={e.retailer} customerById={retailerById} size={24} variant="token-name" />,
-    },
-    {
-      key: 'department',
-      header: 'Department',
-      hideBelow: 'lg',
-      sortValue: (e) => relatedName(e.department),
-      filterValue: (e) => relatedName(e.department),
-      editOptions: departmentOptionsFor,
-      editValue: (e) => idOf(e.department),
-      cell: (e) => <RelationLabel value={e.department} />,
-    },
-    {
-      key: 'opportunity',
-      header: 'Program',
-      hideBelow: 'xl',
-      sortValue: (e) => relatedName(e.opportunity),
-      filterValue: (e) => relatedName(e.opportunity),
-      editOptions: programOptionsFor,
-      editValue: (e) => idOf(e.opportunity),
-      cell: (e) => <RelationLabel value={e.opportunity} />,
-    },
-    {
-      key: 'routing_method',
-      header: 'Method',
-      opensDetail: true,
-      hideBelow: 'lg',
-      sortValue: (e) => e.routing_method ?? '',
-      filterValue: (e) => e.routing_method,
-      filterLabel: (v) => METHOD_LABEL[v] ?? label(v),
-      cell: (e) => <MethodChip method={e.routing_method} />,
-    },
-    {
-      key: 'routing_status',
-      header: 'Status',
-      sortValue: (e) => e.routing_status ?? '',
-      filterValue: (e) => e.routing_status,
-      filterLabel: (v) => label(v),
-      editOptions: statusOptions,
-      editValue: (e) => e.routing_status,
-      cell: (e) => <CrmStatusBadge kind="routing" status={e.routing_status} />,
-    },
-  ]
+  // Memoised so DataTable's column-keyed memos (filter, sort, distinct values)
+  // survive every keystroke in the search box (issue #46).
+  const columns: Column<CrmEmailMessage>[] = useMemo(
+    () => [
+      {
+        key: 'received_at',
+        header: 'Date',
+        opensDetail: true,
+        hideBelow: 'md',
+        sortValue: (e) => e.received_at ?? '',
+        className: 'text-muted-foreground',
+        cell: (e) => formatDateTime(e.received_at),
+      },
+      {
+        key: 'subject',
+        header: 'Subject',
+        opensDetail: true,
+        sortValue: (e) => e.subject?.toLowerCase() ?? '',
+        filterValue: (e) => e.subject,
+        className: 'w-full max-w-0',
+        cell: (e) => (
+          <div className="min-w-0">
+            <div className="truncate font-medium text-foreground">{e.subject || '(no subject)'}</div>
+            <div className="truncate text-xs text-muted-foreground">{e.sender}</div>
+          </div>
+        ),
+      },
+      {
+        key: 'retailer',
+        header: 'Customer',
+        hideBelow: 'lg',
+        sortValue: (e) => customerName(e.retailer),
+        filterValue: (e) => customerName(e.retailer),
+        editOptions: (e) => withCurrentCustomer(customerOptions, idOf(e.retailer), retailerById),
+        editValue: (e) => idOf(e.retailer),
+        cell: (e) => <CustomerRelationLogo value={e.retailer} customerById={retailerById} size={24} variant="token-name" />,
+      },
+      {
+        key: 'department',
+        header: 'Department',
+        hideBelow: 'lg',
+        sortValue: (e) => relatedName(e.department),
+        filterValue: (e) => relatedName(e.department),
+        editOptions: departmentOptionsFor,
+        editValue: (e) => idOf(e.department),
+        cell: (e) => <RelationLabel value={e.department} />,
+      },
+      {
+        key: 'opportunity',
+        header: 'Program',
+        hideBelow: 'xl',
+        sortValue: (e) => relatedName(e.opportunity),
+        filterValue: (e) => relatedName(e.opportunity),
+        editOptions: programOptionsFor,
+        editValue: (e) => idOf(e.opportunity),
+        cell: (e) => <RelationLabel value={e.opportunity} />,
+      },
+      {
+        key: 'routing_method',
+        header: 'Method',
+        opensDetail: true,
+        hideBelow: 'lg',
+        sortValue: (e) => e.routing_method ?? '',
+        filterValue: (e) => e.routing_method,
+        filterLabel: (v) => METHOD_LABEL[v] ?? label(v),
+        cell: (e) => <MethodChip method={e.routing_method} />,
+      },
+      {
+        key: 'routing_status',
+        header: 'Status',
+        sortValue: (e) => e.routing_status ?? '',
+        filterValue: (e) => e.routing_status,
+        filterLabel: (v) => label(v),
+        editOptions: statusOptions,
+        editValue: (e) => e.routing_status,
+        cell: (e) => <CrmStatusBadge kind="routing" status={e.routing_status} />,
+      },
+    ],
+    [customerName, customerOptions, retailerById, departmentOptionsFor, programOptionsFor, statusOptions],
+  )
 
   const segments: { id: Segment; label: string; count: number }[] = [
     ...STAGES.map((s) => ({ id: s.id as Segment, label: s.label, count: stageCounts?.[s.id] ?? 0 })),

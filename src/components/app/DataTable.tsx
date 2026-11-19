@@ -436,17 +436,25 @@ export function DataTable<T>({
   const renderCols = selectable ? [selectColumn, ...allVisibleCols] : allVisibleCols
 
   // Distinct values per column (for popover + autocomplete), from ALL rows.
+  // Computed once per rows/columns change instead of per header-search
+  // keystroke: the memos below read this map, so typing never rescans every
+  // row (issue #46).
+  const distinctByColumn = useMemo(() => {
+    const out = new Map<string, string[]>()
+    for (const col of columns) {
+      const valueOf = col.filterValue ?? col.sortValue
+      if (valueOf) out.set(col.key, columnDistinctValues(rows, valueOf))
+    }
+    return out
+  }, [columns, rows])
+
   function distinctValues(key: string): string[] {
-    const col = byKey[key]
-    const valueOf = col?.filterValue ?? col?.sortValue
-    if (!valueOf) return []
-    return columnDistinctValues(rows, valueOf)
+    return distinctByColumn.get(key) ?? []
   }
 
   const openFilterValues = useMemo(
-    () => (openFilter ? distinctValues(openFilter) : []),
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [openFilter, rows, byKey],
+    () => (openFilter ? distinctByColumn.get(openFilter) ?? [] : []),
+    [openFilter, distinctByColumn],
   )
   const filteredPopoverValues = useMemo(() => {
     const q = filterSearch.trim().toLowerCase()
@@ -459,12 +467,11 @@ export function DataTable<T>({
     const q = (searchText[autocomplete.key] ?? '').trim().toLowerCase()
     if (!q) return []
     const col = byKey[autocomplete.key]
-    return distinctValues(autocomplete.key)
+    return (distinctByColumn.get(autocomplete.key) ?? [])
       .map((v) => (col?.filterLabel ? col.filterLabel(v) : v))
       .filter((v) => v.toLowerCase().includes(q))
       .slice(0, 8)
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [autocomplete, searchText, byKey, rows])
+  }, [autocomplete, searchText, byKey, distinctByColumn])
 
   // Close filter popover on outside click / Escape.
   useEffect(() => {
@@ -628,7 +635,9 @@ export function DataTable<T>({
       const td = el?.closest('td[data-row-index]') as HTMLElement | null
       if (!td) return
       const idx = Number(td.getAttribute('data-row-index'))
-      if (!Number.isNaN(idx)) setFill((f) => (f ? { ...f, throughIndex: idx } : f))
+      // Same row index -> same fill state: return the previous object so React
+      // skips the re-render instead of re-running on every mouse move (#46).
+      if (!Number.isNaN(idx)) setFill((f) => (f && f.throughIndex !== idx ? { ...f, throughIndex: idx } : f))
     }
     async function onUp() {
       window.removeEventListener('mousemove', onMove)

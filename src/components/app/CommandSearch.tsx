@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import {
@@ -27,10 +27,23 @@ interface Result {
 
 // Global command palette. Searches customers, contacts, opportunities and emails,
 // and deep-links to the relevant page with the record preselected via query param.
+// searchCrm fires 4 requests per term, so the term is debounced: typing a whole
+// word sends one search, not one per keystroke (issue #46).
+const SEARCH_DEBOUNCE_MS = 250
+
 export function CommandSearch({ open, onClose }: { open: boolean; onClose: () => void }) {
   const navigate = useNavigate()
   const [query, setQuery] = useState('')
-  const searchTerm = query.trim()
+  const [debouncedQuery, setDebouncedQuery] = useState('')
+  useEffect(() => {
+    const timer = setTimeout(() => setDebouncedQuery(query), SEARCH_DEBOUNCE_MS)
+    return () => clearTimeout(timer)
+  }, [query])
+  function resetQuery() {
+    setQuery('')
+    setDebouncedQuery('')
+  }
+  const searchTerm = debouncedQuery.trim()
   const searchQ = useQuery({
     queryKey: ['crm', 'commandSearch', searchTerm],
     queryFn: () => searchCrm(searchTerm, 10),
@@ -75,13 +88,13 @@ export function CommandSearch({ open, onClose }: { open: boolean; onClose: () =>
   const someFailed = failedGroups.length > 0
 
   function go(to: string) {
-    setQuery('')
+    resetQuery()
     onClose()
     navigate(to)
   }
 
   return (
-    <Dialog open={open} onOpenChange={(o) => { if (!o) { setQuery(''); onClose() } }}>
+    <Dialog open={open} onOpenChange={(o) => { if (!o) { resetQuery(); onClose() } }}>
       <DialogContent showCloseButton={false} className="top-24 max-w-xl translate-y-0 gap-0 overflow-hidden p-0 sm:max-w-xl">
         <DialogTitle className="sr-only">Search the CRM</DialogTitle>
         <DialogDescription className="sr-only">Search customers, contacts, programs and email</DialogDescription>

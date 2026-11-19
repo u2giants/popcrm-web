@@ -35,6 +35,12 @@ function isCustomerStatus(status: string | null | undefined) {
   return status === 'ACTIVE_CUSTOMER' || status === 'POTENTIAL_CUSTOMER'
 }
 
+function isCustomerContact(b: Buyer) {
+  const r = b.retailer
+  if (!r || typeof r === 'string') return false
+  return isCustomerStatus(r.customer_status)
+}
+
 export function ContactsPage() {
   const customerName = useCustomerDisplayName()
   const queryClient = useQueryClient()
@@ -159,12 +165,6 @@ export function ContactsPage() {
     }
   }
 
-  function isCustomerContact(b: Buyer) {
-    const r = b.retailer
-    if (!r || typeof r === 'string') return false
-    return isCustomerStatus(r.customer_status)
-  }
-
   const segCounts = countsQuery.data ?? {
     customer: segment === 'customer' ? buyers.length : 0,
     department: segment === 'department' ? buyers.length : 0,
@@ -181,73 +181,78 @@ export function ContactsPage() {
     })
   }, [buyers, query, customerName, hideDefunct, defunct])
 
-  const columns: Column<Buyer>[] = [
-    {
-      key: 'name',
-      header: 'Contact',
-      opensDetail: true,
-      sortValue: (b) => b.name?.toLowerCase(),
-      filterValue: (b) => b.name,
-      cell: (b) => (
-        <div className="flex items-center gap-[9px]">
-          <NameAvatar name={b.last_name || b.name} size={24} />
-          <div className="min-w-0">
-            <div className={defunct[b.id] ? 'truncate font-[500] text-muted-foreground line-through' : 'truncate font-[500] text-foreground'}>{b.name}</div>
-            {b.email ? (
-              <div className="truncate text-[11px] text-muted-foreground">{b.email}</div>
-            ) : null}
+  // Memoised so DataTable's column-keyed memos (filter, sort, distinct values)
+  // survive every keystroke in the search box (issue #46).
+  const columns: Column<Buyer>[] = useMemo(
+    () => [
+      {
+        key: 'name',
+        header: 'Contact',
+        opensDetail: true,
+        sortValue: (b) => b.name?.toLowerCase(),
+        filterValue: (b) => b.name,
+        cell: (b) => (
+          <div className="flex items-center gap-[9px]">
+            <NameAvatar name={b.last_name || b.name} size={24} />
+            <div className="min-w-0">
+              <div className={defunct[b.id] ? 'truncate font-[500] text-muted-foreground line-through' : 'truncate font-[500] text-foreground'}>{b.name}</div>
+              {b.email ? (
+                <div className="truncate text-[11px] text-muted-foreground">{b.email}</div>
+              ) : null}
+            </div>
           </div>
-        </div>
-      ),
-    },
-    {
-      key: 'defunct',
-      header: 'Status',
-      hideBelow: 'md',
-      headerSearch: false,
-      sortValue: (b) => (defunct[b.id] ? 'Defunct' : 'Current'),
-      filterValue: (b) => (defunct[b.id] ? 'Defunct' : 'Current'),
-      cell: (b) =>
-        defunct[b.id] ? (
-          <span className="rounded-full bg-destructive/12 px-2 py-[1px] text-[11px] font-[500] text-destructive">
-            Defunct
-          </span>
-        ) : (
-          <span className="text-[11px] text-muted-foreground">Current</span>
         ),
-    },
-    {
-      key: 'job_title',
-      header: 'Title',
-      hideBelow: 'md',
-      sortValue: (b) => b.job_title ?? '',
-      filterValue: (b) => b.job_title,
-      editOptions: titleOptions,
-      editValue: (b) => b.job_title,
-      allowCustomEditValue: true,
-      customEditLabel: 'Create title',
-      cell: (b) => <span className="text-muted-foreground">{b.job_title || '—'}</span>,
-    },
-    {
-      key: 'retailer',
-      header: 'Customer',
-      sortValue: (b) => customerName(b.retailer),
-      filterValue: (b) => customerName(b.retailer),
-      editOptions: (b) => withCurrentCustomer(isCustomerContact(b) ? customerOptions : triageCustomerOptions, idOf(b.retailer), retailerById),
-      editValue: (b) => idOf(b.retailer),
-      cell: (b) => <CustomerRelationLogo value={b.retailer} customerById={retailerById} size={24} variant="token-name" />,
-    },
-    {
-      key: 'department',
-      header: 'Department',
-      hideBelow: 'lg',
-      sortValue: (b) => relatedName(b.department),
-      filterValue: (b) => relatedName(b.department),
-      editOptions: departmentOptionsFor,
-      editValue: (b) => idOf(b.department),
-      cell: (b) => <span className="text-muted-foreground">{relatedName(b.department)}</span>,
-    },
-  ]
+      },
+      {
+        key: 'defunct',
+        header: 'Status',
+        hideBelow: 'md',
+        headerSearch: false,
+        sortValue: (b) => (defunct[b.id] ? 'Defunct' : 'Current'),
+        filterValue: (b) => (defunct[b.id] ? 'Defunct' : 'Current'),
+        cell: (b) =>
+          defunct[b.id] ? (
+            <span className="rounded-full bg-destructive/12 px-2 py-[1px] text-[11px] font-[500] text-destructive">
+              Defunct
+            </span>
+          ) : (
+            <span className="text-[11px] text-muted-foreground">Current</span>
+          ),
+      },
+      {
+        key: 'job_title',
+        header: 'Title',
+        hideBelow: 'md',
+        sortValue: (b) => b.job_title ?? '',
+        filterValue: (b) => b.job_title,
+        editOptions: titleOptions,
+        editValue: (b) => b.job_title,
+        allowCustomEditValue: true,
+        customEditLabel: 'Create title',
+        cell: (b) => <span className="text-muted-foreground">{b.job_title || '—'}</span>,
+      },
+      {
+        key: 'retailer',
+        header: 'Customer',
+        sortValue: (b) => customerName(b.retailer),
+        filterValue: (b) => customerName(b.retailer),
+        editOptions: (b) => withCurrentCustomer(isCustomerContact(b) ? customerOptions : triageCustomerOptions, idOf(b.retailer), retailerById),
+        editValue: (b) => idOf(b.retailer),
+        cell: (b) => <CustomerRelationLogo value={b.retailer} customerById={retailerById} size={24} variant="token-name" />,
+      },
+      {
+        key: 'department',
+        header: 'Department',
+        hideBelow: 'lg',
+        sortValue: (b) => relatedName(b.department),
+        filterValue: (b) => relatedName(b.department),
+        editOptions: departmentOptionsFor,
+        editValue: (b) => idOf(b.department),
+        cell: (b) => <span className="text-muted-foreground">{relatedName(b.department)}</span>,
+      },
+    ],
+    [defunct, customerName, titleOptions, customerOptions, triageCustomerOptions, departmentOptionsFor, retailerById],
+  )
 
   return (
     <AppPage

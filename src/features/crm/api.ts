@@ -1377,6 +1377,10 @@ export async function searchCrm(query: string, limitPerGroup = 8): Promise<CrmSe
   const pattern = searchPattern(query)
   if (!pattern) return { customers: [], contacts: [], opportunities: [], emails: [], failedGroups: [] }
 
+  // Select only the columns CommandSearch displays (plus the relation keys
+  // behind their labels): the or/order clauses below run server-side on view
+  // columns regardless of what is selected, so select('*') only widened the
+  // payload (issue #46).
   const [customers, contacts, opportunities, emails] = await Promise.all([
     // Status-aware picker contract — never surface global-inactive or
     // CRM-inactive rows in global CommandSearch.
@@ -1390,13 +1394,13 @@ export async function searchCrm(query: string, limitPerGroup = 8): Promise<CrmSe
     anyDb
       .schema("api")
       .from('crm_contact_list')
-      .select('*')
+      .select('id,name,email,company_id,company_name,company_display_name')
       .or(ilikeAny(['name', 'email', 'job_title', 'company_name'], pattern))
       .limit(limitPerGroup),
     anyDb
       .schema("api")
       .from('crm_opportunity_list')
-      .select('*')
+      .select('id,name,company_id,company_name,company_display_name')
       .or(ilikeAny(['name', 'company_name', 'department_name', 'production_po_number', 'sales_order_number'], pattern))
       .order('stage', { nullsFirst: false })
       .order('name')
@@ -1404,7 +1408,7 @@ export async function searchCrm(query: string, limitPerGroup = 8): Promise<CrmSe
     anyDb
       .schema("api")
       .from('crm_email_routing_queue')
-      .select('*')
+      .select('id,subject,sender,company_id,company_name,company_display_name')
       .or(ilikeAny(['subject', 'sender', 'recipients', 'company_name', 'department_name', 'opportunity_name'], pattern))
       .order('received_at', { ascending: false, nullsFirst: false })
       .limit(limitPerGroup),
