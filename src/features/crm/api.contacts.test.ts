@@ -2,9 +2,9 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 // Issue #39: clearing a contact's email, phone or job title must be an
 // explicit instruction. These tests pin the p_clear_* flags updateBuyer sends,
-// and the honest "could not clear" failure when the server function does not
-// know the flags yet (the fallback retry saves what it can, then reports the
-// fields it could not clear instead of pretending the save removed them).
+// and that a failure from the RPC surfaces as-is: the server function carries
+// the flags everywhere the api schema is served, so there is no retry without
+// them and no save that quietly skips a clear.
 
 const rpc = vi.fn()
 
@@ -71,28 +71,16 @@ describe('updateBuyer clear flags (#39)', () => {
     expect(rpc).toHaveBeenCalledTimes(1)
   })
 
-  it('retries without the new flags when the function lacks them, keeping the relationship flags, and says the field could not be cleared', async () => {
-    rpc
-      .mockResolvedValueOnce(missingFunctionRejection())
-      .mockResolvedValueOnce({ data: null, error: null })
+  it('surfaces a missing-function rejection as-is instead of retrying without the flags', async () => {
+    rpc.mockResolvedValueOnce(missingFunctionRejection()).mockResolvedValueOnce({ data: null, error: null })
 
-    await expect(api.updateBuyer('c1', { name: 'Holly Price', phone: null, department: null })).rejects.toThrow(
-      /could not clear phone/i,
-    )
-
-    expect(rpc).toHaveBeenCalledTimes(2)
-    const [fallbackName, fallbackArgs] = rpc.mock.calls[1]
-    expect(fallbackName).toBe('crm_update_contact')
-    expect(fallbackArgs.p_full_name).toBe('Holly Price')
-    expect('p_clear_phone' in fallbackArgs).toBe(false)
-    expect(fallbackArgs.p_clear_crm_department).toBe(true)
-  })
-
-  it('resolves quietly on the retry when nothing new needed clearing', async () => {
-    rpc
-      .mockResolvedValueOnce(missingFunctionRejection())
-      .mockResolvedValueOnce({ data: null, error: null })
-
-    await expect(api.updateBuyer('c1', { name: 'Holly Price' })).resolves.toBeUndefined()
+    await expect(api.updateBuyer('c1', { name: 'Holly Price', phone: null, department: null })).rejects.toMatchObject({
+      code: 'PGRST202',
+    })
+    expect(rpc).toHaveBeenCalledTimes(1)
+    const [, args] = rpc.mock.calls[0]
+    expect(args.p_full_name).toBe('Holly Price')
+    expect(args.p_clear_phone).toBe(true)
+    expect(args.p_clear_crm_department).toBe(true)
   })
 })

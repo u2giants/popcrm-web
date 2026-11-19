@@ -941,8 +941,7 @@ export async function updateBuyer(id: string, values: Partial<Buyer>) {
   // A null email/phone/job_title is the explicit "clear the stored value"
   // instruction (#39): the RPC only clears through p_clear_* flags, a null
   // argument alone preserves the column. The flags are sent only when set, so
-  // until the server function gains them, ordinary edits stay on the single
-  // call path.
+  // ordinary edits stay on the single call path.
   const clearEmail = 'email' in v && !arg(v.email)
   const clearPhone = 'phone' in v && !arg(v.phone)
   const clearJobTitle = 'job_title' in v && !arg(v.job_title)
@@ -964,34 +963,10 @@ export async function updateBuyer(id: string, values: Partial<Buyer>) {
     ...(clearPhone ? { p_clear_phone: true } : {}),
     ...(clearJobTitle ? { p_clear_job_title: true } : {}),
   }
+  // The server function carries the flags everywhere the api schema is served
+  // (migrations 20261223010101 + 20261225010001), so an error here is a real
+  // failure and is surfaced as-is — no retry without the flags (#39).
   const { error } = await supabase.schema('api').rpc('crm_update_contact', args)
-  if (error && isMissingApiObject(error)) {
-    // Function version without the new flags: retry without them so the rest
-    // of the edit still saves (relationship flags exist everywhere the api
-    // schema does), then say what could not be cleared instead of reporting
-    // a save that never happened (#39).
-    const { error: fallbackError } = await supabase.schema('api').rpc('crm_update_contact', {
-      p_contact_id: args.p_contact_id,
-      p_first_name: args.p_first_name,
-      p_last_name: args.p_last_name,
-      p_full_name: args.p_full_name,
-      p_email: args.p_email,
-      p_phone: args.p_phone,
-      p_job_title: args.p_job_title,
-      p_company_id: args.p_company_id,
-      p_crm_department_id: args.p_crm_department_id,
-      p_scope: args.p_scope,
-      p_clear_company: args.p_clear_company,
-      p_clear_crm_department: args.p_clear_crm_department,
-      p_clear_scope: args.p_clear_scope,
-    })
-    if (fallbackError) throw fallbackError
-    const uncleared = [clearEmail && 'email', clearPhone && 'phone', clearJobTitle && 'job title'].filter(Boolean) as string[]
-    if (uncleared.length) {
-      throw new Error(`Could not clear ${uncleared.join(', ')} — the server does not support clearing these fields yet. Other changes were saved.`)
-    }
-    return
-  }
   if (error) throw error
 }
 
