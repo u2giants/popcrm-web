@@ -23,6 +23,7 @@ const createIgnoreRule = vi.fn()
 vi.mock('@/features/crm/queries', () => ({
   listData: <T,>(data: T[] | undefined): T[] => data ?? [],
   useEmailsQuery: vi.fn(() => ({ data: [] })),
+  useEmailsForQuery: vi.fn(() => ({ rows: [], total: 0, isLoading: false, isError: false, refetch: vi.fn() })),
   useMeetingsQuery: vi.fn(() => ({ data: [] })),
   useNotesQuery: vi.fn(() => ({ data: [] })),
   useTasksQuery: vi.fn(() => ({ data: [] })),

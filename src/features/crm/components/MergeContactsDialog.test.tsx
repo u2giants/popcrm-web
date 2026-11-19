@@ -41,6 +41,7 @@ vi.mock('@/features/crm/queries', () => ({
   useAllContactsQuery: vi.fn(() => ({ data: [keep, drop, other] })),
   useMergeContactsMutation: vi.fn(() => ({ mutateAsync, isPending: false })),
   useEmailsQuery: vi.fn(() => ({ data: [] })),
+  useEmailsForQuery: vi.fn(() => ({ rows: [], total: 0, isLoading: false, isError: false, refetch: vi.fn() })),
   useMeetingsQuery: vi.fn(() => ({ data: [] })),
   useDepartmentsQuery: vi.fn(() => ({ data: [] })),
   useCustomerPickerQuery: vi.fn(() => ({ data: [] })),

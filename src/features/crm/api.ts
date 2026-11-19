@@ -1180,6 +1180,46 @@ export async function updateEmailMessage(id: string, values: Partial<CrmEmailMes
   await updateRow('email_message', id, mapValues(values as Row, EMAIL_MAP, EMAIL_RELS))
 }
 
+// One record's own email history + real count (shared-db api.crm_emails_for_page
+// and api.crm_emails_for_count, migration 20261223010105) — the drawers' scoped
+// replacement for filtering the company-wide 500-row feed (#40). Exactly one of
+// companyId / sender / opportunityId must be given: the RPCs reject an
+// unfiltered call, and so does the client before a request is built. The sender
+// filter is the bare stored address (what the worker writes to email_message.sender).
+// Routed through the dynamic-name helper: database.types.ts predates these RPCs.
+export interface EmailsForFilter {
+  companyId?: string
+  sender?: string
+  opportunityId?: string
+}
+
+export interface EmailsForResult {
+  rows: CrmEmailMessage[]
+  total: number
+}
+
+function emailsForArgs(filter: EmailsForFilter): Row {
+  const provided = [filter.companyId, filter.sender, filter.opportunityId].filter((v) => v != null && v !== '').length
+  if (provided !== 1) throw new Error('emailsFor: exactly one of companyId, sender, opportunityId is required')
+  return {
+    p_company_id: filter.companyId || null,
+    p_sender: filter.sender || null,
+    p_opportunity_id: filter.opportunityId || null,
+  }
+}
+
+export async function fetchEmailsFor(filter: EmailsForFilter, limit: number, offset = 0): Promise<EmailsForResult> {
+  const args = emailsForArgs(filter)
+  const [page, counted] = await Promise.all([
+    anyDb.schema('api').rpc('crm_emails_for_page', { ...args, p_limit: limit, p_offset: offset }),
+    anyDb.schema('api').rpc('crm_emails_for_count', args),
+  ])
+  if (page.error) throw page.error
+  if (counted.error) throw counted.error
+  // bigint counts can arrive as strings; count() normalizes once.
+  return { rows: ((page.data ?? []) as Row[]).map(toEmail), total: count(counted.data) }
+}
+
 // Keyed search against api.crm_email_routing_queue (small-search use): every
 // message of one sender at one customer that still needs its department, on any
 // server page — a manual assignment sweeps the sender's whole history, not just

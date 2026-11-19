@@ -26,6 +26,7 @@ import {
   fetchEmailMessages,
   fetchEmailStageCounts,
   fetchEmailStagePage,
+  fetchEmailsFor,
   fetchIgnoreRules,
   mergeCustomers,
   mergeContacts,
@@ -70,6 +71,7 @@ import {
   type ContactSegmentCounts,
   type EmailStage,
   type EmailStageCounts,
+  type EmailsForFilter,
 } from './api'
 import { FIREFLIES_HEALTH_URL } from './constants'
 import { relatedName } from './format'
@@ -115,6 +117,10 @@ export const crmKeys = {
   contactSegmentCounts: () => [...crmKeys.all, 'contactSegmentCounts'] as const,
   departments: (limit = -1) => [...crmKeys.all, 'departments', { limit }] as const,
   emails: (limit = -1) => [...crmKeys.all, 'emails', { limit }] as const,
+  // One record's emails (api.crm_emails_for_page/_count, #40). The filter is
+  // normalized to explicit nulls so {companyId: undefined} and {} hash alike.
+  emailsFor: (filter: EmailsForFilter, limit: number) =>
+    [...crmKeys.all, 'emailsFor', { companyId: filter.companyId ?? null, sender: filter.sender ?? null, opportunityId: filter.opportunityId ?? null }, { limit }] as const,
   emailStageCounts: () => [...crmKeys.all, 'emailStageCounts'] as const,
   emailStagePage: (stage: string, limit: number, offset: number) =>
     [...crmKeys.all, 'emails', 'stagePage', { stage, limit, offset }] as const,
@@ -330,6 +336,31 @@ export function useEmailsQuery(limit = -1) {
     staleTime: 10_000,
     refetchInterval: 45_000,
   })
+}
+
+/**
+ * One record's email history with its real count (#40): the page rows plus the
+ * full-history total from api.crm_emails_for_count, so a drawer shows the
+ * record's own emails however old they are, not the newest 500 company-wide.
+ * Pass null to disable (drawer closed / record without the filter value).
+ */
+export function useEmailsForQuery(filter: EmailsForFilter | null, limit: number) {
+  const query = useQuery({
+    queryKey: crmKeys.emailsFor(filter ?? {}, limit),
+    queryFn: () => fetchEmailsFor(filter as EmailsForFilter, limit),
+    enabled: !!filter,
+    ...crmQueryDefaults,
+    staleTime: 10_000,
+    refetchInterval: 45_000,
+  })
+  return {
+    rows: query.data?.rows ?? [],
+    total: query.data?.total ?? null,
+    isLoading: query.isLoading,
+    isError: query.isError,
+    error: query.error,
+    refetch: () => void query.refetch(),
+  }
 }
 
 export function useEmailStageCountsQuery() {

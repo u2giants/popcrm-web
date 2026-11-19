@@ -15,7 +15,7 @@ import {
 } from '@/components/ui/select'
 import {
   listData,
-  useEmailsQuery,
+  useEmailsForQuery,
   useMeetingsQuery,
   useNotesQuery,
   useSetOpportunityStageMutation,
@@ -48,7 +48,10 @@ export function OpportunityDrawer({
 }
 
 function OpportunityDrawerForm({ row, onClose }: { row: CrmOpportunity; onClose: () => void }) {
-  const emails = listData(useEmailsQuery(-1).data)
+  // This program's own email count from the server (#40): the full-history
+  // total, not the matched rows inside the company-wide newest-500 feed.
+  // null (rendered '—') when the count could not be read — never a false 0.
+  const emailsQuery = useEmailsForQuery({ opportunityId: row.id }, 1)
   const meetings = listData(useMeetingsQuery(-1).data)
   const notes = listData(useNotesQuery(-1).data)
   const tasks = listData(useTasksQuery(-1).data)
@@ -66,12 +69,12 @@ function OpportunityDrawerForm({ row, onClose }: { row: CrmOpportunity; onClose:
     // empty id) and inflate the number.
     const retailerId = idOf(row.retailer)
     return {
-      emails: emails.filter((e) => match(e.opportunity)).length,
+      emails: emailsQuery.isError ? null : emailsQuery.total,
       meetings: retailerId ? meetings.filter((m) => idOf(m.retailer) === retailerId).length : null,
       notes: notes.filter((n) => match(n.opportunity)).length,
       tasks: tasks.filter((t) => match(t.opportunity)).length,
     }
-  }, [emails, meetings, notes, tasks, row])
+  }, [emailsQuery.isError, emailsQuery.total, meetings, notes, tasks, row])
 
   async function changeStage(next: string) {
     const prev = stage

@@ -13,7 +13,7 @@ import {
   useArchiveCustomerMutation,
   useCustomerIngestedDomainsQuery,
   useDepartmentsQuery,
-  useEmailsQuery,
+  useEmailsForQuery,
   useIngestedContactsQuery,
   useOpportunitiesQuery,
   useUpdateCustomerMutation,
@@ -32,7 +32,9 @@ export function CustomerDrawer({ row, onClose }: { row: Retailer | null; onClose
   const buyers = listData(useIngestedContactsQuery(-1).data)
   const departments = listData(useDepartmentsQuery(-1).data)
   const opportunities = listData(useOpportunitiesQuery(-1).data)
-  const emails = listData(useEmailsQuery(-1).data)
+  // This customer's own email history (#40), not a filter over the newest 500
+  // company-wide: api.crm_emails_for_page already caps and orders the page.
+  const emailsQuery = useEmailsForQuery(row ? { companyId: row.id } : null, 6)
   const linkedDomainsQuery = useCustomerIngestedDomainsQuery(row?.id)
   const linkedDomains = linkedDomainsQuery.data ?? []
   const archiveMutation = useArchiveCustomerMutation()
@@ -53,16 +55,15 @@ export function CustomerDrawer({ row, onClose }: { row: Retailer | null; onClose
   }
 
   const related = useMemo(() => {
-    if (!row) return { contacts: [], depts: [], opps: [], recentEmails: [], suggestedDomain: null }
+    if (!row) return { contacts: [], depts: [], opps: [], suggestedDomain: null }
     const contacts = buyers.filter((b) => idOf(b.retailer) === row.id)
     return {
       contacts,
       suggestedDomain: suggestDomainFromEmails(contacts.map((c) => c.email)),
       depts: departments.filter((d) => idOf(d.retailer) === row.id),
       opps: opportunities.filter((o) => idOf(o.retailer) === row.id),
-      recentEmails: emails.filter((e) => idOf(e.retailer) === row.id).slice(0, 6),
     }
-  }, [row, buyers, departments, opportunities, emails])
+  }, [row, buyers, departments, opportunities])
 
   // One shared alias rule (#55): the same split the email worker uses, so the
   // alias list here cannot disagree with what routing treats as owned.
@@ -240,21 +241,31 @@ export function CustomerDrawer({ row, onClose }: { row: Retailer | null; onClose
           </DrawerSection>
 
           {/* Recent email */}
-          {related.recentEmails.length ? (
+          {emailsQuery.isError || emailsQuery.rows.length ? (
             <DrawerSection title="Recent email">
-              <ul className="divide-y rounded-[8px] border">
-                {related.recentEmails.map((e) => (
-                  <li key={e.id} className="flex items-center gap-[9px] px-[11px] py-[8px]">
-                    <Mail className="size-[13px] shrink-0 text-muted-foreground" />
-                    <div className="min-w-0">
-                      <div className="truncate text-[12.5px] font-[500] text-foreground">
-                        {e.subject || '(no subject)'}
+              {emailsQuery.isError ? (
+                // A failed load must not read as "no recent email" (#58 rule).
+                <p className="text-[12px] text-destructive">
+                  Could not load recent email.{' '}
+                  <button type="button" className="underline underline-offset-2" onClick={emailsQuery.refetch}>
+                    Retry
+                  </button>
+                </p>
+              ) : (
+                <ul className="divide-y rounded-[8px] border">
+                  {emailsQuery.rows.map((e) => (
+                    <li key={e.id} className="flex items-center gap-[9px] px-[11px] py-[8px]">
+                      <Mail className="size-[13px] shrink-0 text-muted-foreground" />
+                      <div className="min-w-0">
+                        <div className="truncate text-[12.5px] font-[500] text-foreground">
+                          {e.subject || '(no subject)'}
+                        </div>
+                        <div className="truncate text-[11px] text-muted-foreground">{e.sender}</div>
                       </div>
-                      <div className="truncate text-[11px] text-muted-foreground">{e.sender}</div>
-                    </div>
-                  </li>
-                ))}
-              </ul>
+                    </li>
+                  ))}
+                </ul>
+              )}
             </DrawerSection>
           ) : null}
 

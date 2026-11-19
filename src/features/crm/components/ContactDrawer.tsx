@@ -14,7 +14,7 @@ import {
   useCustomerPickerQuery,
   useDefunctContactsQuery,
   useDepartmentsQuery,
-  useEmailsQuery,
+  useEmailsForQuery,
   useMeetingsQuery,
   useSetContactDefunctMutation,
   useUpdateContactMutation,
@@ -37,7 +37,13 @@ export function ContactDrawer({
   onClose: () => void
   focusDepartment?: boolean
 }) {
-  const emails = listData(useEmailsQuery(-1).data)
+  // This contact's own email history by sender address (#40): the bare stored
+  // address the old filter compared against, however old the emails are. No
+  // email on the contact -> no scoped query at all.
+  const emailsQuery = useEmailsForQuery(
+    row?.email ? { sender: row.email.trim().toLowerCase() } : null,
+    6,
+  )
   const meetings = listData(useMeetingsQuery(-1).data)
   const departments = listData(useDepartmentsQuery(-1).data)
   const updateContactMutation = useUpdateContactMutation()
@@ -160,12 +166,11 @@ export function ContactDrawer({
   }
 
   const related = useMemo(() => {
-    if (!row) return { emails: [], meetings: [] }
+    if (!row) return { meetings: [] }
     return {
-      emails: emails.filter((e) => (e.sender || '').toLowerCase() === (row.email || '\0').toLowerCase()).slice(0, 6),
       meetings: meetings.filter((m) => idOf(m.contact) === row.id).slice(0, 6),
     }
-  }, [row, emails, meetings])
+  }, [row, meetings])
 
   const retailerId = idOf(currentRetailer) || ''
   const departmentOptions = useMemo<ComboOption[]>(
@@ -361,9 +366,18 @@ export function ContactDrawer({
           </DrawerSection>
 
           <DrawerSection title="Recent email">
-            {related.emails.length ? (
+            {emailsQuery.isError ? (
+              // A failed load must not read as "no email from this address"
+              // (#58 rule) — that false negative is exactly what #40 fixed.
+              <p className="text-[12px] text-destructive">
+                Could not load this contact’s email.{' '}
+                <button type="button" className="underline underline-offset-2" onClick={emailsQuery.refetch}>
+                  Retry
+                </button>
+              </p>
+            ) : emailsQuery.rows.length ? (
               <ul className="divide-y rounded-[8px] border">
-                {related.emails.map((e) => (
+                {emailsQuery.rows.map((e) => (
                   <li key={e.id} className="px-[11px] py-[8px]">
                     <div className="truncate text-[12.5px] font-[500] text-foreground">
                       {e.subject || '(no subject)'}
