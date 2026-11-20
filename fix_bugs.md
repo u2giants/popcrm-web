@@ -1,7 +1,7 @@
 ---
-summary: 2026-08-26 follow-on audit: Part 1 fixes landed via PR #7; Part 2 (relation counts, worker changes, fuzzy PO decision) still open.
+summary: 2026-08-26 follow-on audit: Part 1 via PR #7; Part 2 items A–G all landed 2026-11-19. Complete.
 kind: plan
-status: open
+status: done
 read-when: continuing fix_bugs Part 2 or re-checking Part 1 coverage
 ---
 # POP CRM codebase audit — bugs and inefficiencies

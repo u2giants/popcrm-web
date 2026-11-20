@@ -21,8 +21,8 @@ Business logic is companywide and organized by topic, not by application. Start 
 
 ## Open plans (read the plan's STATUS first; never re-plan)
 
-- [`plan_codebase_audit_remediation.md`](plan_codebase_audit_remediation.md) — audit remediation, Sessions 13 (worker batching) and 14 (promotion residue) still pending in its ledger.
-- [`fix_bugs.md`](fix_bugs.md) — Part 1 landed via PR #7; Part 2 still open.
+- [`plan_codebase_audit_remediation.md`](plan_codebase_audit_remediation.md) — complete; Sessions 13 and 14 landed 2026-11-19 (issues #65, #61).
+- [`fix_bugs.md`](fix_bugs.md) — complete; Part 1 via PR #7, Part 2 items A–G landed 2026-11-19 (issues #57, #65, #69, commit 998265bb).
 - [`fix_remove_account.md`](fix_remove_account.md) — final shared-db drop of deprecated `crm_account_*` names still pending.
 - Finished plans (CRM basic CRUD, live-data, and the rest) are listed with status in the `plan`, `spec` and `proof` sections of [`docs/INDEX.md`](docs/INDEX.md).
 

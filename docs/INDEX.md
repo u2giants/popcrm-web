@@ -38,7 +38,7 @@ Read the summary; open a document only when it matches your task.
 | File | Status | Summary | Read when |
 |---|---|---|---|
 | [docs/live-data-implementation-plan.md](live-data-implementation-plan.md) | done | 2026 plan that replaced snapshot-style bootstrap with live TanStack Query data; phased steps, bounds per screen. Implemented; kept as the design record. | changing how CRM screens load, refresh, or bound data |
-| [fix_bugs.md](../fix_bugs.md) | open | 2026-08-26 follow-on audit: Part 1 fixes landed via PR #7; Part 2 (relation counts, worker changes, fuzzy PO decision) still open. | continuing fix_bugs Part 2 or re-checking Part 1 coverage |
+| [fix_bugs.md](../fix_bugs.md) | done | 2026-08-26 follow-on audit: Part 1 via PR #7; Part 2 items A–G all landed 2026-11-19. Complete. | continuing fix_bugs Part 2 or re-checking Part 1 coverage |
 | [fix_remove_account.md](../fix_remove_account.md) | open | Two-step removal of legacy account-named API/RPC contracts; customer-named contracts are live, the final shared-db drop of old names is still pending. | retiring the deprecated crm_account_* compatibility contracts |
 | [plan_codebase_audit_remediation.md](../plan_codebase_audit_remediation.md) | open | 2026-07-26 audit remediation plan: fourteen findings, fifteen sessions, progress ledger; Sessions 13 (worker batching) and 14 (promotion residue) pending. | continuing audit Sessions 13 or 14, or checking the ledger |
 | [plan_crm_basic_crud.md](../plan_crm_basic_crud.md) | done | CRM basic CRUD plan: add/delete/merge contacts, programs, notes, tasks, customers; steps 0-11 all live-proven 2026-11-06. | changing contact/program/customer create, archive, or merge flows |
