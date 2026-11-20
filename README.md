@@ -1,5 +1,7 @@
 # popcrm-web
 
+[Canonical shared database design and schema reference](https://github.com/popcre/shared-db/blob/main/docs/database-design-and-schema.md)
+
 Companywide business rules are indexed by topic in
 [companywide application and task map](https://github.com/u2giants/shared-db/blob/main/docs/business-rules/application-map.md).
 Use its CRM row or task map to load only the relevant rules.
