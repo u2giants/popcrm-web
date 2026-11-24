@@ -22,7 +22,8 @@
 //   SUPABASE_URL=https://tcscehehgeiijilylezv.supabase.co   (preview first)
 //   SUPABASE_SERVICE_ROLE_KEY=<server-only>                 (NEVER expose to the browser)
 //   MS_TENANT_ID/MS_CLIENT_ID/MS_CLIENT_SECRET or AZURE_* ; OUTLOOK_MAILBOXES (required for outlook-ingest) ; OUTLOOK_GATED
-//   FIREFLIES_API_KEY, FIREFLIES_WEBHOOK_SECRET, OPENROUTER_API_KEY, PORT=8787
+//   FIREFLIES_API_KEY, FIREFLIES_WEBHOOK_SECRET, OPENROUTER_API_KEY, OPENAI_API_KEY
+//   (OPENAI_ROUTE=openrouter sends OpenAI models back through OpenRouter), PORT=8787
 //   SCALEDOWN_API_KEY, SCALEDOWN_ROUTING_MIN_CONFIDENCE (email routing fallback)
 import { readFileSync, writeFileSync } from 'node:fs'
 import { pathToFileURL } from 'node:url'
@@ -515,30 +516,46 @@ async function scaledownRetailerFallback({ subject, bodyText, addresses }) {
   return pickScaledownRetailer(body, options, scaledownMinConfidence)
 }
 
+// OpenAI models (ids starting "openai/") go straight to OpenAI by default.
+// Switch back to OpenRouter by setting OPENAI_ROUTE=openrouter. All other
+// models always use OpenRouter.
+export function chatCompletionTarget(model, env = runtimeEnv) {
+  const route = String(env.OPENAI_ROUTE || 'direct').trim().toLowerCase()
+  if (String(model).startsWith('openai/') && route !== 'openrouter') {
+    return { provider: 'OpenAI', url: 'https://api.openai.com/v1/chat/completions', key: env.OPENAI_API_KEY, model: String(model).slice('openai/'.length) }
+  }
+  return { provider: 'OpenRouter', url: 'https://openrouter.ai/api/v1/chat/completions', key: env.OPENROUTER_API_KEY, model }
+}
+
+async function chatCompletion(label, title, model, payload) {
+  const target = chatCompletionTarget(model)
+  if (!target.key) throw new Error(`${target.provider} ${label} skipped: ${target.provider === 'OpenAI' ? 'OPENAI_API_KEY' : 'OPENROUTER_API_KEY'} is not set`)
+  const headers = { 'Content-Type': 'application/json', Authorization: `Bearer ${target.key}` }
+  const body = { model: target.model, ...payload }
+  if (target.provider === 'OpenRouter') Object.assign(headers, { 'HTTP-Referer': SUPABASE_URL, 'X-Title': title })
+  else delete body.temperature // GPT-5 family on OpenAI direct only accepts the default temperature
+  const res = await upstreamFetch(`${target.provider} ${label}`, target.url, { method: 'POST', headers, body: JSON.stringify(body) }, { timeoutMs: upstreamSettings.OPENROUTER_FETCH_TIMEOUT_MS })
+  if (!res.ok) throw new Error(`${target.provider} ${label} failed: HTTP ${res.status}`)
+  const json = await res.json()
+  return json.choices?.[0]?.message?.content
+}
+
 async function summarizeOpportunity(opportunityId) {
-  if (!opportunityId || !runtimeEnv.OPENROUTER_API_KEY) return false
+  if (!opportunityId) return false
   const [opportunity] = must(await crm('opportunity').select('id,name,stage,company_id,department_id,production_po_number,sales_order_number,project_id').eq('id', opportunityId).limit(1))
   if (!opportunity) return false
   const emails = must(await crm('email_message').select('subject,sender,received_at,body_preview,routing_method').eq('opportunity_id', opportunityId).order('received_at', { ascending: false }).limit(60))
   if (!emails.length) return false
   const model = await routingModel('opportunity_summary_model')
-  const res = await upstreamFetch('OpenRouter opportunity summary', 'https://openrouter.ai/api/v1/chat/completions', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${runtimeEnv.OPENROUTER_API_KEY}`, 'HTTP-Referer': SUPABASE_URL, 'X-Title': 'POP CRM Opportunity Summary' },
-    body: JSON.stringify({
-      model,
-      messages: [
-        { role: 'system', content: ['Summarize this CRM opportunity for a customer manager.', 'Return strict JSON with: summary, nextStep, risk, status, people, actionItems, blockers, decisions, timeline, updatedAt.', 'Preserve active facts from the email history. Keep summary human-readable and concise.'].join(' ') },
-        { role: 'user', content: JSON.stringify({ opportunity, emails }) },
-      ],
-      temperature: 0.2,
-      response_format: { type: 'json_object' },
-    }),
-  }, { timeoutMs: upstreamSettings.OPENROUTER_FETCH_TIMEOUT_MS })
-  if (!res.ok) throw new Error(`OpenRouter opportunity summary failed: HTTP ${res.status}`)
-  const json = await res.json()
-  const content = json.choices?.[0]?.message?.content
-  if (!content) throw new Error('OpenRouter opportunity summary returned no content')
+  const content = await chatCompletion('opportunity summary', 'POP CRM Opportunity Summary', model, {
+    messages: [
+      { role: 'system', content: ['Summarize this CRM opportunity for a customer manager.', 'Return strict JSON with: summary, nextStep, risk, status, people, actionItems, blockers, decisions, timeline, updatedAt.', 'Preserve active facts from the email history. Keep summary human-readable and concise.'].join(' ') },
+      { role: 'user', content: JSON.stringify({ opportunity, emails }) },
+    ],
+    temperature: 0.2,
+    response_format: { type: 'json_object' },
+  })
+  if (!content) throw new Error('opportunity summary returned no content')
   let parsed
   try { parsed = JSON.parse(content) } catch { parsed = { summary: content } }
   must(await crm('opportunity').update({ ai_summary: parsed.summary || content, ai_state: JSON.stringify({ ...parsed, updatedAt: new Date().toISOString() }) }).eq('id', opportunityId))
@@ -546,7 +563,7 @@ async function summarizeOpportunity(opportunityId) {
 }
 
 async function chatOpportunity(opportunityId, question) {
-  if (!opportunityId || !question || !runtimeEnv.OPENROUTER_API_KEY) return ''
+  if (!opportunityId || !question) return ''
   const [opportunity] = must(await crm('opportunity').select('id,name,stage,ai_summary,ai_state,company_id,department_id,project_id,production_po_number,sales_order_number').eq('id', opportunityId).limit(1))
   if (!opportunity) return ''
   // Resolve display names (cross-schema, so fetched separately).
@@ -559,21 +576,14 @@ async function chatOpportunity(opportunityId, question) {
     crm('task').select('title,body,status,due_at').eq('opportunity_id', opportunityId).order('status').order('due_at').limit(25).then(must),
   ])
   const model = await routingModel('opportunity_summary_model')
-  const res = await upstreamFetch('OpenRouter opportunity chat', 'https://openrouter.ai/api/v1/chat/completions', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${runtimeEnv.OPENROUTER_API_KEY}`, 'HTTP-Referer': SUPABASE_URL, 'X-Title': 'POP CRM Opportunity Chat' },
-    body: JSON.stringify({
-      model,
-      messages: [
-        { role: 'system', content: 'Answer as a CRM assistant using only the provided CRM context. If the context is insufficient, say what is missing. Keep the answer concise and action-oriented.' },
-        { role: 'user', content: JSON.stringify({ question, opportunity: context, emails, notes, tasks }) },
-      ],
-      temperature: 0.2,
-    }),
-  }, { timeoutMs: upstreamSettings.OPENROUTER_FETCH_TIMEOUT_MS })
-  if (!res.ok) throw new Error(`OpenRouter chat failed: HTTP ${res.status}`)
-  const json = await res.json()
-  return String(json.choices?.[0]?.message?.content || '').trim()
+  const content = await chatCompletion('opportunity chat', 'POP CRM Opportunity Chat', model, {
+    messages: [
+      { role: 'system', content: 'Answer as a CRM assistant using only the provided CRM context. If the context is insufficient, say what is missing. Keep the answer concise and action-oriented.' },
+      { role: 'user', content: JSON.stringify({ question, opportunity: context, emails, notes, tasks }) },
+    ],
+    temperature: 0.2,
+  })
+  return String(content || '').trim()
 }
 
 async function updateOpportunitySummary(opportunityId) {
