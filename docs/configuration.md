@@ -113,7 +113,7 @@ requires:
 - `FIREFLIES_WEBHOOK_SECRET` to authenticate webhook bodies;
 - `FIREFLIES_API_KEY` to retrieve Fireflies transcripts; and
 - `OPENROUTER_API_KEY` for the enabled Opportunity Chat endpoint (non-OpenAI models).
-- `OPENAI_API_KEY` — OpenAI models (`openai/...`) call OpenAI directly by default. Set `OPENAI_ROUTE=openrouter` to send them back through OpenRouter; any other value (or unset) means direct. Key source: 1Password item `ai provider api keys openai deepseek chatgpt qwen`, field `openai chatgpt popdam`.
+- `OPENAI_API_KEY` — OpenAI models (`openai/...`) call OpenAI directly by default. Set `OPENAI_ROUTE=openrouter` to send them back through OpenRouter; any other value (or unset) means direct. With no model chosen in Settings, the CRM uses `GPT_6_LUNA` (`gpt-6-luna`) at `OPENAI_REASONING_EFFORT` (default `medium`). Key source: 1Password item `ai provider api keys openai deepseek chatgpt qwen`, field `openai chatgpt popdam`.
 - `SCALEDOWN_API_KEY` for the email and meeting routing fallback (ScaleDown Decisions API, model `classify-1`). Without it the fallback is skipped with a logged warning.
 - `SCALEDOWN_ROUTING_MIN_CONFIDENCE` optional, default `0.93` (calibrated on live routed emails, issue #22); ScaleDown retailer picks below it are ignored.
 - The `popcrm-fireflies` container has its environment fixed at creation; a changed value needs the container recreated, not just restarted. It received `SCALEDOWN_API_KEY` on 2026-11-04.

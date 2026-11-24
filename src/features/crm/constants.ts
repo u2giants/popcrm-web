@@ -107,6 +107,7 @@ export const CHAIN_HUE: Record<string, number> = {
 export const MATCH_TYPES = ['CONTAINS', 'STARTS_WITH', 'EXACT'] as const
 
 export const AI_MODELS = [
+  'GPT_6_LUNA',
   'GPT_5_4',
   'GPT_5_4_MINI',
   'GPT_5_4_NANO',

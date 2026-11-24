@@ -206,7 +206,10 @@ const DEFAULT_PO_PATTERNS = [
 ]
 const NO_CUSTOMER_DOMAIN = 'NO_CUSTOMER_DOMAIN'
 const ROUTABLE_STATUSES = ['UNROUTED', 'COMPANY_ONLY', 'COMPANY_DEPT', 'CUSTOMER_EMAIL_NO_COMPANY']
+// CRM default: Luna-6 at medium reasoning (owner request 2026-11-24).
+const DEFAULT_AI_MODEL = 'GPT_6_LUNA'
 const MODEL_VALUE_MAP = {
+  GPT_6_LUNA: 'openai/gpt-6-luna',
   GPT_5_4: 'openai/gpt-5.4', GPT_5_4_MINI: 'openai/gpt-5.4-mini', GPT_5_4_NANO: 'openai/gpt-5.4-nano',
   GEMINI_3_1_PRO: 'google/gemini-3.1-pro-preview', GEMINI_3_FLASH: 'google/gemini-3-flash-preview',
   GEMINI_3_1_FLASH_LITE: 'google/gemini-3.1-flash-lite-preview', GEMINI_3_1_FLASH_IMAGE: 'google/gemini-3.1-flash-image-preview',
@@ -432,7 +435,7 @@ export async function matchOpportunity({ retailer, department, searchText }) {
 
 async function routingModel(task = 'email_routing_model') {
   const rows = must(await crm('ai_model_config').select(`id,${task}`).limit(1))
-  return resolveModel(rows[0]?.[task] || 'GEMINI_2_FLASH')
+  return resolveModel(rows[0]?.[task] || DEFAULT_AI_MODEL)
 }
 
 // Convert a route result's relation keys to crm.* column names.
@@ -533,7 +536,12 @@ async function chatCompletion(label, title, model, payload) {
   const headers = { 'Content-Type': 'application/json', Authorization: `Bearer ${target.key}` }
   const body = { model: target.model, ...payload }
   if (target.provider === 'OpenRouter') Object.assign(headers, { 'HTTP-Referer': SUPABASE_URL, 'X-Title': title })
-  else delete body.temperature // GPT-5 family on OpenAI direct only accepts the default temperature
+  else delete body.temperature // GPT-5+ on OpenAI direct only accepts the default temperature
+  if (target.model.includes('gpt-6') || target.model.includes('gpt-5')) {
+    const effort = String(runtimeEnv.OPENAI_REASONING_EFFORT || 'medium').trim().toLowerCase()
+    if (target.provider === 'OpenAI') body.reasoning_effort = effort
+    else { body.reasoning = { effort }; delete body.temperature }
+  }
   const res = await upstreamFetch(`${target.provider} ${label}`, target.url, { method: 'POST', headers, body: JSON.stringify(body) }, { timeoutMs: upstreamSettings.OPENROUTER_FETCH_TIMEOUT_MS })
   if (!res.ok) throw new Error(`${target.provider} ${label} failed: HTTP ${res.status}`)
   const json = await res.json()
